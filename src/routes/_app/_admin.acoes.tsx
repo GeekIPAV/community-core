@@ -668,7 +668,7 @@ function AcoesPage() {
               : "max-w-2xl max-h-[90vh] overflow-y-auto"
           }
         >
-          <DialogHeader>
+          <DialogHeader className="sticky top-0 z-10 -mx-6 -mt-6 border-b bg-background px-6 py-4">
             <div className="flex items-center justify-between gap-2 pr-8">
               <DialogTitle>{editing?.nome || "Editar ação"}</DialogTitle>
               <Button
