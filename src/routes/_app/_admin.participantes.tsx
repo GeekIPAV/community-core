@@ -501,6 +501,15 @@ function ParticipantesPage() {
                 </SelectContent>
               </Select>
             </Field>
+            <Field label="Projeto" className="col-span-2">
+              <Select value={form.projeto_id ?? "__null"} onValueChange={(v) => setForm({ ...form, projeto_id: v === "__null" ? null : v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__null">— sem projeto —</SelectItem>
+                  {projetos?.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
             <Field label="Tipo de utilizador" className="col-span-2">
               <Select value={form.tipo_user_id ?? "__null"} onValueChange={(v) => setForm({ ...form, tipo_user_id: v === "__null" ? null : v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -549,6 +558,15 @@ function ParticipantesPage() {
                   <SelectContent>
                     <SelectItem value="__null">— sem família —</SelectItem>
                     {familias?.map((f) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Projeto" className="col-span-2">
+                <Select value={editing.projeto_id ?? "__null"} onValueChange={(v) => setEditing({ ...editing, projeto_id: v === "__null" ? null : v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__null">— sem projeto —</SelectItem>
+                    {projetos?.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </Field>
@@ -625,6 +643,16 @@ function ParticipantesPage() {
                   <SelectItem value="__noop">— não alterar —</SelectItem>
                   <SelectItem value="__null">— remover família —</SelectItem>
                   {familias?.map((f) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Projeto">
+              <Select value={bulkProjeto} onValueChange={setBulkProjeto}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__noop">— não alterar —</SelectItem>
+                  <SelectItem value="__null">— remover projeto —</SelectItem>
+                  {projetos?.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
             </Field>
