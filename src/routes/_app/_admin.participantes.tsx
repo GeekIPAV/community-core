@@ -619,20 +619,51 @@ function Field({ label, className, children }: { label: string; className?: stri
   );
 }
 
-function parseBulkCsv(text: string) {
+function parseBulkCsv(text: string, familias: { id: string; nome: string }[]) {
+  const famByName = new Map(familias.map((f) => [f.nome.trim().toLowerCase(), f.id]));
   return text
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean)
     .map((line) => {
-      const [nome, email, telefone, nif, data_nascimento] = line.split(",").map((x) => x?.trim() ?? "");
+      const parts = line.split(",").map((x) => x?.trim() ?? "");
+      const [
+        nome,
+        email,
+        telefone,
+        nif,
+        data_nascimento,
+        genero,
+        nacionalidade,
+        cidade_residencia,
+        religiao,
+        familia,
+      ] = parts;
       if (!nome) throw new Error(`Linha sem nome: "${line}"`);
+      let familia_id: string | null = null;
+      if (familia) {
+        const id = famByName.get(familia.toLowerCase());
+        if (!id) throw new Error(`Família "${familia}" não encontrada (linha: "${line}")`);
+        familia_id = id;
+      }
+      let generoVal: string | null = null;
+      if (genero) {
+        const g = genero.toLowerCase();
+        if (g.startsWith("m")) generoVal = "Masculino";
+        else if (g.startsWith("f")) generoVal = "Feminino";
+        else throw new Error(`Género inválido "${genero}" (usa Masculino/Feminino)`);
+      }
       return {
         nome_completo: nome,
         email: email || null,
         telefone: telefone || null,
         nif: nif || null,
         data_nascimento: data_nascimento || null,
+        genero: generoVal,
+        nacionalidade: nacionalidade || null,
+        cidade_residencia: cidade_residencia || null,
+        religiao: religiao || null,
+        familia_id,
       };
     });
 }
