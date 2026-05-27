@@ -338,6 +338,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
                   <TableHead className="w-10">
                     <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Selecionar tudo" />
                   </TableHead>
+                  <TableHead className="w-[150px]">Estado</TableHead>
                   <TableHead>Nome</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Telefone</TableHead>
@@ -347,7 +348,6 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
                   {fields.map((f) => (
                     <TableHead key={f.key}>{f.label}</TableHead>
                   ))}
-                  <TableHead className="w-[150px]">Estado</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -355,6 +355,19 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
                   <TableRow key={r.id} data-state={selected.has(r.id) ? "selected" : undefined}>
                     <TableCell>
                       <Checkbox checked={selected.has(r.id)} onCheckedChange={() => toggleOne(r.id)} />
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={r.status}
+                        onValueChange={(v) => updateStatus.mutate({ ids: [r.id], status: v as InscricaoStatus })}
+                      >
+                        <SelectTrigger className="h-8 w-[130px]"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {INSCRICAO_STATUSES.map((s) => (
+                            <SelectItem key={s} value={s}>{INSCRICAO_STATUS_LABEL[s]}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </TableCell>
                     <TableCell className="font-medium whitespace-nowrap">{r.pessoa?.nome_completo ?? "—"}</TableCell>
                     <TableCell className="whitespace-nowrap">{r.pessoa?.email ?? "—"}</TableCell>
@@ -369,19 +382,6 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
                         : Array.isArray(v) ? v.join(", ") : typeof v === "boolean" ? (v ? "Sim" : "Não") : String(v);
                       return <TableCell key={f.key} className="whitespace-nowrap">{display}</TableCell>;
                     })}
-                    <TableCell>
-                      <Select
-                        value={r.status}
-                        onValueChange={(v) => updateStatus.mutate({ ids: [r.id], status: v as InscricaoStatus })}
-                      >
-                        <SelectTrigger className="h-8 w-[130px]"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {INSCRICAO_STATUSES.map((s) => (
-                            <SelectItem key={s} value={s}>{INSCRICAO_STATUS_LABEL[s]}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
