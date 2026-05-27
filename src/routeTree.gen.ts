@@ -16,6 +16,7 @@ import { Route as AcaoIdRouteImport } from './routes/acao.$id'
 import { Route as AppPerfilRouteImport } from './routes/_app.perfil'
 import { Route as AppAdminRouteImport } from './routes/_app/_admin'
 import { Route as AppAdminTiposUserRouteImport } from './routes/_app/_admin.tipos-user'
+import { Route as AppAdminProjetosRouteImport } from './routes/_app/_admin.projetos'
 import { Route as AppAdminParticipantesRouteImport } from './routes/_app/_admin.participantes'
 import { Route as AppAdminFamiliasRouteImport } from './routes/_app/_admin.familias'
 import { Route as AppAdminDuplicadosRouteImport } from './routes/_app/_admin.duplicados'
@@ -54,6 +55,11 @@ const AppAdminTiposUserRoute = AppAdminTiposUserRouteImport.update({
   path: '/tipos-user',
   getParentRoute: () => AppAdminRoute,
 } as any)
+const AppAdminProjetosRoute = AppAdminProjetosRouteImport.update({
+  id: '/projetos',
+  path: '/projetos',
+  getParentRoute: () => AppAdminRoute,
+} as any)
 const AppAdminParticipantesRoute = AppAdminParticipantesRouteImport.update({
   id: '/participantes',
   path: '/participantes',
@@ -84,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/duplicados': typeof AppAdminDuplicadosRoute
   '/familias': typeof AppAdminFamiliasRoute
   '/participantes': typeof AppAdminParticipantesRoute
+  '/projetos': typeof AppAdminProjetosRoute
   '/tipos-user': typeof AppAdminTiposUserRoute
 }
 export interface FileRoutesByTo {
@@ -95,6 +102,7 @@ export interface FileRoutesByTo {
   '/duplicados': typeof AppAdminDuplicadosRoute
   '/familias': typeof AppAdminFamiliasRoute
   '/participantes': typeof AppAdminParticipantesRoute
+  '/projetos': typeof AppAdminProjetosRoute
   '/tipos-user': typeof AppAdminTiposUserRoute
 }
 export interface FileRoutesById {
@@ -109,6 +117,7 @@ export interface FileRoutesById {
   '/_app/_admin/duplicados': typeof AppAdminDuplicadosRoute
   '/_app/_admin/familias': typeof AppAdminFamiliasRoute
   '/_app/_admin/participantes': typeof AppAdminParticipantesRoute
+  '/_app/_admin/projetos': typeof AppAdminProjetosRoute
   '/_app/_admin/tipos-user': typeof AppAdminTiposUserRoute
 }
 export interface FileRouteTypes {
@@ -122,6 +131,7 @@ export interface FileRouteTypes {
     | '/duplicados'
     | '/familias'
     | '/participantes'
+    | '/projetos'
     | '/tipos-user'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -133,6 +143,7 @@ export interface FileRouteTypes {
     | '/duplicados'
     | '/familias'
     | '/participantes'
+    | '/projetos'
     | '/tipos-user'
   id:
     | '__root__'
@@ -146,6 +157,7 @@ export interface FileRouteTypes {
     | '/_app/_admin/duplicados'
     | '/_app/_admin/familias'
     | '/_app/_admin/participantes'
+    | '/_app/_admin/projetos'
     | '/_app/_admin/tipos-user'
   fileRoutesById: FileRoutesById
 }
@@ -207,6 +219,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminTiposUserRouteImport
       parentRoute: typeof AppAdminRoute
     }
+    '/_app/_admin/projetos': {
+      id: '/_app/_admin/projetos'
+      path: '/projetos'
+      fullPath: '/projetos'
+      preLoaderRoute: typeof AppAdminProjetosRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
     '/_app/_admin/participantes': {
       id: '/_app/_admin/participantes'
       path: '/participantes'
@@ -243,6 +262,7 @@ interface AppAdminRouteChildren {
   AppAdminDuplicadosRoute: typeof AppAdminDuplicadosRoute
   AppAdminFamiliasRoute: typeof AppAdminFamiliasRoute
   AppAdminParticipantesRoute: typeof AppAdminParticipantesRoute
+  AppAdminProjetosRoute: typeof AppAdminProjetosRoute
   AppAdminTiposUserRoute: typeof AppAdminTiposUserRoute
 }
 
@@ -251,6 +271,7 @@ const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminDuplicadosRoute: AppAdminDuplicadosRoute,
   AppAdminFamiliasRoute: AppAdminFamiliasRoute,
   AppAdminParticipantesRoute: AppAdminParticipantesRoute,
+  AppAdminProjetosRoute: AppAdminProjetosRoute,
   AppAdminTiposUserRoute: AppAdminTiposUserRoute,
 }
 

@@ -66,6 +66,7 @@ type Pessoa = {
   nacionalidade: string | null;
   cidade_residencia: string | null;
   religiao: string | null;
+  projeto_id: string | null;
 };
 
 const STATUS_OPTS = ["ativo", "suspeito_duplicado", "fundido", "arquivado"];
@@ -82,6 +83,7 @@ const BULK_COLUMNS = [
   "cidade_residencia",
   "religiao",
   "familia",
+  "projeto",
 ] as const;
 
 const emptyForm: Omit<Pessoa, "id" | "status"> & { status?: string } = {
@@ -97,6 +99,7 @@ const emptyForm: Omit<Pessoa, "id" | "status"> & { status?: string } = {
   nacionalidade: "",
   cidade_residencia: "",
   religiao: "",
+  projeto_id: null,
 };
 
 function ParticipantesPage() {
@@ -121,6 +124,7 @@ function ParticipantesPage() {
   const [bulkNacionalidade, setBulkNacionalidade] = useState<string>("");
   const [bulkCidade, setBulkCidade] = useState<string>("");
   const [bulkReligiao, setBulkReligiao] = useState<string>("");
+  const [bulkProjeto, setBulkProjeto] = useState<string>("__noop");
 
   const [deleteOne, setDeleteOne] = useState<Pessoa | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
@@ -130,7 +134,7 @@ function ParticipantesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, email, telefone, nif, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao")
+        .select("id, nome_completo, email, telefone, nif, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao, projeto_id")
         .order("nome_completo", { ascending: true });
       if (error) throw error;
       return data as Pessoa[];
@@ -150,6 +154,15 @@ function ParticipantesPage() {
     queryKey: ["tipos_user_lookup"],
     queryFn: async () => {
       const { data, error } = await supabase.from("tipos_user").select("id, nome").order("nome");
+      if (error) throw error;
+      return data as { id: string; nome: string }[];
+    },
+  });
+
+  const { data: projetos } = useQuery({
+    queryKey: ["projetos_lookup"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("projetos").select("id, nome").order("nome");
       if (error) throw error;
       return data as { id: string; nome: string }[];
     },
@@ -183,12 +196,13 @@ function ParticipantesPage() {
     { id: "cidade_residencia", header: "Cidade", accessorKey: "cidade_residencia", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Cidade" } satisfies ColumnFilterMeta },
     { id: "religiao", header: "Religião", accessorKey: "religiao", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Religião" } satisfies ColumnFilterMeta },
     { id: "familia_id", header: "Família", accessorFn: (p) => p.familia_id ? (familias?.find((f) => f.id === p.familia_id)?.nome ?? "") : "", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (familias ?? []).map((f) => f.nome), label: "Família" } satisfies ColumnFilterMeta },
+    { id: "projeto_id", header: "Projeto", accessorFn: (p) => p.projeto_id ? (projetos?.find((x) => x.id === p.projeto_id)?.nome ?? "") : "", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (projetos ?? []).map((x) => x.nome), label: "Projeto" } satisfies ColumnFilterMeta },
     { id: "tipo_user_id", header: "Tipo", accessorFn: (p) => p.tipo_user_id ? (tipos?.find((t) => t.id === p.tipo_user_id)?.nome ?? "") : "", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (tipos ?? []).map((t) => t.nome), label: "Tipo de utilizador" } satisfies ColumnFilterMeta },
     { id: "status", header: "Estado", accessorKey: "status", cell: ({ getValue }) => {
       const s = getValue() as string;
       return <Badge variant={s === "ativo" ? "default" : s === "suspeito_duplicado" ? "destructive" : "outline"}>{s}</Badge>;
     }, filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: STATUS_OPTS, label: "Estado" } satisfies ColumnFilterMeta },
-  ], [familias, tipos]);
+  ], [familias, tipos, projetos]);
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -227,6 +241,7 @@ function ParticipantesPage() {
         nacionalidade: form.nacionalidade?.trim() || null,
         cidade_residencia: form.cidade_residencia?.trim() || null,
         religiao: form.religiao?.trim() || null,
+        projeto_id: form.projeto_id || null,
       };
       const { error } = await supabase.from("pessoas").insert(payload);
       if (error) throw error;
@@ -259,6 +274,7 @@ function ParticipantesPage() {
           nacionalidade: editing.nacionalidade || null,
           cidade_residencia: editing.cidade_residencia || null,
           religiao: editing.religiao || null,
+          projeto_id: editing.projeto_id || null,
         })
         .eq("id", editing.id);
       if (error) throw error;
@@ -274,7 +290,7 @@ function ParticipantesPage() {
 
   const bulkCreate = useMutation({
     mutationFn: async () => {
-      const rows = parseBulkCsv(bulkText, familias ?? []);
+      const rows = parseBulkCsv(bulkText, familias ?? [], projetos ?? []);
       if (rows.length === 0) throw new Error("Nada para importar");
       const { error } = await supabase.from("pessoas").insert(rows);
       if (error) throw error;
@@ -301,6 +317,7 @@ function ParticipantesPage() {
         nacionalidade?: string | null;
         cidade_residencia?: string | null;
         religiao?: string | null;
+        projeto_id?: string | null;
       } = {};
       if (bulkFamilia !== "__noop") patch.familia_id = bulkFamilia === "__null" ? null : bulkFamilia;
       if (bulkStatus !== "__noop") patch.status = bulkStatus;
@@ -309,6 +326,7 @@ function ParticipantesPage() {
       if (bulkNacionalidade.trim()) patch.nacionalidade = bulkNacionalidade.trim();
       if (bulkCidade.trim()) patch.cidade_residencia = bulkCidade.trim();
       if (bulkReligiao.trim()) patch.religiao = bulkReligiao.trim();
+      if (bulkProjeto !== "__noop") patch.projeto_id = bulkProjeto === "__null" ? null : bulkProjeto;
       if (Object.keys(patch).length === 0) throw new Error("Nada para alterar");
       const { error } = await supabase.from("pessoas").update(patch).in("id", ids);
       if (error) throw error;
@@ -326,6 +344,7 @@ function ParticipantesPage() {
       setBulkNacionalidade("");
       setBulkCidade("");
       setBulkReligiao("");
+      setBulkProjeto("__noop");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -482,6 +501,15 @@ function ParticipantesPage() {
                 </SelectContent>
               </Select>
             </Field>
+            <Field label="Projeto" className="col-span-2">
+              <Select value={form.projeto_id ?? "__null"} onValueChange={(v) => setForm({ ...form, projeto_id: v === "__null" ? null : v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__null">— sem projeto —</SelectItem>
+                  {projetos?.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
             <Field label="Tipo de utilizador" className="col-span-2">
               <Select value={form.tipo_user_id ?? "__null"} onValueChange={(v) => setForm({ ...form, tipo_user_id: v === "__null" ? null : v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -530,6 +558,15 @@ function ParticipantesPage() {
                   <SelectContent>
                     <SelectItem value="__null">— sem família —</SelectItem>
                     {familias?.map((f) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Projeto" className="col-span-2">
+                <Select value={editing.projeto_id ?? "__null"} onValueChange={(v) => setEditing({ ...editing, projeto_id: v === "__null" ? null : v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__null">— sem projeto —</SelectItem>
+                    {projetos?.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </Field>
@@ -606,6 +643,16 @@ function ParticipantesPage() {
                   <SelectItem value="__noop">— não alterar —</SelectItem>
                   <SelectItem value="__null">— remover família —</SelectItem>
                   {familias?.map((f) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Projeto">
+              <Select value={bulkProjeto} onValueChange={setBulkProjeto}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__noop">— não alterar —</SelectItem>
+                  <SelectItem value="__null">— remover projeto —</SelectItem>
+                  {projetos?.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
             </Field>
@@ -710,8 +757,9 @@ function Field({ label, className, children }: { label: string; className?: stri
   );
 }
 
-function parseBulkCsv(text: string, familias: { id: string; nome: string }[]) {
+function parseBulkCsv(text: string, familias: { id: string; nome: string }[], projetos: { id: string; nome: string }[]) {
   const famByName = new Map(familias.map((f) => [f.nome.trim().toLowerCase(), f.id]));
+  const projByName = new Map(projetos.map((p) => [p.nome.trim().toLowerCase(), p.id]));
   return text
     .split(/\r?\n/)
     .map((l) => l.trim())
@@ -729,6 +777,7 @@ function parseBulkCsv(text: string, familias: { id: string; nome: string }[]) {
         cidade_residencia,
         religiao,
         familia,
+        projeto,
       ] = parts;
       if (!nome) throw new Error(`Linha sem nome: "${line}"`);
       let familia_id: string | null = null;
@@ -736,6 +785,12 @@ function parseBulkCsv(text: string, familias: { id: string; nome: string }[]) {
         const id = famByName.get(familia.toLowerCase());
         if (!id) throw new Error(`Família "${familia}" não encontrada (linha: "${line}")`);
         familia_id = id;
+      }
+      let projeto_id: string | null = null;
+      if (projeto) {
+        const id = projByName.get(projeto.toLowerCase());
+        if (!id) throw new Error(`Projeto "${projeto}" não encontrado (linha: "${line}")`);
+        projeto_id = id;
       }
       let generoVal: string | null = null;
       if (genero) {
@@ -755,6 +810,7 @@ function parseBulkCsv(text: string, familias: { id: string; nome: string }[]) {
         cidade_residencia: cidade_residencia || null,
         religiao: religiao || null,
         familia_id,
+        projeto_id,
       };
     });
 }

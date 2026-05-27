@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { User, Users, Users2, AlertTriangle, CalendarDays, Globe, Shield } from "lucide-react";
+import { User, Users, Users2, AlertTriangle, CalendarDays, Globe, Shield, Briefcase } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -20,6 +20,7 @@ const publicItems = [
 const participantesItems = [
   { title: "Participantes", url: "/participantes", icon: Users, page: "participantes" as const },
   { title: "Famílias", url: "/familias", icon: Users2, page: "familias" as const },
+  { title: "Projetos", url: "/projetos", icon: Briefcase, page: "projetos" as const },
   { title: "Duplicados", url: "/duplicados", icon: AlertTriangle, page: "duplicados" as const },
 ];
 

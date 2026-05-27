@@ -3,6 +3,7 @@ export type PageKey =
   | "familias"
   | "acoes"
   | "duplicados"
+  | "projetos"
   | "tipos-user";
 
 export const AVAILABLE_PAGES: { key: PageKey; label: string; path: string }[] = [
@@ -10,6 +11,7 @@ export const AVAILABLE_PAGES: { key: PageKey; label: string; path: string }[] = 
   { key: "familias", label: "Gestão de Famílias", path: "/familias" },
   { key: "acoes", label: "Gestão de Ações", path: "/acoes" },
   { key: "duplicados", label: "Duplicados", path: "/duplicados" },
+  { key: "projetos", label: "Projetos", path: "/projetos" },
   { key: "tipos-user", label: "Tipos de Utilizador (admin)", path: "/tipos-user" },
 ];
 
