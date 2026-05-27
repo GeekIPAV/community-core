@@ -1,0 +1,382 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
+  public: {
+    Tables: {
+      acoes: {
+        Row: {
+          config_campos: Json
+          created_at: string
+          data_fim: string | null
+          data_inicio: string | null
+          descricao: string | null
+          id: string
+          local: string | null
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          config_campos?: Json
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string | null
+          descricao?: string | null
+          id?: string
+          local?: string | null
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          config_campos?: Json
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string | null
+          descricao?: string | null
+          id?: string
+          local?: string | null
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      familias: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          notas: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          notas?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          notas?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      inscricoes: {
+        Row: {
+          acao_id: string
+          created_at: string
+          id: string
+          pessoa_id: string
+          status: Database["public"]["Enums"]["status_inscricao"]
+          updated_at: string
+          valores_dinamicos: Json
+        }
+        Insert: {
+          acao_id: string
+          created_at?: string
+          id?: string
+          pessoa_id: string
+          status?: Database["public"]["Enums"]["status_inscricao"]
+          updated_at?: string
+          valores_dinamicos?: Json
+        }
+        Update: {
+          acao_id?: string
+          created_at?: string
+          id?: string
+          pessoa_id?: string
+          status?: Database["public"]["Enums"]["status_inscricao"]
+          updated_at?: string
+          valores_dinamicos?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inscricoes_acao_id_fkey"
+            columns: ["acao_id"]
+            isOneToOne: false
+            referencedRelation: "acoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inscricoes_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inscricoes_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pessoas: {
+        Row: {
+          created_at: string
+          data_nascimento: string | null
+          email: string | null
+          familia_id: string | null
+          fundido_em: string | null
+          id: string
+          nif: string | null
+          nome_completo: string
+          notas: string | null
+          status: Database["public"]["Enums"]["status_pessoa"]
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_nascimento?: string | null
+          email?: string | null
+          familia_id?: string | null
+          fundido_em?: string | null
+          id?: string
+          nif?: string | null
+          nome_completo: string
+          notas?: string | null
+          status?: Database["public"]["Enums"]["status_pessoa"]
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_nascimento?: string | null
+          email?: string | null
+          familia_id?: string | null
+          fundido_em?: string | null
+          id?: string
+          nif?: string | null
+          nome_completo?: string
+          notas?: string | null
+          status?: Database["public"]["Enums"]["status_pessoa"]
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pessoas_familia_id_fkey"
+            columns: ["familia_id"]
+            isOneToOne: false
+            referencedRelation: "familias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoas_fundido_em_fkey"
+            columns: ["fundido_em"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoas_fundido_em_fkey"
+            columns: ["fundido_em"]
+            isOneToOne: false
+            referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      pessoas_com_stats: {
+        Row: {
+          created_at: string | null
+          data_nascimento: string | null
+          email: string | null
+          familia_id: string | null
+          familia_nome: string | null
+          fundido_em: string | null
+          id: string | null
+          inscricoes_count: number | null
+          nif: string | null
+          nome_completo: string | null
+          notas: string | null
+          status: Database["public"]["Enums"]["status_pessoa"] | null
+          telefone: string | null
+          tipo_participante: string | null
+          ultima_acao_em: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pessoas_familia_id_fkey"
+            columns: ["familia_id"]
+            isOneToOne: false
+            referencedRelation: "familias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoas_fundido_em_fkey"
+            columns: ["fundido_em"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoas_fundido_em_fkey"
+            columns: ["fundido_em"]
+            isOneToOne: false
+            referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Functions: {
+      fundir_perfis: {
+        Args: { duplicado: string; principal: string }
+        Returns: undefined
+      }
+    }
+    Enums: {
+      status_inscricao: "confirmada" | "cancelada" | "pendente"
+      status_pessoa: "ativo" | "suspeito_duplicado" | "fundido"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      status_inscricao: ["confirmada", "cancelada", "pendente"],
+      status_pessoa: ["ativo", "suspeito_duplicado", "fundido"],
+    },
+  },
+} as const
