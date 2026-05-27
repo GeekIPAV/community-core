@@ -137,6 +137,7 @@ export type Database = {
           fundido_em: string | null
           genero: string | null
           id: string
+          ignorar_duplicado: boolean
           is_admin: boolean
           nacionalidade: string | null
           nif: string | null
@@ -158,6 +159,7 @@ export type Database = {
           fundido_em?: string | null
           genero?: string | null
           id?: string
+          ignorar_duplicado?: boolean
           is_admin?: boolean
           nacionalidade?: string | null
           nif?: string | null
@@ -179,6 +181,7 @@ export type Database = {
           fundido_em?: string | null
           genero?: string | null
           id?: string
+          ignorar_duplicado?: boolean
           is_admin?: boolean
           nacionalidade?: string | null
           nif?: string | null
