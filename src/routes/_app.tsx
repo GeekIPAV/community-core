@@ -48,17 +48,31 @@ function AppLayout() {
       <div className="flex min-h-screen w-full bg-background">
         <AppSidebar />
         <div className="flex flex-1 flex-col">
-          <header className="flex h-14 items-center justify-between border-b px-4">
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-semibold">Meeru</span>
+          <header className="flex h-16 items-center justify-between border-b border-border/60 bg-card/80 px-6 backdrop-blur">
+            <div className="flex items-center gap-2">
+              <span className="text-base font-bold tracking-tight text-foreground">Meeru</span>
+              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
             </div>
-            <div className="flex items-center gap-3">
-              <span className="hidden text-xs text-muted-foreground sm:inline">
-                {pessoa?.nome_completo ?? pessoa?.email ?? ""}
-              </span>
+            <div className="flex items-center gap-2">
+              {pessoa && (
+                <div className="hidden items-center gap-2 rounded-full border border-border bg-background/70 px-3 py-1.5 sm:flex">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
+                    {(pessoa.nome_completo ?? pessoa.email ?? "?")
+                      .split(" ")
+                      .map((p) => p[0])
+                      .slice(0, 2)
+                      .join("")
+                      .toUpperCase()}
+                  </div>
+                  <span className="text-xs font-medium text-foreground">
+                    {pessoa.nome_completo ?? pessoa.email}
+                  </span>
+                </div>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
+                className="text-muted-foreground hover:text-foreground"
                 onClick={async () => {
                   await supabase.auth.signOut();
                   navigate({ to: "/", replace: true });
@@ -68,7 +82,7 @@ function AppLayout() {
               </Button>
             </div>
           </header>
-          <main className="flex-1 px-6 py-8">
+          <main className="flex-1 px-6 py-8 md:px-10 md:py-10">
             <Outlet />
           </main>
         </div>

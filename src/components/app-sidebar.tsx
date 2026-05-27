@@ -38,9 +38,11 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="none">
-      <SidebarContent>
+      <SidebarContent className="gap-1 px-2 py-4">
         <SidebarGroup>
-          <SidebarGroupLabel>Comunidade</SidebarGroupLabel>
+          <SidebarGroupLabel className="px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">
+            Comunidade
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {publicItems.map((item) => (
@@ -59,7 +61,9 @@ export function AppSidebar() {
 
         {visibleParticipantes.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel>Gestão de Participantes</SidebarGroupLabel>
+            <SidebarGroupLabel className="px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">
+              Gestão de Participantes
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {visibleParticipantes.map((item) => (
@@ -79,7 +83,9 @@ export function AppSidebar() {
 
         {visibleAcoes.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel>Gestão de Ações</SidebarGroupLabel>
+            <SidebarGroupLabel className="px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">
+              Gestão de Ações
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {visibleAcoes.map((item) => (
@@ -99,7 +105,9 @@ export function AppSidebar() {
 
         {isAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel>Administração</SidebarGroupLabel>
+            <SidebarGroupLabel className="px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">
+              Administração
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
