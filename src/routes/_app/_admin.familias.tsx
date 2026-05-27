@@ -9,6 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Pencil, Plus, Upload, Users } from "lucide-react";
@@ -32,7 +34,32 @@ export const Route = createFileRoute("/_app/_admin/familias")({
   component: FamiliasPage,
 });
 
-type Familia = { id: string; nome: string; notas: string | null };
+const STATUS_OPTS = [
+  "Sem estado",
+  "Em espera",
+  "No programa",
+  "Não interessada",
+  "Concluído",
+  "Fora do País",
+] as const;
+type FamiliaStatus = typeof STATUS_OPTS[number];
+
+const STATUS_GROUPS: { label: string; options: FamiliaStatus[] }[] = [
+  { label: "A fazer", options: ["Sem estado", "Em espera"] },
+  { label: "Em andamento", options: ["No programa"] },
+  { label: "Concluídos", options: ["Não interessada", "Concluído", "Fora do País"] },
+];
+
+const STATUS_STYLES: Record<FamiliaStatus, string> = {
+  "Sem estado": "bg-muted text-muted-foreground border-transparent",
+  "Em espera": "bg-muted text-muted-foreground border-transparent",
+  "No programa": "bg-blue-100 text-blue-700 border-transparent dark:bg-blue-950 dark:text-blue-300",
+  "Não interessada": "bg-orange-100 text-orange-700 border-transparent dark:bg-orange-950 dark:text-orange-300",
+  "Concluído": "bg-emerald-100 text-emerald-700 border-transparent dark:bg-emerald-950 dark:text-emerald-300",
+  "Fora do País": "bg-pink-100 text-pink-700 border-transparent dark:bg-pink-950 dark:text-pink-300",
+};
+
+type Familia = { id: string; nome: string; notas: string | null; status: FamiliaStatus };
 
 function FamiliasPage() {
   const qc = useQueryClient();
@@ -49,6 +76,7 @@ function FamiliasPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [bulkNotas, setBulkNotas] = useState("");
+  const [bulkStatus, setBulkStatus] = useState<string>("__noop");
 
   const [membrosFamilia, setMembrosFamilia] = useState<Familia | null>(null);
 
@@ -172,7 +200,7 @@ function FamiliasPage() {
       if (!editing) return;
       const { error } = await supabase
         .from("familias")
-        .update({ nome: editing.nome, notas: editing.notas || null })
+        .update({ nome: editing.nome, notas: editing.notas || null, status: editing.status })
         .eq("id", editing.id);
       if (error) throw error;
     },
@@ -215,7 +243,16 @@ function FamiliasPage() {
     mutationFn: async () => {
       const ids = Array.from(selected);
       if (ids.length === 0) throw new Error("Seleciona pelo menos uma família");
-      const { error } = await supabase.from("familias").update({ notas: bulkNotas || null }).in("id", ids);
+      const patch: { notas?: string | null; status?: FamiliaStatus } = {};
+      if (bulkNotas.trim() || bulkNotas === "") {
+        // keep previous behaviour for notes only if status not the only change
+      }
+      // Notes: apply when user typed something (or explicit clear via "__clear__")
+      if (bulkNotas === "__clear__") patch.notas = null;
+      else if (bulkNotas.trim()) patch.notas = bulkNotas;
+      if (bulkStatus !== "__noop") patch.status = bulkStatus as FamiliaStatus;
+      if (Object.keys(patch).length === 0) throw new Error("Nada para alterar");
+      const { error } = await supabase.from("familias").update(patch).in("id", ids);
       if (error) throw error;
       return ids.length;
     },
@@ -225,6 +262,7 @@ function FamiliasPage() {
       setBulkEditOpen(false);
       setSelected(new Set());
       setBulkNotas("");
+      setBulkStatus("__noop");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -233,6 +271,10 @@ function FamiliasPage() {
 
   const columns = useMemo<ColumnDef<Familia>[]>(() => [
     { id: "nome", header: "Nome", accessorKey: "nome", cell: ({ getValue }) => <span className="font-medium">{getValue() as string}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nome" } satisfies ColumnFilterMeta },
+    { id: "status", header: "Status", accessorKey: "status", cell: ({ getValue }) => {
+      const s = (getValue() as FamiliaStatus) ?? "Sem estado";
+      return <Badge className={STATUS_STYLES[s] ?? ""} variant="outline">{s}</Badge>;
+    }, filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: [...STATUS_OPTS], label: "Status" } satisfies ColumnFilterMeta },
     { id: "membros", header: "Membros", accessorFn: (f) => contagens?.get(f.id) ?? 0, cell: ({ getValue }) => <span className="text-muted-foreground">{getValue() as number}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "number", label: "Membros" } satisfies ColumnFilterMeta },
     { id: "projeto", header: "Projeto", accessorFn: (f) => Array.from(agregados?.get(f.id)?.projetos ?? []).sort().join(", "), cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Projeto" } satisfies ColumnFilterMeta },
     { id: "cidade", header: "Cidade", accessorFn: (f) => Array.from(agregados?.get(f.id)?.cidades ?? []).sort().join(", "), cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Cidade" } satisfies ColumnFilterMeta },
