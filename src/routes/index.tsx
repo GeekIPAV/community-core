@@ -9,6 +9,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { useAuth } from "@/lib/auth-context";
 import { CalendarDays, LayoutGrid, LogIn, MapPin } from "lucide-react";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -59,9 +61,12 @@ function Home() {
   }, [acoesAbertas, selectedDate]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full bg-background">
+        <AppSidebar />
+        <div className="flex flex-1 flex-col">
       <header className="border-b">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
+        <div className="flex h-14 items-center justify-between px-4">
           <span className="text-sm font-semibold">Meeru</span>
           <div className="flex items-center gap-2">
             {session ? (
@@ -77,7 +82,7 @@ function Home() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl space-y-6 px-4 py-8">
+      <main className="mx-auto w-full max-w-6xl space-y-6 px-4 py-8">
         <div>
           <h1 className="text-3xl font-semibold">Próximas ações</h1>
           <p className="text-sm text-muted-foreground">Escolhe uma ação e inscreve-te.</p>
@@ -130,7 +135,9 @@ function Home() {
           </TabsContent>
         </Tabs>
       </main>
-    </div>
+        </div>
+      </div>
+    </SidebarProvider>
   );
 }
 
