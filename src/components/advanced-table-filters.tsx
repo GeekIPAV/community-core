@@ -158,17 +158,16 @@ export function AdvancedTableFilters<T>({ table }: { table: Table<T> }) {
   });
 
   const setRules = (rules: FilterRule[]) => {
-    // Group rules by columnId, write each column's slice as its filter value
     const byCol = new Map<string, FilterRule[]>();
     for (const r of rules) {
       const arr = byCol.get(r.columnId) ?? [];
       arr.push(r);
       byCol.set(r.columnId, arr);
     }
-    for (const col of filterableColumns) {
-      const slice = byCol.get(col.id);
-      col.setFilterValue(slice && slice.length > 0 ? slice : undefined);
-    }
+    const next = filterableColumns
+      .map((col) => ({ id: col.id, value: byCol.get(col.id) }))
+      .filter((f) => f.value && f.value.length > 0);
+    table.setColumnFilters(next as any);
   };
 
   const addRule = () => {
@@ -327,11 +326,12 @@ function RuleValueInput({
         </div>
       );
     }
+    const safeOptions = options.filter((o) => o !== "" && o !== null && o !== undefined);
     return (
-      <Select value={value || ""} onValueChange={onChange}>
+      <Select value={value ? String(value) : undefined} onValueChange={onChange}>
         <SelectTrigger className="h-8"><SelectValue placeholder="Escolhe…" /></SelectTrigger>
         <SelectContent>
-          {options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+          {safeOptions.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
         </SelectContent>
       </Select>
     );
