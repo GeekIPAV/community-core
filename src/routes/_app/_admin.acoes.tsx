@@ -190,10 +190,33 @@ type AcaoForm = {
   nome: string;
   local: string;
   descricao: string;
+  data_inicio: string;
+  data_fim: string;
+  status: "ativa" | "cancelada" | "concluida";
   fields: FieldDef[];
 };
 
-const EMPTY_FORM: AcaoForm = { nome: "", local: "", descricao: "", fields: [] };
+const EMPTY_FORM: AcaoForm = { nome: "", local: "", descricao: "", data_inicio: "", data_fim: "", status: "ativa", fields: [] };
+
+const STATUS_LABEL: Record<AcaoForm["status"], string> = {
+  ativa: "Ativa",
+  cancelada: "Cancelada",
+  concluida: "Concluída",
+};
+
+function toDtLocal(v: string | null | undefined): string {
+  if (!v) return "";
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function fromDtLocal(v: string): string | null {
+  if (!v) return null;
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
 
 function AcoesPage() {
   const qc = useQueryClient();
@@ -220,8 +243,11 @@ function AcoesPage() {
         nome: form.nome,
         local: form.local || null,
         descricao: form.descricao || null,
+        data_inicio: fromDtLocal(form.data_inicio),
+        data_fim: fromDtLocal(form.data_fim),
+        status: form.status,
         config_campos: { fields: form.fields },
-      });
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -242,8 +268,11 @@ function AcoesPage() {
           nome: editing.nome,
           local: editing.local || null,
           descricao: editing.descricao || null,
+          data_inicio: fromDtLocal(editing.data_inicio),
+          data_fim: fromDtLocal(editing.data_fim),
+          status: editing.status,
           config_campos: { fields: editing.fields },
-        })
+        } as any)
         .eq("id", editing.id);
       if (error) throw error;
     },
