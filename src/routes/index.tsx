@@ -121,22 +121,65 @@ function Home() {
           </TabsContent>
 
           <TabsContent value="calendario" className="mt-4">
-            <div className="grid gap-6 md:grid-cols-[auto,1fr]">
+            <div className="space-y-6">
               <div className="rounded-md border p-3">
                 <Calendar
                   mode="single"
                   selected={selectedDate}
                   onSelect={setSelectedDate}
                   modifiers={{ acao: diasComAcao }}
-                  modifiersClassNames={{ acao: "bg-primary/15 font-semibold text-primary" }}
+                  modifiersClassNames={{ acao: "font-semibold text-primary" }}
+                  className="w-full [--cell-size:5.5rem] sm:[--cell-size:7rem]"
+                  classNames={{
+                    months: "relative flex w-full flex-col gap-4",
+                    month: "flex w-full flex-col gap-4",
+                    table: "w-full border-collapse table-fixed",
+                    day: "group/day relative h-(--cell-size) w-full select-none p-0 text-left align-top",
+                  }}
+                  components={{
+                    DayButton: ({ day, modifiers, className: btnClass, ...btnProps }) => {
+                      const list = acoesPorDia.get(day.date.toDateString()) ?? [];
+                      return (
+                        <button
+                          {...btnProps}
+                          data-selected-single={
+                            modifiers.selected && !modifiers.range_start && !modifiers.range_end && !modifiers.range_middle
+                          }
+                          className={
+                            "flex h-full w-full flex-col items-stretch gap-1 rounded-md border border-transparent p-1 text-left transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[selected-single=true]:border-primary data-[selected-single=true]:bg-primary/10 " +
+                            (modifiers.today ? "bg-accent/40 " : "") +
+                            (btnClass ?? "")
+                          }
+                        >
+                          <span className={"text-xs font-medium " + (list.length > 0 ? "text-primary" : "text-muted-foreground")}>
+                            {day.date.getDate()}
+                          </span>
+                          <div className="flex flex-1 flex-col gap-0.5 overflow-hidden">
+                            {list.slice(0, 3).map((a) => (
+                              <span
+                                key={a.id}
+                                title={a.nome}
+                                className="truncate rounded-sm bg-primary/15 px-1 py-0.5 text-[10px] font-medium leading-tight text-primary"
+                              >
+                                {a.nome}
+                              </span>
+                            ))}
+                            {list.length > 3 && (
+                              <span className="text-[10px] text-muted-foreground">+{list.length - 3}</span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    },
+                  }}
                 />
                 {selectedDate && (
-                  <Button variant="ghost" size="sm" className="mt-2 w-full" onClick={() => setSelectedDate(undefined)}>
+                  <Button variant="ghost" size="sm" className="mt-2" onClick={() => setSelectedDate(undefined)}>
                     Limpar filtro
                   </Button>
                 )}
               </div>
-              <div className="space-y-3">
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 {acoesDoDia.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Sem ações neste dia.</p>
                 ) : (
