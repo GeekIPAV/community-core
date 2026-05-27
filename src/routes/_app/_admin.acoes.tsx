@@ -689,8 +689,8 @@ function AcoesPage() {
         <DialogContent
           className={
             editFullscreen
-              ? "max-w-none w-screen h-screen sm:rounded-none p-6 overflow-y-auto"
-              : "max-w-2xl max-h-[90vh] overflow-y-auto"
+              ? "max-w-none w-screen h-screen sm:rounded-none p-6 overflow-y-auto overflow-x-hidden"
+              : "max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden"
           }
         >
           <DialogHeader className="sticky top-0 z-10 -mx-6 -mt-6 border-b bg-background px-6 py-4">
@@ -708,12 +708,12 @@ function AcoesPage() {
             </div>
           </DialogHeader>
           {editing && (
-            <Tabs defaultValue="detalhes">
+            <Tabs defaultValue="detalhes" className="min-w-0">
               <TabsList>
                 <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
                 <TabsTrigger value="inscricoes">Inscrições</TabsTrigger>
               </TabsList>
-              <TabsContent value="detalhes" className="space-y-4">
+              <TabsContent value="detalhes" className="space-y-4 min-w-0">
               <div className="space-y-2"><Label>Nome</Label><Input value={editing.nome} onChange={(e) => setEditing({ ...editing, nome: e.target.value })} /></div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2"><Label>Local</Label><Input value={editing.local} onChange={(e) => setEditing({ ...editing, local: e.target.value })} /></div>
@@ -740,7 +740,7 @@ function AcoesPage() {
               <div className="space-y-2"><Label>Descrição</Label><Textarea value={editing.descricao} onChange={(e) => setEditing({ ...editing, descricao: e.target.value })} /></div>
               <FieldsEditor fields={editing.fields} setFields={(fields) => setEditing({ ...editing, fields })} />
               </TabsContent>
-              <TabsContent value="inscricoes">
+              <TabsContent value="inscricoes" className="min-w-0">
                 <InscricoesTab acaoId={editing.id} fields={editing.fields} />
               </TabsContent>
             </Tabs>
