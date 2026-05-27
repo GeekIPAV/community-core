@@ -541,7 +541,12 @@ function AcoesPage() {
             <DialogTitle>Editar ação</DialogTitle>
           </DialogHeader>
           {editing && (
-            <div className="space-y-4">
+            <Tabs defaultValue="detalhes">
+              <TabsList>
+                <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
+                <TabsTrigger value="inscricoes">Inscrições</TabsTrigger>
+              </TabsList>
+              <TabsContent value="detalhes" className="space-y-4">
               <div className="space-y-2"><Label>Nome</Label><Input value={editing.nome} onChange={(e) => setEditing({ ...editing, nome: e.target.value })} /></div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2"><Label>Local</Label><Input value={editing.local} onChange={(e) => setEditing({ ...editing, local: e.target.value })} /></div>
@@ -567,7 +572,11 @@ function AcoesPage() {
               </label>
               <div className="space-y-2"><Label>Descrição</Label><Textarea value={editing.descricao} onChange={(e) => setEditing({ ...editing, descricao: e.target.value })} /></div>
               <FieldsEditor fields={editing.fields} setFields={(fields) => setEditing({ ...editing, fields })} />
-            </div>
+              </TabsContent>
+              <TabsContent value="inscricoes">
+                <InscricoesTab acaoId={editing.id} fields={editing.fields} />
+              </TabsContent>
+            </Tabs>
           )}
           <DialogFooter className="gap-2 sm:justify-between">
             <Button variant="destructive" onClick={() => editing && setDeleteId(editing.id)}>
