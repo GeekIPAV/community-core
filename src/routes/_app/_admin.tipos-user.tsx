@@ -16,10 +16,24 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { AVAILABLE_PAGES } from "@/lib/permissions";
+import {
+  useReactTable,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  flexRender,
+  type ColumnDef,
+  type SortingState,
+  type VisibilityState,
+  type ColumnOrderState,
+} from "@tanstack/react-table";
+import { AdvancedTableFilters, advancedFilterFn, type ColumnFilterMeta } from "@/components/advanced-table-filters";
+import { DataTableViewOptions } from "@/components/data-table-view-options";
+import { DraggableTableHeaders } from "@/components/draggable-table-headers";
 
 export const Route = createFileRoute("/_app/_admin/tipos-user")({
   component: TiposUserPage,
@@ -95,6 +109,54 @@ function TiposUserPage() {
   const toggle = (k: string) =>
     setPaginas((p) => (p.includes(k) ? p.filter((x) => x !== k) : [...p, k]));
 
+  const columns = useMemo<ColumnDef<TipoUser>[]>(() => [
+    {
+      id: "nome",
+      header: "Nome",
+      accessorKey: "nome",
+      cell: ({ getValue }) => <span className="font-medium">{getValue() as string}</span>,
+      filterFn: advancedFilterFn as any,
+      meta: { filterVariant: "text", label: "Nome" } satisfies ColumnFilterMeta,
+    },
+    {
+      id: "paginas",
+      header: "Páginas",
+      accessorFn: (t) => (t.paginas ?? []).map((k) => AVAILABLE_PAGES.find((x) => x.key === k)?.label ?? k).join(", "),
+      cell: ({ row }) => {
+        const t = row.original;
+        return (
+          <div className="flex flex-wrap gap-1">
+            {(t.paginas ?? []).length === 0 && <span className="text-muted-foreground text-sm">Nenhuma</span>}
+            {t.paginas?.map((k) => {
+              const p = AVAILABLE_PAGES.find((x) => x.key === k);
+              return <Badge key={k} variant="secondary">{p?.label ?? k}</Badge>;
+            })}
+          </div>
+        );
+      },
+      filterFn: advancedFilterFn as any,
+      meta: { filterVariant: "text", label: "Páginas" } satisfies ColumnFilterMeta,
+    },
+  ], []);
+
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([]);
+
+  const table = useReactTable({
+    data: data ?? [],
+    columns,
+    state: { sorting, columnVisibility, columnOrder },
+    onSortingChange: setSorting,
+    onColumnVisibilityChange: setColumnVisibility,
+    onColumnOrderChange: setColumnOrder,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getRowId: (r) => r.id,
+  });
+  const tableRows = table.getRowModel().rows;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -104,9 +166,13 @@ function TiposUserPage() {
             Define perfis com acesso a páginas específicas. Administradores têm sempre acesso total.
           </p>
         </div>
-        <Button onClick={openNew}>
-          <Plus className="mr-2 h-4 w-4" /> Novo tipo
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <AdvancedTableFilters table={table} />
+          <DataTableViewOptions table={table} />
+          <Button onClick={openNew}>
+            <Plus className="mr-2 h-4 w-4" /> Novo tipo
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -116,45 +182,40 @@ function TiposUserPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Páginas</TableHead>
+                <DraggableTableHeaders table={table} onOrderChange={setColumnOrder} />
                 <TableHead className="w-24"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(data ?? []).length === 0 && (
-                <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">Sem tipos</TableCell></TableRow>
+              {tableRows.length === 0 && (
+                <TableRow><TableCell colSpan={table.getVisibleLeafColumns().length + 1} className="text-center text-muted-foreground">Sem tipos</TableCell></TableRow>
               )}
-              {data?.map((t) => (
-                <TableRow key={t.id}>
-                  <TableCell className="font-medium">{t.nome}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {(t.paginas ?? []).length === 0 && <span className="text-muted-foreground text-sm">Nenhuma</span>}
-                      {t.paginas?.map((k) => {
-                        const p = AVAILABLE_PAGES.find((x) => x.key === k);
-                        return <Badge key={k} variant="secondary">{p?.label ?? k}</Badge>;
-                      })}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" onClick={() => openEdit(t)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => {
-                          if (confirm(`Remover o tipo "${t.nome}"?`)) remove.mutate(t.id);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {tableRows.map((row) => {
+                const t = row.original;
+                return (
+                  <TableRow key={row.id}>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                    ))}
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button size="icon" variant="ghost" onClick={() => openEdit(t)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => {
+                            if (confirm(`Remover o tipo "${t.nome}"?`)) remove.mutate(t.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
