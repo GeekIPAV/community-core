@@ -19,9 +19,10 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, Maximize2, Minimize2, ArrowUpDown } from "lucide-react";
 import {
   useReactTable, getCoreRowModel, getSortedRowModel, getFilteredRowModel,
-  flexRender, type ColumnDef, type SortingState,
+  flexRender, type ColumnDef, type SortingState, type VisibilityState,
 } from "@tanstack/react-table";
 import { AdvancedTableFilters, advancedFilterFn, type ColumnFilterMeta } from "@/components/advanced-table-filters";
+import { DataTableViewOptions } from "@/components/data-table-view-options";
 
 export const Route = createFileRoute("/_app/_admin/acoes")({
   component: AcoesPage,
@@ -263,6 +264,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkStatus, setBulkStatus] = useState<InscricaoStatus>("presente");
   const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const { data, isLoading } = useQuery({
     queryKey: ["inscricoes", acaoId],
     queryFn: async () => {
@@ -339,8 +341,9 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
   const table = useReactTable({
     data: baseRows,
     columns,
-    state: { sorting },
+    state: { sorting, columnVisibility },
     onSortingChange: setSorting,
+    onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -383,6 +386,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
         <div className="ml-auto">
           <AdvancedTableFilters table={table} />
         </div>
+        <DataTableViewOptions table={table} />
       </div>
       {baseRows.length === 0 ? (
         <p className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">
@@ -435,7 +439,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
               <TableBody>
                 {filteredRows.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={columns.length + 1} className="text-center text-xs text-muted-foreground">
+                    <TableCell colSpan={table.getVisibleLeafColumns().length + 1} className="text-center text-xs text-muted-foreground">
                       Sem resultados para os filtros aplicados.
                     </TableCell>
                   </TableRow>

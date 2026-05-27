@@ -21,9 +21,19 @@ import {
 } from "@/components/ui/dialog";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2, Upload } from "lucide-react";
-import { useReactTable, getCoreRowModel, getFilteredRowModel, type ColumnDef } from "@tanstack/react-table";
+import { ArrowDown, ArrowUp, ArrowUpDown, Pencil, Plus, Trash2, Upload } from "lucide-react";
+import {
+  useReactTable,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  flexRender,
+  type ColumnDef,
+  type SortingState,
+  type VisibilityState,
+} from "@tanstack/react-table";
 import { AdvancedTableFilters, advancedFilterFn, type ColumnFilterMeta } from "@/components/advanced-table-filters";
+import { DataTableViewOptions } from "@/components/data-table-view-options";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -161,29 +171,40 @@ function ParticipantesPage() {
   }, [data, q]);
 
   const tableColumns = useMemo<ColumnDef<Pessoa>[]>(() => [
-    { id: "nome_completo", header: "Nome", accessorKey: "nome_completo", filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nome" } satisfies ColumnFilterMeta },
-    { id: "email", header: "Email", accessorKey: "email", filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Email" } satisfies ColumnFilterMeta },
-    { id: "telefone", header: "Telefone", accessorKey: "telefone", filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Telefone" } satisfies ColumnFilterMeta },
-    { id: "nif", header: "NIF", accessorKey: "nif", filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "NIF" } satisfies ColumnFilterMeta },
-    { id: "data_nascimento", header: "Data nascimento", accessorKey: "data_nascimento", filterFn: advancedFilterFn as any, meta: { filterVariant: "date", label: "Data nascimento" } satisfies ColumnFilterMeta },
-    { id: "genero", header: "Género", accessorKey: "genero", filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: GENERO_OPTS, label: "Género" } satisfies ColumnFilterMeta },
-    { id: "nacionalidade", header: "Nacionalidade", accessorKey: "nacionalidade", filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nacionalidade" } satisfies ColumnFilterMeta },
-    { id: "cidade_residencia", header: "Cidade", accessorKey: "cidade_residencia", filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Cidade" } satisfies ColumnFilterMeta },
-    { id: "religiao", header: "Religião", accessorKey: "religiao", filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Religião" } satisfies ColumnFilterMeta },
-    { id: "status", header: "Estado", accessorKey: "status", filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: STATUS_OPTS, label: "Estado" } satisfies ColumnFilterMeta },
-    { id: "familia_id", header: "Família", accessorFn: (p) => p.familia_id ? (familias?.find((f) => f.id === p.familia_id)?.nome ?? "") : "", filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (familias ?? []).map((f) => f.nome), label: "Família" } satisfies ColumnFilterMeta },
-    { id: "tipo_user_id", header: "Tipo", accessorFn: (p) => p.tipo_user_id ? (tipos?.find((t) => t.id === p.tipo_user_id)?.nome ?? "") : "", filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (tipos ?? []).map((t) => t.nome), label: "Tipo de utilizador" } satisfies ColumnFilterMeta },
+    { id: "nome_completo", header: "Nome", accessorKey: "nome_completo", cell: ({ getValue }) => <span className="font-medium">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nome" } satisfies ColumnFilterMeta },
+    { id: "email", header: "Email", accessorKey: "email", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Email" } satisfies ColumnFilterMeta },
+    { id: "telefone", header: "Telefone", accessorKey: "telefone", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Telefone" } satisfies ColumnFilterMeta },
+    { id: "nif", header: "NIF", accessorKey: "nif", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "NIF" } satisfies ColumnFilterMeta },
+    { id: "data_nascimento", header: "Data nascimento", accessorKey: "data_nascimento", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "date", label: "Data nascimento" } satisfies ColumnFilterMeta },
+    { id: "genero", header: "Género", accessorKey: "genero", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: GENERO_OPTS, label: "Género" } satisfies ColumnFilterMeta },
+    { id: "nacionalidade", header: "Nacionalidade", accessorKey: "nacionalidade", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nacionalidade" } satisfies ColumnFilterMeta },
+    { id: "cidade_residencia", header: "Cidade", accessorKey: "cidade_residencia", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Cidade" } satisfies ColumnFilterMeta },
+    { id: "religiao", header: "Religião", accessorKey: "religiao", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Religião" } satisfies ColumnFilterMeta },
+    { id: "familia_id", header: "Família", accessorFn: (p) => p.familia_id ? (familias?.find((f) => f.id === p.familia_id)?.nome ?? "") : "", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (familias ?? []).map((f) => f.nome), label: "Família" } satisfies ColumnFilterMeta },
+    { id: "tipo_user_id", header: "Tipo", accessorFn: (p) => p.tipo_user_id ? (tipos?.find((t) => t.id === p.tipo_user_id)?.nome ?? "") : "", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (tipos ?? []).map((t) => t.nome), label: "Tipo de utilizador" } satisfies ColumnFilterMeta },
+    { id: "status", header: "Estado", accessorKey: "status", cell: ({ getValue }) => {
+      const s = getValue() as string;
+      return <Badge variant={s === "ativo" ? "default" : s === "suspeito_duplicado" ? "destructive" : "outline"}>{s}</Badge>;
+    }, filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: STATUS_OPTS, label: "Estado" } satisfies ColumnFilterMeta },
   ], [familias, tipos]);
+
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
   const table = useReactTable({
     data: searchFiltered,
     columns: tableColumns,
+    state: { sorting, columnVisibility },
+    onSortingChange: setSorting,
+    onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getRowId: (r) => r.id,
   });
 
-  const filtered = table.getRowModel().rows.map((r) => r.original);
+  const rows = table.getRowModel().rows;
+  const filtered = rows.map((r) => r.original);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["pessoas"] });
 
@@ -347,6 +368,7 @@ function ParticipantesPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Input placeholder="Pesquisar…" className="w-56" value={q} onChange={(e) => setQ(e.target.value)} />
           <AdvancedTableFilters table={table} />
+          <DataTableViewOptions table={table} />
           <Button variant="outline" onClick={() => setBulkAddOpen(true)}>
             <Upload className="mr-2 h-4 w-4" /> Importar
           </Button>
@@ -385,46 +407,53 @@ function ParticipantesPage() {
                 <TableHead className="w-10">
                   <Checkbox checked={allChecked} onCheckedChange={toggleAll} />
                 </TableHead>
-                <TableHead>Nome</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Telefone</TableHead>
-                <TableHead>Família</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Estado</TableHead>
+                {table.getHeaderGroups()[0].headers.map((header) => {
+                  const sort = header.column.getIsSorted();
+                  return (
+                    <TableHead key={header.id}>
+                      <button
+                        type="button"
+                        onClick={() => header.column.toggleSorting()}
+                        className="flex items-center gap-1 font-medium hover:text-foreground"
+                      >
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                        {sort === "asc" ? <ArrowUp className="h-3 w-3" /> : sort === "desc" ? <ArrowDown className="h-3 w-3" /> : <ArrowUpDown className="h-3 w-3 opacity-40" />}
+                      </button>
+                    </TableHead>
+                  );
+                })}
                 <TableHead className="w-16"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 && (
+              {rows.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground">Sem resultados</TableCell>
+                  <TableCell colSpan={table.getVisibleLeafColumns().length + 2} className="text-center text-muted-foreground">Sem resultados</TableCell>
                 </TableRow>
               )}
-              {filtered.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell>
-                    <Checkbox checked={selected.has(p.id)} onCheckedChange={() => toggleOne(p.id)} />
-                  </TableCell>
-                  <TableCell className="font-medium">{p.nome_completo}</TableCell>
-                  <TableCell className="text-muted-foreground">{p.email ?? "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">{p.telefone ?? "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">{familiaName(p.familia_id)}</TableCell>
-                  <TableCell className="text-muted-foreground">{tipoName(p.tipo_user_id)}</TableCell>
-                  <TableCell>
-                    <Badge variant={p.status === "ativo" ? "default" : p.status === "suspeito_duplicado" ? "destructive" : "outline"}>
-                      {p.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Button size="icon" variant="ghost" onClick={() => { setEditing({ ...p }); setEditOpen(true); }}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button size="icon" variant="ghost" onClick={() => setDeleteOne(p)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {rows.map((row) => {
+                const p = row.original;
+                return (
+                  <TableRow key={row.id}>
+                    <TableCell>
+                      <Checkbox checked={selected.has(p.id)} onCheckedChange={() => toggleOne(p.id)} />
+                    </TableCell>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id} className="whitespace-nowrap">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                    <TableCell>
+                      <Button size="icon" variant="ghost" onClick={() => { setEditing({ ...p }); setEditOpen(true); }}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" onClick={() => setDeleteOne(p)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
