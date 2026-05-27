@@ -17,6 +17,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, Maximize2, Minimize2, ArrowUpDown } from "lucide-react";
+import {
+  useReactTable, getCoreRowModel, getSortedRowModel, getFilteredRowModel,
+  flexRender, type ColumnDef, type SortingState,
+} from "@tanstack/react-table";
+import { AdvancedTableFilters, advancedFilterFn, type ColumnFilterMeta } from "@/components/advanced-table-filters";
 
 export const Route = createFileRoute("/_app/_admin/acoes")({
   component: AcoesPage,
