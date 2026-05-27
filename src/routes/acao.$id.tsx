@@ -198,10 +198,11 @@ function AnonForm({ acao, fields, onDone }: { acao: any; fields: FieldDef[]; onD
   const [dataNasc, setDataNasc] = useState("");
   const [telefone, setTelefone] = useState("");
   const [valores, setValores] = useState<Record<string, any>>({});
+  const [confirmUpdate, setConfirmUpdate] = useState(false);
 
   const submit = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.rpc("inscrever_publico" as any, {
+    mutationFn: async (atualizar: boolean) => {
+      const { data, error } = await supabase.rpc("inscrever_publico" as any, {
         p_acao_id: acao.id,
         p_nome: nome,
         p_email: email || null,
@@ -209,11 +210,17 @@ function AnonForm({ acao, fields, onDone }: { acao: any; fields: FieldDef[]; onD
         p_data_nascimento: dataNasc || null,
         p_telefone: telefone || null,
         p_valores: valores,
+        p_atualizar: atualizar,
       });
       if (error) throw error;
+      return data as { ja_inscrito?: boolean; atualizado?: boolean };
     },
-    onSuccess: () => {
-      toast.success("Inscrição registada!");
+    onSuccess: (res, atualizar) => {
+      if (res?.ja_inscrito && !atualizar) {
+        setConfirmUpdate(true);
+        return;
+      }
+      toast.success(res?.atualizado ? "Respostas atualizadas!" : "Inscrição registada!");
       onDone();
       navigate({ to: "/" });
     },
@@ -221,11 +228,12 @@ function AnonForm({ acao, fields, onDone }: { acao: any; fields: FieldDef[]; onD
   });
 
   return (
+    <>
     <form
       className="space-y-3"
       onSubmit={(e) => {
         e.preventDefault();
-        submit.mutate();
+        submit.mutate(false);
       }}
     >
       <div className="space-y-1"><Label htmlFor="nome">Nome completo *</Label><Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} required /></div>
@@ -242,6 +250,25 @@ function AnonForm({ acao, fields, onDone }: { acao: any; fields: FieldDef[]; onD
         </Button>
       </DialogFooter>
     </form>
+    <Dialog open={confirmUpdate} onOpenChange={setConfirmUpdate}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Já estavas inscrito</DialogTitle>
+          <DialogDescription>
+            Encontrámos uma inscrição existente nesta ação com este email. Queres atualizar as respostas com o que preencheste agora?
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => { setConfirmUpdate(false); onDone(); navigate({ to: "/" }); }}>
+            Manter respostas anteriores
+          </Button>
+          <Button onClick={() => { setConfirmUpdate(false); submit.mutate(true); }} disabled={submit.isPending}>
+            Atualizar respostas
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 
