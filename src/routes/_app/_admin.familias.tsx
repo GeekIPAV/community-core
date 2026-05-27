@@ -12,7 +12,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 
-export const Route = createFileRoute("/_app/familias")({
+export const Route = createFileRoute("/_app/_admin/familias")({
   component: FamiliasPage,
 });
 

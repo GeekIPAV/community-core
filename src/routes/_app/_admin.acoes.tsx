@@ -12,7 +12,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 
-export const Route = createFileRoute("/_app/acoes")({
+export const Route = createFileRoute("/_app/_admin/acoes")({
   component: AcoesPage,
 });
 
@@ -22,7 +22,9 @@ function AcoesPage() {
   const [nome, setNome] = useState("");
   const [local, setLocal] = useState("");
   const [descricao, setDescricao] = useState("");
-  const [configJson, setConfigJson] = useState('{\n  "transporte": "boolean",\n  "alergias": "text"\n}');
+  const [configJson, setConfigJson] = useState(
+    '{\n  "fields": [\n    { "key": "transporte", "label": "Precisa de transporte?", "type": "checkbox" },\n    { "key": "alergias", "label": "Alergias", "type": "text" }\n  ]\n}',
+  );
 
   const { data, isLoading } = useQuery({
     queryKey: ["acoes"],
@@ -70,7 +72,7 @@ function AcoesPage() {
               <div className="space-y-2"><Label>Descrição</Label><Textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} /></div>
               <div className="space-y-2">
                 <Label>Config campos (JSON)</Label>
-                <Textarea className="font-mono text-xs" rows={6} value={configJson} onChange={(e) => setConfigJson(e.target.value)} />
+                <Textarea className="font-mono text-xs" rows={8} value={configJson} onChange={(e) => setConfigJson(e.target.value)} />
               </div>
             </div>
             <DialogFooter>

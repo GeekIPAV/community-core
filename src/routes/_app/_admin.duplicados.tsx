@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useState } from "react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_app/duplicados")({
+export const Route = createFileRoute("/_app/_admin/duplicados")({
   component: DuplicadosPage,
 });
 

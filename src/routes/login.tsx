@@ -22,10 +22,10 @@ function LoginPage() {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (session) navigate({ to: "/participantes", replace: true });
+      if (session) navigate({ to: "/", replace: true });
     });
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/participantes", replace: true });
+      if (data.session) navigate({ to: "/", replace: true });
     });
     return () => subscription.unsubscribe();
   }, [navigate]);
@@ -42,7 +42,7 @@ function LoginPage() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: `${window.location.origin}/participantes` },
+          options: { emailRedirectTo: `${window.location.origin}/` },
         });
         if (error) throw error;
         toast.success("Conta criada. Verifica o teu email.");

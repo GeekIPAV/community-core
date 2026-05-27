@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { useState, useMemo } from "react";
 
-export const Route = createFileRoute("/_app/participantes")({
+export const Route = createFileRoute("/_app/_admin/participantes")({
   component: ParticipantesPage,
 });
 

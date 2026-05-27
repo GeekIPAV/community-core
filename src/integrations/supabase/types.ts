@@ -128,12 +128,14 @@ export type Database = {
       }
       pessoas: {
         Row: {
+          auth_user_id: string | null
           created_at: string
           data_nascimento: string | null
           email: string | null
           familia_id: string | null
           fundido_em: string | null
           id: string
+          is_admin: boolean
           nif: string | null
           nome_completo: string
           notas: string | null
@@ -142,12 +144,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          auth_user_id?: string | null
           created_at?: string
           data_nascimento?: string | null
           email?: string | null
           familia_id?: string | null
           fundido_em?: string | null
           id?: string
+          is_admin?: boolean
           nif?: string | null
           nome_completo: string
           notas?: string | null
@@ -156,12 +160,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          auth_user_id?: string | null
           created_at?: string
           data_nascimento?: string | null
           email?: string | null
           familia_id?: string | null
           fundido_em?: string | null
           id?: string
+          is_admin?: boolean
           nif?: string | null
           nome_completo?: string
           notas?: string | null
@@ -240,10 +246,25 @@ export type Database = {
       }
     }
     Functions: {
+      current_user_familia_id: { Args: never; Returns: string }
+      current_user_pessoa_id: { Args: never; Returns: string }
       fundir_perfis: {
         Args: { duplicado: string; principal: string }
         Returns: undefined
       }
+      inscrever_publico: {
+        Args: {
+          p_acao_id: string
+          p_data_nascimento?: string
+          p_email?: string
+          p_nif?: string
+          p_nome: string
+          p_telefone?: string
+          p_valores?: Json
+        }
+        Returns: string
+      }
+      is_current_user_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       status_inscricao: "confirmada" | "cancelada" | "pendente"
