@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { format } from "date-fns";
-import { Filter, Plus, Trash2, X, CalendarIcon } from "lucide-react";
+import { Check, ChevronsUpDown, Filter, Plus, Trash2, X, CalendarIcon } from "lucide-react";
 import type { Table, Column } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -233,22 +233,18 @@ export function AdvancedTableFilters<T>({ table }: { table: Table<T> }) {
                 const variant = col ? variantOf(col) : "text";
                 return (
                   <div key={rule.id} className="flex flex-wrap items-center gap-2 rounded-md border p-2">
-                    <Select value={rule.columnId} onValueChange={(v) => updateRule(rule.id, { columnId: v })}>
-                      <SelectTrigger className="h-8 w-[160px]"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {filterableColumns.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>{labelOf(c)}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select value={rule.operator} onValueChange={(v) => updateRule(rule.id, { operator: v, value: v === "between" ? { from: null, to: null } : "" })}>
-                      <SelectTrigger className="h-8 w-[140px]"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {OPERATORS[variant].map((op) => (
-                          <SelectItem key={op.value} value={op.value}>{op.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <ChoiceButton
+                      value={rule.columnId}
+                      options={filterableColumns.map((c) => ({ value: c.id, label: labelOf(c) }))}
+                      onChange={(v) => updateRule(rule.id, { columnId: v })}
+                      className="w-[160px]"
+                    />
+                    <ChoiceButton
+                      value={rule.operator}
+                      options={OPERATORS[variant]}
+                      onChange={(v) => updateRule(rule.id, { operator: v, value: v === "between" ? { from: null, to: null } : "" })}
+                      className="w-[140px]"
+                    />
                     <div className="flex-1 min-w-[180px]">
                       <RuleValueInput
                         variant={variant}
@@ -328,12 +324,12 @@ function RuleValueInput({
     }
     const safeOptions = options.filter((o) => o !== "" && o !== null && o !== undefined);
     return (
-      <Select value={value ? String(value) : undefined} onValueChange={onChange}>
-        <SelectTrigger className="h-8"><SelectValue placeholder="Escolhe…" /></SelectTrigger>
-        <SelectContent>
-          {safeOptions.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-        </SelectContent>
-      </Select>
+      <ChoiceButton
+        value={value ? String(value) : ""}
+        options={safeOptions.map((o) => ({ value: o, label: o }))}
+        onChange={onChange}
+        placeholder="Escolhe…"
+      />
     );
   }
 
