@@ -350,7 +350,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
           <p className="text-xl font-semibold">{presentes}</p>
         </div>
       </div>
-      {rows.length === 0 ? (
+      {baseRows.length === 0 ? (
         <p className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">
           Ainda ninguém se inscreveu.
         </p>
@@ -408,6 +408,13 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {rows.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={columns.length + 1} className="text-center text-xs text-muted-foreground">
+                      Sem resultados para os filtros aplicados.
+                    </TableCell>
+                  </TableRow>
+                )}
                 {rows.map((r) => (
                   <TableRow key={r.id} data-state={selected.has(r.id) ? "selected" : undefined}>
                     <TableCell>
