@@ -337,7 +337,12 @@ export type Database = {
     }
     Enums: {
       status_acao: "ativa" | "cancelada" | "concluida"
-      status_inscricao: "confirmada" | "cancelada" | "pendente"
+      status_inscricao:
+        | "confirmada"
+        | "cancelada"
+        | "pendente"
+        | "presente"
+        | "ausente"
       status_pessoa: "ativo" | "suspeito_duplicado" | "fundido"
     }
     CompositeTypes: {
@@ -467,7 +472,13 @@ export const Constants = {
   public: {
     Enums: {
       status_acao: ["ativa", "cancelada", "concluida"],
-      status_inscricao: ["confirmada", "cancelada", "pendente"],
+      status_inscricao: [
+        "confirmada",
+        "cancelada",
+        "pendente",
+        "presente",
+        "ausente",
+      ],
       status_pessoa: ["ativo", "suspeito_duplicado", "fundido"],
     },
   },
