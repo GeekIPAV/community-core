@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -192,17 +193,14 @@ type AcaoForm = {
   descricao: string;
   data_inicio: string;
   data_fim: string;
-  status: "ativa" | "cancelada" | "concluida";
+  status: string;
+  inscricoes_abertas: boolean;
   fields: FieldDef[];
 };
 
-const EMPTY_FORM: AcaoForm = { nome: "", local: "", descricao: "", data_inicio: "", data_fim: "", status: "ativa", fields: [] };
+const EMPTY_FORM: AcaoForm = { nome: "", local: "", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, fields: [] };
 
-const STATUS_LABEL: Record<AcaoForm["status"], string> = {
-  ativa: "Ativa",
-  cancelada: "Cancelada",
-  concluida: "Concluída",
-};
+const DEFAULT_STATUSES = ["ativa", "cancelada", "concluida"];
 
 function toDtLocal(v: string | null | undefined): string {
   if (!v) return "";
