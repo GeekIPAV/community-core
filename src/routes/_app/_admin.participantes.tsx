@@ -21,7 +21,17 @@ import {
 } from "@/components/ui/dialog";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Pencil, Plus, Upload } from "lucide-react";
+import { Pencil, Plus, Trash2, Upload } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_app/_admin/participantes")({
   component: ParticipantesPage,
@@ -71,6 +81,9 @@ function ParticipantesPage() {
   const [bulkFamilia, setBulkFamilia] = useState<string>("__noop");
   const [bulkStatus, setBulkStatus] = useState<string>("__noop");
   const [bulkTipo, setBulkTipo] = useState<string>("__noop");
+
+  const [deleteOne, setDeleteOne] = useState<Pessoa | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["pessoas"],
@@ -211,6 +224,25 @@ function ParticipantesPage() {
       setBulkFamilia("__noop");
       setBulkStatus("__noop");
       setBulkTipo("__noop");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (ids: string[]) => {
+      if (ids.length === 0) throw new Error("Nada para apagar");
+      const { error } = await supabase.from("pessoas").delete().in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (n) => {
+      toast.success(`${n} ${n === 1 ? "pessoa apagada" : "pessoas apagadas"}`);
+      invalidate();
+      setDeleteOne(null);
+      setBulkDeleteOpen(false);
+      setSelected(new Set());
+      setEditOpen(false);
+      setEditing(null);
     },
     onError: (e: Error) => toast.error(e.message),
   });
