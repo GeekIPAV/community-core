@@ -24,6 +24,7 @@ export type Database = {
           id: string
           local: string | null
           nome: string
+          status: Database["public"]["Enums"]["status_acao"]
           updated_at: string
         }
         Insert: {
@@ -35,6 +36,7 @@ export type Database = {
           id?: string
           local?: string | null
           nome: string
+          status?: Database["public"]["Enums"]["status_acao"]
           updated_at?: string
         }
         Update: {
@@ -46,6 +48,7 @@ export type Database = {
           id?: string
           local?: string | null
           nome?: string
+          status?: Database["public"]["Enums"]["status_acao"]
           updated_at?: string
         }
         Relationships: []
@@ -330,6 +333,7 @@ export type Database = {
       is_current_user_admin: { Args: never; Returns: boolean }
     }
     Enums: {
+      status_acao: "ativa" | "cancelada" | "concluida"
       status_inscricao: "confirmada" | "cancelada" | "pendente"
       status_pessoa: "ativo" | "suspeito_duplicado" | "fundido"
     }
@@ -459,6 +463,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      status_acao: ["ativa", "cancelada", "concluida"],
       status_inscricao: ["confirmada", "cancelada", "pendente"],
       status_pessoa: ["ativo", "suspeito_duplicado", "fundido"],
     },

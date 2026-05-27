@@ -190,10 +190,33 @@ type AcaoForm = {
   nome: string;
   local: string;
   descricao: string;
+  data_inicio: string;
+  data_fim: string;
+  status: "ativa" | "cancelada" | "concluida";
   fields: FieldDef[];
 };
 
-const EMPTY_FORM: AcaoForm = { nome: "", local: "", descricao: "", fields: [] };
+const EMPTY_FORM: AcaoForm = { nome: "", local: "", descricao: "", data_inicio: "", data_fim: "", status: "ativa", fields: [] };
+
+const STATUS_LABEL: Record<AcaoForm["status"], string> = {
+  ativa: "Ativa",
+  cancelada: "Cancelada",
+  concluida: "Concluída",
+};
+
+function toDtLocal(v: string | null | undefined): string {
+  if (!v) return "";
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function fromDtLocal(v: string): string | null {
+  if (!v) return null;
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
 
 function AcoesPage() {
   const qc = useQueryClient();
@@ -220,8 +243,11 @@ function AcoesPage() {
         nome: form.nome,
         local: form.local || null,
         descricao: form.descricao || null,
+        data_inicio: fromDtLocal(form.data_inicio),
+        data_fim: fromDtLocal(form.data_fim),
+        status: form.status,
         config_campos: { fields: form.fields },
-      });
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -242,8 +268,11 @@ function AcoesPage() {
           nome: editing.nome,
           local: editing.local || null,
           descricao: editing.descricao || null,
+          data_inicio: fromDtLocal(editing.data_inicio),
+          data_fim: fromDtLocal(editing.data_fim),
+          status: editing.status,
           config_campos: { fields: editing.fields },
-        })
+        } as any)
         .eq("id", editing.id);
       if (error) throw error;
     },
@@ -290,6 +319,21 @@ function AcoesPage() {
               <div className="space-y-2"><Label>Nome</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} /></div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2"><Label>Local</Label><Input value={form.local} onChange={(e) => setForm({ ...form, local: e.target.value })} /></div>
+                <div className="space-y-2">
+                  <Label>Estado</Label>
+                  <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as AcaoForm["status"] })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(STATUS_LABEL).map(([v, l]) => (
+                        <SelectItem key={v} value={v}>{l}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2"><Label>Data de início</Label><Input type="datetime-local" value={form.data_inicio} onChange={(e) => setForm({ ...form, data_inicio: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Data de fim</Label><Input type="datetime-local" value={form.data_fim} onChange={(e) => setForm({ ...form, data_fim: e.target.value })} /></div>
               </div>
               <div className="space-y-2"><Label>Descrição</Label><Textarea value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} /></div>
               <FieldsEditor fields={form.fields} setFields={(fields) => setForm({ ...form, fields })} />
@@ -319,6 +363,9 @@ function AcoesPage() {
                   nome: a.nome ?? "",
                   local: a.local ?? "",
                   descricao: a.descricao ?? "",
+                  data_inicio: toDtLocal(a.data_inicio),
+                  data_fim: toDtLocal(a.data_fim),
+                  status: ((a as any).status ?? "ativa") as AcaoForm["status"],
                   fields,
                 })}
               >
@@ -332,6 +379,17 @@ function AcoesPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground space-y-2">
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <Badge variant={((a as any).status ?? "ativa") === "cancelada" ? "destructive" : "outline"}>
+                      {STATUS_LABEL[((a as any).status ?? "ativa") as AcaoForm["status"]]}
+                    </Badge>
+                    {a.data_inicio && (
+                      <span>
+                        {new Date(a.data_inicio).toLocaleString("pt-PT", { dateStyle: "short", timeStyle: "short" })}
+                        {a.data_fim ? ` → ${new Date(a.data_fim).toLocaleString("pt-PT", { dateStyle: "short", timeStyle: "short" })}` : ""}
+                      </span>
+                    )}
+                  </div>
                   {a.descricao && <p className="line-clamp-2">{a.descricao}</p>}
                   <div className="flex flex-wrap gap-1 pt-1">
                     {fields.length === 0 ? (
@@ -360,7 +418,24 @@ function AcoesPage() {
           {editing && (
             <div className="space-y-4">
               <div className="space-y-2"><Label>Nome</Label><Input value={editing.nome} onChange={(e) => setEditing({ ...editing, nome: e.target.value })} /></div>
-              <div className="space-y-2"><Label>Local</Label><Input value={editing.local} onChange={(e) => setEditing({ ...editing, local: e.target.value })} /></div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2"><Label>Local</Label><Input value={editing.local} onChange={(e) => setEditing({ ...editing, local: e.target.value })} /></div>
+                <div className="space-y-2">
+                  <Label>Estado</Label>
+                  <Select value={editing.status} onValueChange={(v) => setEditing({ ...editing, status: v as AcaoForm["status"] })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(STATUS_LABEL).map(([v, l]) => (
+                        <SelectItem key={v} value={v}>{l}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2"><Label>Data de início</Label><Input type="datetime-local" value={editing.data_inicio} onChange={(e) => setEditing({ ...editing, data_inicio: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Data de fim</Label><Input type="datetime-local" value={editing.data_fim} onChange={(e) => setEditing({ ...editing, data_fim: e.target.value })} /></div>
+              </div>
               <div className="space-y-2"><Label>Descrição</Label><Textarea value={editing.descricao} onChange={(e) => setEditing({ ...editing, descricao: e.target.value })} /></div>
               <FieldsEditor fields={editing.fields} setFields={(fields) => setEditing({ ...editing, fields })} />
             </div>
