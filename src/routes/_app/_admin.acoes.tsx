@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, Maximize2, Minimize2 } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, Maximize2, Minimize2, ArrowUpDown } from "lucide-react";
 
 export const Route = createFileRoute("/_app/_admin/acoes")({
   component: AcoesPage,
@@ -250,6 +250,8 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
   const qc = useQueryClient();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkStatus, setBulkStatus] = useState<InscricaoStatus>("presente");
+  const [filters, setFilters] = useState<Record<string, string>>({});
+  const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>(null);
   const { data, isLoading } = useQuery({
     queryKey: ["inscricoes", acaoId],
     queryFn: async () => {
@@ -273,9 +275,50 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
   });
 
   if (isLoading) return <Skeleton className="h-32 w-full" />;
-  const rows = (data ?? []).filter((r) => r.status !== "cancelada");
-  const total = rows.length;
-  const presentes = rows.filter((r) => r.status === "presente").length;
+  const baseRows = (data ?? []).filter((r) => r.status !== "cancelada");
+  const total = baseRows.length;
+  const presentes = baseRows.filter((r) => r.status === "presente").length;
+
+  const columns: { key: string; label: string; get: (r: any) => any }[] = [
+    { key: "status", label: "Estado", get: (r) => INSCRICAO_STATUS_LABEL[r.status as InscricaoStatus] ?? r.status },
+    { key: "nome", label: "Nome", get: (r) => r.pessoa?.nome_completo ?? "" },
+    { key: "email", label: "Email", get: (r) => r.pessoa?.email ?? "" },
+    { key: "telefone", label: "Telefone", get: (r) => r.pessoa?.telefone ?? "" },
+    { key: "data_nascimento", label: "Data nasc.", get: (r) => r.pessoa?.data_nascimento ?? "" },
+    { key: "nif", label: "NIF", get: (r) => r.pessoa?.nif ?? "" },
+    { key: "cidade", label: "Cidade", get: (r) => r.pessoa?.cidade_residencia ?? "" },
+    ...fields.map((f) => ({
+      key: `field:${f.key}`,
+      label: f.label,
+      get: (r: any) => {
+        const v = r.valores_dinamicos?.[f.key];
+        if (v === undefined || v === null || v === "") return "";
+        return Array.isArray(v) ? v.join(", ") : typeof v === "boolean" ? (v ? "Sim" : "Não") : String(v);
+      },
+    })),
+  ];
+
+  let rows = baseRows.filter((r) =>
+    columns.every((c) => {
+      const q = filters[c.key]?.trim().toLowerCase();
+      if (!q) return true;
+      return String(c.get(r) ?? "").toLowerCase().includes(q);
+    }),
+  );
+  if (sort) {
+    const col = columns.find((c) => c.key === sort.key);
+    if (col) {
+      rows = [...rows].sort((a, b) => {
+        const va = String(col.get(a) ?? "");
+        const vb = String(col.get(b) ?? "");
+        return sort.dir === "asc" ? va.localeCompare(vb, "pt") : vb.localeCompare(va, "pt");
+      });
+    }
+  }
+  const toggleSort = (key: string) => {
+    setSort((cur) => (cur?.key !== key ? { key, dir: "asc" } : cur.dir === "asc" ? { key, dir: "desc" } : null));
+  };
+
   const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
   const someSelected = selected.size > 0;
   const toggleAll = () => {
@@ -335,18 +378,32 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-10">
+                  <TableHead className="w-10 align-top">
                     <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Selecionar tudo" />
                   </TableHead>
-                  <TableHead className="w-[150px]">Estado</TableHead>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Data nasc.</TableHead>
-                  <TableHead>NIF</TableHead>
-                  <TableHead>Cidade</TableHead>
-                  {fields.map((f) => (
-                    <TableHead key={f.key}>{f.label}</TableHead>
+                  {columns.map((c) => (
+                    <TableHead key={c.key} className="align-top">
+                      <div className="space-y-1 min-w-[120px]">
+                        <button
+                          type="button"
+                          onClick={() => toggleSort(c.key)}
+                          className="flex items-center gap-1 font-medium hover:text-foreground"
+                        >
+                          {c.label}
+                          {sort?.key === c.key ? (
+                            sort.dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                          ) : (
+                            <ArrowUpDown className="h-3 w-3 opacity-40" />
+                          )}
+                        </button>
+                        <Input
+                          value={filters[c.key] ?? ""}
+                          onChange={(e) => setFilters({ ...filters, [c.key]: e.target.value })}
+                          placeholder="Filtrar…"
+                          className="h-7 text-xs"
+                        />
+                      </div>
+                    </TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
