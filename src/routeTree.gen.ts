@@ -12,10 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AppParticipantesRouteImport } from './routes/_app.participantes'
-import { Route as AppFamiliasRouteImport } from './routes/_app.familias'
-import { Route as AppDuplicadosRouteImport } from './routes/_app.duplicados'
-import { Route as AppAcoesRouteImport } from './routes/_app.acoes'
+import { Route as AppAdminRouteImport } from './routes/_app/_admin'
+import { Route as AppAdminAcoesRouteImport } from './routes/_app/_admin.acoes'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -31,73 +29,46 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppParticipantesRoute = AppParticipantesRouteImport.update({
-  id: '/participantes',
-  path: '/participantes',
+const AppAdminRoute = AppAdminRouteImport.update({
+  id: '/_admin',
   getParentRoute: () => AppRoute,
 } as any)
-const AppFamiliasRoute = AppFamiliasRouteImport.update({
-  id: '/familias',
-  path: '/familias',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppDuplicadosRoute = AppDuplicadosRouteImport.update({
-  id: '/duplicados',
-  path: '/duplicados',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppAcoesRoute = AppAcoesRouteImport.update({
+const AppAdminAcoesRoute = AppAdminAcoesRouteImport.update({
   id: '/acoes',
   path: '/acoes',
-  getParentRoute: () => AppRoute,
+  getParentRoute: () => AppAdminRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/acoes': typeof AppAcoesRoute
-  '/duplicados': typeof AppDuplicadosRoute
-  '/familias': typeof AppFamiliasRoute
-  '/participantes': typeof AppParticipantesRoute
+  '/acoes': typeof AppAdminAcoesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/acoes': typeof AppAcoesRoute
-  '/duplicados': typeof AppDuplicadosRoute
-  '/familias': typeof AppFamiliasRoute
-  '/participantes': typeof AppParticipantesRoute
+  '/acoes': typeof AppAdminAcoesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
-  '/_app/acoes': typeof AppAcoesRoute
-  '/_app/duplicados': typeof AppDuplicadosRoute
-  '/_app/familias': typeof AppFamiliasRoute
-  '/_app/participantes': typeof AppParticipantesRoute
+  '/_app/_admin': typeof AppAdminRouteWithChildren
+  '/_app/_admin/acoes': typeof AppAdminAcoesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/login'
-    | '/acoes'
-    | '/duplicados'
-    | '/familias'
-    | '/participantes'
+  fullPaths: '/' | '/login' | '/acoes'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/acoes' | '/duplicados' | '/familias' | '/participantes'
+  to: '/' | '/login' | '/acoes'
   id:
     | '__root__'
     | '/'
     | '/_app'
     | '/login'
-    | '/_app/acoes'
-    | '/_app/duplicados'
-    | '/_app/familias'
-    | '/_app/participantes'
+    | '/_app/_admin'
+    | '/_app/_admin/acoes'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -129,49 +100,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/participantes': {
-      id: '/_app/participantes'
-      path: '/participantes'
-      fullPath: '/participantes'
-      preLoaderRoute: typeof AppParticipantesRouteImport
+    '/_app/_admin': {
+      id: '/_app/_admin'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppAdminRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/familias': {
-      id: '/_app/familias'
-      path: '/familias'
-      fullPath: '/familias'
-      preLoaderRoute: typeof AppFamiliasRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/duplicados': {
-      id: '/_app/duplicados'
-      path: '/duplicados'
-      fullPath: '/duplicados'
-      preLoaderRoute: typeof AppDuplicadosRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/acoes': {
-      id: '/_app/acoes'
+    '/_app/_admin/acoes': {
+      id: '/_app/_admin/acoes'
       path: '/acoes'
       fullPath: '/acoes'
-      preLoaderRoute: typeof AppAcoesRouteImport
-      parentRoute: typeof AppRoute
+      preLoaderRoute: typeof AppAdminAcoesRouteImport
+      parentRoute: typeof AppAdminRoute
     }
   }
 }
 
+interface AppAdminRouteChildren {
+  AppAdminAcoesRoute: typeof AppAdminAcoesRoute
+}
+
+const AppAdminRouteChildren: AppAdminRouteChildren = {
+  AppAdminAcoesRoute: AppAdminAcoesRoute,
+}
+
+const AppAdminRouteWithChildren = AppAdminRoute._addFileChildren(
+  AppAdminRouteChildren,
+)
+
 interface AppRouteChildren {
-  AppAcoesRoute: typeof AppAcoesRoute
-  AppDuplicadosRoute: typeof AppDuplicadosRoute
-  AppFamiliasRoute: typeof AppFamiliasRoute
-  AppParticipantesRoute: typeof AppParticipantesRoute
+  AppAdminRoute: typeof AppAdminRouteWithChildren
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppAcoesRoute: AppAcoesRoute,
-  AppDuplicadosRoute: AppDuplicadosRoute,
-  AppFamiliasRoute: AppFamiliasRoute,
-  AppParticipantesRoute: AppParticipantesRoute,
+  AppAdminRoute: AppAdminRouteWithChildren,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
