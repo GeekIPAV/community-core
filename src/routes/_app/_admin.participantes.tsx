@@ -21,7 +21,17 @@ import {
 } from "@/components/ui/dialog";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Pencil, Plus, Upload } from "lucide-react";
+import { Pencil, Plus, Trash2, Upload } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_app/_admin/participantes")({
   component: ParticipantesPage,
@@ -71,6 +81,9 @@ function ParticipantesPage() {
   const [bulkFamilia, setBulkFamilia] = useState<string>("__noop");
   const [bulkStatus, setBulkStatus] = useState<string>("__noop");
   const [bulkTipo, setBulkTipo] = useState<string>("__noop");
+
+  const [deleteOne, setDeleteOne] = useState<Pessoa | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["pessoas"],
@@ -215,6 +228,25 @@ function ParticipantesPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const remove = useMutation({
+    mutationFn: async (ids: string[]) => {
+      if (ids.length === 0) throw new Error("Nada para apagar");
+      const { error } = await supabase.from("pessoas").delete().in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (n) => {
+      toast.success(`${n} ${n === 1 ? "pessoa apagada" : "pessoas apagadas"}`);
+      invalidate();
+      setDeleteOne(null);
+      setBulkDeleteOpen(false);
+      setSelected(new Set());
+      setEditOpen(false);
+      setEditing(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const allChecked = filtered.length > 0 && filtered.every((p) => selected.has(p.id));
   const toggleAll = () => {
     const next = new Set(selected);
@@ -246,6 +278,13 @@ function ParticipantesPage() {
             onClick={() => setBulkEditOpen(true)}
           >
             <Pencil className="mr-2 h-4 w-4" /> Editar {selected.size > 0 ? `(${selected.size})` : ""}
+          </Button>
+          <Button
+            variant="destructive"
+            disabled={selected.size === 0}
+            onClick={() => setBulkDeleteOpen(true)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" /> Apagar {selected.size > 0 ? `(${selected.size})` : ""}
           </Button>
           <Button onClick={() => setAddOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Adicionar
@@ -301,6 +340,9 @@ function ParticipantesPage() {
                   <TableCell>
                     <Button size="icon" variant="ghost" onClick={() => { setEditing({ ...p }); setEditOpen(true); }}>
                       <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" onClick={() => setDeleteOne(p)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -388,7 +430,14 @@ function ParticipantesPage() {
               <Field label="Notas" className="col-span-2"><Textarea value={editing.notas ?? ""} onChange={(e) => setEditing({ ...editing, notas: e.target.value })} /></Field>
             </div>
           )}
-          <DialogFooter>
+          <DialogFooter className="sm:justify-between">
+            <Button
+              variant="destructive"
+              onClick={() => editing && setDeleteOne(editing)}
+              disabled={!editing || remove.isPending}
+            >
+              <Trash2 className="mr-2 h-4 w-4" /> Apagar
+            </Button>
             <Button onClick={() => update.mutate()} disabled={!editing?.nome_completo.trim() || update.isPending}>
               {update.isPending ? "A guardar…" : "Guardar"}
             </Button>
@@ -465,6 +514,48 @@ function ParticipantesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete single */}
+      <AlertDialog open={!!deleteOne} onOpenChange={(o) => !o && setDeleteOne(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apagar pessoa</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tens a certeza que queres apagar <strong>{deleteOne?.nome_completo}</strong>? Esta ação não pode ser revertida.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteOne && remove.mutate([deleteOne.id])}
+              disabled={remove.isPending}
+            >
+              {remove.isPending ? "A apagar…" : "Apagar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk delete */}
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apagar {selected.size} pessoas</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser revertida.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => remove.mutate(Array.from(selected))}
+              disabled={remove.isPending}
+            >
+              {remove.isPending ? "A apagar…" : "Apagar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
