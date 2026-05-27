@@ -729,8 +729,9 @@ function Field({ label, className, children }: { label: string; className?: stri
   );
 }
 
-function parseBulkCsv(text: string, familias: { id: string; nome: string }[]) {
+function parseBulkCsv(text: string, familias: { id: string; nome: string }[], projetos: { id: string; nome: string }[]) {
   const famByName = new Map(familias.map((f) => [f.nome.trim().toLowerCase(), f.id]));
+  const projByName = new Map(projetos.map((p) => [p.nome.trim().toLowerCase(), p.id]));
   return text
     .split(/\r?\n/)
     .map((l) => l.trim())
@@ -748,6 +749,7 @@ function parseBulkCsv(text: string, familias: { id: string; nome: string }[]) {
         cidade_residencia,
         religiao,
         familia,
+        projeto,
       ] = parts;
       if (!nome) throw new Error(`Linha sem nome: "${line}"`);
       let familia_id: string | null = null;
@@ -755,6 +757,12 @@ function parseBulkCsv(text: string, familias: { id: string; nome: string }[]) {
         const id = famByName.get(familia.toLowerCase());
         if (!id) throw new Error(`Família "${familia}" não encontrada (linha: "${line}")`);
         familia_id = id;
+      }
+      let projeto_id: string | null = null;
+      if (projeto) {
+        const id = projByName.get(projeto.toLowerCase());
+        if (!id) throw new Error(`Projeto "${projeto}" não encontrado (linha: "${line}")`);
+        projeto_id = id;
       }
       let generoVal: string | null = null;
       if (genero) {
@@ -774,6 +782,7 @@ function parseBulkCsv(text: string, familias: { id: string; nome: string }[]) {
         cidade_residencia: cidade_residencia || null,
         religiao: religiao || null,
         familia_id,
+        projeto_id,
       };
     });
 }
