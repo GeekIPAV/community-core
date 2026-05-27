@@ -177,7 +177,7 @@ function ParticipantesPage() {
     mutationFn: async () => {
       const ids = Array.from(selected);
       if (ids.length === 0) throw new Error("Seleciona pelo menos uma pessoa");
-      const patch: Record<string, any> = {};
+      const patch: { familia_id?: string | null; status?: any } = {};
       if (bulkFamilia !== "__noop") patch.familia_id = bulkFamilia === "__null" ? null : bulkFamilia;
       if (bulkStatus !== "__noop") patch.status = bulkStatus;
       if (Object.keys(patch).length === 0) throw new Error("Nada para alterar");
