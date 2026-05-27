@@ -479,6 +479,31 @@ function AcoesPage() {
     },
   });
 
+  const { data: inscricaoCounts } = useQuery({
+    queryKey: ["acoes", "inscricoes-count"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("inscricoes")
+        .select("acao_id, status");
+      if (error) throw error;
+      const map = new Map<string, number>();
+      for (const r of (data ?? []) as any[]) {
+        if (r.status === "cancelada") continue;
+        map.set(r.acao_id, (map.get(r.acao_id) ?? 0) + 1);
+      }
+      return map;
+    },
+  });
+
+  const toggleInscricoesAbertas = useMutation({
+    mutationFn: async ({ id, value }: { id: string; value: boolean }) => {
+      const { error } = await supabase.from("acoes").update({ inscricoes_abertas: value } as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["acoes"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const invalidate = () => qc.invalidateQueries({ queryKey: ["acoes"] });
 
   const create = useMutation({
@@ -604,6 +629,8 @@ function AcoesPage() {
           {(data ?? []).length === 0 && <p className="text-sm text-muted-foreground">Sem ações.</p>}
           {data?.map((a) => {
             const fields = parseFields(a.config_campos);
+            const inscritos = inscricaoCounts?.get(a.id) ?? 0;
+            const inscricoesAbertas = (a as any).inscricoes_abertas ?? true;
             return (
               <Card
                 key={a.id}
@@ -616,45 +643,39 @@ function AcoesPage() {
                   data_inicio: toDtLocal(a.data_inicio),
                   data_fim: toDtLocal(a.data_fim),
                   status: String((a as any).status ?? "ativa"),
-                  inscricoes_abertas: (a as any).inscricoes_abertas ?? true,
+                  inscricoes_abertas: inscricoesAbertas,
                   fields,
                 })}
               >
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
-                    <div>
+                    <div className="min-w-0">
                       <CardTitle>{a.nome}</CardTitle>
-                      <CardDescription>{a.local ?? "Sem local"}</CardDescription>
+                      {a.data_inicio && (
+                        <CardDescription>
+                          {new Date(a.data_inicio).toLocaleString("pt-PT", { dateStyle: "short", timeStyle: "short" })}
+                          {a.data_fim ? ` → ${new Date(a.data_fim).toLocaleString("pt-PT", { dateStyle: "short", timeStyle: "short" })}` : ""}
+                        </CardDescription>
+                      )}
                     </div>
                     <Pencil className="h-4 w-4 text-muted-foreground" />
                   </div>
                 </CardHeader>
-                <CardContent className="text-sm text-muted-foreground space-y-2">
-                  <div className="flex flex-wrap items-center gap-2 text-xs">
-                    <Badge variant={((a as any).status ?? "ativa") === "cancelada" ? "destructive" : "outline"}>
-                      {String((a as any).status ?? "ativa")}
-                    </Badge>
-                    {!((a as any).inscricoes_abertas ?? true) && (
-                      <Badge variant="secondary">Inscrições fechadas</Badge>
-                    )}
-                    {a.data_inicio && (
-                      <span>
-                        {new Date(a.data_inicio).toLocaleString("pt-PT", { dateStyle: "short", timeStyle: "short" })}
-                        {a.data_fim ? ` → ${new Date(a.data_fim).toLocaleString("pt-PT", { dateStyle: "short", timeStyle: "short" })}` : ""}
-                      </span>
-                    )}
-                  </div>
-                  {a.descricao && <p className="line-clamp-2">{a.descricao}</p>}
-                  <div className="flex flex-wrap gap-1 pt-1">
-                    {fields.length === 0 ? (
-                      <span className="text-xs italic">Sem campos personalizados</span>
-                    ) : (
-                      fields.map((f) => (
-                        <Badge key={f.key} variant="secondary" className="text-[10px]">
-                          {f.label} · {TYPE_LABEL[f.type]}{f.required ? " *" : ""}
-                        </Badge>
-                      ))
-                    )}
+                <CardContent className="text-sm space-y-3">
+                  <label
+                    className="flex items-center justify-between rounded-md border p-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <span className="text-xs font-medium">Inscrições abertas</span>
+                    <Switch
+                      checked={inscricoesAbertas}
+                      disabled={toggleInscricoesAbertas.isPending}
+                      onCheckedChange={(c) => toggleInscricoesAbertas.mutate({ id: a.id, value: c })}
+                    />
+                  </label>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Inscritos</span>
+                    <span className="text-sm font-semibold text-foreground">{inscritos}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -668,8 +689,8 @@ function AcoesPage() {
         <DialogContent
           className={
             editFullscreen
-              ? "max-w-none w-screen h-screen sm:rounded-none p-6 overflow-y-auto"
-              : "max-w-2xl max-h-[90vh] overflow-y-auto"
+              ? "max-w-none w-screen h-screen sm:rounded-none p-6 overflow-y-auto overflow-x-hidden"
+              : "max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden"
           }
         >
           <DialogHeader className="sticky top-0 z-10 -mx-6 -mt-6 border-b bg-background px-6 py-4">
@@ -687,12 +708,12 @@ function AcoesPage() {
             </div>
           </DialogHeader>
           {editing && (
-            <Tabs defaultValue="detalhes">
+            <Tabs defaultValue="detalhes" className="min-w-0">
               <TabsList>
                 <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
                 <TabsTrigger value="inscricoes">Inscrições</TabsTrigger>
               </TabsList>
-              <TabsContent value="detalhes" className="space-y-4">
+              <TabsContent value="detalhes" className="space-y-4 min-w-0">
               <div className="space-y-2"><Label>Nome</Label><Input value={editing.nome} onChange={(e) => setEditing({ ...editing, nome: e.target.value })} /></div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2"><Label>Local</Label><Input value={editing.local} onChange={(e) => setEditing({ ...editing, local: e.target.value })} /></div>
@@ -719,7 +740,7 @@ function AcoesPage() {
               <div className="space-y-2"><Label>Descrição</Label><Textarea value={editing.descricao} onChange={(e) => setEditing({ ...editing, descricao: e.target.value })} /></div>
               <FieldsEditor fields={editing.fields} setFields={(fields) => setEditing({ ...editing, fields })} />
               </TabsContent>
-              <TabsContent value="inscricoes">
+              <TabsContent value="inscricoes" className="min-w-0">
                 <InscricoesTab acaoId={editing.id} fields={editing.fields} />
               </TabsContent>
             </Tabs>
