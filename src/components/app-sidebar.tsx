@@ -9,7 +9,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/lib/auth-context";
 
@@ -29,8 +28,6 @@ const acoesItems = [
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
-  const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { isAdmin, hasPage } = useAuth();
 
@@ -39,10 +36,10 @@ export function AppSidebar() {
   const visibleAcoes = acoesItems.filter((i) => hasPage(i.page));
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="none">
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>{collapsed ? null : "Comunidade"}</SidebarGroupLabel>
+          <SidebarGroupLabel>Comunidade</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {publicItems.map((item) => (
@@ -50,7 +47,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <Link to={item.url} className="flex items-center gap-2">
                       <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
+                      <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -61,7 +58,7 @@ export function AppSidebar() {
 
         {visibleParticipantes.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel>{collapsed ? null : "Gestão de Participantes"}</SidebarGroupLabel>
+            <SidebarGroupLabel>Gestão de Participantes</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {visibleParticipantes.map((item) => (
@@ -69,7 +66,7 @@ export function AppSidebar() {
                     <SidebarMenuButton asChild isActive={isActive(item.url)}>
                       <Link to={item.url} className="flex items-center gap-2">
                         <item.icon className="h-4 w-4" />
-                        {!collapsed && <span>{item.title}</span>}
+                        <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -81,7 +78,7 @@ export function AppSidebar() {
 
         {visibleAcoes.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel>{collapsed ? null : "Gestão de Ações"}</SidebarGroupLabel>
+            <SidebarGroupLabel>Gestão de Ações</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {visibleAcoes.map((item) => (
@@ -89,7 +86,7 @@ export function AppSidebar() {
                     <SidebarMenuButton asChild isActive={isActive(item.url)}>
                       <Link to={item.url} className="flex items-center gap-2">
                         <item.icon className="h-4 w-4" />
-                        {!collapsed && <span>{item.title}</span>}
+                        <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -101,14 +98,14 @@ export function AppSidebar() {
 
         {isAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel>{collapsed ? null : "Administração"}</SidebarGroupLabel>
+            <SidebarGroupLabel>Administração</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={isActive("/tipos-user")}>
                     <Link to="/tipos-user" className="flex items-center gap-2">
                       <Shield className="h-4 w-4" />
-                      {!collapsed && <span>Tipos de Utilizador</span>}
+                      <span>Tipos de Utilizador</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
