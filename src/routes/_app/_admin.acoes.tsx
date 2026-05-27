@@ -479,6 +479,31 @@ function AcoesPage() {
     },
   });
 
+  const { data: inscricaoCounts } = useQuery({
+    queryKey: ["acoes", "inscricoes-count"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("inscricoes")
+        .select("acao_id, status");
+      if (error) throw error;
+      const map = new Map<string, number>();
+      for (const r of (data ?? []) as any[]) {
+        if (r.status === "cancelada") continue;
+        map.set(r.acao_id, (map.get(r.acao_id) ?? 0) + 1);
+      }
+      return map;
+    },
+  });
+
+  const toggleInscricoesAbertas = useMutation({
+    mutationFn: async ({ id, value }: { id: string; value: boolean }) => {
+      const { error } = await supabase.from("acoes").update({ inscricoes_abertas: value } as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["acoes"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const invalidate = () => qc.invalidateQueries({ queryKey: ["acoes"] });
 
   const create = useMutation({
