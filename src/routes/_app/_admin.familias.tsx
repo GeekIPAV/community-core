@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Pencil, Plus, Upload, Users } from "lucide-react";
+import { formatDateBR } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/_admin/familias")({
   component: FamiliasPage,
@@ -349,7 +350,7 @@ function FamiliasPage() {
                     <TableCell className="font-medium">{m.nome_completo}</TableCell>
                     <TableCell className="text-muted-foreground">{m.email ?? "—"}</TableCell>
                     <TableCell className="text-muted-foreground">{m.telefone ?? "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">{m.data_nascimento ?? "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{formatDateBR(m.data_nascimento)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

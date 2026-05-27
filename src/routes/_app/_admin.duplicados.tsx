@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ArrowRight, Check, X } from "lucide-react";
+import { formatDateBR } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/_admin/duplicados")({
   component: DuplicadosPage,
@@ -108,7 +109,7 @@ function PessoaBox({ pessoa, highlight }: { pessoa: Pessoa; highlight?: boolean 
       </div>
       <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
         <div>📧 {pessoa.email ?? "—"}</div>
-        <div>🎂 {pessoa.data_nascimento ?? "—"}</div>
+        <div>🎂 {formatDateBR(pessoa.data_nascimento)}</div>
         <div>📞 {pessoa.telefone ?? "—"}</div>
         <div>🆔 NIF: {pessoa.nif ?? "—"}</div>
         <div className="opacity-70">Criado em {new Date(pessoa.created_at).toLocaleDateString("pt-PT")}</div>
