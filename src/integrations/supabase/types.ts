@@ -22,9 +22,10 @@ export type Database = {
           data_inicio: string | null
           descricao: string | null
           id: string
+          inscricoes_abertas: boolean
           local: string | null
           nome: string
-          status: Database["public"]["Enums"]["status_acao"]
+          status: string
           updated_at: string
         }
         Insert: {
@@ -34,9 +35,10 @@ export type Database = {
           data_inicio?: string | null
           descricao?: string | null
           id?: string
+          inscricoes_abertas?: boolean
           local?: string | null
           nome: string
-          status?: Database["public"]["Enums"]["status_acao"]
+          status?: string
           updated_at?: string
         }
         Update: {
@@ -46,9 +48,10 @@ export type Database = {
           data_inicio?: string | null
           descricao?: string | null
           id?: string
+          inscricoes_abertas?: boolean
           local?: string | null
           nome?: string
-          status?: Database["public"]["Enums"]["status_acao"]
+          status?: string
           updated_at?: string
         }
         Relationships: []

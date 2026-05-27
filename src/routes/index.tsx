@@ -31,7 +31,7 @@ function Home() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("acoes")
-        .select("id, nome, descricao, local, data_inicio, data_fim")
+        .select("id, nome, descricao, local, data_inicio, data_fim, inscricoes_abertas")
         .order("data_inicio", { ascending: true, nullsFirst: false });
       if (error) throw error;
       return data;
@@ -155,9 +155,15 @@ function AcaoCard({ acao }: { acao: any }) {
           <p className="flex items-center gap-2 text-muted-foreground"><MapPin className="h-4 w-4" /> {acao.local}</p>
         )}
         {acao.descricao && <p className="line-clamp-3 text-muted-foreground">{acao.descricao}</p>}
-        <Link to="/acao/$id" params={{ id: acao.id }}>
-          <Button size="sm" className="w-full">Ver e inscrever</Button>
-        </Link>
+        {acao.inscricoes_abertas ? (
+          <Link to="/acao/$id" params={{ id: acao.id }}>
+            <Button size="sm" className="w-full">Ver e inscrever</Button>
+          </Link>
+        ) : (
+          <Button size="sm" className="w-full" variant="outline" disabled>
+            Inscrições fechadas
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
