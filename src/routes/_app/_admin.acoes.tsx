@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, Maximize2, Minimize2 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/_admin/acoes")({
   component: AcoesPage,
@@ -400,6 +400,7 @@ function AcoesPage() {
 
   const [editing, setEditing] = useState<(AcaoForm & { id: string }) | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [editFullscreen, setEditFullscreen] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["acoes"],
@@ -595,10 +596,27 @@ function AcoesPage() {
       )}
 
       {/* Edit dialog */}
-      <Dialog open={!!editing} onOpenChange={(o) => { if (!o) setEditing(null); }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <Dialog open={!!editing} onOpenChange={(o) => { if (!o) { setEditing(null); setEditFullscreen(false); } }}>
+        <DialogContent
+          className={
+            editFullscreen
+              ? "max-w-none w-screen h-screen sm:rounded-none p-6 overflow-y-auto"
+              : "max-w-2xl max-h-[90vh] overflow-y-auto"
+          }
+        >
           <DialogHeader>
-            <DialogTitle>Editar ação</DialogTitle>
+            <div className="flex items-center justify-between gap-2 pr-8">
+              <DialogTitle>Editar ação</DialogTitle>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                onClick={() => setEditFullscreen((v) => !v)}
+                title={editFullscreen ? "Sair do ecrã inteiro" : "Ecrã inteiro"}
+              >
+                {editFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              </Button>
+            </div>
           </DialogHeader>
           {editing && (
             <Tabs defaultValue="detalhes">
