@@ -6,25 +6,158 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 
 export const Route = createFileRoute("/_app/_admin/acoes")({
   component: AcoesPage,
 });
 
+type FieldType = "text" | "number" | "date" | "checkbox";
+type FieldDef = { key: string; label: string; type: FieldType; required?: boolean };
+
+const TYPE_LABEL: Record<FieldType, string> = {
+  text: "Texto",
+  number: "Número",
+  date: "Data",
+  checkbox: "Sim/Não",
+};
+
+function parseFields(config: any): FieldDef[] {
+  if (Array.isArray(config?.fields)) {
+    return (config.fields as any[]).map((f) => ({
+      key: String(f.key ?? ""),
+      label: String(f.label ?? f.key ?? ""),
+      type: (["text", "number", "date", "checkbox"].includes(f.type) ? f.type : "text") as FieldType,
+      required: !!f.required,
+    }));
+  }
+  if (config && typeof config === "object") {
+    return Object.entries(config).map(([key, t]) => ({
+      key,
+      label: key,
+      type: (t === "boolean" ? "checkbox" : t === "number" ? "number" : t === "date" ? "date" : "text") as FieldType,
+      required: false,
+    }));
+  }
+  return [];
+}
+
+function slugifyKey(s: string) {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
+}
+
+function FieldsEditor({ fields, setFields }: { fields: FieldDef[]; setFields: (f: FieldDef[]) => void }) {
+  const update = (i: number, patch: Partial<FieldDef>) => {
+    const next = fields.map((f, idx) => (idx === i ? { ...f, ...patch } : f));
+    setFields(next);
+  };
+  const remove = (i: number) => setFields(fields.filter((_, idx) => idx !== i));
+  const move = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= fields.length) return;
+    const next = [...fields];
+    [next[i], next[j]] = [next[j], next[i]];
+    setFields(next);
+  };
+  const add = () => {
+    const n = fields.length + 1;
+    setFields([...fields, { key: `campo_${n}`, label: `Campo ${n}`, type: "text", required: false }]);
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <Label>Campos do formulário</Label>
+        <Button type="button" size="sm" variant="outline" onClick={add}>
+          <Plus className="mr-1 h-3.5 w-3.5" /> Adicionar campo
+        </Button>
+      </div>
+      {fields.length === 0 ? (
+        <p className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">
+          Sem campos. Clica em “Adicionar campo” para criar perguntas do formulário de inscrição.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {fields.map((f, i) => (
+            <div key={i} className="grid gap-2 rounded-md border p-3 md:grid-cols-[1fr_1fr_140px_auto]">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Pergunta</Label>
+                <Input
+                  value={f.label}
+                  onChange={(e) => {
+                    const label = e.target.value;
+                    update(i, { label, key: slugifyKey(label) || f.key });
+                  }}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Identificador</Label>
+                <Input value={f.key} onChange={(e) => update(i, { key: slugifyKey(e.target.value) })} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Tipo</Label>
+                <Select value={f.type} onValueChange={(v) => update(i, { type: v as FieldType })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(TYPE_LABEL).map(([v, l]) => (
+                      <SelectItem key={v} value={v}>{l}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end justify-between gap-1 md:flex-col md:items-stretch">
+                <label className="flex items-center gap-2 text-xs">
+                  <Checkbox checked={!!f.required} onCheckedChange={(v) => update(i, { required: !!v })} />
+                  Obrigatório
+                </label>
+                <div className="flex gap-1">
+                  <Button type="button" size="icon" variant="ghost" onClick={() => move(i, -1)} disabled={i === 0}>
+                    <ArrowUp className="h-4 w-4" />
+                  </Button>
+                  <Button type="button" size="icon" variant="ghost" onClick={() => move(i, 1)} disabled={i === fields.length - 1}>
+                    <ArrowDown className="h-4 w-4" />
+                  </Button>
+                  <Button type="button" size="icon" variant="ghost" onClick={() => remove(i)}>
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+type AcaoForm = {
+  nome: string;
+  local: string;
+  descricao: string;
+  fields: FieldDef[];
+};
+
+const EMPTY_FORM: AcaoForm = { nome: "", local: "", descricao: "", fields: [] };
+
 function AcoesPage() {
   const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
-  const [nome, setNome] = useState("");
-  const [local, setLocal] = useState("");
-  const [descricao, setDescricao] = useState("");
-  const [configJson, setConfigJson] = useState(
-    '{\n  "fields": [\n    { "key": "transporte", "label": "Precisa de transporte?", "type": "checkbox" },\n    { "key": "alergias", "label": "Alergias", "type": "text" }\n  ]\n}',
-  );
+  const [addOpen, setAddOpen] = useState(false);
+  const [form, setForm] = useState<AcaoForm>(EMPTY_FORM);
+
+  const [editing, setEditing] = useState<(AcaoForm & { id: string }) | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["acoes"],
@@ -35,20 +168,60 @@ function AcoesPage() {
     },
   });
 
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["acoes"] });
+
   const create = useMutation({
     mutationFn: async () => {
-      let config_campos: any = {};
-      try { config_campos = JSON.parse(configJson || "{}"); } catch { throw new Error("JSON inválido em config_campos"); }
       const { error } = await supabase.from("acoes").insert({
-        nome, local: local || null, descricao: descricao || null, config_campos,
+        nome: form.nome,
+        local: form.local || null,
+        descricao: form.descricao || null,
+        config_campos: { fields: form.fields },
       });
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Ação criada");
-      qc.invalidateQueries({ queryKey: ["acoes"] });
-      setOpen(false);
-      setNome(""); setLocal(""); setDescricao("");
+      invalidate();
+      setAddOpen(false);
+      setForm(EMPTY_FORM);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const update = useMutation({
+    mutationFn: async () => {
+      if (!editing) return;
+      const { error } = await supabase
+        .from("acoes")
+        .update({
+          nome: editing.nome,
+          local: editing.local || null,
+          descricao: editing.descricao || null,
+          config_campos: { fields: editing.fields },
+        })
+        .eq("id", editing.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Ação atualizada");
+      invalidate();
+      setEditing(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: async () => {
+      if (!deleteId) return;
+      const { error } = await supabase.from("acoes").delete().eq("id", deleteId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Ação apagada");
+      invalidate();
+      setDeleteId(null);
+      setEditing(null);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -60,23 +233,25 @@ function AcoesPage() {
           <h1 className="text-2xl font-semibold">Ações</h1>
           <p className="text-sm text-muted-foreground">Eventos da comunidade</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) setForm(EMPTY_FORM); }}>
           <DialogTrigger asChild>
             <Button><Plus className="mr-2 h-4 w-4" /> Nova ação</Button>
           </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Nova ação</DialogTitle></DialogHeader>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Nova ação</DialogTitle>
+              <DialogDescription>Define os dados da ação e que campos os participantes vão preencher.</DialogDescription>
+            </DialogHeader>
             <div className="space-y-4">
-              <div className="space-y-2"><Label>Nome</Label><Input value={nome} onChange={(e) => setNome(e.target.value)} /></div>
-              <div className="space-y-2"><Label>Local</Label><Input value={local} onChange={(e) => setLocal(e.target.value)} /></div>
-              <div className="space-y-2"><Label>Descrição</Label><Textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} /></div>
-              <div className="space-y-2">
-                <Label>Config campos (JSON)</Label>
-                <Textarea className="font-mono text-xs" rows={8} value={configJson} onChange={(e) => setConfigJson(e.target.value)} />
+              <div className="space-y-2"><Label>Nome</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} /></div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2"><Label>Local</Label><Input value={form.local} onChange={(e) => setForm({ ...form, local: e.target.value })} /></div>
               </div>
+              <div className="space-y-2"><Label>Descrição</Label><Textarea value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} /></div>
+              <FieldsEditor fields={form.fields} setFields={(fields) => setForm({ ...form, fields })} />
             </div>
             <DialogFooter>
-              <Button onClick={() => create.mutate()} disabled={!nome || create.isPending}>
+              <Button onClick={() => create.mutate()} disabled={!form.nome || create.isPending}>
                 {create.isPending ? "A guardar…" : "Guardar"}
               </Button>
             </DialogFooter>
@@ -89,20 +264,91 @@ function AcoesPage() {
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {(data ?? []).length === 0 && <p className="text-sm text-muted-foreground">Sem ações.</p>}
-          {data?.map((a) => (
-            <Card key={a.id}>
-              <CardHeader>
-                <CardTitle>{a.nome}</CardTitle>
-                <CardDescription>{a.local ?? "Sem local"}</CardDescription>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground space-y-2">
-                {a.descricao && <p>{a.descricao}</p>}
-                <pre className="rounded bg-muted p-2 text-xs overflow-auto">{JSON.stringify(a.config_campos, null, 2)}</pre>
-              </CardContent>
-            </Card>
-          ))}
+          {data?.map((a) => {
+            const fields = parseFields(a.config_campos);
+            return (
+              <Card
+                key={a.id}
+                className="cursor-pointer transition-colors hover:bg-muted/30"
+                onClick={() => setEditing({
+                  id: a.id,
+                  nome: a.nome ?? "",
+                  local: a.local ?? "",
+                  descricao: a.descricao ?? "",
+                  fields,
+                })}
+              >
+                <CardHeader>
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <CardTitle>{a.nome}</CardTitle>
+                      <CardDescription>{a.local ?? "Sem local"}</CardDescription>
+                    </div>
+                    <Pencil className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground space-y-2">
+                  {a.descricao && <p className="line-clamp-2">{a.descricao}</p>}
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {fields.length === 0 ? (
+                      <span className="text-xs italic">Sem campos personalizados</span>
+                    ) : (
+                      fields.map((f) => (
+                        <Badge key={f.key} variant="secondary" className="text-[10px]">
+                          {f.label} · {TYPE_LABEL[f.type]}{f.required ? " *" : ""}
+                        </Badge>
+                      ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
+
+      {/* Edit dialog */}
+      <Dialog open={!!editing} onOpenChange={(o) => { if (!o) setEditing(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar ação</DialogTitle>
+          </DialogHeader>
+          {editing && (
+            <div className="space-y-4">
+              <div className="space-y-2"><Label>Nome</Label><Input value={editing.nome} onChange={(e) => setEditing({ ...editing, nome: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Local</Label><Input value={editing.local} onChange={(e) => setEditing({ ...editing, local: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Descrição</Label><Textarea value={editing.descricao} onChange={(e) => setEditing({ ...editing, descricao: e.target.value })} /></div>
+              <FieldsEditor fields={editing.fields} setFields={(fields) => setEditing({ ...editing, fields })} />
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:justify-between">
+            <Button variant="destructive" onClick={() => editing && setDeleteId(editing.id)}>
+              <Trash2 className="mr-1 h-4 w-4" /> Apagar
+            </Button>
+            <Button onClick={() => update.mutate()} disabled={!editing?.nome || update.isPending}>
+              {update.isPending ? "A guardar…" : "Guardar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirm */}
+      <Dialog open={!!deleteId} onOpenChange={(o) => { if (!o) setDeleteId(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Apagar ação?</DialogTitle>
+            <DialogDescription>
+              Esta ação será removida permanentemente. As inscrições associadas podem deixar de funcionar.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteId(null)}>Cancelar</Button>
+            <Button variant="destructive" onClick={() => remove.mutate()} disabled={remove.isPending}>
+              {remove.isPending ? "A apagar…" : "Apagar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
