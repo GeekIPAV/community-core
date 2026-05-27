@@ -149,6 +149,7 @@ export type Database = {
           nif: string | null
           nome_completo: string
           notas: string | null
+          projeto_id: string | null
           religiao: string | null
           status: Database["public"]["Enums"]["status_pessoa"]
           telefone: string | null
@@ -171,6 +172,7 @@ export type Database = {
           nif?: string | null
           nome_completo: string
           notas?: string | null
+          projeto_id?: string | null
           religiao?: string | null
           status?: Database["public"]["Enums"]["status_pessoa"]
           telefone?: string | null
@@ -193,6 +195,7 @@ export type Database = {
           nif?: string | null
           nome_completo?: string
           notas?: string | null
+          projeto_id?: string | null
           religiao?: string | null
           status?: Database["public"]["Enums"]["status_pessoa"]
           telefone?: string | null
@@ -222,6 +225,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pessoas_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pessoas_tipo_user_id_fkey"
             columns: ["tipo_user_id"]
             isOneToOne: false
@@ -229,6 +239,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      projetos: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       tipos_user: {
         Row: {
