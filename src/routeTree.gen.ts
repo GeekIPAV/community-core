@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppPerfilRouteImport } from './routes/_app.perfil'
 import { Route as AppAdminRouteImport } from './routes/_app/_admin'
 import { Route as AppAdminParticipantesRouteImport } from './routes/_app/_admin.participantes'
 import { Route as AppAdminFamiliasRouteImport } from './routes/_app/_admin.familias'
@@ -31,6 +32,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppPerfilRoute = AppPerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppAdminRoute = AppAdminRouteImport.update({
   id: '/_admin',
@@ -60,6 +66,7 @@ const AppAdminAcoesRoute = AppAdminAcoesRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/perfil': typeof AppPerfilRoute
   '/acoes': typeof AppAdminAcoesRoute
   '/duplicados': typeof AppAdminDuplicadosRoute
   '/familias': typeof AppAdminFamiliasRoute
@@ -68,6 +75,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/perfil': typeof AppPerfilRoute
   '/acoes': typeof AppAdminAcoesRoute
   '/duplicados': typeof AppAdminDuplicadosRoute
   '/familias': typeof AppAdminFamiliasRoute
@@ -79,6 +87,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/_app/_admin': typeof AppAdminRouteWithChildren
+  '/_app/perfil': typeof AppPerfilRoute
   '/_app/_admin/acoes': typeof AppAdminAcoesRoute
   '/_app/_admin/duplicados': typeof AppAdminDuplicadosRoute
   '/_app/_admin/familias': typeof AppAdminFamiliasRoute
@@ -89,18 +98,27 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/perfil'
     | '/acoes'
     | '/duplicados'
     | '/familias'
     | '/participantes'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/acoes' | '/duplicados' | '/familias' | '/participantes'
+  to:
+    | '/'
+    | '/login'
+    | '/perfil'
+    | '/acoes'
+    | '/duplicados'
+    | '/familias'
+    | '/participantes'
   id:
     | '__root__'
     | '/'
     | '/_app'
     | '/login'
     | '/_app/_admin'
+    | '/_app/perfil'
     | '/_app/_admin/acoes'
     | '/_app/_admin/duplicados'
     | '/_app/_admin/familias'
@@ -135,6 +153,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/perfil': {
+      id: '/_app/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof AppPerfilRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/_admin': {
       id: '/_app/_admin'
@@ -194,10 +219,12 @@ const AppAdminRouteWithChildren = AppAdminRoute._addFileChildren(
 
 interface AppRouteChildren {
   AppAdminRoute: typeof AppAdminRouteWithChildren
+  AppPerfilRoute: typeof AppPerfilRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAdminRoute: AppAdminRouteWithChildren,
+  AppPerfilRoute: AppPerfilRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
