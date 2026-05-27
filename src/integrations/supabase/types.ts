@@ -141,6 +141,7 @@ export type Database = {
           notas: string | null
           status: Database["public"]["Enums"]["status_pessoa"]
           telefone: string | null
+          tipo_user_id: string | null
           updated_at: string
         }
         Insert: {
@@ -157,6 +158,7 @@ export type Database = {
           notas?: string | null
           status?: Database["public"]["Enums"]["status_pessoa"]
           telefone?: string | null
+          tipo_user_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -173,6 +175,7 @@ export type Database = {
           notas?: string | null
           status?: Database["public"]["Enums"]["status_pessoa"]
           telefone?: string | null
+          tipo_user_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -197,7 +200,38 @@ export type Database = {
             referencedRelation: "pessoas_com_stats"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pessoas_tipo_user_id_fkey"
+            columns: ["tipo_user_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_user"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      tipos_user: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          paginas: string[]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          paginas?: string[]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          paginas?: string[]
+          updated_at?: string
+        }
+        Relationships: []
       }
     }
     Views: {
