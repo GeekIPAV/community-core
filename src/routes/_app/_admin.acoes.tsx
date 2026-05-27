@@ -202,6 +202,23 @@ const EMPTY_FORM: AcaoForm = { nome: "", local: "", descricao: "", data_inicio: 
 
 const DEFAULT_STATUSES = ["ativa", "cancelada", "concluida"];
 
+function StatusInput({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) {
+  const all = Array.from(new Set([...DEFAULT_STATUSES, ...options].filter(Boolean)));
+  return (
+    <>
+      <Input
+        list="acao-status-list"
+        value={value}
+        placeholder="Ex: ativa, em-pausa…"
+        onChange={(e) => onChange(e.target.value)}
+      />
+      <datalist id="acao-status-list">
+        {all.map((s) => <option key={s} value={s} />)}
+      </datalist>
+    </>
+  );
+}
+
 function toDtLocal(v: string | null | undefined): string {
   if (!v) return "";
   const d = new Date(v);
