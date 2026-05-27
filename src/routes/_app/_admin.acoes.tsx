@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, ArrowUp, ArrowDown } from "lucide-react";
@@ -231,6 +232,105 @@ function fromDtLocal(v: string): string | null {
   if (!v) return null;
   const d = new Date(v);
   return isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+const INSCRICAO_STATUSES = ["confirmada", "pendente", "presente", "ausente", "cancelada"] as const;
+type InscricaoStatus = typeof INSCRICAO_STATUSES[number];
+
+const INSCRICAO_STATUS_LABEL: Record<InscricaoStatus, string> = {
+  confirmada: "Confirmada",
+  pendente: "Pendente",
+  presente: "Presente",
+  ausente: "Ausente",
+  cancelada: "Cancelada",
+};
+
+function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] }) {
+  const qc = useQueryClient();
+  const { data, isLoading } = useQuery({
+    queryKey: ["inscricoes", acaoId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("inscricoes")
+        .select("id, status, valores_dinamicos, created_at, pessoa:pessoas(id, nome_completo, email)")
+        .eq("acao_id", acaoId)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  const updateStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: InscricaoStatus }) => {
+      const { error } = await supabase.from("inscricoes").update({ status: status as any }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["inscricoes", acaoId] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  if (isLoading) return <Skeleton className="h-32 w-full" />;
+  const rows = (data ?? []).filter((r) => r.status !== "cancelada");
+  const total = rows.length;
+  const presentes = rows.filter((r) => r.status === "presente").length;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-3">
+        <div className="rounded-md border px-3 py-2">
+          <p className="text-xs text-muted-foreground">Inscritos</p>
+          <p className="text-xl font-semibold">{total}</p>
+        </div>
+        <div className="rounded-md border px-3 py-2">
+          <p className="text-xs text-muted-foreground">Presentes</p>
+          <p className="text-xl font-semibold">{presentes}</p>
+        </div>
+      </div>
+      {rows.length === 0 ? (
+        <p className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">
+          Ainda ninguém se inscreveu.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {rows.map((r) => (
+            <div key={r.id} className="rounded-md border p-3 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{r.pessoa?.nome_completo ?? "—"}</p>
+                  {r.pessoa?.email && <p className="text-xs text-muted-foreground truncate">{r.pessoa.email}</p>}
+                </div>
+                <Select
+                  value={r.status}
+                  onValueChange={(v) => updateStatus.mutate({ id: r.id, status: v as InscricaoStatus })}
+                >
+                  <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {INSCRICAO_STATUSES.map((s) => (
+                      <SelectItem key={s} value={s}>{INSCRICAO_STATUS_LABEL[s]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {fields.length > 0 && r.valores_dinamicos && Object.keys(r.valores_dinamicos).length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {fields.map((f) => {
+                    const v = r.valores_dinamicos?.[f.key];
+                    if (v === undefined || v === null || v === "") return null;
+                    const display = Array.isArray(v) ? v.join(", ") : typeof v === "boolean" ? (v ? "Sim" : "Não") : String(v);
+                    return (
+                      <Badge key={f.key} variant="secondary" className="text-[10px]">
+                        {f.label}: {display}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function AcoesPage() {
