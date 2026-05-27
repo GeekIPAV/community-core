@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,7 +18,7 @@ export const Route = createFileRoute("/acao/$id")({
   component: AcaoDetailPage,
 });
 
-type FieldDef = { key: string; label?: string; type?: "text" | "number" | "date" | "checkbox"; required?: boolean };
+type FieldDef = { key: string; label?: string; type?: "text" | "number" | "date" | "checkbox" | "select" | "multiselect"; required?: boolean; options?: string[] };
 
 function parseFields(config: any): FieldDef[] {
   if (!config) return [];
@@ -129,6 +130,46 @@ function DynamicFields({ fields, values, setValues }: {
                 onCheckedChange={(c) => setValues({ ...values, [f.key]: c === true })}
               />
               <Label htmlFor={`f-${f.key}`}>{label}</Label>
+            </div>
+          );
+        }
+        if (f.type === "select") {
+          return (
+            <div key={f.key} className="space-y-1">
+              <Label>{label}{f.required ? " *" : ""}</Label>
+              <Select value={values[f.key] ?? ""} onValueChange={(v) => setValues({ ...values, [f.key]: v })}>
+                <SelectTrigger><SelectValue placeholder="Escolher…" /></SelectTrigger>
+                <SelectContent>
+                  {(f.options ?? []).filter((o) => o).map((o) => (
+                    <SelectItem key={o} value={o}>{o}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          );
+        }
+        if (f.type === "multiselect") {
+          const current: string[] = Array.isArray(values[f.key]) ? values[f.key] : [];
+          return (
+            <div key={f.key} className="space-y-1">
+              <Label>{label}{f.required ? " *" : ""}</Label>
+              <div className="space-y-1 rounded-md border p-2">
+                {(f.options ?? []).filter((o) => o).map((o) => {
+                  const checked = current.includes(o);
+                  return (
+                    <label key={o} className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(c) => {
+                          const next = c === true ? [...current, o] : current.filter((x) => x !== o);
+                          setValues({ ...values, [f.key]: next });
+                        }}
+                      />
+                      {o}
+                    </label>
+                  );
+                })}
+              </div>
             </div>
           );
         }
