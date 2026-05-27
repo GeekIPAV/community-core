@@ -37,6 +37,7 @@ type Pessoa = {
   familia_id: string | null;
   status: string;
   notas: string | null;
+  tipo_user_id: string | null;
 };
 
 const STATUS_OPTS = ["ativo", "suspeito_duplicado", "fundido", "arquivado"];
@@ -49,6 +50,7 @@ const emptyForm: Omit<Pessoa, "id" | "status"> & { status?: string } = {
   data_nascimento: "",
   familia_id: null,
   notas: "",
+  tipo_user_id: null,
 };
 
 function ParticipantesPage() {
@@ -68,13 +70,14 @@ function ParticipantesPage() {
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [bulkFamilia, setBulkFamilia] = useState<string>("__noop");
   const [bulkStatus, setBulkStatus] = useState<string>("__noop");
+  const [bulkTipo, setBulkTipo] = useState<string>("__noop");
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["pessoas"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, email, telefone, nif, data_nascimento, familia_id, status, notas")
+        .select("id, nome_completo, email, telefone, nif, data_nascimento, familia_id, status, notas, tipo_user_id")
         .order("nome_completo", { ascending: true });
       if (error) throw error;
       return data as Pessoa[];
@@ -89,6 +92,18 @@ function ParticipantesPage() {
       return data as { id: string; nome: string }[];
     },
   });
+
+  const { data: tipos } = useQuery({
+    queryKey: ["tipos_user_lookup"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("tipos_user").select("id, nome").order("nome");
+      if (error) throw error;
+      return data as { id: string; nome: string }[];
+    },
+  });
+
+  const tipoName = (id: string | null) =>
+    id ? tipos?.find((t) => t.id === id)?.nome ?? "—" : "—";
 
   const familiaName = (id: string | null) =>
     id ? familias?.find((f) => f.id === id)?.nome ?? "—" : "—";
@@ -116,6 +131,7 @@ function ParticipantesPage() {
         data_nascimento: form.data_nascimento || null,
         familia_id: form.familia_id || null,
         notas: form.notas?.trim() || null,
+        tipo_user_id: form.tipo_user_id || null,
       };
       const { error } = await supabase.from("pessoas").insert(payload);
       if (error) throw error;
@@ -143,6 +159,7 @@ function ParticipantesPage() {
           familia_id: editing.familia_id || null,
           status: editing.status as any,
           notas: editing.notas || null,
+          tipo_user_id: editing.tipo_user_id || null,
         })
         .eq("id", editing.id);
       if (error) throw error;
@@ -177,9 +194,10 @@ function ParticipantesPage() {
     mutationFn: async () => {
       const ids = Array.from(selected);
       if (ids.length === 0) throw new Error("Seleciona pelo menos uma pessoa");
-      const patch: { familia_id?: string | null; status?: any } = {};
+      const patch: { familia_id?: string | null; status?: any; tipo_user_id?: string | null } = {};
       if (bulkFamilia !== "__noop") patch.familia_id = bulkFamilia === "__null" ? null : bulkFamilia;
       if (bulkStatus !== "__noop") patch.status = bulkStatus;
+      if (bulkTipo !== "__noop") patch.tipo_user_id = bulkTipo === "__null" ? null : bulkTipo;
       if (Object.keys(patch).length === 0) throw new Error("Nada para alterar");
       const { error } = await supabase.from("pessoas").update(patch).in("id", ids);
       if (error) throw error;
@@ -192,6 +210,7 @@ function ParticipantesPage() {
       setSelected(new Set());
       setBulkFamilia("__noop");
       setBulkStatus("__noop");
+      setBulkTipo("__noop");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -253,6 +272,7 @@ function ParticipantesPage() {
                 <TableHead>Email</TableHead>
                 <TableHead>Telefone</TableHead>
                 <TableHead>Família</TableHead>
+                <TableHead>Tipo</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead className="w-16"></TableHead>
               </TableRow>
@@ -260,7 +280,7 @@ function ParticipantesPage() {
             <TableBody>
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground">Sem resultados</TableCell>
+                  <TableCell colSpan={8} className="text-center text-muted-foreground">Sem resultados</TableCell>
                 </TableRow>
               )}
               {filtered.map((p) => (
@@ -272,6 +292,7 @@ function ParticipantesPage() {
                   <TableCell className="text-muted-foreground">{p.email ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{p.telefone ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{familiaName(p.familia_id)}</TableCell>
+                  <TableCell className="text-muted-foreground">{tipoName(p.tipo_user_id)}</TableCell>
                   <TableCell>
                     <Badge variant={p.status === "ativo" ? "default" : p.status === "suspeito_duplicado" ? "destructive" : "outline"}>
                       {p.status}
@@ -310,6 +331,15 @@ function ParticipantesPage() {
                 </SelectContent>
               </Select>
             </Field>
+            <Field label="Tipo de utilizador" className="col-span-2">
+              <Select value={form.tipo_user_id ?? "__null"} onValueChange={(v) => setForm({ ...form, tipo_user_id: v === "__null" ? null : v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__null">— sem tipo —</SelectItem>
+                  {tipos?.map((t) => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
             <Field label="Notas" className="col-span-2"><Textarea value={form.notas ?? ""} onChange={(e) => setForm({ ...form, notas: e.target.value })} /></Field>
           </div>
           <DialogFooter>
@@ -337,6 +367,15 @@ function ParticipantesPage() {
                   <SelectContent>
                     <SelectItem value="__null">— sem família —</SelectItem>
                     {familias?.map((f) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Tipo de utilizador" className="col-span-2">
+                <Select value={editing.tipo_user_id ?? "__null"} onValueChange={(v) => setEditing({ ...editing, tipo_user_id: v === "__null" ? null : v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__null">— sem tipo —</SelectItem>
+                    {tipos?.map((t) => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </Field>
@@ -405,6 +444,16 @@ function ParticipantesPage() {
                 <SelectContent>
                   <SelectItem value="__noop">— não alterar —</SelectItem>
                   {STATUS_OPTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Tipo de utilizador">
+              <Select value={bulkTipo} onValueChange={setBulkTipo}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__noop">— não alterar —</SelectItem>
+                  <SelectItem value="__null">— remover tipo —</SelectItem>
+                  {tipos?.map((t) => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
             </Field>

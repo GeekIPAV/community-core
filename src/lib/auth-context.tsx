@@ -9,6 +9,7 @@ export type PessoaCtx = {
   familia_id: string | null;
   is_admin: boolean;
   auth_user_id: string | null;
+  tipo_user_id: string | null;
 };
 
 type AuthCtx = {
@@ -16,6 +17,8 @@ type AuthCtx = {
   session: Session | null;
   pessoa: PessoaCtx | null;
   isAdmin: boolean;
+  permissions: string[];
+  hasPage: (key: string) => boolean;
   refresh: () => Promise<void>;
 };
 
@@ -24,6 +27,8 @@ const Ctx = createContext<AuthCtx>({
   session: null,
   pessoa: null,
   isAdmin: false,
+  permissions: [],
+  hasPage: () => false,
   refresh: async () => {},
 });
 
@@ -32,7 +37,7 @@ async function loadPessoa(session: Session | null): Promise<PessoaCtx | null> {
   const uid = session.user.id;
   const email = session.user.email ?? null;
 
-  const cols = "id, nome_completo, email, familia_id, is_admin, auth_user_id";
+  const cols = "id, nome_completo, email, familia_id, is_admin, auth_user_id, tipo_user_id";
 
   // 1. Prefer match by auth_user_id
   const byId = await supabase.from("pessoas").select(cols).eq("auth_user_id", uid).maybeSingle();
@@ -60,12 +65,23 @@ async function loadPessoa(session: Session | null): Promise<PessoaCtx | null> {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [pessoa, setPessoa] = useState<PessoaCtx | null>(null);
+  const [permissions, setPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   const hydrate = async (s: Session | null) => {
     setSession(s);
     const p = await loadPessoa(s);
     setPessoa(p);
+    if (p?.tipo_user_id) {
+      const { data } = await supabase
+        .from("tipos_user")
+        .select("paginas")
+        .eq("id", p.tipo_user_id)
+        .maybeSingle();
+      setPermissions((data?.paginas as string[]) ?? []);
+    } else {
+      setPermissions([]);
+    }
     setLoading(false);
   };
 
@@ -90,6 +106,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     session,
     pessoa,
     isAdmin: pessoa?.is_admin === true,
+    permissions,
+    hasPage: (key: string) => pessoa?.is_admin === true || permissions.includes(key),
     refresh: async () => {
       const { data } = await supabase.auth.getSession();
       await hydrate(data.session);
