@@ -272,6 +272,7 @@ function ParticipantesPage() {
                 <TableHead>Email</TableHead>
                 <TableHead>Telefone</TableHead>
                 <TableHead>Família</TableHead>
+                <TableHead>Tipo</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead className="w-16"></TableHead>
               </TableRow>
@@ -279,7 +280,7 @@ function ParticipantesPage() {
             <TableBody>
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground">Sem resultados</TableCell>
+                  <TableCell colSpan={8} className="text-center text-muted-foreground">Sem resultados</TableCell>
                 </TableRow>
               )}
               {filtered.map((p) => (
@@ -291,6 +292,7 @@ function ParticipantesPage() {
                   <TableCell className="text-muted-foreground">{p.email ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{p.telefone ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{familiaName(p.familia_id)}</TableCell>
+                  <TableCell className="text-muted-foreground">{tipoName(p.tipo_user_id)}</TableCell>
                   <TableCell>
                     <Badge variant={p.status === "ativo" ? "default" : p.status === "suspeito_duplicado" ? "destructive" : "outline"}>
                       {p.status}
@@ -329,6 +331,15 @@ function ParticipantesPage() {
                 </SelectContent>
               </Select>
             </Field>
+            <Field label="Tipo de utilizador" className="col-span-2">
+              <Select value={form.tipo_user_id ?? "__null"} onValueChange={(v) => setForm({ ...form, tipo_user_id: v === "__null" ? null : v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__null">— sem tipo —</SelectItem>
+                  {tipos?.map((t) => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
             <Field label="Notas" className="col-span-2"><Textarea value={form.notas ?? ""} onChange={(e) => setForm({ ...form, notas: e.target.value })} /></Field>
           </div>
           <DialogFooter>
@@ -356,6 +367,15 @@ function ParticipantesPage() {
                   <SelectContent>
                     <SelectItem value="__null">— sem família —</SelectItem>
                     {familias?.map((f) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Tipo de utilizador" className="col-span-2">
+                <Select value={editing.tipo_user_id ?? "__null"} onValueChange={(v) => setEditing({ ...editing, tipo_user_id: v === "__null" ? null : v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__null">— sem tipo —</SelectItem>
+                    {tipos?.map((t) => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </Field>
@@ -424,6 +444,16 @@ function ParticipantesPage() {
                 <SelectContent>
                   <SelectItem value="__noop">— não alterar —</SelectItem>
                   {STATUS_OPTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Tipo de utilizador">
+              <Select value={bulkTipo} onValueChange={setBulkTipo}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__noop">— não alterar —</SelectItem>
+                  <SelectItem value="__null">— remover tipo —</SelectItem>
+                  {tipos?.map((t) => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
             </Field>
