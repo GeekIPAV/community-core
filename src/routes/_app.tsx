@@ -48,26 +48,16 @@ function AppLayout() {
       <div className="flex min-h-screen w-full bg-background">
         <AppSidebar />
         <div className="flex flex-1 flex-col">
-          <header className="flex h-16 items-center justify-between border-b border-border/60 bg-card/80 px-6 backdrop-blur">
+          <header className="flex h-14 items-center justify-between border-b border-border/60 bg-background px-6">
             <div className="flex items-center gap-2">
-              <span className="text-base font-bold tracking-tight text-foreground">Meeru</span>
+              <span className="text-sm font-bold tracking-tight text-foreground">Meeru</span>
               <span className="h-1.5 w-1.5 rounded-full bg-accent" />
             </div>
             <div className="flex items-center gap-2">
               {pessoa && (
-                <div className="hidden items-center gap-2 rounded-full border border-border bg-background/70 px-3 py-1.5 sm:flex">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
-                    {(pessoa.nome_completo ?? pessoa.email ?? "?")
-                      .split(" ")
-                      .map((p) => p[0])
-                      .slice(0, 2)
-                      .join("")
-                      .toUpperCase()}
-                  </div>
-                  <span className="text-xs font-medium text-foreground">
-                    {pessoa.nome_completo ?? pessoa.email}
-                  </span>
-                </div>
+                <span className="hidden text-xs text-muted-foreground sm:inline">
+                  {pessoa.nome_completo ?? pessoa.email}
+                </span>
               )}
               <Button
                 variant="ghost"
