@@ -338,20 +338,24 @@ function AcoesPage() {
                 <div className="space-y-2"><Label>Local</Label><Input value={form.local} onChange={(e) => setForm({ ...form, local: e.target.value })} /></div>
                 <div className="space-y-2">
                   <Label>Estado</Label>
-                  <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as AcaoForm["status"] })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(STATUS_LABEL).map(([v, l]) => (
-                        <SelectItem key={v} value={v}>{l}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <StatusInput
+                    value={form.status}
+                    onChange={(v) => setForm({ ...form, status: v })}
+                    options={(data ?? []).map((a: any) => a.status).filter(Boolean)}
+                  />
                 </div>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2"><Label>Data de início</Label><Input type="datetime-local" value={form.data_inicio} onChange={(e) => setForm({ ...form, data_inicio: e.target.value })} /></div>
                 <div className="space-y-2"><Label>Data de fim</Label><Input type="datetime-local" value={form.data_fim} onChange={(e) => setForm({ ...form, data_fim: e.target.value })} /></div>
               </div>
+              <label className="flex items-center justify-between rounded-md border p-3">
+                <div>
+                  <p className="text-sm font-medium">Inscrições abertas</p>
+                  <p className="text-xs text-muted-foreground">Quando desligado, a ação não mostra o botão "Inscrever" no portal público.</p>
+                </div>
+                <Switch checked={form.inscricoes_abertas} onCheckedChange={(c) => setForm({ ...form, inscricoes_abertas: c })} />
+              </label>
               <div className="space-y-2"><Label>Descrição</Label><Textarea value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} /></div>
               <FieldsEditor fields={form.fields} setFields={(fields) => setForm({ ...form, fields })} />
             </div>
@@ -382,7 +386,8 @@ function AcoesPage() {
                   descricao: a.descricao ?? "",
                   data_inicio: toDtLocal(a.data_inicio),
                   data_fim: toDtLocal(a.data_fim),
-                  status: ((a as any).status ?? "ativa") as AcaoForm["status"],
+                  status: String((a as any).status ?? "ativa"),
+                  inscricoes_abertas: (a as any).inscricoes_abertas ?? true,
                   fields,
                 })}
               >
@@ -398,8 +403,11 @@ function AcoesPage() {
                 <CardContent className="text-sm text-muted-foreground space-y-2">
                   <div className="flex flex-wrap items-center gap-2 text-xs">
                     <Badge variant={((a as any).status ?? "ativa") === "cancelada" ? "destructive" : "outline"}>
-                      {STATUS_LABEL[((a as any).status ?? "ativa") as AcaoForm["status"]]}
+                      {String((a as any).status ?? "ativa")}
                     </Badge>
+                    {!((a as any).inscricoes_abertas ?? true) && (
+                      <Badge variant="secondary">Inscrições fechadas</Badge>
+                    )}
                     {a.data_inicio && (
                       <span>
                         {new Date(a.data_inicio).toLocaleString("pt-PT", { dateStyle: "short", timeStyle: "short" })}
@@ -439,20 +447,24 @@ function AcoesPage() {
                 <div className="space-y-2"><Label>Local</Label><Input value={editing.local} onChange={(e) => setEditing({ ...editing, local: e.target.value })} /></div>
                 <div className="space-y-2">
                   <Label>Estado</Label>
-                  <Select value={editing.status} onValueChange={(v) => setEditing({ ...editing, status: v as AcaoForm["status"] })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(STATUS_LABEL).map(([v, l]) => (
-                        <SelectItem key={v} value={v}>{l}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <StatusInput
+                    value={editing.status}
+                    onChange={(v) => setEditing({ ...editing, status: v })}
+                    options={(data ?? []).map((a: any) => a.status).filter(Boolean)}
+                  />
                 </div>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2"><Label>Data de início</Label><Input type="datetime-local" value={editing.data_inicio} onChange={(e) => setEditing({ ...editing, data_inicio: e.target.value })} /></div>
                 <div className="space-y-2"><Label>Data de fim</Label><Input type="datetime-local" value={editing.data_fim} onChange={(e) => setEditing({ ...editing, data_fim: e.target.value })} /></div>
               </div>
+              <label className="flex items-center justify-between rounded-md border p-3">
+                <div>
+                  <p className="text-sm font-medium">Inscrições abertas</p>
+                  <p className="text-xs text-muted-foreground">Quando desligado, a ação não mostra o botão "Inscrever" no portal público.</p>
+                </div>
+                <Switch checked={editing.inscricoes_abertas} onCheckedChange={(c) => setEditing({ ...editing, inscricoes_abertas: c })} />
+              </label>
               <div className="space-y-2"><Label>Descrição</Label><Textarea value={editing.descricao} onChange={(e) => setEditing({ ...editing, descricao: e.target.value })} /></div>
               <FieldsEditor fields={editing.fields} setFields={(fields) => setEditing({ ...editing, fields })} />
             </div>
