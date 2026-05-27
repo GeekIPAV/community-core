@@ -327,11 +327,12 @@ function RuleValueInput({
         </div>
       );
     }
+    const safeOptions = options.filter((o) => o !== "" && o !== null && o !== undefined);
     return (
-      <Select value={value || ""} onValueChange={onChange}>
+      <Select value={value ? String(value) : undefined} onValueChange={onChange}>
         <SelectTrigger className="h-8"><SelectValue placeholder="Escolhe…" /></SelectTrigger>
         <SelectContent>
-          {options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+          {safeOptions.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
         </SelectContent>
       </Select>
     );
