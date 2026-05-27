@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppAdminRouteImport } from './routes/_app/_admin'
 import { Route as AppAdminParticipantesRouteImport } from './routes/_app/_admin.participantes'
 import { Route as AppAdminFamiliasRouteImport } from './routes/_app/_admin.familias'
+import { Route as AppAdminDuplicadosRouteImport } from './routes/_app/_admin.duplicados'
 import { Route as AppAdminAcoesRouteImport } from './routes/_app/_admin.acoes'
 
 const LoginRoute = LoginRouteImport.update({
@@ -45,6 +46,11 @@ const AppAdminFamiliasRoute = AppAdminFamiliasRouteImport.update({
   path: '/familias',
   getParentRoute: () => AppAdminRoute,
 } as any)
+const AppAdminDuplicadosRoute = AppAdminDuplicadosRouteImport.update({
+  id: '/duplicados',
+  path: '/duplicados',
+  getParentRoute: () => AppAdminRoute,
+} as any)
 const AppAdminAcoesRoute = AppAdminAcoesRouteImport.update({
   id: '/acoes',
   path: '/acoes',
@@ -55,6 +61,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/acoes': typeof AppAdminAcoesRoute
+  '/duplicados': typeof AppAdminDuplicadosRoute
   '/familias': typeof AppAdminFamiliasRoute
   '/participantes': typeof AppAdminParticipantesRoute
 }
@@ -62,6 +69,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/acoes': typeof AppAdminAcoesRoute
+  '/duplicados': typeof AppAdminDuplicadosRoute
   '/familias': typeof AppAdminFamiliasRoute
   '/participantes': typeof AppAdminParticipantesRoute
 }
@@ -72,14 +80,21 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_app/_admin': typeof AppAdminRouteWithChildren
   '/_app/_admin/acoes': typeof AppAdminAcoesRoute
+  '/_app/_admin/duplicados': typeof AppAdminDuplicadosRoute
   '/_app/_admin/familias': typeof AppAdminFamiliasRoute
   '/_app/_admin/participantes': typeof AppAdminParticipantesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/acoes' | '/familias' | '/participantes'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/acoes'
+    | '/duplicados'
+    | '/familias'
+    | '/participantes'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/acoes' | '/familias' | '/participantes'
+  to: '/' | '/login' | '/acoes' | '/duplicados' | '/familias' | '/participantes'
   id:
     | '__root__'
     | '/'
@@ -87,6 +102,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/_app/_admin'
     | '/_app/_admin/acoes'
+    | '/_app/_admin/duplicados'
     | '/_app/_admin/familias'
     | '/_app/_admin/participantes'
   fileRoutesById: FileRoutesById
@@ -141,6 +157,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminFamiliasRouteImport
       parentRoute: typeof AppAdminRoute
     }
+    '/_app/_admin/duplicados': {
+      id: '/_app/_admin/duplicados'
+      path: '/duplicados'
+      fullPath: '/duplicados'
+      preLoaderRoute: typeof AppAdminDuplicadosRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
     '/_app/_admin/acoes': {
       id: '/_app/_admin/acoes'
       path: '/acoes'
@@ -153,12 +176,14 @@ declare module '@tanstack/react-router' {
 
 interface AppAdminRouteChildren {
   AppAdminAcoesRoute: typeof AppAdminAcoesRoute
+  AppAdminDuplicadosRoute: typeof AppAdminDuplicadosRoute
   AppAdminFamiliasRoute: typeof AppAdminFamiliasRoute
   AppAdminParticipantesRoute: typeof AppAdminParticipantesRoute
 }
 
 const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminAcoesRoute: AppAdminAcoesRoute,
+  AppAdminDuplicadosRoute: AppAdminDuplicadosRoute,
   AppAdminFamiliasRoute: AppAdminFamiliasRoute,
   AppAdminParticipantesRoute: AppAdminParticipantesRoute,
 }
