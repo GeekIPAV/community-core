@@ -78,6 +78,64 @@ function FamiliasPage() {
     },
   });
 
+  const { data: agregados } = useQuery({
+    queryKey: ["familias", "agregados"],
+    queryFn: async () => {
+      const [{ data: pessoas, error: e1 }, { data: projetos, error: e2 }, { data: acoes, error: e3 }] = await Promise.all([
+        supabase
+          .from("pessoas")
+          .select("id, familia_id, cidade_residencia, religiao, projeto_id")
+          .eq("status", "ativo")
+          .not("familia_id", "is", null),
+        supabase.from("projetos").select("id, nome"),
+        supabase.from("acoes").select("id, nome"),
+      ]);
+      if (e1) throw e1;
+      if (e2) throw e2;
+      if (e3) throw e3;
+      const projetoNome = new Map((projetos ?? []).map((p: any) => [p.id, p.nome as string]));
+      const acaoNome = new Map((acoes ?? []).map((a: any) => [a.id, a.nome as string]));
+
+      const pessoaIds = (pessoas ?? []).map((p: any) => p.id);
+      let inscricoes: { pessoa_id: string; acao_id: string }[] = [];
+      if (pessoaIds.length > 0) {
+        const { data: ins, error: e4 } = await supabase
+          .from("inscricoes")
+          .select("pessoa_id, acao_id, status")
+          .neq("status", "cancelada")
+          .in("pessoa_id", pessoaIds);
+        if (e4) throw e4;
+        inscricoes = (ins ?? []) as any;
+      }
+      const insByPessoa = new Map<string, Set<string>>();
+      inscricoes.forEach((i) => {
+        const s = insByPessoa.get(i.pessoa_id) ?? new Set<string>();
+        s.add(i.acao_id);
+        insByPessoa.set(i.pessoa_id, s);
+      });
+
+      type Agg = { projetos: Set<string>; cidades: Set<string>; religioes: Set<string>; inscricoes: Set<string> };
+      const map = new Map<string, Agg>();
+      (pessoas ?? []).forEach((p: any) => {
+        if (!p.familia_id) return;
+        const a = map.get(p.familia_id) ?? { projetos: new Set(), cidades: new Set(), religioes: new Set(), inscricoes: new Set() };
+        if (p.projeto_id) {
+          const n = projetoNome.get(p.projeto_id);
+          if (n) a.projetos.add(n);
+        }
+        if (p.cidade_residencia) a.cidades.add(p.cidade_residencia);
+        if (p.religiao) a.religioes.add(p.religiao);
+        const s = insByPessoa.get(p.id);
+        if (s) s.forEach((aid) => {
+          const n = acaoNome.get(aid);
+          if (n) a.inscricoes.add(n);
+        });
+        map.set(p.familia_id, a);
+      });
+      return map;
+    },
+  });
+
   const { data: membros, isLoading: loadingMembros } = useQuery({
     queryKey: ["familias", "membros", membrosFamilia?.id],
     enabled: !!membrosFamilia,
@@ -176,8 +234,12 @@ function FamiliasPage() {
   const columns = useMemo<ColumnDef<Familia>[]>(() => [
     { id: "nome", header: "Nome", accessorKey: "nome", cell: ({ getValue }) => <span className="font-medium">{getValue() as string}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nome" } satisfies ColumnFilterMeta },
     { id: "membros", header: "Membros", accessorFn: (f) => contagens?.get(f.id) ?? 0, cell: ({ getValue }) => <span className="text-muted-foreground">{getValue() as number}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "number", label: "Membros" } satisfies ColumnFilterMeta },
+    { id: "projeto", header: "Projeto", accessorFn: (f) => Array.from(agregados?.get(f.id)?.projetos ?? []).sort().join(", "), cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Projeto" } satisfies ColumnFilterMeta },
+    { id: "cidade", header: "Cidade", accessorFn: (f) => Array.from(agregados?.get(f.id)?.cidades ?? []).sort().join(", "), cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Cidade" } satisfies ColumnFilterMeta },
+    { id: "religiao", header: "Religião", accessorFn: (f) => Array.from(agregados?.get(f.id)?.religioes ?? []).sort().join(", "), cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Religião" } satisfies ColumnFilterMeta },
+    { id: "inscricoes", header: "Inscrições", accessorFn: (f) => Array.from(agregados?.get(f.id)?.inscricoes ?? []).sort().join(", "), cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Inscrições" } satisfies ColumnFilterMeta },
     { id: "notas", header: "Notas", accessorKey: "notas", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Notas" } satisfies ColumnFilterMeta },
-  ], [contagens]);
+  ], [contagens, agregados]);
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
