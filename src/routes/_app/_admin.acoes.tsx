@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, ArrowUp, ArrowDown } from "lucide-react";
@@ -247,12 +248,14 @@ const INSCRICAO_STATUS_LABEL: Record<InscricaoStatus, string> = {
 
 function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] }) {
   const qc = useQueryClient();
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkStatus, setBulkStatus] = useState<InscricaoStatus>("presente");
   const { data, isLoading } = useQuery({
     queryKey: ["inscricoes", acaoId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("inscricoes")
-        .select("id, status, valores_dinamicos, created_at, pessoa:pessoas(id, nome_completo, email)")
+        .select("id, status, valores_dinamicos, created_at, pessoa:pessoas(id, nome_completo, email, telefone, data_nascimento, nif, cidade_residencia, genero, nacionalidade)")
         .eq("acao_id", acaoId)
         .order("created_at", { ascending: true });
       if (error) throw error;
@@ -261,8 +264,8 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
   });
 
   const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: InscricaoStatus }) => {
-      const { error } = await supabase.from("inscricoes").update({ status: status as any }).eq("id", id);
+    mutationFn: async ({ ids, status }: { ids: string[]; status: InscricaoStatus }) => {
+      const { error } = await supabase.from("inscricoes").update({ status: status as any }).in("id", ids);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["inscricoes", acaoId] }),
@@ -273,6 +276,24 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
   const rows = (data ?? []).filter((r) => r.status !== "cancelada");
   const total = rows.length;
   const presentes = rows.filter((r) => r.status === "presente").length;
+  const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
+  const someSelected = selected.size > 0;
+  const toggleAll = () => {
+    if (allSelected) setSelected(new Set());
+    else setSelected(new Set(rows.map((r) => r.id)));
+  };
+  const toggleOne = (id: string) => {
+    const next = new Set(selected);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setSelected(next);
+  };
+  const applyBulk = () => {
+    if (selected.size === 0) return;
+    updateStatus.mutate(
+      { ids: Array.from(selected), status: bulkStatus },
+      { onSuccess: () => { qc.invalidateQueries({ queryKey: ["inscricoes", acaoId] }); setSelected(new Set()); toast.success("Estado atualizado"); } },
+    );
+  };
 
   return (
     <div className="space-y-3">
@@ -291,43 +312,82 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
           Ainda ninguém se inscreveu.
         </p>
       ) : (
-        <div className="space-y-2">
-          {rows.map((r) => (
-            <div key={r.id} className="rounded-md border p-3 space-y-2">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{r.pessoa?.nome_completo ?? "—"}</p>
-                  {r.pessoa?.email && <p className="text-xs text-muted-foreground truncate">{r.pessoa.email}</p>}
-                </div>
-                <Select
-                  value={r.status}
-                  onValueChange={(v) => updateStatus.mutate({ id: r.id, status: v as InscricaoStatus })}
-                >
-                  <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {INSCRICAO_STATUSES.map((s) => (
-                      <SelectItem key={s} value={s}>{INSCRICAO_STATUS_LABEL[s]}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {fields.length > 0 && r.valores_dinamicos && Object.keys(r.valores_dinamicos).length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {fields.map((f) => {
-                    const v = r.valores_dinamicos?.[f.key];
-                    if (v === undefined || v === null || v === "") return null;
-                    const display = Array.isArray(v) ? v.join(", ") : typeof v === "boolean" ? (v ? "Sim" : "Não") : String(v);
-                    return (
-                      <Badge key={f.key} variant="secondary" className="text-[10px]">
-                        {f.label}: {display}
-                      </Badge>
-                    );
-                  })}
-                </div>
-              )}
+        <>
+          <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 p-2">
+            <span className="text-xs text-muted-foreground">
+              {someSelected ? `${selected.size} selecionada(s)` : "Seleciona inscrições para alterar em massa"}
+            </span>
+            <div className="ml-auto flex items-center gap-2">
+              <Select value={bulkStatus} onValueChange={(v) => setBulkStatus(v as InscricaoStatus)}>
+                <SelectTrigger className="h-8 w-[140px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {INSCRICAO_STATUSES.map((s) => (
+                    <SelectItem key={s} value={s}>{INSCRICAO_STATUS_LABEL[s]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button size="sm" disabled={!someSelected || updateStatus.isPending} onClick={applyBulk}>
+                Aplicar
+              </Button>
             </div>
-          ))}
-        </div>
+          </div>
+          <div className="overflow-x-auto rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Selecionar tudo" />
+                  </TableHead>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Telefone</TableHead>
+                  <TableHead>Data nasc.</TableHead>
+                  <TableHead>NIF</TableHead>
+                  <TableHead>Cidade</TableHead>
+                  {fields.map((f) => (
+                    <TableHead key={f.key}>{f.label}</TableHead>
+                  ))}
+                  <TableHead className="w-[150px]">Estado</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((r) => (
+                  <TableRow key={r.id} data-state={selected.has(r.id) ? "selected" : undefined}>
+                    <TableCell>
+                      <Checkbox checked={selected.has(r.id)} onCheckedChange={() => toggleOne(r.id)} />
+                    </TableCell>
+                    <TableCell className="font-medium whitespace-nowrap">{r.pessoa?.nome_completo ?? "—"}</TableCell>
+                    <TableCell className="whitespace-nowrap">{r.pessoa?.email ?? "—"}</TableCell>
+                    <TableCell className="whitespace-nowrap">{r.pessoa?.telefone ?? "—"}</TableCell>
+                    <TableCell className="whitespace-nowrap">{r.pessoa?.data_nascimento ?? "—"}</TableCell>
+                    <TableCell className="whitespace-nowrap">{r.pessoa?.nif ?? "—"}</TableCell>
+                    <TableCell className="whitespace-nowrap">{r.pessoa?.cidade_residencia ?? "—"}</TableCell>
+                    {fields.map((f) => {
+                      const v = r.valores_dinamicos?.[f.key];
+                      const display = v === undefined || v === null || v === ""
+                        ? "—"
+                        : Array.isArray(v) ? v.join(", ") : typeof v === "boolean" ? (v ? "Sim" : "Não") : String(v);
+                      return <TableCell key={f.key} className="whitespace-nowrap">{display}</TableCell>;
+                    })}
+                    <TableCell>
+                      <Select
+                        value={r.status}
+                        onValueChange={(v) => updateStatus.mutate({ ids: [r.id], status: v as InscricaoStatus })}
+                      >
+                        <SelectTrigger className="h-8 w-[130px]"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {INSCRICAO_STATUSES.map((s) => (
+                            <SelectItem key={s} value={s}>{INSCRICAO_STATUS_LABEL[s]}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </>
       )}
     </div>
   );
