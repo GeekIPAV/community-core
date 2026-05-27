@@ -368,6 +368,7 @@ function ParticipantesPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Input placeholder="Pesquisar…" className="w-56" value={q} onChange={(e) => setQ(e.target.value)} />
           <AdvancedTableFilters table={table} />
+          <DataTableViewOptions table={table} />
           <Button variant="outline" onClick={() => setBulkAddOpen(true)}>
             <Upload className="mr-2 h-4 w-4" /> Importar
           </Button>
@@ -406,46 +407,53 @@ function ParticipantesPage() {
                 <TableHead className="w-10">
                   <Checkbox checked={allChecked} onCheckedChange={toggleAll} />
                 </TableHead>
-                <TableHead>Nome</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Telefone</TableHead>
-                <TableHead>Família</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Estado</TableHead>
+                {table.getHeaderGroups()[0].headers.map((header) => {
+                  const sort = header.column.getIsSorted();
+                  return (
+                    <TableHead key={header.id}>
+                      <button
+                        type="button"
+                        onClick={() => header.column.toggleSorting()}
+                        className="flex items-center gap-1 font-medium hover:text-foreground"
+                      >
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                        {sort === "asc" ? <ArrowUp className="h-3 w-3" /> : sort === "desc" ? <ArrowDown className="h-3 w-3" /> : <ArrowUpDown className="h-3 w-3 opacity-40" />}
+                      </button>
+                    </TableHead>
+                  );
+                })}
                 <TableHead className="w-16"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 && (
+              {rows.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground">Sem resultados</TableCell>
+                  <TableCell colSpan={table.getVisibleLeafColumns().length + 2} className="text-center text-muted-foreground">Sem resultados</TableCell>
                 </TableRow>
               )}
-              {filtered.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell>
-                    <Checkbox checked={selected.has(p.id)} onCheckedChange={() => toggleOne(p.id)} />
-                  </TableCell>
-                  <TableCell className="font-medium">{p.nome_completo}</TableCell>
-                  <TableCell className="text-muted-foreground">{p.email ?? "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">{p.telefone ?? "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">{familiaName(p.familia_id)}</TableCell>
-                  <TableCell className="text-muted-foreground">{tipoName(p.tipo_user_id)}</TableCell>
-                  <TableCell>
-                    <Badge variant={p.status === "ativo" ? "default" : p.status === "suspeito_duplicado" ? "destructive" : "outline"}>
-                      {p.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Button size="icon" variant="ghost" onClick={() => { setEditing({ ...p }); setEditOpen(true); }}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button size="icon" variant="ghost" onClick={() => setDeleteOne(p)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {rows.map((row) => {
+                const p = row.original;
+                return (
+                  <TableRow key={row.id}>
+                    <TableCell>
+                      <Checkbox checked={selected.has(p.id)} onCheckedChange={() => toggleOne(p.id)} />
+                    </TableCell>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id} className="whitespace-nowrap">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                    <TableCell>
+                      <Button size="icon" variant="ghost" onClick={() => { setEditing({ ...p }); setEditOpen(true); }}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" onClick={() => setDeleteOne(p)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
