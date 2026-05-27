@@ -279,6 +279,13 @@ function ParticipantesPage() {
           >
             <Pencil className="mr-2 h-4 w-4" /> Editar {selected.size > 0 ? `(${selected.size})` : ""}
           </Button>
+          <Button
+            variant="destructive"
+            disabled={selected.size === 0}
+            onClick={() => setBulkDeleteOpen(true)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" /> Apagar {selected.size > 0 ? `(${selected.size})` : ""}
+          </Button>
           <Button onClick={() => setAddOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Adicionar
           </Button>
@@ -333,6 +340,9 @@ function ParticipantesPage() {
                   <TableCell>
                     <Button size="icon" variant="ghost" onClick={() => { setEditing({ ...p }); setEditOpen(true); }}>
                       <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" onClick={() => setDeleteOne(p)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </TableCell>
                 </TableRow>
