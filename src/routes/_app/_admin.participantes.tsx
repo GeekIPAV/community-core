@@ -414,6 +414,18 @@ function ParticipantesPage() {
             <Field label="Telefone"><Input value={form.telefone ?? ""} onChange={(e) => setForm({ ...form, telefone: e.target.value })} /></Field>
             <Field label="NIF"><Input value={form.nif ?? ""} onChange={(e) => setForm({ ...form, nif: e.target.value })} /></Field>
             <Field label="Data nascimento"><Input type="date" value={form.data_nascimento ?? ""} onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })} /></Field>
+            <Field label="Género">
+              <Select value={form.genero ?? "__null"} onValueChange={(v) => setForm({ ...form, genero: v === "__null" ? null : v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__null">— não definido —</SelectItem>
+                  {GENERO_OPTS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Nacionalidade"><Input value={form.nacionalidade ?? ""} onChange={(e) => setForm({ ...form, nacionalidade: e.target.value })} /></Field>
+            <Field label="Cidade residência"><Input value={form.cidade_residencia ?? ""} onChange={(e) => setForm({ ...form, cidade_residencia: e.target.value })} /></Field>
+            <Field label="Religião"><Input value={form.religiao ?? ""} onChange={(e) => setForm({ ...form, religiao: e.target.value })} /></Field>
             <Field label="Família" className="col-span-2">
               <Select value={form.familia_id ?? "__null"} onValueChange={(v) => setForm({ ...form, familia_id: v === "__null" ? null : v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -453,6 +465,18 @@ function ParticipantesPage() {
               <Field label="Telefone"><Input value={editing.telefone ?? ""} onChange={(e) => setEditing({ ...editing, telefone: e.target.value })} /></Field>
               <Field label="NIF"><Input value={editing.nif ?? ""} onChange={(e) => setEditing({ ...editing, nif: e.target.value })} /></Field>
               <Field label="Data nascimento"><Input type="date" value={editing.data_nascimento ?? ""} onChange={(e) => setEditing({ ...editing, data_nascimento: e.target.value })} /></Field>
+              <Field label="Género">
+                <Select value={editing.genero ?? "__null"} onValueChange={(v) => setEditing({ ...editing, genero: v === "__null" ? null : v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__null">— não definido —</SelectItem>
+                    {GENERO_OPTS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Nacionalidade"><Input value={editing.nacionalidade ?? ""} onChange={(e) => setEditing({ ...editing, nacionalidade: e.target.value })} /></Field>
+              <Field label="Cidade residência"><Input value={editing.cidade_residencia ?? ""} onChange={(e) => setEditing({ ...editing, cidade_residencia: e.target.value })} /></Field>
+              <Field label="Religião"><Input value={editing.religiao ?? ""} onChange={(e) => setEditing({ ...editing, religiao: e.target.value })} /></Field>
               <Field label="Família" className="col-span-2">
                 <Select value={editing.familia_id ?? "__null"} onValueChange={(v) => setEditing({ ...editing, familia_id: v === "__null" ? null : v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -502,12 +526,13 @@ function ParticipantesPage() {
             <DialogTitle>Importar pessoas em massa</DialogTitle>
             <DialogDescription>
               Uma pessoa por linha, valores separados por vírgula na ordem:{" "}
-              <code>nome, email, telefone, nif, data_nascimento (AAAA-MM-DD)</code>. Só o nome é obrigatório.
+              <code>{BULK_COLUMNS.join(", ")}</code>. Só o nome é obrigatório.
+              A <code>data_nascimento</code> usa o formato AAAA-MM-DD, o <code>genero</code> é Masculino ou Feminino e a <code>familia</code> deve corresponder ao nome exato de uma família existente.
             </DialogDescription>
           </DialogHeader>
           <Textarea
             rows={10}
-            placeholder={"Ana Silva, ana@mail.com, 912345678, 123456789, 1990-04-12\nJoão Costa, , , , "}
+            placeholder={"Ana Silva, ana@mail.com, 912345678, 123456789, 1990-04-12, Feminino, Portuguesa, Lisboa, Católica, Família Silva\nJoão Costa, , , , , Masculino, , Porto, , "}
             value={bulkText}
             onChange={(e) => setBulkText(e.target.value)}
           />
@@ -555,6 +580,25 @@ function ParticipantesPage() {
                   {tipos?.map((t) => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </Field>
+            <Field label="Género">
+              <Select value={bulkGenero} onValueChange={setBulkGenero}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__noop">— não alterar —</SelectItem>
+                  <SelectItem value="__null">— remover género —</SelectItem>
+                  {GENERO_OPTS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Nacionalidade (deixar vazio = não alterar)">
+              <Input value={bulkNacionalidade} onChange={(e) => setBulkNacionalidade(e.target.value)} />
+            </Field>
+            <Field label="Cidade residência (deixar vazio = não alterar)">
+              <Input value={bulkCidade} onChange={(e) => setBulkCidade(e.target.value)} />
+            </Field>
+            <Field label="Religião (deixar vazio = não alterar)">
+              <Input value={bulkReligiao} onChange={(e) => setBulkReligiao(e.target.value)} />
             </Field>
           </div>
           <DialogFooter>
