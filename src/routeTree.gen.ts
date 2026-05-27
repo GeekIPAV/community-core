@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AcaoIdRouteImport } from './routes/acao.$id'
 import { Route as AppPerfilRouteImport } from './routes/_app.perfil'
 import { Route as AppAdminRouteImport } from './routes/_app/_admin'
 import { Route as AppAdminParticipantesRouteImport } from './routes/_app/_admin.participantes'
@@ -31,6 +32,11 @@ const AppRoute = AppRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AcaoIdRoute = AcaoIdRouteImport.update({
+  id: '/acao/$id',
+  path: '/acao/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppPerfilRoute = AppPerfilRouteImport.update({
@@ -67,6 +73,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/perfil': typeof AppPerfilRoute
+  '/acao/$id': typeof AcaoIdRoute
   '/acoes': typeof AppAdminAcoesRoute
   '/duplicados': typeof AppAdminDuplicadosRoute
   '/familias': typeof AppAdminFamiliasRoute
@@ -76,6 +83,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/perfil': typeof AppPerfilRoute
+  '/acao/$id': typeof AcaoIdRoute
   '/acoes': typeof AppAdminAcoesRoute
   '/duplicados': typeof AppAdminDuplicadosRoute
   '/familias': typeof AppAdminFamiliasRoute
@@ -88,6 +96,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_app/_admin': typeof AppAdminRouteWithChildren
   '/_app/perfil': typeof AppPerfilRoute
+  '/acao/$id': typeof AcaoIdRoute
   '/_app/_admin/acoes': typeof AppAdminAcoesRoute
   '/_app/_admin/duplicados': typeof AppAdminDuplicadosRoute
   '/_app/_admin/familias': typeof AppAdminFamiliasRoute
@@ -99,6 +108,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/perfil'
+    | '/acao/$id'
     | '/acoes'
     | '/duplicados'
     | '/familias'
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/perfil'
+    | '/acao/$id'
     | '/acoes'
     | '/duplicados'
     | '/familias'
@@ -119,6 +130,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/_app/_admin'
     | '/_app/perfil'
+    | '/acao/$id'
     | '/_app/_admin/acoes'
     | '/_app/_admin/duplicados'
     | '/_app/_admin/familias'
@@ -129,6 +141,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
+  AcaoIdRoute: typeof AcaoIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -152,6 +165,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/acao/$id': {
+      id: '/acao/$id'
+      path: '/acao/$id'
+      fullPath: '/acao/$id'
+      preLoaderRoute: typeof AcaoIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/perfil': {
@@ -233,6 +253,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
+  AcaoIdRoute: AcaoIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
