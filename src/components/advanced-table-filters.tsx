@@ -272,6 +272,46 @@ export function AdvancedTableFilters<T>({ table }: { table: Table<T> }) {
   );
 }
 
+function ChoiceButton({
+  value,
+  options,
+  onChange,
+  placeholder = "Escolhe…",
+  className,
+}: {
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+}) {
+  const selected = options.find((option) => option.value === value);
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className={cn("h-8 w-full justify-between gap-2 px-3 font-normal", !selected && "text-muted-foreground", className)}
+        >
+          <span className="truncate">{selected?.label ?? placeholder}</span>
+          <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="max-h-72 min-w-[var(--radix-dropdown-menu-trigger-width)] overflow-y-auto">
+        {options.map((option) => (
+          <DropdownMenuItem key={option.value} onSelect={() => onChange(option.value)} className="gap-2">
+            <Check className={cn("h-4 w-4", option.value === value ? "opacity-100" : "opacity-0")} />
+            <span className="truncate">{option.label}</span>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function RuleValueInput({
   variant, operator, value, onChange, options,
 }: {
