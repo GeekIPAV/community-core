@@ -19,14 +19,16 @@ export const Route = createFileRoute("/_app/_admin/acoes")({
   component: AcoesPage,
 });
 
-type FieldType = "text" | "number" | "date" | "checkbox";
-type FieldDef = { key: string; label: string; type: FieldType; required?: boolean };
+type FieldType = "text" | "number" | "date" | "checkbox" | "select" | "multiselect";
+type FieldDef = { key: string; label: string; type: FieldType; required?: boolean; options?: string[] };
 
 const TYPE_LABEL: Record<FieldType, string> = {
   text: "Texto",
   number: "Número",
   date: "Data",
   checkbox: "Sim/Não",
+  select: "Escolha única",
+  multiselect: "Escolha múltipla",
 };
 
 function parseFields(config: any): FieldDef[] {
@@ -34,8 +36,9 @@ function parseFields(config: any): FieldDef[] {
     return (config.fields as any[]).map((f) => ({
       key: String(f.key ?? ""),
       label: String(f.label ?? f.key ?? ""),
-      type: (["text", "number", "date", "checkbox"].includes(f.type) ? f.type : "text") as FieldType,
+      type: (["text", "number", "date", "checkbox", "select", "multiselect"].includes(f.type) ? f.type : "text") as FieldType,
       required: !!f.required,
+      options: Array.isArray(f.options) ? f.options.map((o: any) => String(o)) : undefined,
     }));
   }
   if (config && typeof config === "object") {
@@ -60,7 +63,19 @@ function slugifyKey(s: string) {
 
 function FieldsEditor({ fields, setFields }: { fields: FieldDef[]; setFields: (f: FieldDef[]) => void }) {
   const update = (i: number, patch: Partial<FieldDef>) => {
-    const next = fields.map((f, idx) => (idx === i ? { ...f, ...patch } : f));
+    const next = fields.map((f, idx) => {
+      if (idx !== i) return f;
+      const merged = { ...f, ...patch };
+      if (patch.label !== undefined) {
+        const base = slugifyKey(patch.label) || `campo_${i + 1}`;
+        let key = base;
+        let n = 2;
+        const taken = new Set(fields.filter((_, k) => k !== i).map((x) => x.key));
+        while (taken.has(key)) key = `${base}_${n++}`;
+        merged.key = key;
+      }
+      return merged;
+    });
     setFields(next);
   };
   const remove = (i: number) => setFields(fields.filter((_, idx) => idx !== i));
@@ -91,20 +106,14 @@ function FieldsEditor({ fields, setFields }: { fields: FieldDef[]; setFields: (f
       ) : (
         <div className="space-y-2">
           {fields.map((f, i) => (
-            <div key={i} className="grid gap-2 rounded-md border p-3 md:grid-cols-[1fr_1fr_140px_auto]">
+            <div key={i} className="space-y-2 rounded-md border p-3">
+              <div className="grid gap-2 md:grid-cols-[1fr_160px_auto]">
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Pergunta</Label>
                 <Input
                   value={f.label}
-                  onChange={(e) => {
-                    const label = e.target.value;
-                    update(i, { label, key: slugifyKey(label) || f.key });
-                  }}
+                  onChange={(e) => update(i, { label: e.target.value })}
                 />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Identificador</Label>
-                <Input value={f.key} onChange={(e) => update(i, { key: slugifyKey(e.target.value) })} />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Tipo</Label>
@@ -134,10 +143,45 @@ function FieldsEditor({ fields, setFields }: { fields: FieldDef[]; setFields: (f
                   </Button>
                 </div>
               </div>
+              </div>
+              {(f.type === "select" || f.type === "multiselect") && (
+                <OptionsEditor
+                  options={f.options ?? []}
+                  setOptions={(options) => update(i, { options })}
+                />
+              )}
             </div>
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function OptionsEditor({ options, setOptions }: { options: string[]; setOptions: (o: string[]) => void }) {
+  return (
+    <div className="space-y-1 rounded-md bg-muted/30 p-2">
+      <Label className="text-xs text-muted-foreground">Opções</Label>
+      {options.length === 0 && (
+        <p className="text-xs text-muted-foreground italic">Sem opções. Adiciona pelo menos uma.</p>
+      )}
+      <div className="space-y-1">
+        {options.map((opt, idx) => (
+          <div key={idx} className="flex gap-1">
+            <Input
+              value={opt}
+              onChange={(e) => setOptions(options.map((o, k) => (k === idx ? e.target.value : o)))}
+              placeholder={`Opção ${idx + 1}`}
+            />
+            <Button type="button" size="icon" variant="ghost" onClick={() => setOptions(options.filter((_, k) => k !== idx))}>
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
+          </div>
+        ))}
+      </div>
+      <Button type="button" size="sm" variant="outline" onClick={() => setOptions([...options, ""])}>
+        <Plus className="mr-1 h-3.5 w-3.5" /> Adicionar opção
+      </Button>
     </div>
   );
 }
