@@ -301,18 +301,32 @@ export type Database = {
         Args: { duplicado: string; principal: string }
         Returns: undefined
       }
-      inscrever_publico: {
-        Args: {
-          p_acao_id: string
-          p_data_nascimento?: string
-          p_email?: string
-          p_nif?: string
-          p_nome: string
-          p_telefone?: string
-          p_valores?: Json
-        }
-        Returns: string
-      }
+      inscrever_publico:
+        | {
+            Args: {
+              p_acao_id: string
+              p_data_nascimento?: string
+              p_email?: string
+              p_nif?: string
+              p_nome: string
+              p_telefone?: string
+              p_valores?: Json
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_acao_id: string
+              p_atualizar?: boolean
+              p_data_nascimento?: string
+              p_email?: string
+              p_nif?: string
+              p_nome: string
+              p_telefone?: string
+              p_valores?: Json
+            }
+            Returns: Json
+          }
       is_current_user_admin: { Args: never; Returns: boolean }
     }
     Enums: {
