@@ -48,9 +48,27 @@ type Pessoa = {
   status: string;
   notas: string | null;
   tipo_user_id: string | null;
+  genero: string | null;
+  nacionalidade: string | null;
+  cidade_residencia: string | null;
+  religiao: string | null;
 };
 
 const STATUS_OPTS = ["ativo", "suspeito_duplicado", "fundido", "arquivado"];
+const GENERO_OPTS = ["Masculino", "Feminino"];
+
+const BULK_COLUMNS = [
+  "nome",
+  "email",
+  "telefone",
+  "nif",
+  "data_nascimento",
+  "genero",
+  "nacionalidade",
+  "cidade_residencia",
+  "religiao",
+  "familia",
+] as const;
 
 const emptyForm: Omit<Pessoa, "id" | "status"> & { status?: string } = {
   nome_completo: "",
@@ -61,6 +79,10 @@ const emptyForm: Omit<Pessoa, "id" | "status"> & { status?: string } = {
   familia_id: null,
   notas: "",
   tipo_user_id: null,
+  genero: null,
+  nacionalidade: "",
+  cidade_residencia: "",
+  religiao: "",
 };
 
 function ParticipantesPage() {
@@ -90,7 +112,7 @@ function ParticipantesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, email, telefone, nif, data_nascimento, familia_id, status, notas, tipo_user_id")
+        .select("id, nome_completo, email, telefone, nif, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao")
         .order("nome_completo", { ascending: true });
       if (error) throw error;
       return data as Pessoa[];
@@ -145,6 +167,10 @@ function ParticipantesPage() {
         familia_id: form.familia_id || null,
         notas: form.notas?.trim() || null,
         tipo_user_id: form.tipo_user_id || null,
+        genero: form.genero || null,
+        nacionalidade: form.nacionalidade?.trim() || null,
+        cidade_residencia: form.cidade_residencia?.trim() || null,
+        religiao: form.religiao?.trim() || null,
       };
       const { error } = await supabase.from("pessoas").insert(payload);
       if (error) throw error;
@@ -173,6 +199,10 @@ function ParticipantesPage() {
           status: editing.status as any,
           notas: editing.notas || null,
           tipo_user_id: editing.tipo_user_id || null,
+          genero: editing.genero || null,
+          nacionalidade: editing.nacionalidade || null,
+          cidade_residencia: editing.cidade_residencia || null,
+          religiao: editing.religiao || null,
         })
         .eq("id", editing.id);
       if (error) throw error;
@@ -188,7 +218,7 @@ function ParticipantesPage() {
 
   const bulkCreate = useMutation({
     mutationFn: async () => {
-      const rows = parseBulkCsv(bulkText);
+      const rows = parseBulkCsv(bulkText, familias ?? []);
       if (rows.length === 0) throw new Error("Nada para importar");
       const { error } = await supabase.from("pessoas").insert(rows);
       if (error) throw error;
@@ -207,10 +237,22 @@ function ParticipantesPage() {
     mutationFn: async () => {
       const ids = Array.from(selected);
       if (ids.length === 0) throw new Error("Seleciona pelo menos uma pessoa");
-      const patch: { familia_id?: string | null; status?: any; tipo_user_id?: string | null } = {};
+      const patch: {
+        familia_id?: string | null;
+        status?: any;
+        tipo_user_id?: string | null;
+        genero?: string | null;
+        nacionalidade?: string | null;
+        cidade_residencia?: string | null;
+        religiao?: string | null;
+      } = {};
       if (bulkFamilia !== "__noop") patch.familia_id = bulkFamilia === "__null" ? null : bulkFamilia;
       if (bulkStatus !== "__noop") patch.status = bulkStatus;
       if (bulkTipo !== "__noop") patch.tipo_user_id = bulkTipo === "__null" ? null : bulkTipo;
+      if (bulkGenero !== "__noop") patch.genero = bulkGenero === "__null" ? null : bulkGenero;
+      if (bulkNacionalidade.trim()) patch.nacionalidade = bulkNacionalidade.trim();
+      if (bulkCidade.trim()) patch.cidade_residencia = bulkCidade.trim();
+      if (bulkReligiao.trim()) patch.religiao = bulkReligiao.trim();
       if (Object.keys(patch).length === 0) throw new Error("Nada para alterar");
       const { error } = await supabase.from("pessoas").update(patch).in("id", ids);
       if (error) throw error;
@@ -224,6 +266,10 @@ function ParticipantesPage() {
       setBulkFamilia("__noop");
       setBulkStatus("__noop");
       setBulkTipo("__noop");
+      setBulkGenero("__noop");
+      setBulkNacionalidade("");
+      setBulkCidade("");
+      setBulkReligiao("");
     },
     onError: (e: Error) => toast.error(e.message),
   });
