@@ -103,6 +103,10 @@ function ParticipantesPage() {
   const [bulkFamilia, setBulkFamilia] = useState<string>("__noop");
   const [bulkStatus, setBulkStatus] = useState<string>("__noop");
   const [bulkTipo, setBulkTipo] = useState<string>("__noop");
+  const [bulkGenero, setBulkGenero] = useState<string>("__noop");
+  const [bulkNacionalidade, setBulkNacionalidade] = useState<string>("");
+  const [bulkCidade, setBulkCidade] = useState<string>("");
+  const [bulkReligiao, setBulkReligiao] = useState<string>("");
 
   const [deleteOne, setDeleteOne] = useState<Pessoa | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
