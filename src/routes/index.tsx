@@ -60,6 +60,18 @@ function Home() {
     return acoesAbertas.filter((a) => a.data_inicio && new Date(a.data_inicio).toDateString() === k);
   }, [acoesAbertas, selectedDate]);
 
+  const acoesPorDia = useMemo(() => {
+    const map = new Map<string, typeof acoesAbertas>();
+    for (const a of acoesAbertas) {
+      if (!a.data_inicio) continue;
+      const k = new Date(a.data_inicio).toDateString();
+      const arr = map.get(k) ?? [];
+      arr.push(a);
+      map.set(k, arr);
+    }
+    return map;
+  }, [acoesAbertas]);
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
