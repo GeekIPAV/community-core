@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AcaoIdRouteImport } from './routes/acao.$id'
 import { Route as AppPerfilRouteImport } from './routes/_app.perfil'
 import { Route as AppAdminRouteImport } from './routes/_app/_admin'
+import { Route as AppAdminTiposUserRouteImport } from './routes/_app/_admin.tipos-user'
 import { Route as AppAdminParticipantesRouteImport } from './routes/_app/_admin.participantes'
 import { Route as AppAdminFamiliasRouteImport } from './routes/_app/_admin.familias'
 import { Route as AppAdminDuplicadosRouteImport } from './routes/_app/_admin.duplicados'
@@ -48,6 +49,11 @@ const AppAdminRoute = AppAdminRouteImport.update({
   id: '/_admin',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminTiposUserRoute = AppAdminTiposUserRouteImport.update({
+  id: '/tipos-user',
+  path: '/tipos-user',
+  getParentRoute: () => AppAdminRoute,
+} as any)
 const AppAdminParticipantesRoute = AppAdminParticipantesRouteImport.update({
   id: '/participantes',
   path: '/participantes',
@@ -78,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/duplicados': typeof AppAdminDuplicadosRoute
   '/familias': typeof AppAdminFamiliasRoute
   '/participantes': typeof AppAdminParticipantesRoute
+  '/tipos-user': typeof AppAdminTiposUserRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -88,6 +95,7 @@ export interface FileRoutesByTo {
   '/duplicados': typeof AppAdminDuplicadosRoute
   '/familias': typeof AppAdminFamiliasRoute
   '/participantes': typeof AppAdminParticipantesRoute
+  '/tipos-user': typeof AppAdminTiposUserRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -101,6 +109,7 @@ export interface FileRoutesById {
   '/_app/_admin/duplicados': typeof AppAdminDuplicadosRoute
   '/_app/_admin/familias': typeof AppAdminFamiliasRoute
   '/_app/_admin/participantes': typeof AppAdminParticipantesRoute
+  '/_app/_admin/tipos-user': typeof AppAdminTiposUserRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -113,6 +122,7 @@ export interface FileRouteTypes {
     | '/duplicados'
     | '/familias'
     | '/participantes'
+    | '/tipos-user'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -123,6 +133,7 @@ export interface FileRouteTypes {
     | '/duplicados'
     | '/familias'
     | '/participantes'
+    | '/tipos-user'
   id:
     | '__root__'
     | '/'
@@ -135,6 +146,7 @@ export interface FileRouteTypes {
     | '/_app/_admin/duplicados'
     | '/_app/_admin/familias'
     | '/_app/_admin/participantes'
+    | '/_app/_admin/tipos-user'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -188,6 +200,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/_admin/tipos-user': {
+      id: '/_app/_admin/tipos-user'
+      path: '/tipos-user'
+      fullPath: '/tipos-user'
+      preLoaderRoute: typeof AppAdminTiposUserRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
     '/_app/_admin/participantes': {
       id: '/_app/_admin/participantes'
       path: '/participantes'
@@ -224,6 +243,7 @@ interface AppAdminRouteChildren {
   AppAdminDuplicadosRoute: typeof AppAdminDuplicadosRoute
   AppAdminFamiliasRoute: typeof AppAdminFamiliasRoute
   AppAdminParticipantesRoute: typeof AppAdminParticipantesRoute
+  AppAdminTiposUserRoute: typeof AppAdminTiposUserRoute
 }
 
 const AppAdminRouteChildren: AppAdminRouteChildren = {
@@ -231,6 +251,7 @@ const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminDuplicadosRoute: AppAdminDuplicadosRoute,
   AppAdminFamiliasRoute: AppAdminFamiliasRoute,
   AppAdminParticipantesRoute: AppAdminParticipantesRoute,
+  AppAdminTiposUserRoute: AppAdminTiposUserRoute,
 }
 
 const AppAdminRouteWithChildren = AppAdminRoute._addFileChildren(
