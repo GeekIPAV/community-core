@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, Maximize2, Minimize2, ArrowUpDown } from "lucide-react";
 import {
@@ -285,11 +285,14 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const baseRows: InscricaoRow[] = (data ?? []).filter((r: any) => r.status !== "cancelada");
+  const baseRows: InscricaoRow[] = useMemo(
+    () => (data ?? []).filter((r: any) => r.status !== "cancelada"),
+    [data]
+  );
   const total = baseRows.length;
   const presentes = baseRows.filter((r) => r.status === "presente").length;
 
-  const columns: ColumnDef<InscricaoRow>[] = [
+  const columns: ColumnDef<InscricaoRow>[] = useMemo(() => [
     {
       id: "status",
       header: "Estado",
@@ -331,7 +334,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
         meta: { filterVariant: variant, filterOptions: f.options, label: f.label } satisfies ColumnFilterMeta,
       };
     }),
-  ];
+  ], [fields]);
 
   const table = useReactTable({
     data: baseRows,
