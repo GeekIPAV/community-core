@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUp, ArrowUpDown, Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { Pencil, Plus, Trash2, Upload } from "lucide-react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -31,9 +31,11 @@ import {
   type ColumnDef,
   type SortingState,
   type VisibilityState,
+  type ColumnOrderState,
 } from "@tanstack/react-table";
 import { AdvancedTableFilters, advancedFilterFn, type ColumnFilterMeta } from "@/components/advanced-table-filters";
 import { DataTableViewOptions } from "@/components/data-table-view-options";
+import { DraggableTableHeaders } from "@/components/draggable-table-headers";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -190,13 +192,15 @@ function ParticipantesPage() {
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([]);
 
   const table = useReactTable({
     data: searchFiltered,
     columns: tableColumns,
-    state: { sorting, columnVisibility },
+    state: { sorting, columnVisibility, columnOrder },
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
+    onColumnOrderChange: setColumnOrder,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -407,21 +411,7 @@ function ParticipantesPage() {
                 <TableHead className="w-10">
                   <Checkbox checked={allChecked} onCheckedChange={toggleAll} />
                 </TableHead>
-                {table.getHeaderGroups()[0].headers.map((header) => {
-                  const sort = header.column.getIsSorted();
-                  return (
-                    <TableHead key={header.id}>
-                      <button
-                        type="button"
-                        onClick={() => header.column.toggleSorting()}
-                        className="flex items-center gap-1 font-medium hover:text-foreground"
-                      >
-                        {flexRender(header.column.columnDef.header, header.getContext())}
-                        {sort === "asc" ? <ArrowUp className="h-3 w-3" /> : sort === "desc" ? <ArrowDown className="h-3 w-3" /> : <ArrowUpDown className="h-3 w-3 opacity-40" />}
-                      </button>
-                    </TableHead>
-                  );
-                })}
+                <DraggableTableHeaders table={table} onOrderChange={setColumnOrder} />
                 <TableHead className="w-16"></TableHead>
               </TableRow>
             </TableHeader>
