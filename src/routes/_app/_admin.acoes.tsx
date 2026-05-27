@@ -606,7 +606,7 @@ function AcoesPage() {
         >
           <DialogHeader>
             <div className="flex items-center justify-between gap-2 pr-8">
-              <DialogTitle>Editar ação</DialogTitle>
+              <DialogTitle>{editing?.nome || "Editar ação"}</DialogTitle>
               <Button
                 type="button"
                 size="icon"
