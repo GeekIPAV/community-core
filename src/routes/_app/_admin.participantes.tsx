@@ -48,9 +48,27 @@ type Pessoa = {
   status: string;
   notas: string | null;
   tipo_user_id: string | null;
+  genero: string | null;
+  nacionalidade: string | null;
+  cidade_residencia: string | null;
+  religiao: string | null;
 };
 
 const STATUS_OPTS = ["ativo", "suspeito_duplicado", "fundido", "arquivado"];
+const GENERO_OPTS = ["Masculino", "Feminino"];
+
+const BULK_COLUMNS = [
+  "nome",
+  "email",
+  "telefone",
+  "nif",
+  "data_nascimento",
+  "genero",
+  "nacionalidade",
+  "cidade_residencia",
+  "religiao",
+  "familia",
+] as const;
 
 const emptyForm: Omit<Pessoa, "id" | "status"> & { status?: string } = {
   nome_completo: "",
@@ -61,6 +79,10 @@ const emptyForm: Omit<Pessoa, "id" | "status"> & { status?: string } = {
   familia_id: null,
   notas: "",
   tipo_user_id: null,
+  genero: null,
+  nacionalidade: "",
+  cidade_residencia: "",
+  religiao: "",
 };
 
 function ParticipantesPage() {
@@ -81,6 +103,10 @@ function ParticipantesPage() {
   const [bulkFamilia, setBulkFamilia] = useState<string>("__noop");
   const [bulkStatus, setBulkStatus] = useState<string>("__noop");
   const [bulkTipo, setBulkTipo] = useState<string>("__noop");
+  const [bulkGenero, setBulkGenero] = useState<string>("__noop");
+  const [bulkNacionalidade, setBulkNacionalidade] = useState<string>("");
+  const [bulkCidade, setBulkCidade] = useState<string>("");
+  const [bulkReligiao, setBulkReligiao] = useState<string>("");
 
   const [deleteOne, setDeleteOne] = useState<Pessoa | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
@@ -90,7 +116,7 @@ function ParticipantesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, email, telefone, nif, data_nascimento, familia_id, status, notas, tipo_user_id")
+        .select("id, nome_completo, email, telefone, nif, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao")
         .order("nome_completo", { ascending: true });
       if (error) throw error;
       return data as Pessoa[];
@@ -145,6 +171,10 @@ function ParticipantesPage() {
         familia_id: form.familia_id || null,
         notas: form.notas?.trim() || null,
         tipo_user_id: form.tipo_user_id || null,
+        genero: form.genero || null,
+        nacionalidade: form.nacionalidade?.trim() || null,
+        cidade_residencia: form.cidade_residencia?.trim() || null,
+        religiao: form.religiao?.trim() || null,
       };
       const { error } = await supabase.from("pessoas").insert(payload);
       if (error) throw error;
@@ -173,6 +203,10 @@ function ParticipantesPage() {
           status: editing.status as any,
           notas: editing.notas || null,
           tipo_user_id: editing.tipo_user_id || null,
+          genero: editing.genero || null,
+          nacionalidade: editing.nacionalidade || null,
+          cidade_residencia: editing.cidade_residencia || null,
+          religiao: editing.religiao || null,
         })
         .eq("id", editing.id);
       if (error) throw error;
@@ -188,7 +222,7 @@ function ParticipantesPage() {
 
   const bulkCreate = useMutation({
     mutationFn: async () => {
-      const rows = parseBulkCsv(bulkText);
+      const rows = parseBulkCsv(bulkText, familias ?? []);
       if (rows.length === 0) throw new Error("Nada para importar");
       const { error } = await supabase.from("pessoas").insert(rows);
       if (error) throw error;
@@ -207,10 +241,22 @@ function ParticipantesPage() {
     mutationFn: async () => {
       const ids = Array.from(selected);
       if (ids.length === 0) throw new Error("Seleciona pelo menos uma pessoa");
-      const patch: { familia_id?: string | null; status?: any; tipo_user_id?: string | null } = {};
+      const patch: {
+        familia_id?: string | null;
+        status?: any;
+        tipo_user_id?: string | null;
+        genero?: string | null;
+        nacionalidade?: string | null;
+        cidade_residencia?: string | null;
+        religiao?: string | null;
+      } = {};
       if (bulkFamilia !== "__noop") patch.familia_id = bulkFamilia === "__null" ? null : bulkFamilia;
       if (bulkStatus !== "__noop") patch.status = bulkStatus;
       if (bulkTipo !== "__noop") patch.tipo_user_id = bulkTipo === "__null" ? null : bulkTipo;
+      if (bulkGenero !== "__noop") patch.genero = bulkGenero === "__null" ? null : bulkGenero;
+      if (bulkNacionalidade.trim()) patch.nacionalidade = bulkNacionalidade.trim();
+      if (bulkCidade.trim()) patch.cidade_residencia = bulkCidade.trim();
+      if (bulkReligiao.trim()) patch.religiao = bulkReligiao.trim();
       if (Object.keys(patch).length === 0) throw new Error("Nada para alterar");
       const { error } = await supabase.from("pessoas").update(patch).in("id", ids);
       if (error) throw error;
@@ -224,6 +270,10 @@ function ParticipantesPage() {
       setBulkFamilia("__noop");
       setBulkStatus("__noop");
       setBulkTipo("__noop");
+      setBulkGenero("__noop");
+      setBulkNacionalidade("");
+      setBulkCidade("");
+      setBulkReligiao("");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -364,6 +414,18 @@ function ParticipantesPage() {
             <Field label="Telefone"><Input value={form.telefone ?? ""} onChange={(e) => setForm({ ...form, telefone: e.target.value })} /></Field>
             <Field label="NIF"><Input value={form.nif ?? ""} onChange={(e) => setForm({ ...form, nif: e.target.value })} /></Field>
             <Field label="Data nascimento"><Input type="date" value={form.data_nascimento ?? ""} onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })} /></Field>
+            <Field label="Género">
+              <Select value={form.genero ?? "__null"} onValueChange={(v) => setForm({ ...form, genero: v === "__null" ? null : v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__null">— não definido —</SelectItem>
+                  {GENERO_OPTS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Nacionalidade"><Input value={form.nacionalidade ?? ""} onChange={(e) => setForm({ ...form, nacionalidade: e.target.value })} /></Field>
+            <Field label="Cidade residência"><Input value={form.cidade_residencia ?? ""} onChange={(e) => setForm({ ...form, cidade_residencia: e.target.value })} /></Field>
+            <Field label="Religião"><Input value={form.religiao ?? ""} onChange={(e) => setForm({ ...form, religiao: e.target.value })} /></Field>
             <Field label="Família" className="col-span-2">
               <Select value={form.familia_id ?? "__null"} onValueChange={(v) => setForm({ ...form, familia_id: v === "__null" ? null : v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -403,6 +465,18 @@ function ParticipantesPage() {
               <Field label="Telefone"><Input value={editing.telefone ?? ""} onChange={(e) => setEditing({ ...editing, telefone: e.target.value })} /></Field>
               <Field label="NIF"><Input value={editing.nif ?? ""} onChange={(e) => setEditing({ ...editing, nif: e.target.value })} /></Field>
               <Field label="Data nascimento"><Input type="date" value={editing.data_nascimento ?? ""} onChange={(e) => setEditing({ ...editing, data_nascimento: e.target.value })} /></Field>
+              <Field label="Género">
+                <Select value={editing.genero ?? "__null"} onValueChange={(v) => setEditing({ ...editing, genero: v === "__null" ? null : v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__null">— não definido —</SelectItem>
+                    {GENERO_OPTS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Nacionalidade"><Input value={editing.nacionalidade ?? ""} onChange={(e) => setEditing({ ...editing, nacionalidade: e.target.value })} /></Field>
+              <Field label="Cidade residência"><Input value={editing.cidade_residencia ?? ""} onChange={(e) => setEditing({ ...editing, cidade_residencia: e.target.value })} /></Field>
+              <Field label="Religião"><Input value={editing.religiao ?? ""} onChange={(e) => setEditing({ ...editing, religiao: e.target.value })} /></Field>
               <Field label="Família" className="col-span-2">
                 <Select value={editing.familia_id ?? "__null"} onValueChange={(v) => setEditing({ ...editing, familia_id: v === "__null" ? null : v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -452,12 +526,13 @@ function ParticipantesPage() {
             <DialogTitle>Importar pessoas em massa</DialogTitle>
             <DialogDescription>
               Uma pessoa por linha, valores separados por vírgula na ordem:{" "}
-              <code>nome, email, telefone, nif, data_nascimento (AAAA-MM-DD)</code>. Só o nome é obrigatório.
+              <code>{BULK_COLUMNS.join(", ")}</code>. Só o nome é obrigatório.
+              A <code>data_nascimento</code> usa o formato AAAA-MM-DD, o <code>genero</code> é Masculino ou Feminino e a <code>familia</code> deve corresponder ao nome exato de uma família existente.
             </DialogDescription>
           </DialogHeader>
           <Textarea
             rows={10}
-            placeholder={"Ana Silva, ana@mail.com, 912345678, 123456789, 1990-04-12\nJoão Costa, , , , "}
+            placeholder={"Ana Silva, ana@mail.com, 912345678, 123456789, 1990-04-12, Feminino, Portuguesa, Lisboa, Católica, Família Silva\nJoão Costa, , , , , Masculino, , Porto, , "}
             value={bulkText}
             onChange={(e) => setBulkText(e.target.value)}
           />
@@ -505,6 +580,25 @@ function ParticipantesPage() {
                   {tipos?.map((t) => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </Field>
+            <Field label="Género">
+              <Select value={bulkGenero} onValueChange={setBulkGenero}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__noop">— não alterar —</SelectItem>
+                  <SelectItem value="__null">— remover género —</SelectItem>
+                  {GENERO_OPTS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Nacionalidade (deixar vazio = não alterar)">
+              <Input value={bulkNacionalidade} onChange={(e) => setBulkNacionalidade(e.target.value)} />
+            </Field>
+            <Field label="Cidade residência (deixar vazio = não alterar)">
+              <Input value={bulkCidade} onChange={(e) => setBulkCidade(e.target.value)} />
+            </Field>
+            <Field label="Religião (deixar vazio = não alterar)">
+              <Input value={bulkReligiao} onChange={(e) => setBulkReligiao(e.target.value)} />
             </Field>
           </div>
           <DialogFooter>
@@ -569,20 +663,51 @@ function Field({ label, className, children }: { label: string; className?: stri
   );
 }
 
-function parseBulkCsv(text: string) {
+function parseBulkCsv(text: string, familias: { id: string; nome: string }[]) {
+  const famByName = new Map(familias.map((f) => [f.nome.trim().toLowerCase(), f.id]));
   return text
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean)
     .map((line) => {
-      const [nome, email, telefone, nif, data_nascimento] = line.split(",").map((x) => x?.trim() ?? "");
+      const parts = line.split(",").map((x) => x?.trim() ?? "");
+      const [
+        nome,
+        email,
+        telefone,
+        nif,
+        data_nascimento,
+        genero,
+        nacionalidade,
+        cidade_residencia,
+        religiao,
+        familia,
+      ] = parts;
       if (!nome) throw new Error(`Linha sem nome: "${line}"`);
+      let familia_id: string | null = null;
+      if (familia) {
+        const id = famByName.get(familia.toLowerCase());
+        if (!id) throw new Error(`Família "${familia}" não encontrada (linha: "${line}")`);
+        familia_id = id;
+      }
+      let generoVal: string | null = null;
+      if (genero) {
+        const g = genero.toLowerCase();
+        if (g.startsWith("m")) generoVal = "Masculino";
+        else if (g.startsWith("f")) generoVal = "Feminino";
+        else throw new Error(`Género inválido "${genero}" (usa Masculino/Feminino)`);
+      }
       return {
         nome_completo: nome,
         email: email || null,
         telefone: telefone || null,
         nif: nif || null,
         data_nascimento: data_nascimento || null,
+        genero: generoVal,
+        nacionalidade: nacionalidade || null,
+        cidade_residencia: cidade_residencia || null,
+        religiao: religiao || null,
+        familia_id,
       };
     });
 }

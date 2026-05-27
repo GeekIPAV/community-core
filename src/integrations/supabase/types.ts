@@ -129,16 +129,20 @@ export type Database = {
       pessoas: {
         Row: {
           auth_user_id: string | null
+          cidade_residencia: string | null
           created_at: string
           data_nascimento: string | null
           email: string | null
           familia_id: string | null
           fundido_em: string | null
+          genero: string | null
           id: string
           is_admin: boolean
+          nacionalidade: string | null
           nif: string | null
           nome_completo: string
           notas: string | null
+          religiao: string | null
           status: Database["public"]["Enums"]["status_pessoa"]
           telefone: string | null
           tipo_user_id: string | null
@@ -146,16 +150,20 @@ export type Database = {
         }
         Insert: {
           auth_user_id?: string | null
+          cidade_residencia?: string | null
           created_at?: string
           data_nascimento?: string | null
           email?: string | null
           familia_id?: string | null
           fundido_em?: string | null
+          genero?: string | null
           id?: string
           is_admin?: boolean
+          nacionalidade?: string | null
           nif?: string | null
           nome_completo: string
           notas?: string | null
+          religiao?: string | null
           status?: Database["public"]["Enums"]["status_pessoa"]
           telefone?: string | null
           tipo_user_id?: string | null
@@ -163,16 +171,20 @@ export type Database = {
         }
         Update: {
           auth_user_id?: string | null
+          cidade_residencia?: string | null
           created_at?: string
           data_nascimento?: string | null
           email?: string | null
           familia_id?: string | null
           fundido_em?: string | null
+          genero?: string | null
           id?: string
           is_admin?: boolean
+          nacionalidade?: string | null
           nif?: string | null
           nome_completo?: string
           notas?: string | null
+          religiao?: string | null
           status?: Database["public"]["Enums"]["status_pessoa"]
           telefone?: string | null
           tipo_user_id?: string | null
