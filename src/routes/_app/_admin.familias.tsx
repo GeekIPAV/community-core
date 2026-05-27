@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Pencil, Plus, Upload } from "lucide-react";
+import { Pencil, Plus, Upload, Users } from "lucide-react";
 
 export const Route = createFileRoute("/_app/_admin/familias")({
   component: FamiliasPage,
@@ -35,12 +35,45 @@ function FamiliasPage() {
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [bulkNotas, setBulkNotas] = useState("");
 
+  const [membrosFamilia, setMembrosFamilia] = useState<Familia | null>(null);
+
   const { data, isLoading } = useQuery({
     queryKey: ["familias"],
     queryFn: async () => {
       const { data, error } = await supabase.from("familias").select("*").order("nome");
       if (error) throw error;
       return data as Familia[];
+    },
+  });
+
+  const { data: contagens } = useQuery({
+    queryKey: ["familias", "contagens"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pessoas")
+        .select("familia_id")
+        .eq("status", "ativo")
+        .not("familia_id", "is", null);
+      if (error) throw error;
+      const map = new Map<string, number>();
+      (data ?? []).forEach((r: any) => {
+        if (r.familia_id) map.set(r.familia_id, (map.get(r.familia_id) ?? 0) + 1);
+      });
+      return map;
+    },
+  });
+
+  const { data: membros, isLoading: loadingMembros } = useQuery({
+    queryKey: ["familias", "membros", membrosFamilia?.id],
+    enabled: !!membrosFamilia,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pessoas")
+        .select("id, nome_completo, email, telefone, data_nascimento, status")
+        .eq("familia_id", membrosFamilia!.id)
+        .order("nome_completo");
+      if (error) throw error;
+      return data as Array<{ id: string; nome_completo: string; email: string | null; telefone: string | null; data_nascimento: string | null; status: string }>;
     },
   });
 
@@ -186,23 +219,34 @@ function FamiliasPage() {
               <TableRow>
                 <TableHead className="w-10"><Checkbox checked={allChecked} onCheckedChange={toggleAll} /></TableHead>
                 <TableHead>Nome</TableHead>
+                <TableHead className="w-24">Membros</TableHead>
                 <TableHead>Notas</TableHead>
                 <TableHead className="w-16"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.length === 0 && (
-                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Sem famílias</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sem famílias</TableCell></TableRow>
               )}
               {rows.map((f) => (
-                <TableRow key={f.id}>
+                <TableRow key={f.id} className="cursor-pointer" onClick={(e) => {
+                  const target = e.target as HTMLElement;
+                  if (target.closest("button, [role=checkbox], input")) return;
+                  setMembrosFamilia(f);
+                }}>
                   <TableCell><Checkbox checked={selected.has(f.id)} onCheckedChange={() => toggleOne(f.id)} /></TableCell>
                   <TableCell className="font-medium">{f.nome}</TableCell>
+                  <TableCell className="text-muted-foreground">{contagens?.get(f.id) ?? 0}</TableCell>
                   <TableCell className="text-muted-foreground">{f.notas ?? "—"}</TableCell>
                   <TableCell>
-                    <Button size="icon" variant="ghost" onClick={() => { setEditing({ ...f }); setEditOpen(true); }}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
+                    <div className="flex justify-end gap-1">
+                      <Button size="icon" variant="ghost" title="Ver membros" onClick={() => setMembrosFamilia(f)}>
+                        <Users className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" title="Editar" onClick={() => { setEditing({ ...f }); setEditOpen(true); }}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -274,6 +318,43 @@ function FamiliasPage() {
               {bulkUpdate.isPending ? "A guardar…" : "Aplicar"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Membros */}
+      <Dialog open={!!membrosFamilia} onOpenChange={(o) => { if (!o) setMembrosFamilia(null); }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Membros de {membrosFamilia?.nome}</DialogTitle>
+            <DialogDescription>
+              {loadingMembros ? "A carregar…" : `${membros?.length ?? 0} membro(s)`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-auto rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Telefone</TableHead>
+                  <TableHead>Data nasc.</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(!membros || membros.length === 0) && !loadingMembros && (
+                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Sem membros</TableCell></TableRow>
+                )}
+                {membros?.map((m) => (
+                  <TableRow key={m.id}>
+                    <TableCell className="font-medium">{m.nome_completo}</TableCell>
+                    <TableCell className="text-muted-foreground">{m.email ?? "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{m.telefone ?? "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{m.data_nascimento ?? "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
