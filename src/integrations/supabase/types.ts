@@ -14,16 +14,240 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      acoes: {
+        Row: {
+          config_campos: Json
+          created_at: string
+          data_fim: string | null
+          data_inicio: string | null
+          descricao: string | null
+          id: string
+          local: string | null
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          config_campos?: Json
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string | null
+          descricao?: string | null
+          id?: string
+          local?: string | null
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          config_campos?: Json
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string | null
+          descricao?: string | null
+          id?: string
+          local?: string | null
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      familias: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          notas: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          notas?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          notas?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      inscricoes: {
+        Row: {
+          acao_id: string
+          created_at: string
+          id: string
+          pessoa_id: string
+          status: Database["public"]["Enums"]["status_inscricao"]
+          updated_at: string
+          valores_dinamicos: Json
+        }
+        Insert: {
+          acao_id: string
+          created_at?: string
+          id?: string
+          pessoa_id: string
+          status?: Database["public"]["Enums"]["status_inscricao"]
+          updated_at?: string
+          valores_dinamicos?: Json
+        }
+        Update: {
+          acao_id?: string
+          created_at?: string
+          id?: string
+          pessoa_id?: string
+          status?: Database["public"]["Enums"]["status_inscricao"]
+          updated_at?: string
+          valores_dinamicos?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inscricoes_acao_id_fkey"
+            columns: ["acao_id"]
+            isOneToOne: false
+            referencedRelation: "acoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inscricoes_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inscricoes_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pessoas: {
+        Row: {
+          created_at: string
+          data_nascimento: string | null
+          email: string | null
+          familia_id: string | null
+          fundido_em: string | null
+          id: string
+          nif: string | null
+          nome_completo: string
+          notas: string | null
+          status: Database["public"]["Enums"]["status_pessoa"]
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_nascimento?: string | null
+          email?: string | null
+          familia_id?: string | null
+          fundido_em?: string | null
+          id?: string
+          nif?: string | null
+          nome_completo: string
+          notas?: string | null
+          status?: Database["public"]["Enums"]["status_pessoa"]
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_nascimento?: string | null
+          email?: string | null
+          familia_id?: string | null
+          fundido_em?: string | null
+          id?: string
+          nif?: string | null
+          nome_completo?: string
+          notas?: string | null
+          status?: Database["public"]["Enums"]["status_pessoa"]
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pessoas_familia_id_fkey"
+            columns: ["familia_id"]
+            isOneToOne: false
+            referencedRelation: "familias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoas_fundido_em_fkey"
+            columns: ["fundido_em"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoas_fundido_em_fkey"
+            columns: ["fundido_em"]
+            isOneToOne: false
+            referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      pessoas_com_stats: {
+        Row: {
+          created_at: string | null
+          data_nascimento: string | null
+          email: string | null
+          familia_id: string | null
+          familia_nome: string | null
+          fundido_em: string | null
+          id: string | null
+          inscricoes_count: number | null
+          nif: string | null
+          nome_completo: string | null
+          notas: string | null
+          status: Database["public"]["Enums"]["status_pessoa"] | null
+          telefone: string | null
+          tipo_participante: string | null
+          ultima_acao_em: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pessoas_familia_id_fkey"
+            columns: ["familia_id"]
+            isOneToOne: false
+            referencedRelation: "familias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoas_fundido_em_fkey"
+            columns: ["fundido_em"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoas_fundido_em_fkey"
+            columns: ["fundido_em"]
+            isOneToOne: false
+            referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
-      [_ in never]: never
+      fundir_perfis: {
+        Args: { duplicado: string; principal: string }
+        Returns: undefined
+      }
     }
     Enums: {
-      [_ in never]: never
+      status_inscricao: "confirmada" | "cancelada" | "pendente"
+      status_pessoa: "ativo" | "suspeito_duplicado" | "fundido"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +374,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      status_inscricao: ["confirmada", "cancelada", "pendente"],
+      status_pessoa: ["ativo", "suspeito_duplicado", "fundido"],
+    },
   },
 } as const
