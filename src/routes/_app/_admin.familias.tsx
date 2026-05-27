@@ -9,10 +9,24 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Pencil, Plus, Upload, Users } from "lucide-react";
 import { formatDateBR } from "@/lib/utils";
+import {
+  useReactTable,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  flexRender,
+  type ColumnDef,
+  type SortingState,
+  type VisibilityState,
+  type ColumnOrderState,
+} from "@tanstack/react-table";
+import { AdvancedTableFilters, advancedFilterFn, type ColumnFilterMeta } from "@/components/advanced-table-filters";
+import { DataTableViewOptions } from "@/components/data-table-view-options";
+import { DraggableTableHeaders } from "@/components/draggable-table-headers";
 
 export const Route = createFileRoute("/_app/_admin/familias")({
   component: FamiliasPage,
@@ -158,11 +172,36 @@ function FamiliasPage() {
   });
 
   const rows = data ?? [];
-  const allChecked = rows.length > 0 && rows.every((f) => selected.has(f.id));
+
+  const columns = useMemo<ColumnDef<Familia>[]>(() => [
+    { id: "nome", header: "Nome", accessorKey: "nome", cell: ({ getValue }) => <span className="font-medium">{getValue() as string}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nome" } satisfies ColumnFilterMeta },
+    { id: "membros", header: "Membros", accessorFn: (f) => contagens?.get(f.id) ?? 0, cell: ({ getValue }) => <span className="text-muted-foreground">{getValue() as number}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "number", label: "Membros" } satisfies ColumnFilterMeta },
+    { id: "notas", header: "Notas", accessorKey: "notas", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Notas" } satisfies ColumnFilterMeta },
+  ], [contagens]);
+
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([]);
+
+  const table = useReactTable({
+    data: rows,
+    columns,
+    state: { sorting, columnVisibility, columnOrder },
+    onSortingChange: setSorting,
+    onColumnVisibilityChange: setColumnVisibility,
+    onColumnOrderChange: setColumnOrder,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getRowId: (r) => r.id,
+  });
+
+  const tableRows = table.getRowModel().rows;
+  const allChecked = tableRows.length > 0 && tableRows.every((r) => selected.has(r.original.id));
   const toggleAll = () => {
     const next = new Set(selected);
-    if (allChecked) rows.forEach((f) => next.delete(f.id));
-    else rows.forEach((f) => next.add(f.id));
+    if (allChecked) tableRows.forEach((r) => next.delete(r.original.id));
+    else tableRows.forEach((r) => next.add(r.original.id));
     setSelected(next);
   };
   const toggleOne = (id: string) => {
@@ -179,6 +218,8 @@ function FamiliasPage() {
           <p className="text-sm text-muted-foreground">{rows.length} famílias</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <AdvancedTableFilters table={table} />
+          <DataTableViewOptions table={table} />
           <Button variant="outline" onClick={() => setBulkAddOpen(true)}>
             <Upload className="mr-2 h-4 w-4" /> Importar
           </Button>
@@ -219,38 +260,39 @@ function FamiliasPage() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-10"><Checkbox checked={allChecked} onCheckedChange={toggleAll} /></TableHead>
-                <TableHead>Nome</TableHead>
-                <TableHead className="w-24">Membros</TableHead>
-                <TableHead>Notas</TableHead>
+                <DraggableTableHeaders table={table} onOrderChange={setColumnOrder} />
                 <TableHead className="w-16"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.length === 0 && (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sem famílias</TableCell></TableRow>
+              {tableRows.length === 0 && (
+                <TableRow><TableCell colSpan={table.getVisibleLeafColumns().length + 2} className="text-center text-muted-foreground">Sem famílias</TableCell></TableRow>
               )}
-              {rows.map((f) => (
-                <TableRow key={f.id} className="cursor-pointer" onClick={(e) => {
-                  const target = e.target as HTMLElement;
-                  if (target.closest("button, [role=checkbox], input")) return;
-                  setMembrosFamilia(f);
-                }}>
-                  <TableCell><Checkbox checked={selected.has(f.id)} onCheckedChange={() => toggleOne(f.id)} /></TableCell>
-                  <TableCell className="font-medium">{f.nome}</TableCell>
-                  <TableCell className="text-muted-foreground">{contagens?.get(f.id) ?? 0}</TableCell>
-                  <TableCell className="text-muted-foreground">{f.notas ?? "—"}</TableCell>
-                  <TableCell>
-                    <div className="flex justify-end gap-1">
-                      <Button size="icon" variant="ghost" title="Ver membros" onClick={() => setMembrosFamilia(f)}>
-                        <Users className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" title="Editar" onClick={() => { setEditing({ ...f }); setEditOpen(true); }}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {tableRows.map((row) => {
+                const f = row.original;
+                return (
+                  <TableRow key={row.id} className="cursor-pointer" onClick={(e) => {
+                    const target = e.target as HTMLElement;
+                    if (target.closest("button, [role=checkbox], input")) return;
+                    setMembrosFamilia(f);
+                  }}>
+                    <TableCell><Checkbox checked={selected.has(f.id)} onCheckedChange={() => toggleOne(f.id)} /></TableCell>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                    ))}
+                    <TableCell>
+                      <div className="flex justify-end gap-1">
+                        <Button size="icon" variant="ghost" title="Ver membros" onClick={() => setMembrosFamilia(f)}>
+                          <Users className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" title="Editar" onClick={() => { setEditing({ ...f }); setEditOpen(true); }}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
