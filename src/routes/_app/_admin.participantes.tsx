@@ -430,7 +430,14 @@ function ParticipantesPage() {
               <Field label="Notas" className="col-span-2"><Textarea value={editing.notas ?? ""} onChange={(e) => setEditing({ ...editing, notas: e.target.value })} /></Field>
             </div>
           )}
-          <DialogFooter>
+          <DialogFooter className="sm:justify-between">
+            <Button
+              variant="destructive"
+              onClick={() => editing && setDeleteOne(editing)}
+              disabled={!editing || remove.isPending}
+            >
+              <Trash2 className="mr-2 h-4 w-4" /> Apagar
+            </Button>
             <Button onClick={() => update.mutate()} disabled={!editing?.nome_completo.trim() || update.isPending}>
               {update.isPending ? "A guardar…" : "Guardar"}
             </Button>
@@ -507,6 +514,48 @@ function ParticipantesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete single */}
+      <AlertDialog open={!!deleteOne} onOpenChange={(o) => !o && setDeleteOne(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apagar pessoa</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tens a certeza que queres apagar <strong>{deleteOne?.nome_completo}</strong>? Esta ação não pode ser revertida.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteOne && remove.mutate([deleteOne.id])}
+              disabled={remove.isPending}
+            >
+              {remove.isPending ? "A apagar…" : "Apagar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk delete */}
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apagar {selected.size} pessoas</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser revertida.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => remove.mutate(Array.from(selected))}
+              disabled={remove.isPending}
+            >
+              {remove.isPending ? "A apagar…" : "Apagar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
