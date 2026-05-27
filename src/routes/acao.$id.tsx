@@ -198,10 +198,11 @@ function AnonForm({ acao, fields, onDone }: { acao: any; fields: FieldDef[]; onD
   const [dataNasc, setDataNasc] = useState("");
   const [telefone, setTelefone] = useState("");
   const [valores, setValores] = useState<Record<string, any>>({});
+  const [confirmUpdate, setConfirmUpdate] = useState(false);
 
   const submit = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.rpc("inscrever_publico" as any, {
+    mutationFn: async (atualizar: boolean) => {
+      const { data, error } = await supabase.rpc("inscrever_publico" as any, {
         p_acao_id: acao.id,
         p_nome: nome,
         p_email: email || null,
@@ -209,11 +210,17 @@ function AnonForm({ acao, fields, onDone }: { acao: any; fields: FieldDef[]; onD
         p_data_nascimento: dataNasc || null,
         p_telefone: telefone || null,
         p_valores: valores,
+        p_atualizar: atualizar,
       });
       if (error) throw error;
+      return data as { ja_inscrito?: boolean; atualizado?: boolean };
     },
-    onSuccess: () => {
-      toast.success("Inscrição registada!");
+    onSuccess: (res, atualizar) => {
+      if (res?.ja_inscrito && !atualizar) {
+        setConfirmUpdate(true);
+        return;
+      }
+      toast.success(res?.atualizado ? "Respostas atualizadas!" : "Inscrição registada!");
       onDone();
       navigate({ to: "/" });
     },
@@ -221,11 +228,12 @@ function AnonForm({ acao, fields, onDone }: { acao: any; fields: FieldDef[]; onD
   });
 
   return (
+    <>
     <form
       className="space-y-3"
       onSubmit={(e) => {
         e.preventDefault();
-        submit.mutate();
+        submit.mutate(false);
       }}
     >
       <div className="space-y-1"><Label htmlFor="nome">Nome completo *</Label><Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} required /></div>
@@ -242,6 +250,25 @@ function AnonForm({ acao, fields, onDone }: { acao: any; fields: FieldDef[]; onD
         </Button>
       </DialogFooter>
     </form>
+    <Dialog open={confirmUpdate} onOpenChange={setConfirmUpdate}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Já estavas inscrito</DialogTitle>
+          <DialogDescription>
+            Encontrámos uma inscrição existente nesta ação com este email. Queres atualizar as respostas com o que preencheste agora?
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => { setConfirmUpdate(false); onDone(); navigate({ to: "/" }); }}>
+            Manter respostas anteriores
+          </Button>
+          <Button onClick={() => { setConfirmUpdate(false); submit.mutate(true); }} disabled={submit.isPending}>
+            Atualizar respostas
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 
@@ -267,6 +294,7 @@ function LoggedInForm({ acao, pessoa, fields, onDone }: { acao: any; pessoa: any
 
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [valoresPorPessoa, setValoresPorPessoa] = useState<Record<string, Record<string, any>>>({});
+  const [confirmar, setConfirmar] = useState<{ existentes: Array<{ id: string; nome: string }>; novos: string[] } | null>(null);
 
   useEffect(() => {
     if (pessoa && selected[pessoa.id] === undefined) {
@@ -274,21 +302,59 @@ function LoggedInForm({ acao, pessoa, fields, onDone }: { acao: any; pessoa: any
     }
   }, [pessoa, selected]);
 
-  const submit = useMutation({
+  const checkSubmit = useMutation({
     mutationFn: async () => {
       const ids = Object.entries(selected).filter(([, v]) => v).map(([k]) => k);
       if (ids.length === 0) throw new Error("Seleciona pelo menos uma pessoa");
-      const rows = ids.map((pid) => ({
-        pessoa_id: pid,
-        acao_id: acao.id,
-        valores_dinamicos: valoresPorPessoa[pid] ?? {},
-      }));
-      const { error } = await supabase.from("inscricoes").insert(rows);
+      const { data, error } = await supabase
+        .from("inscricoes")
+        .select("id, pessoa_id")
+        .eq("acao_id", acao.id)
+        .in("pessoa_id", ids)
+        .neq("status", "cancelada");
       if (error) throw error;
+      const existentesIds = new Set((data ?? []).map((r: any) => r.pessoa_id));
+      const existentes = (agregado ?? [])
+        .filter((m: any) => existentesIds.has(m.id))
+        .map((m: any) => ({ id: m.id, nome: m.nome_completo }));
+      const novos = ids.filter((pid) => !existentesIds.has(pid));
+      return { existentes, novos };
+    },
+    onSuccess: (res) => {
+      if (res.existentes.length > 0) {
+        setConfirmar(res);
+      } else {
+        finalSubmit.mutate({ atualizarIds: [], inserirIds: res.novos });
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const finalSubmit = useMutation({
+    mutationFn: async ({ atualizarIds, inserirIds }: { atualizarIds: string[]; inserirIds: string[] }) => {
+      if (inserirIds.length > 0) {
+        const rows = inserirIds.map((pid) => ({
+          pessoa_id: pid,
+          acao_id: acao.id,
+          valores_dinamicos: valoresPorPessoa[pid] ?? {},
+        }));
+        const { error } = await supabase.from("inscricoes").insert(rows);
+        if (error) throw error;
+      }
+      for (const pid of atualizarIds) {
+        const { error } = await supabase
+          .from("inscricoes")
+          .update({ valores_dinamicos: valoresPorPessoa[pid] ?? {} })
+          .eq("acao_id", acao.id)
+          .eq("pessoa_id", pid)
+          .neq("status", "cancelada");
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
-      toast.success("Inscrições registadas!");
+      toast.success("Inscrições guardadas!");
       qc.invalidateQueries();
+      setConfirmar(null);
       onDone();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -306,7 +372,8 @@ function LoggedInForm({ acao, pessoa, fields, onDone }: { acao: any; pessoa: any
   }
 
   return (
-    <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); submit.mutate(); }}>
+    <>
+    <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); checkSubmit.mutate(); }}>
       <div className="space-y-2">
         <Label>Quem queres inscrever?</Label>
         <div className="space-y-2 rounded-md border p-3">
@@ -334,10 +401,52 @@ function LoggedInForm({ acao, pessoa, fields, onDone }: { acao: any; pessoa: any
         </div>
       </div>
       <DialogFooter>
-        <Button type="submit" disabled={submit.isPending}>
-          {submit.isPending ? "A enviar…" : "Confirmar inscrição"}
+        <Button type="submit" disabled={checkSubmit.isPending || finalSubmit.isPending}>
+          {checkSubmit.isPending || finalSubmit.isPending ? "A enviar…" : "Confirmar inscrição"}
         </Button>
       </DialogFooter>
     </form>
+    <Dialog open={!!confirmar} onOpenChange={(o) => { if (!o) setConfirmar(null); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Já existem inscrições</DialogTitle>
+          <DialogDescription>
+            {confirmar && (
+              <>
+                {confirmar.existentes.length === 1
+                  ? `${confirmar.existentes[0].nome} já está inscrito(a) nesta ação.`
+                  : `Estas pessoas já estão inscritas: ${confirmar.existentes.map((p) => p.nome).join(", ")}.`}
+                {" "}Queres atualizar as respostas com o que preencheste agora?
+              </>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (!confirmar) return;
+              finalSubmit.mutate({ atualizarIds: [], inserirIds: confirmar.novos });
+            }}
+            disabled={finalSubmit.isPending}
+          >
+            Manter respostas anteriores
+          </Button>
+          <Button
+            onClick={() => {
+              if (!confirmar) return;
+              finalSubmit.mutate({
+                atualizarIds: confirmar.existentes.map((p) => p.id),
+                inserirIds: confirmar.novos,
+              });
+            }}
+            disabled={finalSubmit.isPending}
+          >
+            Atualizar respostas
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
