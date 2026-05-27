@@ -19,10 +19,11 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, Maximize2, Minimize2, ArrowUpDown } from "lucide-react";
 import {
   useReactTable, getCoreRowModel, getSortedRowModel, getFilteredRowModel,
-  flexRender, type ColumnDef, type SortingState, type VisibilityState,
+  flexRender, type ColumnDef, type SortingState, type VisibilityState, type ColumnOrderState,
 } from "@tanstack/react-table";
 import { AdvancedTableFilters, advancedFilterFn, type ColumnFilterMeta } from "@/components/advanced-table-filters";
 import { DataTableViewOptions } from "@/components/data-table-view-options";
+import { DraggableTableHeaders } from "@/components/draggable-table-headers";
 
 export const Route = createFileRoute("/_app/_admin/acoes")({
   component: AcoesPage,
@@ -265,6 +266,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
   const [bulkStatus, setBulkStatus] = useState<InscricaoStatus>("presente");
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([]);
   const { data, isLoading } = useQuery({
     queryKey: ["inscricoes", acaoId],
     queryFn: async () => {
@@ -341,9 +343,10 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
   const table = useReactTable({
     data: baseRows,
     columns,
-    state: { sorting, columnVisibility },
+    state: { sorting, columnVisibility, columnOrder },
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
+    onColumnOrderChange: setColumnOrder,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -419,21 +422,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
                   <TableHead className="w-10">
                     <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Selecionar tudo" />
                   </TableHead>
-                  {table.getHeaderGroups()[0].headers.map((header) => {
-                    const sort = header.column.getIsSorted();
-                    return (
-                      <TableHead key={header.id}>
-                        <button
-                          type="button"
-                          onClick={() => header.column.toggleSorting()}
-                          className="flex items-center gap-1 font-medium hover:text-foreground"
-                        >
-                          {flexRender(header.column.columnDef.header, header.getContext())}
-                          {sort === "asc" ? <ArrowUp className="h-3 w-3" /> : sort === "desc" ? <ArrowDown className="h-3 w-3" /> : <ArrowUpDown className="h-3 w-3 opacity-40" />}
-                        </button>
-                      </TableHead>
-                    );
-                  })}
+                  <DraggableTableHeaders table={table} onOrderChange={setColumnOrder} />
                 </TableRow>
               </TableHeader>
               <TableBody>
