@@ -22,6 +22,8 @@ import {
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { useReactTable, getCoreRowModel, getFilteredRowModel, type ColumnDef } from "@tanstack/react-table";
+import { AdvancedTableFilters, advancedFilterFn, type ColumnFilterMeta } from "@/components/advanced-table-filters";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -147,7 +149,7 @@ function ParticipantesPage() {
   const familiaName = (id: string | null) =>
     id ? familias?.find((f) => f.id === id)?.nome ?? "—" : "—";
 
-  const filtered = useMemo(() => {
+  const searchFiltered = useMemo(() => {
     if (!data) return [];
     const s = q.trim().toLowerCase();
     if (!s) return data;
@@ -157,6 +159,31 @@ function ParticipantesPage() {
         .some((v: any) => String(v).toLowerCase().includes(s)),
     );
   }, [data, q]);
+
+  const tableColumns = useMemo<ColumnDef<Pessoa>[]>(() => [
+    { id: "nome_completo", header: "Nome", accessorKey: "nome_completo", filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nome" } satisfies ColumnFilterMeta },
+    { id: "email", header: "Email", accessorKey: "email", filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Email" } satisfies ColumnFilterMeta },
+    { id: "telefone", header: "Telefone", accessorKey: "telefone", filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Telefone" } satisfies ColumnFilterMeta },
+    { id: "nif", header: "NIF", accessorKey: "nif", filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "NIF" } satisfies ColumnFilterMeta },
+    { id: "data_nascimento", header: "Data nascimento", accessorKey: "data_nascimento", filterFn: advancedFilterFn as any, meta: { filterVariant: "date", label: "Data nascimento" } satisfies ColumnFilterMeta },
+    { id: "genero", header: "Género", accessorKey: "genero", filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: GENERO_OPTS, label: "Género" } satisfies ColumnFilterMeta },
+    { id: "nacionalidade", header: "Nacionalidade", accessorKey: "nacionalidade", filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nacionalidade" } satisfies ColumnFilterMeta },
+    { id: "cidade_residencia", header: "Cidade", accessorKey: "cidade_residencia", filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Cidade" } satisfies ColumnFilterMeta },
+    { id: "religiao", header: "Religião", accessorKey: "religiao", filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Religião" } satisfies ColumnFilterMeta },
+    { id: "status", header: "Estado", accessorKey: "status", filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: STATUS_OPTS, label: "Estado" } satisfies ColumnFilterMeta },
+    { id: "familia_id", header: "Família", accessorFn: (p) => p.familia_id ? (familias?.find((f) => f.id === p.familia_id)?.nome ?? "") : "", filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (familias ?? []).map((f) => f.nome), label: "Família" } satisfies ColumnFilterMeta },
+    { id: "tipo_user_id", header: "Tipo", accessorFn: (p) => p.tipo_user_id ? (tipos?.find((t) => t.id === p.tipo_user_id)?.nome ?? "") : "", filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (tipos ?? []).map((t) => t.nome), label: "Tipo de utilizador" } satisfies ColumnFilterMeta },
+  ], [familias, tipos]);
+
+  const table = useReactTable({
+    data: searchFiltered,
+    columns: tableColumns,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getRowId: (r) => r.id,
+  });
+
+  const filtered = table.getRowModel().rows.map((r) => r.original);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["pessoas"] });
 
@@ -319,6 +346,7 @@ function ParticipantesPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Input placeholder="Pesquisar…" className="w-56" value={q} onChange={(e) => setQ(e.target.value)} />
+          <AdvancedTableFilters table={table} />
           <Button variant="outline" onClick={() => setBulkAddOpen(true)}>
             <Upload className="mr-2 h-4 w-4" /> Importar
           </Button>
