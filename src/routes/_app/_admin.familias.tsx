@@ -413,6 +413,20 @@ function FamiliasPage() {
                 <Input value={editing.nome} onChange={(e) => setEditing({ ...editing, nome: e.target.value })} />
               </div>
               <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={editing.status} onValueChange={(v) => setEditing({ ...editing, status: v as FamiliaStatus })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {STATUS_GROUPS.map((g) => (
+                      <div key={g.label}>
+                        <div className="px-2 py-1 text-xs text-muted-foreground">{g.label}</div>
+                        {g.options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                      </div>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label>Notas</Label>
                 <Textarea value={editing.notas ?? ""} onChange={(e) => setEditing({ ...editing, notas: e.target.value })} />
               </div>
@@ -454,11 +468,28 @@ function FamiliasPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Editar {selected.size} famílias</DialogTitle>
-            <DialogDescription>As notas serão substituídas em todas as famílias selecionadas.</DialogDescription>
+            <DialogDescription>Só os campos alterados serão aplicados.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-2">
-            <Label>Notas</Label>
-            <Textarea value={bulkNotas} onChange={(e) => setBulkNotas(e.target.value)} placeholder="Deixar vazio para limpar" />
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={bulkStatus} onValueChange={setBulkStatus}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__noop">— não alterar —</SelectItem>
+                  {STATUS_GROUPS.map((g) => (
+                    <div key={g.label}>
+                      <div className="px-2 py-1 text-xs text-muted-foreground">{g.label}</div>
+                      {g.options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                    </div>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Notas (deixar vazio = não alterar)</Label>
+              <Textarea value={bulkNotas === "__clear__" ? "" : bulkNotas} onChange={(e) => setBulkNotas(e.target.value)} placeholder="Escreve para substituir" />
+            </div>
           </div>
           <DialogFooter>
             <Button onClick={() => bulkUpdate.mutate()} disabled={bulkUpdate.isPending}>
