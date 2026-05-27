@@ -261,6 +261,7 @@ function AcoesPage() {
         data_inicio: fromDtLocal(form.data_inicio),
         data_fim: fromDtLocal(form.data_fim),
         status: form.status,
+        inscricoes_abertas: form.inscricoes_abertas,
         config_campos: { fields: form.fields },
       } as any);
       if (error) throw error;
@@ -286,6 +287,7 @@ function AcoesPage() {
           data_inicio: fromDtLocal(editing.data_inicio),
           data_fim: fromDtLocal(editing.data_fim),
           status: editing.status,
+          inscricoes_abertas: editing.inscricoes_abertas,
           config_campos: { fields: editing.fields },
         } as any)
         .eq("id", editing.id);
