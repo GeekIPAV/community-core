@@ -489,6 +489,8 @@ function AddPessoasDialog({
   const [tab, setTab] = useState<"pessoas" | "familias">("pessoas");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [familiaFilter, setFamiliaFilter] = useState<string>("__all");
+  const [cidadeFilter, setCidadeFilter] = useState<string>("__all");
 
   const { data: pessoas, isLoading: loadingPessoas } = useQuery({
     queryKey: ["pessoas-atribuir"],
@@ -496,11 +498,11 @@ function AddPessoasDialog({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, telefone, email, familia_id")
+        .select("id, nome_completo, telefone, email, familia_id, cidade_residencia")
         .eq("status", "ativo")
         .order("nome_completo", { ascending: true });
       if (error) throw error;
-      return data as Array<{ id: string; nome_completo: string; telefone: string | null; email: string | null; familia_id: string | null }>;
+      return data as Array<{ id: string; nome_completo: string; telefone: string | null; email: string | null; familia_id: string | null; cidade_residencia: string | null }>;
     },
   });
 
@@ -530,11 +532,30 @@ function AddPessoasDialog({
   const filteredPessoas = useMemo(() => {
     const q = search.trim().toLowerCase();
     const list = pessoas ?? [];
-    if (!q) return list;
-    return list.filter((p) =>
-      [p.nome_completo, p.telefone ?? "", p.email ?? ""].some((v) => v.toLowerCase().includes(q))
-    );
-  }, [pessoas, search]);
+    return list.filter((p) => {
+      if (q && ![p.nome_completo, p.telefone ?? "", p.email ?? ""].some((v) => v.toLowerCase().includes(q))) return false;
+      if (familiaFilter === "__none") {
+        if (p.familia_id) return false;
+      } else if (familiaFilter !== "__all") {
+        if (p.familia_id !== familiaFilter) return false;
+      }
+      if (cidadeFilter === "__none") {
+        if (p.cidade_residencia && p.cidade_residencia.trim()) return false;
+      } else if (cidadeFilter !== "__all") {
+        if ((p.cidade_residencia ?? "") !== cidadeFilter) return false;
+      }
+      return true;
+    });
+  }, [pessoas, search, familiaFilter, cidadeFilter]);
+
+  const cidadesDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    (pessoas ?? []).forEach((p) => {
+      const c = (p.cidade_residencia ?? "").trim();
+      if (c) set.add(c);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [pessoas]);
 
   const filteredFamilias = useMemo(() => {
     const q = search.trim().toLowerCase();
