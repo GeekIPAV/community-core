@@ -365,6 +365,56 @@ function FamiliasPage() {
 
       {isLoading ? (
         <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+      ) : view === "galeria" ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          {tableRows.length === 0 && (
+            <div className="col-span-full text-center text-muted-foreground py-8">Sem famílias</div>
+          )}
+          {tableRows.map((row) => {
+            const f = row.original;
+            const agg = agregados?.get(f.id);
+            const nMembros = contagens?.get(f.id) ?? 0;
+            const projetos = Array.from(agg?.projetos ?? []).sort();
+            const cidades = Array.from(agg?.cidades ?? []).sort();
+            return (
+              <Card
+                key={row.id}
+                className="p-4 cursor-pointer hover:bg-muted/40 transition-colors flex flex-col gap-2"
+                onClick={(e) => {
+                  const target = e.target as HTMLElement;
+                  if (target.closest("button, [role=checkbox], input")) return;
+                  setMembrosFamilia(f);
+                }}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Checkbox checked={selected.has(f.id)} onCheckedChange={() => toggleOne(f.id)} />
+                    <span className="font-medium truncate">{f.nome}</span>
+                  </div>
+                  <Badge className={STATUS_STYLES[f.status] ?? ""} variant="outline">{f.status}</Badge>
+                </div>
+                <div className="text-sm text-muted-foreground flex items-center gap-1">
+                  <Users className="h-3.5 w-3.5" /> {nMembros} membro(s)
+                </div>
+                {projetos.length > 0 && (
+                  <div className="text-xs text-muted-foreground"><span className="font-medium">Projetos:</span> {projetos.join(", ")}</div>
+                )}
+                {cidades.length > 0 && (
+                  <div className="text-xs text-muted-foreground"><span className="font-medium">Cidades:</span> {cidades.join(", ")}</div>
+                )}
+                {f.notas && <div className="text-xs text-muted-foreground line-clamp-2">{f.notas}</div>}
+                <div className="flex justify-end gap-1 pt-1">
+                  <Button size="icon" variant="ghost" title="Ver membros" onClick={() => setMembrosFamilia(f)}>
+                    <Users className="h-4 w-4" />
+                  </Button>
+                  <Button size="icon" variant="ghost" title="Editar" onClick={() => { setEditing({ ...f }); setEditOpen(true); }}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
       ) : (
         <div className="rounded-md border">
           <Table>
