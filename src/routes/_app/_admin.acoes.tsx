@@ -1233,7 +1233,10 @@ function AcoesPageInner() {
   const { data, isLoading } = useQuery({
     queryKey: ["acoes"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("acoes").select("*").order("data_inicio", { ascending: false, nullsFirst: false });
+      const { data, error } = await supabase
+        .from("acoes")
+        .select("id, nome, local, mapa_url, imagem_url, data_inicio, data_fim, status, inscricoes_abertas, config_campos")
+        .order("data_inicio", { ascending: false, nullsFirst: false });
       if (error) throw error;
       return data;
     },
