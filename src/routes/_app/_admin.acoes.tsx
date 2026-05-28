@@ -217,6 +217,37 @@ type AcaoForm = {
 
 const EMPTY_FORM: AcaoForm = { nome: "", local: "", mapa_url: "", imagem_url: "", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, fields: [] };
 
+const acaoFormSchema = z
+  .object({
+    nome: z.string().trim().min(1, "Nome é obrigatório").max(200, "Nome demasiado longo"),
+    local: z.string().max(500).optional(),
+    mapa_url: z
+      .string()
+      .trim()
+      .max(500)
+      .refine((v) => !v || /^https?:\/\//i.test(v), "Link do Google Maps deve começar por http(s)://")
+      .optional(),
+    imagem_url: z.string().max(1000).optional(),
+    descricao: z.string().max(20000).optional(),
+    data_inicio: z.string(),
+    data_fim: z.string(),
+    status: z.string().trim().min(1, "Estado é obrigatório").max(50),
+    inscricoes_abertas: z.boolean(),
+  })
+  .refine((v) => !v.data_inicio || !v.data_fim || new Date(v.data_fim) >= new Date(v.data_inicio), {
+    message: "Data de fim deve ser igual ou posterior à data de início",
+    path: ["data_fim"],
+  });
+
+function validateAcaoForm(form: AcaoForm): boolean {
+  const result = acaoFormSchema.safeParse(form);
+  if (!result.success) {
+    toast.error(result.error.issues[0]?.message ?? "Dados inválidos");
+    return false;
+  }
+  return true;
+}
+
 const DEFAULT_STATUSES = ["ativa", "cancelada", "concluida"];
 
 function StatusInput({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) {
