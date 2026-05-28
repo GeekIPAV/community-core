@@ -507,44 +507,6 @@ function FamiliasPage() {
         </div>
       )}
 
-      {/* Edit */}
-      <Dialog open={editOpen} onOpenChange={(o) => { setEditOpen(o); if (!o) setEditing(null); }}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Editar família</DialogTitle></DialogHeader>
-          {editing && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Nome</Label>
-                <Input value={editing.nome} onChange={(e) => setEditing({ ...editing, nome: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select value={editing.status} onValueChange={(v) => setEditing({ ...editing, status: v as FamiliaStatus })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {STATUS_GROUPS.map((g) => (
-                      <div key={g.label}>
-                        <div className="px-2 py-1 text-xs text-muted-foreground">{g.label}</div>
-                        {g.options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                      </div>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Notas</Label>
-                <Textarea value={editing.notas ?? ""} onChange={(e) => setEditing({ ...editing, notas: e.target.value })} />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button onClick={() => update.mutate()} disabled={!editing?.nome.trim() || update.isPending}>
-              {update.isPending ? "A guardar…" : "Guardar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Bulk add */}
       <Dialog open={bulkAddOpen} onOpenChange={setBulkAddOpen}>
         <DialogContent className="max-w-xl">
