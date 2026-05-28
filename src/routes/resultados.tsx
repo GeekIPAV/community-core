@@ -352,8 +352,10 @@ function Conteudo({ data }: { data: Estatisticas }) {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (!raw) return DEFAULT_CHARTS;
-      const parsed = JSON.parse(raw) as ChartConfig[];
-      return Array.isArray(parsed) && parsed.length ? parsed : DEFAULT_CHARTS;
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_CHARTS;
+      const migrated = parsed.map(migrarChart).filter((c): c is ChartConfig => c !== null);
+      return migrated.length ? migrated : DEFAULT_CHARTS;
     } catch {
       return DEFAULT_CHARTS;
     }
@@ -372,7 +374,8 @@ function Conteudo({ data }: { data: Estatisticas }) {
     const novo: ChartConfig = {
       id: `c${Date.now()}`,
       title: "Novo gráfico",
-      dataset: "generos",
+      tabela: "pessoas",
+      coluna: "genero",
       type: "bar",
     };
     setCharts((prev) => [...prev, novo]);
@@ -431,7 +434,6 @@ function Conteudo({ data }: { data: Estatisticas }) {
           <ChartBlock
             key={cfg.id}
             config={cfg}
-            series={getDatasetSeries(data, cfg.dataset)}
             onEdit={() => setEditing(cfg)}
             onRemove={() => removeChart(cfg.id)}
           />
