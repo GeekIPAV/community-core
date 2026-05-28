@@ -652,17 +652,21 @@ function FamiliasPage() {
                     {(!membros || membros.length === 0) && !loadingMembros && (
                       <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground">Sem membros</TableCell></TableRow>
                     )}
-                    {membros?.map((m) => (
-                      <TableRow key={m.id}>
-                        <TableCell className="font-medium whitespace-nowrap">{m.nome_completo}</TableCell>
-                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.email ?? "—"}</TableCell>
-                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.telefone ?? "—"}</TableCell>
-                        <TableCell className="text-muted-foreground whitespace-nowrap">{formatDateBR(m.data_nascimento)}</TableCell>
-                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.genero ?? "—"}</TableCell>
-                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.cidade_residencia ?? "—"}</TableCell>
-                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.nacionalidade ?? "—"}</TableCell>
-                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.religiao ?? "—"}</TableCell>
-                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.nif ?? "—"}</TableCell>
+                     {membros?.map((m) => (
+                       <TableRow key={m.id}>
+                         <TableCell className="font-medium whitespace-nowrap min-w-[180px]">
+                           <InlineText value={m.nome_completo} onSave={async (v) => { if (v) await savePessoa(m.id, "nome_completo")(v); }} />
+                         </TableCell>
+                         <TableCell className="min-w-[200px]"><InlineText value={m.email} onSave={savePessoa(m.id, "email")} /></TableCell>
+                         <TableCell className="min-w-[140px]"><InlineText value={m.telefone} onSave={savePessoa(m.id, "telefone")} /></TableCell>
+                         <TableCell className="min-w-[140px]"><InlineText value={m.data_nascimento} type="date" onSave={savePessoa(m.id, "data_nascimento")} /></TableCell>
+                         <TableCell className="min-w-[120px]">
+                           <InlineSelect value={m.genero} options={GENERO_OPTS.map((g) => ({ value: g, label: g }))} placeholder="não definido" onSave={savePessoa(m.id, "genero")} />
+                         </TableCell>
+                         <TableCell className="min-w-[160px]"><InlineText value={m.cidade_residencia} onSave={savePessoa(m.id, "cidade_residencia")} /></TableCell>
+                         <TableCell className="min-w-[140px]"><InlineText value={m.nacionalidade} onSave={savePessoa(m.id, "nacionalidade")} /></TableCell>
+                         <TableCell className="min-w-[140px]"><InlineText value={m.religiao} onSave={savePessoa(m.id, "religiao")} /></TableCell>
+                         <TableCell className="min-w-[120px]"><InlineText value={m.nif} onSave={savePessoa(m.id, "nif")} /></TableCell>
                         <TableCell>
                           <InlineMultiSelect
                             values={m.projeto_ids ?? []}
