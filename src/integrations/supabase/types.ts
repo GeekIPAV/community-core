@@ -22,8 +22,10 @@ export type Database = {
           data_inicio: string | null
           descricao: string | null
           id: string
+          imagem_url: string | null
           inscricoes_abertas: boolean
           local: string | null
+          mapa_url: string | null
           nome: string
           status: string
           tipo: string
@@ -36,8 +38,10 @@ export type Database = {
           data_inicio?: string | null
           descricao?: string | null
           id?: string
+          imagem_url?: string | null
           inscricoes_abertas?: boolean
           local?: string | null
+          mapa_url?: string | null
           nome: string
           status?: string
           tipo?: string
@@ -50,8 +54,10 @@ export type Database = {
           data_inicio?: string | null
           descricao?: string | null
           id?: string
+          imagem_url?: string | null
           inscricoes_abertas?: boolean
           local?: string | null
+          mapa_url?: string | null
           nome?: string
           status?: string
           tipo?: string
