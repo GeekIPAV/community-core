@@ -1239,10 +1239,13 @@ function AcoesPageInner() {
         .from("inscricoes")
         .select("acao_id, status");
       if (error) throw error;
-      const map = new Map<string, number>();
+      const map = new Map<string, { total: number; presentes: number }>();
       for (const r of (data ?? []) as any[]) {
         if (r.status === "cancelada") continue;
-        map.set(r.acao_id, (map.get(r.acao_id) ?? 0) + 1);
+        const cur = map.get(r.acao_id) ?? { total: 0, presentes: 0 };
+        cur.total += 1;
+        if (r.status === "presente") cur.presentes += 1;
+        map.set(r.acao_id, cur);
       }
       return map;
     },
