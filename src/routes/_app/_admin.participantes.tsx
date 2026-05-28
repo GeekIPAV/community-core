@@ -19,7 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Pencil, Plus, Trash2, Upload } from "lucide-react";
 import {
@@ -185,24 +185,42 @@ function ParticipantesPage() {
     );
   }, [data, q]);
 
-  const tableColumns = useMemo<ColumnDef<Pessoa>[]>(() => [
-    { id: "nome_completo", header: "Nome", accessorKey: "nome_completo", cell: ({ getValue }) => <span className="font-medium">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nome" } satisfies ColumnFilterMeta },
-    { id: "email", header: "Email", accessorKey: "email", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Email" } satisfies ColumnFilterMeta },
-    { id: "telefone", header: "Telefone", accessorKey: "telefone", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Telefone" } satisfies ColumnFilterMeta },
-    { id: "nif", header: "NIF", accessorKey: "nif", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "NIF" } satisfies ColumnFilterMeta },
-    { id: "data_nascimento", header: "Data nascimento", accessorKey: "data_nascimento", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "date", label: "Data nascimento" } satisfies ColumnFilterMeta },
-    { id: "genero", header: "Género", accessorKey: "genero", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: GENERO_OPTS, label: "Género" } satisfies ColumnFilterMeta },
-    { id: "nacionalidade", header: "Nacionalidade", accessorKey: "nacionalidade", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nacionalidade" } satisfies ColumnFilterMeta },
-    { id: "cidade_residencia", header: "Cidade", accessorKey: "cidade_residencia", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Cidade" } satisfies ColumnFilterMeta },
-    { id: "religiao", header: "Religião", accessorKey: "religiao", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Religião" } satisfies ColumnFilterMeta },
-    { id: "familia_id", header: "Família", accessorFn: (p) => p.familia_id ? (familias?.find((f) => f.id === p.familia_id)?.nome ?? "") : "", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (familias ?? []).map((f) => f.nome), label: "Família" } satisfies ColumnFilterMeta },
-    { id: "projeto_id", header: "Projeto", accessorFn: (p) => p.projeto_id ? (projetos?.find((x) => x.id === p.projeto_id)?.nome ?? "") : "", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (projetos ?? []).map((x) => x.nome), label: "Projeto" } satisfies ColumnFilterMeta },
-    { id: "tipo_user_id", header: "Tipo", accessorFn: (p) => p.tipo_user_id ? (tipos?.find((t) => t.id === p.tipo_user_id)?.nome ?? "") : "", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (tipos ?? []).map((t) => t.nome), label: "Tipo de utilizador" } satisfies ColumnFilterMeta },
-    { id: "status", header: "Estado", accessorKey: "status", cell: ({ getValue }) => {
-      const s = getValue() as string;
-      return <Badge variant={s === "ativo" ? "default" : s === "suspeito_duplicado" ? "destructive" : "outline"}>{s}</Badge>;
-    }, filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: STATUS_OPTS, label: "Estado" } satisfies ColumnFilterMeta },
-  ], [familias, tipos, projetos]);
+  const tableColumns = useMemo<ColumnDef<Pessoa>[]>(() => {
+    const save = (id: string, field: keyof Pessoa) => async (v: any) => {
+      const { error } = await supabase.from("pessoas").update({ [field]: v } as any).eq("id", id);
+      if (error) { toast.error(error.message); throw error; }
+      qc.invalidateQueries({ queryKey: ["pessoas"] });
+    };
+    const text = (field: keyof Pessoa, type: "text" | "date" = "text") =>
+      ({ getValue, row }: any) => (
+        <InlineText value={getValue() as string | null} type={type} onSave={save(row.original.id, field)} />
+      );
+    return [
+      { id: "nome_completo", header: "Nome", accessorKey: "nome_completo", cell: ({ getValue }) => <span className="font-medium">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nome" } satisfies ColumnFilterMeta },
+      { id: "email", header: "Email", accessorKey: "email", cell: text("email"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Email" } satisfies ColumnFilterMeta },
+      { id: "telefone", header: "Telefone", accessorKey: "telefone", cell: text("telefone"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Telefone" } satisfies ColumnFilterMeta },
+      { id: "nif", header: "NIF", accessorKey: "nif", cell: text("nif"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "NIF" } satisfies ColumnFilterMeta },
+      { id: "data_nascimento", header: "Data nascimento", accessorKey: "data_nascimento", cell: text("data_nascimento", "date"), filterFn: advancedFilterFn as any, meta: { filterVariant: "date", label: "Data nascimento" } satisfies ColumnFilterMeta },
+      { id: "genero", header: "Género", accessorKey: "genero", cell: ({ getValue, row }) => (
+        <InlineSelect value={getValue() as string | null} options={GENERO_OPTS.map((g) => ({ value: g, label: g }))} placeholder="não definido" onSave={save(row.original.id, "genero")} />
+      ), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: GENERO_OPTS, label: "Género" } satisfies ColumnFilterMeta },
+      { id: "nacionalidade", header: "Nacionalidade", accessorKey: "nacionalidade", cell: text("nacionalidade"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nacionalidade" } satisfies ColumnFilterMeta },
+      { id: "cidade_residencia", header: "Cidade", accessorKey: "cidade_residencia", cell: text("cidade_residencia"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Cidade" } satisfies ColumnFilterMeta },
+      { id: "religiao", header: "Religião", accessorKey: "religiao", cell: text("religiao"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Religião" } satisfies ColumnFilterMeta },
+      { id: "familia_id", header: "Família", accessorFn: (p) => p.familia_id ? (familias?.find((f) => f.id === p.familia_id)?.nome ?? "") : "", cell: ({ row }) => (
+        <InlineSelect value={row.original.familia_id} options={(familias ?? []).map((f) => ({ value: f.id, label: f.nome }))} placeholder="sem família" onSave={save(row.original.id, "familia_id")} />
+      ), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (familias ?? []).map((f) => f.nome), label: "Família" } satisfies ColumnFilterMeta },
+      { id: "projeto_id", header: "Projeto", accessorFn: (p) => p.projeto_id ? (projetos?.find((x) => x.id === p.projeto_id)?.nome ?? "") : "", cell: ({ row }) => (
+        <InlineSelect value={row.original.projeto_id} options={(projetos ?? []).map((p) => ({ value: p.id, label: p.nome }))} placeholder="sem projeto" onSave={save(row.original.id, "projeto_id")} />
+      ), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (projetos ?? []).map((x) => x.nome), label: "Projeto" } satisfies ColumnFilterMeta },
+      { id: "tipo_user_id", header: "Tipo", accessorFn: (p) => p.tipo_user_id ? (tipos?.find((t) => t.id === p.tipo_user_id)?.nome ?? "") : "", cell: ({ row }) => (
+        <InlineSelect value={row.original.tipo_user_id} options={(tipos ?? []).map((t) => ({ value: t.id, label: t.nome }))} placeholder="sem tipo" onSave={save(row.original.id, "tipo_user_id")} />
+      ), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (tipos ?? []).map((t) => t.nome), label: "Tipo de utilizador" } satisfies ColumnFilterMeta },
+      { id: "status", header: "Estado", accessorKey: "status", cell: ({ getValue, row }) => (
+        <InlineSelect value={getValue() as string} options={STATUS_OPTS.map((s) => ({ value: s, label: s }))} allowClear={false} onSave={save(row.original.id, "status")} />
+      ), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: STATUS_OPTS, label: "Estado" } satisfies ColumnFilterMeta },
+    ];
+  }, [familias, tipos, projetos, qc]);
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -757,6 +775,93 @@ function Field({ label, className, children }: { label: string; className?: stri
     <div className={`space-y-2 ${className ?? ""}`}>
       <Label>{label}</Label>
       {children}
+    </div>
+  );
+}
+
+function InlineText({
+  value,
+  onSave,
+  type = "text",
+}: {
+  value: string | null;
+  onSave: (v: string | null) => Promise<void> | void;
+  type?: "text" | "date";
+}) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(value ?? "");
+  useEffect(() => { setVal(value ?? ""); }, [value]);
+  if (!editing) {
+    return (
+      <span
+        className="block min-h-[1.5rem] cursor-text rounded px-1 -mx-1 text-muted-foreground hover:bg-muted/50"
+        onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+      >
+        {value ? value : <span className="opacity-50">—</span>}
+      </span>
+    );
+  }
+  const commit = async () => {
+    setEditing(false);
+    const next = val.trim() === "" ? null : val;
+    if (next !== (value ?? null)) await onSave(next);
+  };
+  return (
+    <Input
+      autoFocus
+      type={type}
+      value={val}
+      onClick={(e) => e.stopPropagation()}
+      onChange={(e) => setVal(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+        if (e.key === "Escape") { setVal(value ?? ""); setEditing(false); }
+      }}
+      className="h-7 px-1.5 text-sm"
+    />
+  );
+}
+
+function InlineSelect({
+  value,
+  options,
+  onSave,
+  placeholder = "—",
+  allowClear = true,
+}: {
+  value: string | null;
+  options: { value: string; label: string }[];
+  onSave: (v: string | null) => Promise<void> | void;
+  placeholder?: string;
+  allowClear?: boolean;
+}) {
+  const current = options.find((o) => o.value === value);
+  return (
+    <div onClick={(e) => e.stopPropagation()}>
+      <Select
+        value={value ?? "__null"}
+        onValueChange={async (v) => {
+          const next = v === "__null" ? null : v;
+          if (next !== (value ?? null)) await onSave(next);
+        }}
+      >
+        <SelectTrigger className="h-7 w-full border-transparent bg-transparent px-1.5 text-sm shadow-none hover:border-border hover:bg-muted/50 [&>svg]:opacity-50">
+          <SelectValue>
+            {current ? (
+              <span>{current.label}</span>
+            ) : (
+              <span className="text-muted-foreground opacity-60">{placeholder}</span>
+            )}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {allowClear && <SelectItem value="__null">— {placeholder} —</SelectItem>}
+          {options.map((o) => (
+            <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }
