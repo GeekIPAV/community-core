@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -70,7 +71,7 @@ type Pessoa = {
   nacionalidade: string | null;
   cidade_residencia: string | null;
   religiao: string | null;
-  projeto_id: string | null;
+  projeto_ids: string[];
 };
 
 const STATUS_OPTS = ["ativo", "suspeito_duplicado", "fundido", "arquivado"];
@@ -103,7 +104,7 @@ const emptyForm: Omit<Pessoa, "id" | "status"> & { status?: string } = {
   nacionalidade: "",
   cidade_residencia: "",
   religiao: "",
-  projeto_id: null,
+  projeto_ids: [],
 };
 
 function ParticipantesPage() {
@@ -128,7 +129,8 @@ function ParticipantesPage() {
   const [bulkNacionalidade, setBulkNacionalidade] = useState<string>("");
   const [bulkCidade, setBulkCidade] = useState<string>("");
   const [bulkReligiao, setBulkReligiao] = useState<string>("");
-  const [bulkProjeto, setBulkProjeto] = useState<string>("__noop");
+  const [bulkProjetosMode, setBulkProjetosMode] = useState<"noop" | "set" | "clear">("noop");
+  const [bulkProjetos, setBulkProjetos] = useState<string[]>([]);
 
   const [deleteOne, setDeleteOne] = useState<Pessoa | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
@@ -139,10 +141,10 @@ function ParticipantesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, email, telefone, nif, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao, projeto_id")
+        .select("id, nome_completo, email, telefone, nif, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao, projeto_ids")
         .order("nome_completo", { ascending: true });
       if (error) throw error;
-      return data as Pessoa[];
+      return (data ?? []).map((p: any) => ({ ...p, projeto_ids: p.projeto_ids ?? [] })) as Pessoa[];
     },
   });
 
