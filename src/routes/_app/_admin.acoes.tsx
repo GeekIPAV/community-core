@@ -30,6 +30,7 @@ import {
 import { AdvancedTableFilters, advancedFilterFn, type ColumnFilterMeta } from "@/components/advanced-table-filters";
 import { DataTableViewOptions } from "@/components/data-table-view-options";
 import { DraggableTableHeaders } from "@/components/draggable-table-headers";
+import { useMobileColumnVisibility } from "@/hooks/use-mobile-columns";
 
 export const Route = createFileRoute("/_app/_admin/acoes")({
   component: AcoesPage,
@@ -507,6 +508,8 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
     getRowId: (r) => r.id,
   });
 
+  useMobileColumnVisibility(table, ["status", "nome", "telefone", "actions"]);
+
   if (isLoading) return <Skeleton className="h-32 w-full" />;
 
   const filteredRows = table.getRowModel().rows;
@@ -625,7 +628,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
                       <Checkbox checked={selected.has(row.original.id)} onCheckedChange={() => toggleOne(row.original.id)} />
                     </TableCell>
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="whitespace-nowrap">
+                      <TableCell key={cell.id} className="break-words">
                         {flexRender(cell.column.columnDef.cell ?? ((c: any) => c.getValue() || "—"), cell.getContext())}
                       </TableCell>
                     ))}
@@ -669,7 +672,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
                             <Checkbox checked={selected.has(row.original.id)} onCheckedChange={() => toggleOne(row.original.id)} />
                           </TableCell>
                           {row.getVisibleCells().map((cell) => (
-                            <TableCell key={cell.id} className="whitespace-nowrap">
+                            <TableCell key={cell.id} className="break-words">
                               {flexRender(cell.column.columnDef.cell ?? ((c: any) => c.getValue() || "—"), cell.getContext())}
                             </TableCell>
                           ))}

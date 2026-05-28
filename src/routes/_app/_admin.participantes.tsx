@@ -42,6 +42,7 @@ import {
 import { AdvancedTableFilters, advancedFilterFn, type ColumnFilterMeta } from "@/components/advanced-table-filters";
 import { DataTableViewOptions } from "@/components/data-table-view-options";
 import { DraggableTableHeaders } from "@/components/draggable-table-headers";
+import { useMobileColumnVisibility } from "@/hooks/use-mobile-columns";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -287,6 +288,8 @@ function ParticipantesPage() {
     getExpandedRowModel: getExpandedRowModel(),
     getRowId: (r) => r.id,
   });
+
+  useMobileColumnVisibility(table, ["nome_completo", "telefone", "status"]);
 
   const rows = table.getRowModel().rows;
   const filtered = rows.map((r) => r.original);
@@ -572,7 +575,7 @@ function ParticipantesPage() {
                       <Checkbox checked={selected.has(p.id)} onCheckedChange={() => toggleOne(p.id)} />
                     </TableCell>
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="whitespace-nowrap">
+                      <TableCell key={cell.id} className="break-words">
                         {cell.getIsAggregated() || cell.getIsPlaceholder()
                           ? null
                           : flexRender(cell.column.columnDef.cell, cell.getContext())}

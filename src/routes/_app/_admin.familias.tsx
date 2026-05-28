@@ -30,6 +30,7 @@ import {
 import { AdvancedTableFilters, advancedFilterFn, type ColumnFilterMeta } from "@/components/advanced-table-filters";
 import { DataTableViewOptions } from "@/components/data-table-view-options";
 import { DraggableTableHeaders } from "@/components/draggable-table-headers";
+import { useMobileColumnVisibility } from "@/hooks/use-mobile-columns";
 import { Card } from "@/components/ui/card";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { InlineText, InlineSelect, InlineMultiSelect } from "@/components/inline-edit";
@@ -359,6 +360,8 @@ function FamiliasPage() {
     getFilteredRowModel: getFilteredRowModel(),
     getRowId: (r) => r.id,
   });
+
+  useMobileColumnVisibility(table, ["nome", "status", "membros"]);
 
   const tableRows = table.getRowModel().rows;
   const allChecked = tableRows.length > 0 && tableRows.every((r) => selected.has(r.original.id));
