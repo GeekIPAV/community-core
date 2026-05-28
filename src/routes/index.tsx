@@ -8,9 +8,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { useAuth } from "@/lib/auth-context";
-import { CalendarDays, LayoutGrid, LogIn, MapPin } from "lucide-react";
+import { CalendarDays, LayoutGrid, LogIn, MapPin, ExternalLink } from "lucide-react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { RichTextView } from "@/components/rich-text-view";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -31,7 +32,7 @@ function Home() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("acoes")
-        .select("id, nome, descricao, local, data_inicio, data_fim, inscricoes_abertas")
+        .select("id, nome, descricao, local, mapa_url, imagem_url, data_inicio, data_fim, inscricoes_abertas")
         .order("data_inicio", { ascending: true, nullsFirst: false });
       if (error) throw error;
       return data;
@@ -201,7 +202,10 @@ function Home() {
 
 function AcaoCard({ acao }: { acao: any }) {
   return (
-    <Card>
+    <Card className="overflow-hidden">
+      {acao.imagem_url && (
+        <img src={acao.imagem_url} alt={acao.nome} className="h-36 w-full object-cover" />
+      )}
       <CardHeader>
         <CardTitle className="text-lg">{acao.nome}</CardTitle>
         <CardDescription>
@@ -209,10 +213,24 @@ function AcaoCard({ acao }: { acao: any }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
-        {acao.local && (
-          <p className="flex items-center gap-2 text-muted-foreground"><MapPin className="h-4 w-4" /> {acao.local}</p>
+        {(acao.local || acao.mapa_url) && (
+          <p className="flex flex-wrap items-center gap-2 text-muted-foreground">
+            <MapPin className="h-4 w-4" />
+            {acao.local && <span>{acao.local}</span>}
+            {acao.mapa_url && (
+              <a
+                href={acao.mapa_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1 text-primary hover:underline"
+              >
+                Mapa <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
+          </p>
         )}
-        {acao.descricao && <p className="line-clamp-3 text-muted-foreground">{acao.descricao}</p>}
+        {acao.descricao && <RichTextView className="line-clamp-3 text-muted-foreground" html={acao.descricao} />}
         {acao.inscricoes_abertas ? (
           <Link to="/acao/$id" params={{ id: acao.id }}>
             <Button size="sm" className="w-full">Ver e inscrever</Button>
