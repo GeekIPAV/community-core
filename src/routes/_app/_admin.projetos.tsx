@@ -59,13 +59,15 @@ function ProjetosPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("projeto_id")
+        .select("projeto_ids")
         .eq("status", "ativo")
-        .not("projeto_id", "is", null);
+        .not("projeto_ids", "is", null);
       if (error) throw error;
       const m = new Map<string, number>();
       (data ?? []).forEach((r: any) => {
-        if (r.projeto_id) m.set(r.projeto_id, (m.get(r.projeto_id) ?? 0) + 1);
+        for (const pid of (r.projeto_ids ?? []) as string[]) {
+          m.set(pid, (m.get(pid) ?? 0) + 1);
+        }
       });
       return m;
     },

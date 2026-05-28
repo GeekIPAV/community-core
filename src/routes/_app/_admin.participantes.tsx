@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -70,7 +71,7 @@ type Pessoa = {
   nacionalidade: string | null;
   cidade_residencia: string | null;
   religiao: string | null;
-  projeto_id: string | null;
+  projeto_ids: string[];
 };
 
 const STATUS_OPTS = ["ativo", "suspeito_duplicado", "fundido", "arquivado"];
@@ -103,7 +104,7 @@ const emptyForm: Omit<Pessoa, "id" | "status"> & { status?: string } = {
   nacionalidade: "",
   cidade_residencia: "",
   religiao: "",
-  projeto_id: null,
+  projeto_ids: [],
 };
 
 function ParticipantesPage() {
@@ -128,7 +129,8 @@ function ParticipantesPage() {
   const [bulkNacionalidade, setBulkNacionalidade] = useState<string>("");
   const [bulkCidade, setBulkCidade] = useState<string>("");
   const [bulkReligiao, setBulkReligiao] = useState<string>("");
-  const [bulkProjeto, setBulkProjeto] = useState<string>("__noop");
+  const [bulkProjetosMode, setBulkProjetosMode] = useState<"noop" | "set" | "clear">("noop");
+  const [bulkProjetos, setBulkProjetos] = useState<string[]>([]);
 
   const [deleteOne, setDeleteOne] = useState<Pessoa | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
@@ -139,10 +141,10 @@ function ParticipantesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, email, telefone, nif, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao, projeto_id")
+        .select("id, nome_completo, email, telefone, nif, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao, projeto_ids")
         .order("nome_completo", { ascending: true });
       if (error) throw error;
-      return data as Pessoa[];
+      return (data ?? []).map((p: any) => ({ ...p, projeto_ids: p.projeto_ids ?? [] })) as Pessoa[];
     },
   });
 
@@ -222,7 +224,22 @@ function ParticipantesPage() {
       { id: "cidade_residencia", header: "Cidade", accessorKey: "cidade_residencia", cell: text("cidade_residencia"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Cidade" } satisfies ColumnFilterMeta },
       { id: "religiao", header: "Religião", accessorKey: "religiao", cell: text("religiao"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Religião" } satisfies ColumnFilterMeta },
       { id: "familia_id", header: "Família", accessorFn: (p) => p.familia_id ? (familias?.find((f) => f.id === p.familia_id)?.nome ?? "") : "", cell: sel("familia_id", (familias ?? []).map((f) => ({ value: f.id, label: f.nome })), "sem família"), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (familias ?? []).map((f) => f.nome), label: "Família" } satisfies ColumnFilterMeta },
-      { id: "projeto_id", header: "Projeto", accessorFn: (p) => p.projeto_id ? (projetos?.find((x) => x.id === p.projeto_id)?.nome ?? "") : "", cell: sel("projeto_id", (projetos ?? []).map((p) => ({ value: p.id, label: p.nome })), "sem projeto"), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (projetos ?? []).map((x) => x.nome), label: "Projeto" } satisfies ColumnFilterMeta },
+      {
+        id: "projeto_ids",
+        header: "Projetos",
+        accessorFn: (p) => (p.projeto_ids ?? []).map((id) => projetos?.find((x) => x.id === id)?.nome).filter(Boolean).join(", "),
+        cell: ({ row }) => {
+          const ids = row.original.projeto_ids ?? [];
+          const opts = (projetos ?? []).map((p) => ({ value: p.id, label: p.nome }));
+          if (inlineEdit) {
+            return <InlineMultiSelect values={ids} options={opts} placeholder="sem projetos" onSave={async (v: string[]) => { await save(row.original.id, "projeto_ids")(v); }} />;
+          }
+          const names = ids.map((id) => opts.find((o) => o.value === id)?.label).filter(Boolean) as string[];
+          return <span className="text-muted-foreground">{names.length ? names.join(", ") : "—"}</span>;
+        },
+        filterFn: advancedFilterFn as any,
+        meta: { filterVariant: "select", filterOptions: (projetos ?? []).map((x) => x.nome), label: "Projetos" } satisfies ColumnFilterMeta,
+      },
       { id: "tipo_user_id", header: "Tipo", accessorFn: (p) => p.tipo_user_id ? (tipos?.find((t) => t.id === p.tipo_user_id)?.nome ?? "") : "", cell: sel("tipo_user_id", (tipos ?? []).map((t) => ({ value: t.id, label: t.nome })), "sem tipo"), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (tipos ?? []).map((t) => t.nome), label: "Tipo de utilizador" } satisfies ColumnFilterMeta },
       { id: "status", header: "Estado", accessorKey: "status", cell: inlineEdit
         ? ({ getValue, row }) => <InlineSelect value={getValue() as string} options={STATUS_OPTS.map((s) => ({ value: s, label: s }))} allowClear={false} onSave={save(row.original.id, "status")} />
@@ -277,7 +294,7 @@ function ParticipantesPage() {
         nacionalidade: form.nacionalidade?.trim() || null,
         cidade_residencia: form.cidade_residencia?.trim() || null,
         religiao: form.religiao?.trim() || null,
-        projeto_id: form.projeto_id || null,
+        projeto_ids: form.projeto_ids ?? [],
       };
       const { error } = await supabase.from("pessoas").insert(payload);
       if (error) throw error;
@@ -310,7 +327,7 @@ function ParticipantesPage() {
           nacionalidade: editing.nacionalidade || null,
           cidade_residencia: editing.cidade_residencia || null,
           religiao: editing.religiao || null,
-          projeto_id: editing.projeto_id || null,
+          projeto_ids: editing.projeto_ids ?? [],
         })
         .eq("id", editing.id);
       if (error) throw error;
@@ -353,7 +370,7 @@ function ParticipantesPage() {
         nacionalidade?: string | null;
         cidade_residencia?: string | null;
         religiao?: string | null;
-        projeto_id?: string | null;
+        projeto_ids?: string[];
       } = {};
       if (bulkFamilia !== "__noop") patch.familia_id = bulkFamilia === "__null" ? null : bulkFamilia;
       if (bulkStatus !== "__noop") patch.status = bulkStatus;
@@ -362,7 +379,8 @@ function ParticipantesPage() {
       if (bulkNacionalidade.trim()) patch.nacionalidade = bulkNacionalidade.trim();
       if (bulkCidade.trim()) patch.cidade_residencia = bulkCidade.trim();
       if (bulkReligiao.trim()) patch.religiao = bulkReligiao.trim();
-      if (bulkProjeto !== "__noop") patch.projeto_id = bulkProjeto === "__null" ? null : bulkProjeto;
+      if (bulkProjetosMode === "clear") patch.projeto_ids = [];
+      else if (bulkProjetosMode === "set") patch.projeto_ids = bulkProjetos;
       if (Object.keys(patch).length === 0) throw new Error("Nada para alterar");
       const { error } = await supabase.from("pessoas").update(patch).in("id", ids);
       if (error) throw error;
@@ -380,7 +398,8 @@ function ParticipantesPage() {
       setBulkNacionalidade("");
       setBulkCidade("");
       setBulkReligiao("");
-      setBulkProjeto("__noop");
+      setBulkProjetosMode("noop");
+      setBulkProjetos([]);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -441,7 +460,7 @@ function ParticipantesPage() {
               <SelectItem value="nacionalidade">Nacionalidade</SelectItem>
               <SelectItem value="religiao">Religião</SelectItem>
               <SelectItem value="genero">Género</SelectItem>
-              <SelectItem value="projeto_id">Projeto</SelectItem>
+              <SelectItem value="projeto_ids">Projetos</SelectItem>
               <SelectItem value="cidade_residencia">Cidade</SelectItem>
               <SelectItem value="status">Estado</SelectItem>
               <SelectItem value="tipo_user_id">Tipo</SelectItem>
@@ -588,14 +607,13 @@ function ParticipantesPage() {
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Projeto" className="col-span-2">
-              <Select value={form.projeto_id ?? "__null"} onValueChange={(v) => setForm({ ...form, projeto_id: v === "__null" ? null : v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__null">— sem projeto —</SelectItem>
-                  {projetos?.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
-                </SelectContent>
-              </Select>
+            <Field label="Projetos" className="col-span-2">
+              <MultiSelect
+                values={form.projeto_ids ?? []}
+                options={(projetos ?? []).map((p) => ({ value: p.id, label: p.nome }))}
+                placeholder="sem projetos"
+                onChange={(v: string[]) => setForm({ ...form, projeto_ids: v })}
+              />
             </Field>
             <Field label="Tipo de utilizador" className="col-span-2">
               <Select value={form.tipo_user_id ?? "__null"} onValueChange={(v) => setForm({ ...form, tipo_user_id: v === "__null" ? null : v })}>
@@ -648,14 +666,13 @@ function ParticipantesPage() {
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="Projeto" className="col-span-2">
-                <Select value={editing.projeto_id ?? "__null"} onValueChange={(v) => setEditing({ ...editing, projeto_id: v === "__null" ? null : v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__null">— sem projeto —</SelectItem>
-                    {projetos?.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+              <Field label="Projetos" className="col-span-2">
+                <MultiSelect
+                  values={editing.projeto_ids ?? []}
+                  options={(projetos ?? []).map((p) => ({ value: p.id, label: p.nome }))}
+                  placeholder="sem projetos"
+                  onChange={(v: string[]) => setEditing({ ...editing, projeto_ids: v })}
+                />
               </Field>
               <Field label="Tipo de utilizador" className="col-span-2">
                 <Select value={editing.tipo_user_id ?? "__null"} onValueChange={(v) => setEditing({ ...editing, tipo_user_id: v === "__null" ? null : v })}>
@@ -733,15 +750,25 @@ function ParticipantesPage() {
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Projeto">
-              <Select value={bulkProjeto} onValueChange={setBulkProjeto}>
+            <Field label="Projetos">
+              <Select value={bulkProjetosMode} onValueChange={(v) => setBulkProjetosMode(v as any)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__noop">— não alterar —</SelectItem>
-                  <SelectItem value="__null">— remover projeto —</SelectItem>
-                  {projetos?.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
+                  <SelectItem value="noop">— não alterar —</SelectItem>
+                  <SelectItem value="clear">— remover todos —</SelectItem>
+                  <SelectItem value="set">Substituir por…</SelectItem>
                 </SelectContent>
               </Select>
+              {bulkProjetosMode === "set" && (
+                <div className="mt-2">
+                  <MultiSelect
+                    values={bulkProjetos}
+                    options={(projetos ?? []).map((p) => ({ value: p.id, label: p.nome }))}
+                    placeholder="escolher projetos"
+                    onChange={setBulkProjetos}
+                  />
+                </div>
+              )}
             </Field>
             <Field label="Estado">
               <Select value={bulkStatus} onValueChange={setBulkStatus}>
@@ -931,6 +958,92 @@ function InlineSelect({
   );
 }
 
+function MultiSelect({
+  values,
+  options,
+  onChange,
+  placeholder = "—",
+  triggerClassName = "",
+}: {
+  values: string[];
+  options: { value: string; label: string }[];
+  onChange: (next: string[]) => void;
+  placeholder?: string;
+  triggerClassName?: string;
+}) {
+  const labels = values.map((v) => options.find((o) => o.value === v)?.label).filter(Boolean) as string[];
+  const toggle = (v: string) => {
+    onChange(values.includes(v) ? values.filter((x) => x !== v) : [...values, v]);
+  };
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          onClick={(e) => e.stopPropagation()}
+          className={`flex min-h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-1.5 text-left text-sm shadow-sm hover:bg-muted/50 ${triggerClassName}`}
+        >
+          <span className={labels.length ? "" : "text-muted-foreground"}>
+            {labels.length ? labels.join(", ") : placeholder}
+          </span>
+          <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-1" onClick={(e) => e.stopPropagation()}>
+        <div className="max-h-64 overflow-auto">
+          {options.length === 0 && (
+            <div className="px-2 py-1.5 text-sm text-muted-foreground">Sem opções</div>
+          )}
+          {options.map((o) => {
+            const checked = values.includes(o.value);
+            return (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => toggle(o.value)}
+                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent"
+              >
+                <Checkbox checked={checked} />
+                <span>{o.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function InlineMultiSelect({
+  values,
+  options,
+  onSave,
+  placeholder = "—",
+}: {
+  values: string[];
+  options: { value: string; label: string }[];
+  onSave: (next: string[]) => Promise<void> | void;
+  placeholder?: string;
+}) {
+  const [local, setLocal] = useState<string[]>(values);
+  useEffect(() => { setLocal(values); }, [values.join(",")]);
+  const commit = async (next: string[]) => {
+    setLocal(next);
+    if (next.join(",") !== values.join(",")) await onSave(next);
+  };
+  return (
+    <div onClick={(e) => e.stopPropagation()}>
+      <MultiSelect
+        values={local}
+        options={options}
+        placeholder={placeholder}
+        onChange={commit}
+        triggerClassName="h-7 border-transparent shadow-none hover:border-border px-1.5"
+      />
+    </div>
+  );
+}
+
 function parseBulkCsv(text: string, familias: { id: string; nome: string }[], projetos: { id: string; nome: string }[]) {
   const famByName = new Map(familias.map((f) => [f.nome.trim().toLowerCase(), f.id]));
   const projByName = new Map(projetos.map((p) => [p.nome.trim().toLowerCase(), p.id]));
@@ -960,11 +1073,13 @@ function parseBulkCsv(text: string, familias: { id: string; nome: string }[], pr
         if (!id) throw new Error(`Família "${familia}" não encontrada (linha: "${line}")`);
         familia_id = id;
       }
-      let projeto_id: string | null = null;
+      const projeto_ids: string[] = [];
       if (projeto) {
-        const id = projByName.get(projeto.toLowerCase());
-        if (!id) throw new Error(`Projeto "${projeto}" não encontrado (linha: "${line}")`);
-        projeto_id = id;
+        for (const raw of projeto.split(/[;|]/).map((s) => s.trim()).filter(Boolean)) {
+          const id = projByName.get(raw.toLowerCase());
+          if (!id) throw new Error(`Projeto "${raw}" não encontrado (linha: "${line}")`);
+          projeto_ids.push(id);
+        }
       }
       let generoVal: string | null = null;
       if (genero) {
@@ -984,7 +1099,7 @@ function parseBulkCsv(text: string, familias: { id: string; nome: string }[], pr
         cidade_residencia: cidade_residencia || null,
         religiao: religiao || null,
         familia_id,
-        projeto_id,
+        projeto_ids,
       };
     });
 }

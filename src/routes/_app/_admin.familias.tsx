@@ -112,7 +112,7 @@ function FamiliasPage() {
       const [{ data: pessoas, error: e1 }, { data: projetos, error: e2 }, { data: acoes, error: e3 }] = await Promise.all([
         supabase
           .from("pessoas")
-          .select("id, familia_id, cidade_residencia, religiao, projeto_id")
+          .select("id, familia_id, cidade_residencia, religiao, projeto_ids")
           .eq("status", "ativo")
           .not("familia_id", "is", null),
         supabase.from("projetos").select("id, nome"),
@@ -147,8 +147,8 @@ function FamiliasPage() {
       (pessoas ?? []).forEach((p: any) => {
         if (!p.familia_id) return;
         const a = map.get(p.familia_id) ?? { projetos: new Set(), cidades: new Set(), religioes: new Set(), inscricoes: new Set() };
-        if (p.projeto_id) {
-          const n = projetoNome.get(p.projeto_id);
+        for (const pid of (p.projeto_ids ?? []) as string[]) {
+          const n = projetoNome.get(pid);
           if (n) a.projetos.add(n);
         }
         if (p.cidade_residencia) a.cidades.add(p.cidade_residencia);
