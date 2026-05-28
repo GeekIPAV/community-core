@@ -27,11 +27,15 @@ import {
   getCoreRowModel,
   getFilteredRowModel,
   getSortedRowModel,
+  getGroupedRowModel,
+  getExpandedRowModel,
   flexRender,
   type ColumnDef,
   type SortingState,
   type VisibilityState,
   type ColumnOrderState,
+  type GroupingState,
+  type ExpandedState,
 } from "@tanstack/react-table";
 import { AdvancedTableFilters, advancedFilterFn, type ColumnFilterMeta } from "@/components/advanced-table-filters";
 import { DataTableViewOptions } from "@/components/data-table-view-options";
