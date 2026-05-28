@@ -51,6 +51,11 @@ import {
   Plus,
   Settings2,
   Trash2,
+  Users,
+  Globe2,
+  Church,
+  UserCheck,
+  BarChart3,
 } from "lucide-react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -120,6 +125,72 @@ const DEFAULT_CHARTS: ChartConfig[] = [
 ];
 
 const STORAGE_KEY = "resultados.charts.v1";
+const KPI_STORAGE_KEY = "resultados.kpis.v1";
+
+type MetricKey =
+  | "voluntarios_total"
+  | "familias_total"
+  | "membros_familias_total"
+  | "eventos_total"
+  | "participantes_eventos_total"
+  | "projetos_total"
+  | "participantes_projetos_total"
+  | "nacionalidades_total"
+  | "religioes_total";
+
+type IconKey = "heart" | "home" | "calendar" | "folder" | "users" | "globe" | "church" | "userCheck" | "bar";
+
+type KPIConfig = {
+  id: string;
+  label: string;
+  metric: MetricKey;
+  subMetric?: MetricKey;
+  subSuffix?: string;
+  icon: IconKey;
+};
+
+const METRIC_LABEL: Record<MetricKey, string> = {
+  voluntarios_total: "Voluntários",
+  familias_total: "Famílias",
+  membros_familias_total: "Membros de famílias",
+  eventos_total: "Eventos",
+  participantes_eventos_total: "Participações em eventos",
+  projetos_total: "Projetos",
+  participantes_projetos_total: "Participações em projetos",
+  nacionalidades_total: "Nacionalidades",
+  religioes_total: "Religiões",
+};
+
+const ICON_MAP: Record<IconKey, React.ReactNode> = {
+  heart: <HeartHandshake className="h-5 w-5" />,
+  home: <Home className="h-5 w-5" />,
+  calendar: <Calendar className="h-5 w-5" />,
+  folder: <FolderKanban className="h-5 w-5" />,
+  users: <Users className="h-5 w-5" />,
+  globe: <Globe2 className="h-5 w-5" />,
+  church: <Church className="h-5 w-5" />,
+  userCheck: <UserCheck className="h-5 w-5" />,
+  bar: <BarChart3 className="h-5 w-5" />,
+};
+
+const ICON_LABEL: Record<IconKey, string> = {
+  heart: "Coração",
+  home: "Casa",
+  calendar: "Calendário",
+  folder: "Pasta",
+  users: "Pessoas",
+  globe: "Globo",
+  church: "Igreja",
+  userCheck: "Verificado",
+  bar: "Barras",
+};
+
+const DEFAULT_KPIS: KPIConfig[] = [
+  { id: "k1", label: "Voluntários", metric: "voluntarios_total", icon: "heart" },
+  { id: "k2", label: "Famílias", metric: "familias_total", subMetric: "membros_familias_total", subSuffix: "membros", icon: "home" },
+  { id: "k3", label: "Eventos", metric: "eventos_total", subMetric: "participantes_eventos_total", subSuffix: "participações", icon: "calendar" },
+  { id: "k4", label: "Projetos", metric: "projetos_total", subMetric: "participantes_projetos_total", subSuffix: "participações", icon: "folder" },
+];
 
 function getDatasetSeries(data: Estatisticas, dataset: Dataset): { name: string; value: number }[] {
   switch (dataset) {
@@ -195,6 +266,46 @@ function ResultadosPage() {
 }
 
 function Conteudo({ data }: { data: Estatisticas }) {
+  const [kpis, setKpis] = useState<KPIConfig[]>(() => {
+    if (typeof window === "undefined") return DEFAULT_KPIS;
+    try {
+      const raw = window.localStorage.getItem(KPI_STORAGE_KEY);
+      if (!raw) return DEFAULT_KPIS;
+      const parsed = JSON.parse(raw) as KPIConfig[];
+      return Array.isArray(parsed) ? parsed : DEFAULT_KPIS;
+    } catch {
+      return DEFAULT_KPIS;
+    }
+  });
+  const [editingKpi, setEditingKpi] = useState<KPIConfig | null>(null);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(KPI_STORAGE_KEY, JSON.stringify(kpis));
+    } catch {
+      // ignore
+    }
+  }, [kpis]);
+
+  const addKpi = () => {
+    const novo: KPIConfig = {
+      id: `k${Date.now()}`,
+      label: "Nova métrica",
+      metric: "voluntarios_total",
+      icon: "bar",
+    };
+    setKpis((prev) => [...prev, novo]);
+    setEditingKpi(novo);
+  };
+
+  const updateKpi = (next: KPIConfig) => {
+    setKpis((prev) => prev.map((k) => (k.id === next.id ? next : k)));
+  };
+
+  const removeKpi = (id: string) => {
+    setKpis((prev) => prev.filter((k) => k.id !== id));
+  };
+
   const [charts, setCharts] = useState<ChartConfig[]>(() => {
     if (typeof window === "undefined") return DEFAULT_CHARTS;
     try {
@@ -237,11 +348,34 @@ function Conteudo({ data }: { data: Estatisticas }) {
 
   return (
     <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Resumo</h2>
+        <Button size="sm" variant="outline" onClick={addKpi}>
+          <Plus className="mr-2 h-4 w-4" /> Nova métrica
+        </Button>
+      </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KPI icon={<HeartHandshake className="h-5 w-5" />} label="Voluntários" value={data.voluntarios_total} />
-        <KPI icon={<Home className="h-5 w-5" />} label="Famílias" value={data.familias_total} sub={`${data.membros_familias_total} membros`} />
-        <KPI icon={<Calendar className="h-5 w-5" />} label="Eventos" value={data.eventos_total} sub={`${data.participantes_eventos_total} participações`} />
-        <KPI icon={<FolderKanban className="h-5 w-5" />} label="Projetos" value={data.projetos_total} sub={`${data.participantes_projetos_total} participações`} />
+        {kpis.map((k) => (
+          <KPI
+            key={k.id}
+            icon={ICON_MAP[k.icon]}
+            label={k.label}
+            value={data[k.metric] as number}
+            sub={k.subMetric ? `${data[k.subMetric] as number}${k.subSuffix ? ` ${k.subSuffix}` : ""}` : undefined}
+            onEdit={() => setEditingKpi(k)}
+            onRemove={() => removeKpi(k.id)}
+          />
+        ))}
+        {kpis.length === 0 && (
+          <Card className="sm:col-span-2 lg:col-span-4 border-dashed">
+            <CardContent className="flex h-32 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
+              Sem métricas. Adiciona a primeira.
+              <Button size="sm" variant="outline" onClick={addKpi}>
+                <Plus className="mr-2 h-4 w-4" /> Nova métrica
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <div className="flex items-center justify-between">
@@ -281,21 +415,168 @@ function Conteudo({ data }: { data: Estatisticas }) {
           setEditing(null);
         }}
       />
+
+      <KPIConfigDialog
+        kpi={editingKpi}
+        onClose={() => setEditingKpi(null)}
+        onSave={(next) => {
+          updateKpi(next);
+          setEditingKpi(null);
+        }}
+      />
     </div>
   );
 }
 
-function KPI({ icon, label, value, sub }: { icon: React.ReactNode; label: string; value: number; sub?: string }) {
+function KPI({
+  icon,
+  label,
+  value,
+  sub,
+  onEdit,
+  onRemove,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  sub?: string;
+  onEdit?: () => void;
+  onRemove?: () => void;
+}) {
   return (
-    <Card>
-      <CardHeader className="pb-2">
+    <Card className="group relative">
+      <CardHeader className="pb-2 flex flex-row items-start justify-between space-y-0">
         <CardDescription className="flex items-center gap-2 text-xs">{icon} {label}</CardDescription>
+        {(onEdit || onRemove) && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Settings2 className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {onEdit && (
+                <DropdownMenuItem onClick={onEdit}>
+                  <Settings2 className="mr-2 h-4 w-4" /> Configurar
+                </DropdownMenuItem>
+              )}
+              {onEdit && onRemove && <DropdownMenuSeparator />}
+              {onRemove && (
+                <DropdownMenuItem onClick={onRemove} className="text-destructive focus:text-destructive">
+                  <Trash2 className="mr-2 h-4 w-4" /> Remover
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </CardHeader>
       <CardContent>
         <div className="text-3xl font-semibold tracking-tight">{value}</div>
         {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
       </CardContent>
     </Card>
+  );
+}
+
+function KPIConfigDialog({
+  kpi,
+  onClose,
+  onSave,
+}: {
+  kpi: KPIConfig | null;
+  onClose: () => void;
+  onSave: (next: KPIConfig) => void;
+}) {
+  const [draft, setDraft] = useState<KPIConfig | null>(kpi);
+  useEffect(() => setDraft(kpi), [kpi]);
+  if (!draft) return null;
+  return (
+    <Dialog open={!!kpi} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Configurar métrica</DialogTitle>
+          <DialogDescription>Escolhe o título, o ícone e os valores a apresentar.</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-2">
+          <div className="grid gap-2">
+            <Label htmlFor="kpi-label">Título</Label>
+            <Input
+              id="kpi-label"
+              value={draft.label}
+              onChange={(e) => setDraft({ ...draft, label: e.target.value })}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label>Ícone</Label>
+            <Select value={draft.icon} onValueChange={(v: IconKey) => setDraft({ ...draft, icon: v })}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(ICON_LABEL) as IconKey[]).map((k) => (
+                  <SelectItem key={k} value={k}>
+                    {ICON_LABEL[k]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-2">
+            <Label>Valor principal</Label>
+            <Select value={draft.metric} onValueChange={(v: MetricKey) => setDraft({ ...draft, metric: v })}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(METRIC_LABEL) as MetricKey[]).map((k) => (
+                  <SelectItem key={k} value={k}>
+                    {METRIC_LABEL[k]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-2">
+            <Label>Valor secundário (opcional)</Label>
+            <Select
+              value={draft.subMetric ?? "none"}
+              onValueChange={(v) =>
+                setDraft({ ...draft, subMetric: v === "none" ? undefined : (v as MetricKey) })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nenhum</SelectItem>
+                {(Object.keys(METRIC_LABEL) as MetricKey[]).map((k) => (
+                  <SelectItem key={k} value={k}>
+                    {METRIC_LABEL[k]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {draft.subMetric && (
+            <div className="grid gap-2">
+              <Label htmlFor="kpi-sub-suffix">Sufixo do valor secundário</Label>
+              <Input
+                id="kpi-sub-suffix"
+                placeholder="ex: participações"
+                value={draft.subSuffix ?? ""}
+                onChange={(e) => setDraft({ ...draft, subSuffix: e.target.value })}
+              />
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button onClick={() => onSave(draft)}>Guardar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
