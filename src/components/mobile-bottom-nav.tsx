@@ -18,6 +18,7 @@ import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
+import { LogIn } from "lucide-react";
 
 const primary = [
   { title: "Início", url: "/", icon: Home },
@@ -35,12 +36,16 @@ const adminItems = [
 
 export function MobileBottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { isAdmin, hasPage, pessoa } = useAuth();
+  const { isAdmin, hasPage, pessoa, session } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
+  // Hide on login page
+  if (pathname === "/login") return null;
+
   const visibleAdmin = adminItems.filter((i) => hasPage(i.page));
   const isActive = (url: string) => pathname === url;
+  const isLoggedIn = !!session;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/60 bg-background/90 backdrop-blur-xl md:hidden">
@@ -131,18 +136,29 @@ export function MobileBottomNav() {
                   </Link>
                 </div>
               )}
-              <button
-                type="button"
-                onClick={async () => {
-                  await supabase.auth.signOut();
-                  setOpen(false);
-                  navigate({ to: "/", replace: true });
-                }}
-                className="flex w-full items-center justify-center gap-2 rounded-md border border-border p-3 text-sm text-muted-foreground"
-              >
-                <LogOut className="h-4 w-4" />
-                Sair
-              </button>
+              {isLoggedIn ? (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await supabase.auth.signOut();
+                    setOpen(false);
+                    navigate({ to: "/", replace: true });
+                  }}
+                  className="flex w-full items-center justify-center gap-2 rounded-md border border-border p-3 text-sm text-muted-foreground"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sair
+                </button>
+              ) : (
+                <Link
+                  to="/login"
+                  onClick={() => setOpen(false)}
+                  className="flex w-full items-center justify-center gap-2 rounded-md bg-primary p-3 text-sm font-medium text-primary-foreground"
+                >
+                  <LogIn className="h-4 w-4" />
+                  Entrar
+                </Link>
+              )}
             </div>
           </SheetContent>
         </Sheet>
