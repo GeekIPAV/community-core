@@ -49,7 +49,7 @@ function AppLayout() {
         <div className="hidden md:block">
           <AppSidebar />
         </div>
-        <div className="flex flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col">
           <header className="flex h-14 items-center justify-between border-b border-border/60 bg-background px-4 md:px-6">
             <div className="flex items-center gap-2">
               <SidebarTrigger className="hidden md:inline-flex" />
@@ -75,7 +75,7 @@ function AppLayout() {
               </Button>
             </div>
           </header>
-          <main className="flex-1 px-4 py-5 md:px-10 md:py-10">
+          <main className="min-w-0 flex-1 overflow-x-hidden px-4 py-5 md:px-10 md:py-10">
             <Outlet />
           </main>
         </div>
