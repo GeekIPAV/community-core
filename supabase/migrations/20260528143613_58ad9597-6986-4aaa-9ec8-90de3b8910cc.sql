@@ -1,0 +1,1 @@
+ALTER TABLE public.pessoas ADD COLUMN IF NOT EXISTS profissao text;

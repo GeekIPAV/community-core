@@ -158,6 +158,7 @@ export type Database = {
           nif: string | null
           nome_completo: string
           notas: string | null
+          profissao: string | null
           projeto_ids: string[]
           religiao: string | null
           status: Database["public"]["Enums"]["status_pessoa"]
@@ -184,6 +185,7 @@ export type Database = {
           nif?: string | null
           nome_completo: string
           notas?: string | null
+          profissao?: string | null
           projeto_ids?: string[]
           religiao?: string | null
           status?: Database["public"]["Enums"]["status_pessoa"]
@@ -210,6 +212,7 @@ export type Database = {
           nif?: string | null
           nome_completo?: string
           notas?: string | null
+          profissao?: string | null
           projeto_ids?: string[]
           religiao?: string | null
           status?: Database["public"]["Enums"]["status_pessoa"]
