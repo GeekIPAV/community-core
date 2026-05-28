@@ -83,6 +83,7 @@ function FamiliasPage() {
 
   const [membrosFamilia, setMembrosFamilia] = useState<Familia | null>(null);
   const [view, setView] = useState<"tabela" | "galeria">("tabela");
+  const [detailTab, setDetailTab] = useState<"dados" | "membros" | "acoes">("membros");
 
   const { data, isLoading } = useQuery({
     queryKey: ["familias"],
@@ -174,11 +175,51 @@ function FamiliasPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, email, telefone, data_nascimento, status")
+        .select("id, nome_completo, email, telefone, data_nascimento, status, genero, cidade_residencia, nacionalidade, religiao, nif, projeto_ids")
         .eq("familia_id", membrosFamilia!.id)
         .order("nome_completo");
       if (error) throw error;
-      return data as Array<{ id: string; nome_completo: string; email: string | null; telefone: string | null; data_nascimento: string | null; status: string }>;
+      return data as Array<{
+        id: string; nome_completo: string; email: string | null; telefone: string | null;
+        data_nascimento: string | null; status: string; genero: string | null;
+        cidade_residencia: string | null; nacionalidade: string | null; religiao: string | null;
+        nif: string | null; projeto_ids: string[] | null;
+      }>;
+    },
+  });
+
+  const { data: projetosList } = useQuery({
+    queryKey: ["projetos", "lista"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("projetos").select("id, nome");
+      if (error) throw error;
+      return new Map((data ?? []).map((p: any) => [p.id as string, p.nome as string]));
+    },
+  });
+
+  const { data: acoesFamilia, isLoading: loadingAcoesFamilia } = useQuery({
+    queryKey: ["familias", "acoes", membrosFamilia?.id],
+    enabled: !!membrosFamilia && !!membros,
+    queryFn: async () => {
+      const ids = (membros ?? []).map((m) => m.id);
+      if (ids.length === 0) return [] as Array<{ inscricao_id: string; acao_id: string; nome: string; data_inicio: string | null; local: string | null; status: string; pessoa_id: string; pessoa_nome: string }>;
+      const { data, error } = await supabase
+        .from("inscricoes")
+        .select("id, status, pessoa_id, acao:acoes(id, nome, data_inicio, local)")
+        .in("pessoa_id", ids)
+        .neq("status", "cancelada");
+      if (error) throw error;
+      const nomeById = new Map((membros ?? []).map((m) => [m.id, m.nome_completo]));
+      return (data ?? []).map((r: any) => ({
+        inscricao_id: r.id,
+        acao_id: r.acao?.id,
+        nome: r.acao?.nome ?? "—",
+        data_inicio: r.acao?.data_inicio ?? null,
+        local: r.acao?.local ?? null,
+        status: r.status,
+        pessoa_id: r.pessoa_id,
+        pessoa_nome: nomeById.get(r.pessoa_id) ?? "—",
+      }));
     },
   });
 
