@@ -693,19 +693,39 @@ function ChartRenderer({ type, data }: { type: ChartType; data: { name: string; 
       <p className="flex h-full items-center justify-center text-sm text-muted-foreground">Sem dados</p>
     );
   }
+  const total = data.reduce((acc, d) => acc + (d.value ?? 0), 0);
+  const pct = (v: number) => (total > 0 ? ((v / total) * 100).toFixed(1) : "0");
+  const fmtLegend = (value: string) => {
+    const item = data.find((d) => d.name === value);
+    if (!item) return value;
+    return `${value}: ${item.value} (${pct(item.value)}%)`;
+  };
+  const fmtTooltip = (value: number, name: string) => [
+    `${value} (${pct(value)}%)`,
+    name,
+  ] as [string, string];
   if (type === "pie") {
     return (
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
-          <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={(e: { name: string }) => e.name}>
+          <Pie
+            data={data}
+            dataKey="value"
+            nameKey="name"
+            cx="50%"
+            cy="50%"
+            outerRadius={90}
+            label={(e: { name: string; value: number }) => `${e.name}: ${e.value} (${pct(e.value)}%)`}
+          >
             {data.map((_, i) => (
               <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
             ))}
           </Pie>
           <Tooltip
+            formatter={fmtTooltip}
             contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
           />
-          <Legend wrapperStyle={{ fontSize: 12 }} />
+          <Legend wrapperStyle={{ fontSize: 12 }} formatter={fmtLegend} />
         </PieChart>
       </ResponsiveContainer>
     );
@@ -716,8 +736,15 @@ function ChartRenderer({ type, data }: { type: ChartType; data: { name: string; 
         <BarChart data={data} layout="vertical" margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
           <XAxis type="number" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} allowDecimals={false} />
-          <YAxis dataKey="name" type="category" width={110} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+          <YAxis
+            dataKey="name"
+            type="category"
+            width={140}
+            tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+            tickFormatter={(name: string) => fmtLegend(name)}
+          />
           <Tooltip
+            formatter={fmtTooltip}
             contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
             cursor={{ fill: "hsl(var(--muted) / 0.3)" }}
           />
@@ -741,9 +768,11 @@ function ChartRenderer({ type, data }: { type: ChartType; data: { name: string; 
           angle={-25}
           textAnchor="end"
           height={60}
+          tickFormatter={(name: string) => fmtLegend(name)}
         />
         <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} allowDecimals={false} />
         <Tooltip
+          formatter={fmtTooltip}
           contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
           cursor={{ fill: "hsl(var(--muted) / 0.3)" }}
         />
