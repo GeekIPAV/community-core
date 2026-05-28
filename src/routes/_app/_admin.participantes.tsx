@@ -779,6 +779,93 @@ function Field({ label, className, children }: { label: string; className?: stri
   );
 }
 
+function InlineText({
+  value,
+  onSave,
+  type = "text",
+}: {
+  value: string | null;
+  onSave: (v: string | null) => Promise<void> | void;
+  type?: "text" | "date";
+}) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(value ?? "");
+  useEffect(() => { setVal(value ?? ""); }, [value]);
+  if (!editing) {
+    return (
+      <span
+        className="block min-h-[1.5rem] cursor-text rounded px-1 -mx-1 text-muted-foreground hover:bg-muted/50"
+        onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+      >
+        {value ? value : <span className="opacity-50">—</span>}
+      </span>
+    );
+  }
+  const commit = async () => {
+    setEditing(false);
+    const next = val.trim() === "" ? null : val;
+    if (next !== (value ?? null)) await onSave(next);
+  };
+  return (
+    <Input
+      autoFocus
+      type={type}
+      value={val}
+      onClick={(e) => e.stopPropagation()}
+      onChange={(e) => setVal(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+        if (e.key === "Escape") { setVal(value ?? ""); setEditing(false); }
+      }}
+      className="h-7 px-1.5 text-sm"
+    />
+  );
+}
+
+function InlineSelect({
+  value,
+  options,
+  onSave,
+  placeholder = "—",
+  allowClear = true,
+}: {
+  value: string | null;
+  options: { value: string; label: string }[];
+  onSave: (v: string | null) => Promise<void> | void;
+  placeholder?: string;
+  allowClear?: boolean;
+}) {
+  const current = options.find((o) => o.value === value);
+  return (
+    <div onClick={(e) => e.stopPropagation()}>
+      <Select
+        value={value ?? "__null"}
+        onValueChange={async (v) => {
+          const next = v === "__null" ? null : v;
+          if (next !== (value ?? null)) await onSave(next);
+        }}
+      >
+        <SelectTrigger className="h-7 w-full border-transparent bg-transparent px-1.5 text-sm shadow-none hover:border-border hover:bg-muted/50 [&>svg]:opacity-50">
+          <SelectValue>
+            {current ? (
+              <span>{current.label}</span>
+            ) : (
+              <span className="text-muted-foreground opacity-60">{placeholder}</span>
+            )}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {allowClear && <SelectItem value="__null">— {placeholder} —</SelectItem>}
+          {options.map((o) => (
+            <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
 function parseBulkCsv(text: string, familias: { id: string; nome: string }[], projetos: { id: string; nome: string }[]) {
   const famByName = new Map(familias.map((f) => [f.nome.trim().toLowerCase(), f.id]));
   const projByName = new Map(projetos.map((p) => [p.nome.trim().toLowerCase(), p.id]));
