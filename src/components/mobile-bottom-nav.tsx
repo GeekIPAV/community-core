@@ -43,29 +43,41 @@ export function MobileBottomNav() {
   const isActive = (url: string) => pathname === url;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background/95 backdrop-blur md:hidden">
-      <div className="flex h-16 items-stretch justify-around pb-[env(safe-area-inset-bottom)]">
-        {primary.map((item) => (
-          <Link
-            key={item.url}
-            to={item.url}
-            className={cn(
-              "flex flex-1 flex-col items-center justify-center gap-1 text-[11px]",
-              isActive(item.url) ? "text-primary" : "text-muted-foreground",
-            )}
-          >
-            <item.icon className="h-5 w-5" />
-            <span>{item.title}</span>
-          </Link>
-        ))}
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/60 bg-background/90 backdrop-blur-xl md:hidden">
+      <div className="mx-auto flex h-[68px] max-w-md items-stretch justify-around px-2 pb-[env(safe-area-inset-bottom)]">
+        {primary.map((item) => {
+          const active = isActive(item.url);
+          return (
+            <Link
+              key={item.url}
+              to={item.url}
+              className={cn(
+                "group flex flex-1 flex-col items-center justify-center gap-1 transition-colors",
+                active ? "text-foreground" : "text-muted-foreground",
+              )}
+            >
+              <item.icon
+                className={cn("h-6 w-6 transition-all", active ? "stroke-[2.5]" : "stroke-[1.75]")}
+              />
+              <span
+                className={cn(
+                  "text-[11px] leading-none tracking-tight",
+                  active ? "font-semibold" : "font-normal",
+                )}
+              >
+                {item.title}
+              </span>
+            </Link>
+          );
+        })}
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <button
               type="button"
-              className="flex flex-1 flex-col items-center justify-center gap-1 text-[11px] text-muted-foreground"
+              className="flex flex-1 flex-col items-center justify-center gap-1 text-muted-foreground"
             >
-              <Menu className="h-5 w-5" />
-              <span>Mais</span>
+              <Menu className="h-6 w-6 stroke-[1.75]" />
+              <span className="text-[11px] leading-none tracking-tight">Mais</span>
             </button>
           </SheetTrigger>
           <SheetContent side="bottom" className="rounded-t-2xl pb-[env(safe-area-inset-bottom)]">
