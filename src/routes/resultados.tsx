@@ -625,22 +625,34 @@ function KPIConfigDialog({
 
 function ChartBlock({
   config,
-  series,
   onEdit,
   onRemove,
 }: {
   config: ChartConfig;
-  series: { name: string; value: number }[];
   onEdit: () => void;
   onRemove: () => void;
 }) {
+  const { data: series, isLoading, error } = useQuery({
+    queryKey: ["agrupamento", config.tabela, config.coluna],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_agrupamento", {
+        p_tabela: config.tabela,
+        p_coluna: config.coluna,
+      });
+      if (error) throw error;
+      const arr = (data as unknown as { nome: string; count: number }[]) ?? [];
+      return arr.map((r) => ({ name: r.nome, value: r.count }));
+    },
+  });
+  const colunaLabel =
+    COLUNAS_POR_TABELA[config.tabela]?.find((c) => c.value === config.coluna)?.label ?? config.coluna;
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between space-y-0">
         <div>
           <CardTitle className="text-base">{config.title}</CardTitle>
           <CardDescription>
-            {DATASET_LABEL[config.dataset]} · {CHART_TYPE_LABEL[config.type]}
+            {TABELA_LABEL[config.tabela]} · {colunaLabel} · {CHART_TYPE_LABEL[config.type]}
           </CardDescription>
         </div>
         <DropdownMenu>
@@ -661,7 +673,15 @@ function ChartBlock({
         </DropdownMenu>
       </CardHeader>
       <CardContent className="h-80">
-        <ChartRenderer type={config.type} data={series} />
+        {isLoading ? (
+          <Skeleton className="h-full w-full" />
+        ) : error ? (
+          <p className="flex h-full items-center justify-center text-sm text-destructive">
+            Não foi possível carregar os dados.
+          </p>
+        ) : (
+          <ChartRenderer type={config.type} data={series ?? []} />
+        )}
       </CardContent>
     </Card>
   );
