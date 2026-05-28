@@ -428,6 +428,25 @@ function ParticipantesPage() {
           <Input placeholder="Pesquisar…" className="w-56" value={q} onChange={(e) => setQ(e.target.value)} />
           <AdvancedTableFilters table={table} />
           <DataTableViewOptions table={table} />
+          <Select
+            value={grouping[0] ?? "__none"}
+            onValueChange={(v) => setGrouping(v === "__none" ? [] : [v])}
+          >
+            <SelectTrigger className="w-[170px]">
+              <SelectValue placeholder="Agrupar por…" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none">Sem agrupar</SelectItem>
+              <SelectItem value="familia_id">Família</SelectItem>
+              <SelectItem value="nacionalidade">Nacionalidade</SelectItem>
+              <SelectItem value="religiao">Religião</SelectItem>
+              <SelectItem value="genero">Género</SelectItem>
+              <SelectItem value="projeto_id">Projeto</SelectItem>
+              <SelectItem value="cidade_residencia">Cidade</SelectItem>
+              <SelectItem value="status">Estado</SelectItem>
+              <SelectItem value="tipo_user_id">Tipo</SelectItem>
+            </SelectContent>
+          </Select>
           <Button
             variant={inlineEdit ? "default" : "outline"}
             size="icon"
@@ -485,6 +504,24 @@ function ParticipantesPage() {
                 </TableRow>
               )}
               {rows.map((row) => {
+                if (row.getIsGrouped()) {
+                  const colSpan = table.getVisibleLeafColumns().length + 2;
+                  const label = String(row.getGroupingValue(row.groupingColumnId!) ?? "") || "—";
+                  return (
+                    <TableRow
+                      key={row.id}
+                      className="cursor-pointer bg-muted/40 hover:bg-muted/60"
+                      onClick={() => row.toggleExpanded()}
+                    >
+                      <TableCell colSpan={colSpan} className="font-medium">
+                        <span className="inline-flex items-center gap-2">
+                          {row.getIsExpanded() ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                          {label} <span className="text-muted-foreground">({row.subRows.length})</span>
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  );
+                }
                 const p = row.original;
                 return (
                   <TableRow
@@ -497,7 +534,9 @@ function ParticipantesPage() {
                     </TableCell>
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id} className="whitespace-nowrap">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        {cell.getIsAggregated() || cell.getIsPlaceholder()
+                          ? null
+                          : flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}
                     <TableCell onClick={(e) => e.stopPropagation()}>
