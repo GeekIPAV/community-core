@@ -1326,7 +1326,9 @@ function AcoesPageInner() {
       setAddOpen(false);
       setForm(EMPTY_FORM);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      if (e.message !== "Validação falhou") toast.error(e.message);
+    },
   });
 
   const update = useMutation({
@@ -1355,7 +1357,9 @@ function AcoesPageInner() {
       invalidate();
       setEditing(null);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      if (e.message !== "Validação falhou") toast.error(e.message);
+    },
   });
 
   const remove = useMutation({
