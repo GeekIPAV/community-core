@@ -566,40 +566,133 @@ function FamiliasPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Membros */}
-      <Dialog open={!!membrosFamilia} onOpenChange={(o) => { if (!o) setMembrosFamilia(null); }}>
-        <DialogContent className="max-w-2xl">
+      {/* Detalhe da família */}
+      <Dialog open={!!membrosFamilia} onOpenChange={(o) => { if (!o) { setMembrosFamilia(null); setEditing(null); } }}>
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Membros de {membrosFamilia?.nome}</DialogTitle>
+            <DialogTitle>{membrosFamilia?.nome}</DialogTitle>
             <DialogDescription>
               {loadingMembros ? "A carregar…" : `${membros?.length ?? 0} membro(s)`}
             </DialogDescription>
           </DialogHeader>
-          <div className="max-h-[60vh] overflow-auto rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Data nasc.</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(!membros || membros.length === 0) && !loadingMembros && (
-                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Sem membros</TableCell></TableRow>
-                )}
-                {membros?.map((m) => (
-                  <TableRow key={m.id}>
-                    <TableCell className="font-medium">{m.nome_completo}</TableCell>
-                    <TableCell className="text-muted-foreground">{m.email ?? "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">{m.telefone ?? "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">{formatDateBR(m.data_nascimento)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as "dados" | "membros" | "acoes")}>
+            <TabsList className="w-full">
+              <TabsTrigger value="dados" className="flex-1">Dados</TabsTrigger>
+              <TabsTrigger value="membros" className="flex-1">Membros</TabsTrigger>
+              <TabsTrigger value="acoes" className="flex-1">Ações</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="dados" className="space-y-4 pt-4">
+              {editing && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Nome</Label>
+                    <Input value={editing.nome} onChange={(e) => setEditing({ ...editing, nome: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <Select value={editing.status} onValueChange={(v) => setEditing({ ...editing, status: v as FamiliaStatus })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {STATUS_GROUPS.map((g) => (
+                          <div key={g.label}>
+                            <div className="px-2 py-1 text-xs text-muted-foreground">{g.label}</div>
+                            {g.options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                          </div>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Notas</Label>
+                    <Textarea value={editing.notas ?? ""} onChange={(e) => setEditing({ ...editing, notas: e.target.value })} />
+                  </div>
+                  <DialogFooter>
+                    <Button onClick={() => update.mutate()} disabled={!editing.nome.trim() || update.isPending}>
+                      {update.isPending ? "A guardar…" : "Guardar"}
+                    </Button>
+                  </DialogFooter>
+                </>
+              )}
+            </TabsContent>
+
+            <TabsContent value="membros" className="pt-4">
+              <div className="max-h-[60vh] overflow-auto rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Telefone</TableHead>
+                      <TableHead>Data nasc.</TableHead>
+                      <TableHead>Género</TableHead>
+                      <TableHead>Cidade</TableHead>
+                      <TableHead>Nacionalidade</TableHead>
+                      <TableHead>Religião</TableHead>
+                      <TableHead>NIF</TableHead>
+                      <TableHead>Projetos</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(!membros || membros.length === 0) && !loadingMembros && (
+                      <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground">Sem membros</TableCell></TableRow>
+                    )}
+                    {membros?.map((m) => (
+                      <TableRow key={m.id}>
+                        <TableCell className="font-medium whitespace-nowrap">{m.nome_completo}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.email ?? "—"}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.telefone ?? "—"}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{formatDateBR(m.data_nascimento)}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.genero ?? "—"}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.cidade_residencia ?? "—"}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.nacionalidade ?? "—"}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.religiao ?? "—"}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.nif ?? "—"}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">
+                          {(m.projeto_ids ?? []).map((id) => projetosList?.get(id)).filter(Boolean).join(", ") || "—"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.status}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="acoes" className="pt-4">
+              <div className="max-h-[60vh] overflow-auto rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Ação</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Local</TableHead>
+                      <TableHead>Membro</TableHead>
+                      <TableHead>Estado</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loadingAcoesFamilia && (
+                      <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">A carregar…</TableCell></TableRow>
+                    )}
+                    {!loadingAcoesFamilia && (!acoesFamilia || acoesFamilia.length === 0) && (
+                      <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sem inscrições</TableCell></TableRow>
+                    )}
+                    {acoesFamilia?.map((a) => (
+                      <TableRow key={a.inscricao_id}>
+                        <TableCell className="font-medium whitespace-nowrap">{a.nome}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{a.data_inicio ? formatDateBR(a.data_inicio) : "—"}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{a.local ?? "—"}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{a.pessoa_nome}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{a.status}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
     </div>
