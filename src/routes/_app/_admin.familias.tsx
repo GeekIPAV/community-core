@@ -663,10 +663,22 @@ function FamiliasPage() {
                         <TableCell className="text-muted-foreground whitespace-nowrap">{m.nacionalidade ?? "—"}</TableCell>
                         <TableCell className="text-muted-foreground whitespace-nowrap">{m.religiao ?? "—"}</TableCell>
                         <TableCell className="text-muted-foreground whitespace-nowrap">{m.nif ?? "—"}</TableCell>
-                        <TableCell className="text-muted-foreground whitespace-nowrap">
-                          {(m.projeto_ids ?? []).map((id) => projetosList?.get(id)).filter(Boolean).join(", ") || "—"}
+                        <TableCell>
+                          <InlineMultiSelect
+                            values={m.projeto_ids ?? []}
+                            options={(projetosList ?? []).map((p) => ({ value: p.id, label: p.nome }))}
+                            placeholder="sem projetos"
+                            onSave={(v) => savePessoa(m.id, "projeto_ids")(v)}
+                          />
                         </TableCell>
-                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.status}</TableCell>
+                        <TableCell>
+                          <InlineSelect
+                            value={m.status}
+                            options={PESSOA_STATUS_OPTS.map((s) => ({ value: s, label: s }))}
+                            allowClear={false}
+                            onSave={savePessoa(m.id, "status")}
+                          />
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
