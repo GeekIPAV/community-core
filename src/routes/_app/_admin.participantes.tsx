@@ -418,6 +418,14 @@ function ParticipantesPage() {
           <Input placeholder="Pesquisar…" className="w-56" value={q} onChange={(e) => setQ(e.target.value)} />
           <AdvancedTableFilters table={table} />
           <DataTableViewOptions table={table} />
+          <Button
+            variant={inlineEdit ? "default" : "outline"}
+            size="icon"
+            title={inlineEdit ? "Bloquear edição na tabela" : "Desbloquear edição na tabela"}
+            onClick={() => setInlineEdit((v) => !v)}
+          >
+            {inlineEdit ? <LockOpen className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+          </Button>
           <Button variant="outline" onClick={() => setBulkAddOpen(true)}>
             <Upload className="mr-2 h-4 w-4" /> Importar
           </Button>
