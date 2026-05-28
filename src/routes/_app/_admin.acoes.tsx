@@ -496,6 +496,8 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
   ], [fields, familiasOptions]);
 
   const table = useReactTable({
+    columnResizeMode: "onChange",
+    defaultColumn: { minSize: 60, size: 160, maxSize: 800 },
     data: baseRows,
     columns,
     state: { sorting, columnVisibility, columnOrder },
