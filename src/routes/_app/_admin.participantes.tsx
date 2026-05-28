@@ -607,14 +607,13 @@ function ParticipantesPage() {
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Projeto" className="col-span-2">
-              <Select value={form.projeto_id ?? "__null"} onValueChange={(v) => setForm({ ...form, projeto_id: v === "__null" ? null : v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__null">— sem projeto —</SelectItem>
-                  {projetos?.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
-                </SelectContent>
-              </Select>
+            <Field label="Projetos" className="col-span-2">
+              <MultiSelect
+                values={form.projeto_ids ?? []}
+                options={(projetos ?? []).map((p) => ({ value: p.id, label: p.nome }))}
+                placeholder="sem projetos"
+                onChange={(v) => setForm({ ...form, projeto_ids: v })}
+              />
             </Field>
             <Field label="Tipo de utilizador" className="col-span-2">
               <Select value={form.tipo_user_id ?? "__null"} onValueChange={(v) => setForm({ ...form, tipo_user_id: v === "__null" ? null : v })}>
@@ -667,14 +666,13 @@ function ParticipantesPage() {
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="Projeto" className="col-span-2">
-                <Select value={editing.projeto_id ?? "__null"} onValueChange={(v) => setEditing({ ...editing, projeto_id: v === "__null" ? null : v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__null">— sem projeto —</SelectItem>
-                    {projetos?.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+              <Field label="Projetos" className="col-span-2">
+                <MultiSelect
+                  values={editing.projeto_ids ?? []}
+                  options={(projetos ?? []).map((p) => ({ value: p.id, label: p.nome }))}
+                  placeholder="sem projetos"
+                  onChange={(v) => setEditing({ ...editing, projeto_ids: v })}
+                />
               </Field>
               <Field label="Tipo de utilizador" className="col-span-2">
                 <Select value={editing.tipo_user_id ?? "__null"} onValueChange={(v) => setEditing({ ...editing, tipo_user_id: v === "__null" ? null : v })}>
@@ -752,15 +750,25 @@ function ParticipantesPage() {
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Projeto">
-              <Select value={bulkProjeto} onValueChange={setBulkProjeto}>
+            <Field label="Projetos">
+              <Select value={bulkProjetosMode} onValueChange={(v) => setBulkProjetosMode(v as any)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__noop">— não alterar —</SelectItem>
-                  <SelectItem value="__null">— remover projeto —</SelectItem>
-                  {projetos?.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
+                  <SelectItem value="noop">— não alterar —</SelectItem>
+                  <SelectItem value="clear">— remover todos —</SelectItem>
+                  <SelectItem value="set">Substituir por…</SelectItem>
                 </SelectContent>
               </Select>
+              {bulkProjetosMode === "set" && (
+                <div className="mt-2">
+                  <MultiSelect
+                    values={bulkProjetos}
+                    options={(projetos ?? []).map((p) => ({ value: p.id, label: p.nome }))}
+                    placeholder="escolher projetos"
+                    onChange={setBulkProjetos}
+                  />
+                </div>
+              )}
             </Field>
             <Field label="Estado">
               <Select value={bulkStatus} onValueChange={setBulkStatus}>
