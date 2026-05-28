@@ -597,6 +597,8 @@ function ParticipantesPage() {
             <Field label="Email"><Input value={form.email ?? ""} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
             <Field label="Telefone"><Input value={form.telefone ?? ""} onChange={(e) => setForm({ ...form, telefone: e.target.value })} /></Field>
             <Field label="NIF"><Input value={form.nif ?? ""} onChange={(e) => setForm({ ...form, nif: e.target.value })} /></Field>
+            <Field label="Cartão de Cidadão"><Input value={form.cartao_cidadao ?? ""} onChange={(e) => setForm({ ...form, cartao_cidadao: e.target.value })} /></Field>
+            <Field label="Morada" className="col-span-2"><Input value={form.morada ?? ""} onChange={(e) => setForm({ ...form, morada: e.target.value })} /></Field>
             <Field label="Data nascimento"><Input type="date" value={form.data_nascimento ?? ""} onChange={(e) => setForm({ ...form, data_nascimento: e.target.value })} /></Field>
             <Field label="Género">
               <Select value={form.genero ?? "__null"} onValueChange={(v) => setForm({ ...form, genero: v === "__null" ? null : v })}>
@@ -656,6 +658,8 @@ function ParticipantesPage() {
               <Field label="Email"><Input value={editing.email ?? ""} onChange={(e) => setEditing({ ...editing, email: e.target.value })} /></Field>
               <Field label="Telefone"><Input value={editing.telefone ?? ""} onChange={(e) => setEditing({ ...editing, telefone: e.target.value })} /></Field>
               <Field label="NIF"><Input value={editing.nif ?? ""} onChange={(e) => setEditing({ ...editing, nif: e.target.value })} /></Field>
+              <Field label="Cartão de Cidadão"><Input value={editing.cartao_cidadao ?? ""} onChange={(e) => setEditing({ ...editing, cartao_cidadao: e.target.value })} /></Field>
+              <Field label="Morada" className="col-span-2"><Input value={editing.morada ?? ""} onChange={(e) => setEditing({ ...editing, morada: e.target.value })} /></Field>
               <Field label="Data nascimento"><Input type="date" value={editing.data_nascimento ?? ""} onChange={(e) => setEditing({ ...editing, data_nascimento: e.target.value })} /></Field>
               <Field label="Género">
                 <Select value={editing.genero ?? "__null"} onValueChange={(v) => setEditing({ ...editing, genero: v === "__null" ? null : v })}>
