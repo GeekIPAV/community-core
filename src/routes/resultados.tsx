@@ -786,18 +786,39 @@ function ChartConfigDialog({
             />
           </div>
           <div className="grid gap-2">
-            <Label>Dados</Label>
+            <Label>Tabela</Label>
             <Select
-              value={draft.dataset}
-              onValueChange={(v: Dataset) => setDraft({ ...draft, dataset: v })}
+              value={draft.tabela}
+              onValueChange={(v: TabelaKey) => {
+                const primeira = COLUNAS_POR_TABELA[v][0]?.value ?? "";
+                setDraft({ ...draft, tabela: v, coluna: primeira });
+              }}
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(Object.keys(DATASET_LABEL) as Dataset[]).map((k) => (
+                {(Object.keys(TABELA_LABEL) as TabelaKey[]).map((k) => (
                   <SelectItem key={k} value={k}>
-                    {DATASET_LABEL[k]}
+                    {TABELA_LABEL[k]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-2">
+            <Label>Agrupar / segmentar por</Label>
+            <Select
+              value={draft.coluna}
+              onValueChange={(v: string) => setDraft({ ...draft, coluna: v })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {COLUNAS_POR_TABELA[draft.tabela].map((c) => (
+                  <SelectItem key={c.value} value={c.value}>
+                    {c.label}
                   </SelectItem>
                 ))}
               </SelectContent>
