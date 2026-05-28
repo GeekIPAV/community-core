@@ -685,6 +685,15 @@ function AddPessoasDialog({
           </TabsList>
           <TabsContent value="pessoas" className="flex-1 overflow-hidden">
             <div className="flex flex-wrap items-center gap-2 py-2">
+              <Select value={statusPessoaFilter} onValueChange={setStatusPessoaFilter}>
+                <SelectTrigger className="h-8 w-[160px]"><SelectValue placeholder="Estado" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">Todos os estados</SelectItem>
+                  {statusesPessoa.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Select value={familiaFilter} onValueChange={setFamiliaFilter}>
                 <SelectTrigger className="h-8 w-[180px]"><SelectValue placeholder="Família" /></SelectTrigger>
                 <SelectContent>
@@ -705,8 +714,8 @@ function AddPessoasDialog({
                   ))}
                 </SelectContent>
               </Select>
-              {(familiaFilter !== "__all" || cidadeFilter !== "__all") && (
-                <Button size="sm" variant="ghost" onClick={() => { setFamiliaFilter("__all"); setCidadeFilter("__all"); }}>
+              {(familiaFilter !== "__all" || cidadeFilter !== "__all" || statusPessoaFilter !== "ativo") && (
+                <Button size="sm" variant="ghost" onClick={() => { setFamiliaFilter("__all"); setCidadeFilter("__all"); setStatusPessoaFilter("ativo"); }}>
                   Limpar
                 </Button>
               )}
@@ -758,6 +767,20 @@ function AddPessoasDialog({
             </ScrollArea>
           </TabsContent>
           <TabsContent value="familias" className="flex-1 overflow-hidden">
+            <div className="flex flex-wrap items-center gap-2 py-2">
+              <Select value={statusFamiliaFilter} onValueChange={setStatusFamiliaFilter}>
+                <SelectTrigger className="h-8 w-[180px]"><SelectValue placeholder="Estado" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">Todos os estados</SelectItem>
+                  {statusesFamilia.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {statusFamiliaFilter !== "__all" && (
+                <Button size="sm" variant="ghost" onClick={() => setStatusFamiliaFilter("__all")}>Limpar</Button>
+              )}
+            </div>
             <div className="flex items-center gap-2 border-b py-2">
               <Checkbox
                 checked={allFamiliasSelected}
