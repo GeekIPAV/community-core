@@ -21,6 +21,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useEffect, useMemo, useState } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
 import { ChevronDown, ChevronRight, Lock, LockOpen, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import {
@@ -190,16 +191,17 @@ function ParticipantesPage() {
   const familiaName = (id: string | null) =>
     id ? familias?.find((f) => f.id === id)?.nome ?? "—" : "—";
 
+  const debouncedQ = useDebounce(q, 300);
   const searchFiltered = useMemo(() => {
     if (!data) return [];
-    const s = q.trim().toLowerCase();
+    const s = debouncedQ.trim().toLowerCase();
     if (!s) return data;
     return data.filter((p) =>
       [p.nome_completo, p.email, p.telefone, p.nif]
         .filter(Boolean)
         .some((v: any) => String(v).toLowerCase().includes(s)),
     );
-  }, [data, q]);
+  }, [data, debouncedQ]);
 
   const tableColumns = useMemo<ColumnDef<Pessoa>[]>(() => {
     const save = (id: string, field: keyof Pessoa) => async (v: any) => {
