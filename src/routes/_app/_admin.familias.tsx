@@ -91,7 +91,10 @@ function FamiliasPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["familias"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("familias").select("*").order("nome");
+      const { data, error } = await supabase
+        .from("familias")
+        .select("id, nome, notas, status")
+        .order("nome");
       if (error) throw error;
       return data as Familia[];
     },

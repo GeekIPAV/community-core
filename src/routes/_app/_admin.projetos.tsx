@@ -48,7 +48,10 @@ function ProjetosPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["projetos"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("projetos").select("*").order("nome");
+      const { data, error } = await supabase
+        .from("projetos")
+        .select("id, nome, descricao")
+        .order("nome");
       if (error) throw error;
       return data as Projeto[];
     },

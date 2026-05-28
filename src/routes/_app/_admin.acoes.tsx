@@ -15,6 +15,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useState, useMemo } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
+import { z } from "zod";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, Maximize2, Minimize2, ArrowUpDown, UserPlus, Search } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
@@ -214,6 +216,37 @@ type AcaoForm = {
 };
 
 const EMPTY_FORM: AcaoForm = { nome: "", local: "", mapa_url: "", imagem_url: "", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, fields: [] };
+
+const acaoFormSchema = z
+  .object({
+    nome: z.string().trim().min(1, "Nome é obrigatório").max(200, "Nome demasiado longo"),
+    local: z.string().max(500).optional(),
+    mapa_url: z
+      .string()
+      .trim()
+      .max(500)
+      .refine((v) => !v || /^https?:\/\//i.test(v), "Link do Google Maps deve começar por http(s)://")
+      .optional(),
+    imagem_url: z.string().max(1000).optional(),
+    descricao: z.string().max(20000).optional(),
+    data_inicio: z.string(),
+    data_fim: z.string(),
+    status: z.string().trim().min(1, "Estado é obrigatório").max(50),
+    inscricoes_abertas: z.boolean(),
+  })
+  .refine((v) => !v.data_inicio || !v.data_fim || new Date(v.data_fim) >= new Date(v.data_inicio), {
+    message: "Data de fim deve ser igual ou posterior à data de início",
+    path: ["data_fim"],
+  });
+
+function validateAcaoForm(form: AcaoForm): boolean {
+  const result = acaoFormSchema.safeParse(form);
+  if (!result.success) {
+    toast.error(result.error.issues[0]?.message ?? "Dados inválidos");
+    return false;
+  }
+  return true;
+}
 
 const DEFAULT_STATUSES = ["ativa", "cancelada", "concluida"];
 
@@ -864,6 +897,7 @@ function AddPessoasDialog({
   const qc = useQueryClient();
   const [tab, setTab] = useState<"pessoas" | "familias">("pessoas");
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [familiaFilter, setFamiliaFilter] = useState<string>("__all");
   const [cidadeFilter, setCidadeFilter] = useState<string>("__all");
@@ -907,7 +941,7 @@ function AddPessoasDialog({
   }, [pessoas]);
 
   const filteredPessoas = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = debouncedSearch.trim().toLowerCase();
     const list = pessoas ?? [];
     return list.filter((p) => {
       if (q && ![p.nome_completo, p.telefone ?? "", p.email ?? ""].some((v) => v.toLowerCase().includes(q))) return false;
@@ -924,7 +958,7 @@ function AddPessoasDialog({
       }
       return true;
     });
-  }, [pessoas, search, familiaFilter, cidadeFilter, statusPessoaFilter]);
+  }, [pessoas, debouncedSearch, familiaFilter, cidadeFilter, statusPessoaFilter]);
 
   const statusesPessoa = useMemo(() => {
     const set = new Set<string>();
@@ -942,14 +976,14 @@ function AddPessoasDialog({
   }, [pessoas]);
 
   const filteredFamilias = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = debouncedSearch.trim().toLowerCase();
     const list = familias ?? [];
     return list.filter((f) => {
       if (q && !f.nome.toLowerCase().includes(q)) return false;
       if (statusFamiliaFilter !== "__all" && (f.status ?? "") !== statusFamiliaFilter) return false;
       return true;
     });
-  }, [familias, search, statusFamiliaFilter]);
+  }, [familias, debouncedSearch, statusFamiliaFilter]);
 
   const statusesFamilia = useMemo(() => {
     const set = new Set<string>();
@@ -1230,7 +1264,10 @@ function AcoesPageInner() {
   const { data, isLoading } = useQuery({
     queryKey: ["acoes"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("acoes").select("*").order("data_inicio", { ascending: false, nullsFirst: false });
+      const { data, error } = await supabase
+        .from("acoes")
+        .select("id, nome, local, mapa_url, imagem_url, data_inicio, data_fim, status, inscricoes_abertas, config_campos")
+        .order("data_inicio", { ascending: false, nullsFirst: false });
       if (error) throw error;
       return data;
     },
@@ -1268,6 +1305,7 @@ function AcoesPageInner() {
 
   const create = useMutation({
     mutationFn: async () => {
+      if (!validateAcaoForm(form)) throw new Error("Validação falhou");
       const { error } = await supabase.from("acoes").insert({
         nome: form.nome,
         local: form.local || null,
@@ -1288,12 +1326,15 @@ function AcoesPageInner() {
       setAddOpen(false);
       setForm(EMPTY_FORM);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      if (e.message !== "Validação falhou") toast.error(e.message);
+    },
   });
 
   const update = useMutation({
     mutationFn: async () => {
       if (!editing) return;
+      if (!validateAcaoForm(editing)) throw new Error("Validação falhou");
       const { error } = await supabase
         .from("acoes")
         .update({
@@ -1316,7 +1357,9 @@ function AcoesPageInner() {
       invalidate();
       setEditing(null);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      if (e.message !== "Validação falhou") toast.error(e.message);
+    },
   });
 
   const remove = useMutation({
@@ -1415,19 +1458,27 @@ function AcoesPageInner() {
               <Card
                 key={a.id}
                 className="cursor-pointer transition-colors hover:bg-muted/30"
-                onClick={() => setEditing({
-                  id: a.id,
-                  nome: a.nome ?? "",
-                  local: a.local ?? "",
-                  mapa_url: (a as any).mapa_url ?? "",
-                  imagem_url: (a as any).imagem_url ?? "",
-                  descricao: a.descricao ?? "",
-                  data_inicio: toDtLocal(a.data_inicio),
-                  data_fim: toDtLocal(a.data_fim),
-                  status: String((a as any).status ?? "ativa"),
-                  inscricoes_abertas: inscricoesAbertas,
-                  fields,
-                })}
+                onClick={async () => {
+                  // Lazy-load the heavy `descricao` HTML only when opening the editor.
+                  const { data: full } = await supabase
+                    .from("acoes")
+                    .select("descricao")
+                    .eq("id", a.id)
+                    .maybeSingle();
+                  setEditing({
+                    id: a.id,
+                    nome: a.nome ?? "",
+                    local: a.local ?? "",
+                    mapa_url: (a as any).mapa_url ?? "",
+                    imagem_url: (a as any).imagem_url ?? "",
+                    descricao: full?.descricao ?? "",
+                    data_inicio: toDtLocal(a.data_inicio),
+                    data_fim: toDtLocal(a.data_fim),
+                    status: String((a as any).status ?? "ativa"),
+                    inscricoes_abertas: inscricoesAbertas,
+                    fields,
+                  });
+                }}
               >
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
