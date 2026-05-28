@@ -100,15 +100,48 @@ const PIE_COLORS = [
   "#3b82f6",
 ];
 
-type Dataset = "generos" | "religioes" | "nacionalidades" | "projetos";
 type ChartType = "pie" | "bar" | "barH";
-type ChartConfig = { id: string; title: string; dataset: Dataset; type: ChartType };
+type TabelaKey = "pessoas" | "familias" | "acoes" | "inscricoes";
+type ChartConfig = {
+  id: string;
+  title: string;
+  tabela: TabelaKey;
+  coluna: string;
+  type: ChartType;
+};
 
-const DATASET_LABEL: Record<Dataset, string> = {
-  generos: "Géneros",
-  religioes: "Religiões",
-  nacionalidades: "Nacionalidades",
-  projetos: "Participantes por projeto",
+const TABELA_LABEL: Record<TabelaKey, string> = {
+  pessoas: "Pessoas",
+  familias: "Famílias",
+  acoes: "Ações (eventos/projetos)",
+  inscricoes: "Inscrições",
+};
+
+const COLUNAS_POR_TABELA: Record<TabelaKey, { value: string; label: string }[]> = {
+  pessoas: [
+    { value: "genero", label: "Género" },
+    { value: "nacionalidade", label: "Nacionalidade" },
+    { value: "religiao", label: "Religião" },
+    { value: "cidade_residencia", label: "Cidade de residência" },
+    { value: "profissao", label: "Profissão" },
+    { value: "is_voluntario", label: "Voluntário" },
+    { value: "status", label: "Estado" },
+    { value: "familia", label: "Família" },
+    { value: "tipo_user", label: "Tipo de utilizador" },
+    { value: "projetos", label: "Projetos" },
+  ],
+  familias: [{ value: "status", label: "Estado" }],
+  acoes: [
+    { value: "tipo", label: "Tipo" },
+    { value: "status", label: "Estado" },
+    { value: "inscricoes_abertas", label: "Inscrições abertas" },
+    { value: "local", label: "Local" },
+  ],
+  inscricoes: [
+    { value: "status", label: "Estado" },
+    { value: "acao", label: "Ação" },
+    { value: "tipo_acao", label: "Tipo de ação" },
+  ],
 };
 
 const CHART_TYPE_LABEL: Record<ChartType, string> = {
@@ -118,10 +151,10 @@ const CHART_TYPE_LABEL: Record<ChartType, string> = {
 };
 
 const DEFAULT_CHARTS: ChartConfig[] = [
-  { id: "c1", title: "Distribuição por género", dataset: "generos", type: "pie" },
-  { id: "c2", title: "Religiões", dataset: "religioes", type: "pie" },
-  { id: "c3", title: "Nacionalidades", dataset: "nacionalidades", type: "bar" },
-  { id: "c4", title: "Participantes por projeto", dataset: "projetos", type: "bar" },
+  { id: "c1", title: "Distribuição por género", tabela: "pessoas", coluna: "genero", type: "pie" },
+  { id: "c2", title: "Religiões", tabela: "pessoas", coluna: "religiao", type: "pie" },
+  { id: "c3", title: "Nacionalidades", tabela: "pessoas", coluna: "nacionalidade", type: "bar" },
+  { id: "c4", title: "Participantes por projeto", tabela: "inscricoes", coluna: "acao", type: "bar" },
 ];
 
 const STORAGE_KEY = "resultados.charts.v1";
@@ -192,17 +225,25 @@ const DEFAULT_KPIS: KPIConfig[] = [
   { id: "k4", label: "Projetos", metric: "projetos_total", subMetric: "participantes_projetos_total", subSuffix: "participações", icon: "folder" },
 ];
 
-function getDatasetSeries(data: Estatisticas, dataset: Dataset): { name: string; value: number }[] {
-  switch (dataset) {
-    case "generos":
-      return data.generos_detalhe.map((g) => ({ name: g.nome, value: g.count }));
-    case "religioes":
-      return data.religioes_detalhe.map((r) => ({ name: r.nome, value: r.count }));
-    case "nacionalidades":
-      return data.nacionalidades_detalhe.map((n) => ({ name: n.nome, value: n.count }));
-    case "projetos":
-      return data.projetos_detalhe.map((p) => ({ name: p.nome, value: p.participantes }));
+// Migra ChartConfigs antigos (dataset → tabela/coluna)
+function migrarChart(raw: unknown): ChartConfig | null {
+  if (!raw || typeof raw !== "object") return null;
+  const c = raw as Record<string, unknown>;
+  if (typeof c.id !== "string" || typeof c.title !== "string") return null;
+  const type = (c.type as ChartType) ?? "bar";
+  if (typeof c.tabela === "string" && typeof c.coluna === "string") {
+    return { id: c.id, title: c.title, tabela: c.tabela as TabelaKey, coluna: c.coluna, type };
   }
+  // Formato antigo
+  const map: Record<string, { tabela: TabelaKey; coluna: string }> = {
+    generos: { tabela: "pessoas", coluna: "genero" },
+    religioes: { tabela: "pessoas", coluna: "religiao" },
+    nacionalidades: { tabela: "pessoas", coluna: "nacionalidade" },
+    projetos: { tabela: "inscricoes", coluna: "acao" },
+  };
+  const m = map[c.dataset as string];
+  if (!m) return null;
+  return { id: c.id, title: c.title, tabela: m.tabela, coluna: m.coluna, type };
 }
 
 function ResultadosPage() {
