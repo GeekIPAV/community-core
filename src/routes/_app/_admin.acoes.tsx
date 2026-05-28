@@ -506,6 +506,10 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
         <div className="ml-auto">
           <AdvancedTableFilters table={table} />
         </div>
+        <div className="flex items-center gap-2 rounded-md border px-3 py-1.5">
+          <Switch id="group-familia" checked={groupByFamilia} onCheckedChange={setGroupByFamilia} />
+          <Label htmlFor="group-familia" className="text-xs cursor-pointer">Agrupar por família</Label>
+        </div>
         <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}>
           <UserPlus className="mr-1 h-3.5 w-3.5" /> Adicionar Pessoas
         </Button>
