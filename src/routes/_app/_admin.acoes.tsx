@@ -628,7 +628,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
                       <Checkbox checked={selected.has(row.original.id)} onCheckedChange={() => toggleOne(row.original.id)} />
                     </TableCell>
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="whitespace-nowrap">
+                      <TableCell key={cell.id} className="break-words">
                         {flexRender(cell.column.columnDef.cell ?? ((c: any) => c.getValue() || "—"), cell.getContext())}
                       </TableCell>
                     ))}
@@ -672,7 +672,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
                             <Checkbox checked={selected.has(row.original.id)} onCheckedChange={() => toggleOne(row.original.id)} />
                           </TableCell>
                           {row.getVisibleCells().map((cell) => (
-                            <TableCell key={cell.id} className="whitespace-nowrap">
+                            <TableCell key={cell.id} className="break-words">
                               {flexRender(cell.column.columnDef.cell ?? ((c: any) => c.getValue() || "—"), cell.getContext())}
                             </TableCell>
                           ))}
