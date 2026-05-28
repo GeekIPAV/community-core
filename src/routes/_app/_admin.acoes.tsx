@@ -471,7 +471,6 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
 }
 
 function AcoesPage() {
-  const qc = useQueryClient();
   return <AcoesPageInner />;
 }
 
