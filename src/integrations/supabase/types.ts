@@ -152,7 +152,7 @@ export type Database = {
           nif: string | null
           nome_completo: string
           notas: string | null
-          projeto_id: string | null
+          projeto_ids: string[]
           religiao: string | null
           status: Database["public"]["Enums"]["status_pessoa"]
           telefone: string | null
@@ -175,7 +175,7 @@ export type Database = {
           nif?: string | null
           nome_completo: string
           notas?: string | null
-          projeto_id?: string | null
+          projeto_ids?: string[]
           religiao?: string | null
           status?: Database["public"]["Enums"]["status_pessoa"]
           telefone?: string | null
@@ -198,7 +198,7 @@ export type Database = {
           nif?: string | null
           nome_completo?: string
           notas?: string | null
-          projeto_id?: string | null
+          projeto_ids?: string[]
           religiao?: string | null
           status?: Database["public"]["Enums"]["status_pessoa"]
           telefone?: string | null
@@ -225,13 +225,6 @@ export type Database = {
             columns: ["fundido_em"]
             isOneToOne: false
             referencedRelation: "pessoas_com_stats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pessoas_projeto_id_fkey"
-            columns: ["projeto_id"]
-            isOneToOne: false
-            referencedRelation: "projetos"
             referencedColumns: ["id"]
           },
           {
