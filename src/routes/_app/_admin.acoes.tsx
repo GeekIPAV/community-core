@@ -491,6 +491,8 @@ function AddPessoasDialog({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [familiaFilter, setFamiliaFilter] = useState<string>("__all");
   const [cidadeFilter, setCidadeFilter] = useState<string>("__all");
+  const [statusPessoaFilter, setStatusPessoaFilter] = useState<string>("ativo");
+  const [statusFamiliaFilter, setStatusFamiliaFilter] = useState<string>("__all");
 
   const { data: pessoas, isLoading: loadingPessoas } = useQuery({
     queryKey: ["pessoas-atribuir"],
@@ -498,11 +500,10 @@ function AddPessoasDialog({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, telefone, email, familia_id, cidade_residencia")
-        .eq("status", "ativo")
+        .select("id, nome_completo, telefone, email, familia_id, cidade_residencia, status")
         .order("nome_completo", { ascending: true });
       if (error) throw error;
-      return data as Array<{ id: string; nome_completo: string; telefone: string | null; email: string | null; familia_id: string | null; cidade_residencia: string | null }>;
+      return data as Array<{ id: string; nome_completo: string; telefone: string | null; email: string | null; familia_id: string | null; cidade_residencia: string | null; status: string }>;
     },
   });
 
@@ -512,9 +513,9 @@ function AddPessoasDialog({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("familias")
-        .select("id, nome");
+        .select("id, nome, status");
       if (error) throw error;
-      return data as Array<{ id: string; nome: string }>;
+      return data as Array<{ id: string; nome: string; status: string }>;
     },
   });
 
@@ -534,6 +535,7 @@ function AddPessoasDialog({
     const list = pessoas ?? [];
     return list.filter((p) => {
       if (q && ![p.nome_completo, p.telefone ?? "", p.email ?? ""].some((v) => v.toLowerCase().includes(q))) return false;
+      if (statusPessoaFilter !== "__all" && p.status !== statusPessoaFilter) return false;
       if (familiaFilter === "__none") {
         if (p.familia_id) return false;
       } else if (familiaFilter !== "__all") {
@@ -546,7 +548,13 @@ function AddPessoasDialog({
       }
       return true;
     });
-  }, [pessoas, search, familiaFilter, cidadeFilter]);
+  }, [pessoas, search, familiaFilter, cidadeFilter, statusPessoaFilter]);
+
+  const statusesPessoa = useMemo(() => {
+    const set = new Set<string>();
+    (pessoas ?? []).forEach((p) => { if (p.status) set.add(p.status); });
+    return Array.from(set).sort();
+  }, [pessoas]);
 
   const cidadesDisponiveis = useMemo(() => {
     const set = new Set<string>();
@@ -560,9 +568,18 @@ function AddPessoasDialog({
   const filteredFamilias = useMemo(() => {
     const q = search.trim().toLowerCase();
     const list = familias ?? [];
-    if (!q) return list;
-    return list.filter((f) => f.nome.toLowerCase().includes(q));
-  }, [familias, search]);
+    return list.filter((f) => {
+      if (q && !f.nome.toLowerCase().includes(q)) return false;
+      if (statusFamiliaFilter !== "__all" && (f.status ?? "") !== statusFamiliaFilter) return false;
+      return true;
+    });
+  }, [familias, search, statusFamiliaFilter]);
+
+  const statusesFamilia = useMemo(() => {
+    const set = new Set<string>();
+    (familias ?? []).forEach((f) => { if (f.status) set.add(f.status); });
+    return Array.from(set).sort();
+  }, [familias]);
 
   const toggleOne = (id: string) => {
     setSelected((prev) => {
