@@ -272,6 +272,10 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
   const [editingInscricao, setEditingInscricao] = useState<InscricaoRow | null>(null);
   const [editValores, setEditValores] = useState<Record<string, any>>({});
   const [confirmDelete, setConfirmDelete] = useState<InscricaoRow | null>(null);
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [bulkEditField, setBulkEditField] = useState<string>("");
+  const [bulkEditValue, setBulkEditValue] = useState<any>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ["inscricoes", acaoId],
     queryFn: async () => {
@@ -317,6 +321,40 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
       qc.invalidateQueries({ queryKey: ["acoes", "inscricoes-count"] });
       toast.success("Inscrição removida");
       setConfirmDelete(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const bulkDelete = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from("inscricoes").delete().in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["inscricoes", acaoId] });
+      qc.invalidateQueries({ queryKey: ["acoes", "inscricoes-count"] });
+      toast.success("Inscrições removidas");
+      setSelected(new Set());
+      setBulkDeleteOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const bulkUpdateField = useMutation({
+    mutationFn: async ({ ids, key, value }: { ids: string[]; key: string; value: any }) => {
+      const rows = (data ?? []).filter((r: any) => ids.includes(r.id));
+      for (const r of rows) {
+        const next = { ...(r.valores_dinamicos ?? {}), [key]: value };
+        const { error } = await supabase.from("inscricoes").update({ valores_dinamicos: next }).eq("id", r.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["inscricoes", acaoId] });
+      toast.success("Respostas atualizadas");
+      setBulkEditOpen(false);
+      setBulkEditField("");
+      setBulkEditValue(null);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -487,6 +525,23 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
               <Button size="sm" disabled={!someSelected || updateStatus.isPending} onClick={applyBulk}>
                 Aplicar
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!someSelected || fields.length === 0}
+                onClick={() => { setBulkEditField(fields[0]?.key ?? ""); setBulkEditValue(null); setBulkEditOpen(true); }}
+              >
+                <Pencil className="mr-1 h-3.5 w-3.5" /> Editar respostas
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-destructive hover:text-destructive"
+                disabled={!someSelected}
+                onClick={() => setBulkDeleteOpen(true)}
+              >
+                <Trash2 className="mr-1 h-3.5 w-3.5" /> Apagar
+              </Button>
             </div>
           </div>
           <div className="overflow-x-auto rounded-md border">
@@ -616,6 +671,101 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
               disabled={deleteInscricao.isPending}
             >
               {deleteInscricao.isPending ? "A apagar…" : "Apagar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Apagar inscrições</DialogTitle>
+            <DialogDescription>
+              Apagar {selected.size} inscrição(ões) selecionada(s)? Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkDeleteOpen(false)}>Cancelar</Button>
+            <Button
+              variant="destructive"
+              onClick={() => bulkDelete.mutate(Array.from(selected))}
+              disabled={bulkDelete.isPending}
+            >
+              {bulkDelete.isPending ? "A apagar…" : "Apagar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={bulkEditOpen} onOpenChange={setBulkEditOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar respostas em massa</DialogTitle>
+            <DialogDescription>
+              Aplicar o mesmo valor a {selected.size} inscrição(ões).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>Campo</Label>
+              <Select value={bulkEditField} onValueChange={(v) => { setBulkEditField(v); setBulkEditValue(null); }}>
+                <SelectTrigger><SelectValue placeholder="Escolhe um campo" /></SelectTrigger>
+                <SelectContent>
+                  {fields.map((f) => <SelectItem key={f.key} value={f.key}>{f.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            {(() => {
+              const f = fields.find((x) => x.key === bulkEditField);
+              if (!f) return null;
+              const v = bulkEditValue;
+              const setV = (val: any) => setBulkEditValue(val);
+              return (
+                <div className="space-y-1.5">
+                  <Label>Novo valor</Label>
+                  {f.type === "text" && <Input value={v ?? ""} onChange={(e) => setV(e.target.value)} />}
+                  {f.type === "number" && <Input type="number" value={v ?? ""} onChange={(e) => setV(e.target.value === "" ? null : Number(e.target.value))} />}
+                  {f.type === "date" && <Input type="date" value={v ?? ""} onChange={(e) => setV(e.target.value)} />}
+                  {f.type === "checkbox" && (
+                    <div className="flex items-center gap-2">
+                      <Checkbox checked={!!v} onCheckedChange={(c) => setV(!!c)} />
+                      <span className="text-sm text-muted-foreground">Sim</span>
+                    </div>
+                  )}
+                  {f.type === "select" && (
+                    <Select value={v ?? "__none"} onValueChange={(val) => setV(val === "__none" ? null : val)}>
+                      <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none">—</SelectItem>
+                        {(f.options ?? []).map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {f.type === "multiselect" && (
+                    <div className="flex flex-wrap gap-2 rounded-md border p-2">
+                      {(f.options ?? []).map((o) => {
+                        const arr: string[] = Array.isArray(v) ? v : [];
+                        const checked = arr.includes(o);
+                        return (
+                          <label key={o} className="flex items-center gap-1.5 text-sm">
+                            <Checkbox checked={checked} onCheckedChange={(c) => setV(c ? [...arr, o] : arr.filter((x) => x !== o))} />
+                            <span>{o}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkEditOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => bulkUpdateField.mutate({ ids: Array.from(selected), key: bulkEditField, value: bulkEditValue })}
+              disabled={!bulkEditField || bulkUpdateField.isPending}
+            >
+              {bulkUpdateField.isPending ? "A guardar…" : "Aplicar"}
             </Button>
           </DialogFooter>
         </DialogContent>
