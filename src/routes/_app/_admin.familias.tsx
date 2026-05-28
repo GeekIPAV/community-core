@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Pencil, Plus, Upload, Users } from "lucide-react";
+import { LayoutGrid, List, Pencil, Plus, Upload, Users } from "lucide-react";
 import { formatDateBR } from "@/lib/utils";
 import {
   useReactTable,
@@ -29,6 +29,8 @@ import {
 import { AdvancedTableFilters, advancedFilterFn, type ColumnFilterMeta } from "@/components/advanced-table-filters";
 import { DataTableViewOptions } from "@/components/data-table-view-options";
 import { DraggableTableHeaders } from "@/components/draggable-table-headers";
+import { Card } from "@/components/ui/card";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 export const Route = createFileRoute("/_app/_admin/familias")({
   component: FamiliasPage,
@@ -79,6 +81,7 @@ function FamiliasPage() {
   const [bulkStatus, setBulkStatus] = useState<string>("__noop");
 
   const [membrosFamilia, setMembrosFamilia] = useState<Familia | null>(null);
+  const [view, setView] = useState<"tabela" | "galeria">("tabela");
 
   const { data, isLoading } = useQuery({
     queryKey: ["familias"],
@@ -324,6 +327,10 @@ function FamiliasPage() {
         <div className="flex flex-wrap gap-2">
           <AdvancedTableFilters table={table} />
           <DataTableViewOptions table={table} />
+          <ToggleGroup type="single" value={view} onValueChange={(v) => v && setView(v as "tabela" | "galeria")} variant="outline" size="sm">
+            <ToggleGroupItem value="tabela" aria-label="Tabela"><List className="h-4 w-4" /></ToggleGroupItem>
+            <ToggleGroupItem value="galeria" aria-label="Galeria"><LayoutGrid className="h-4 w-4" /></ToggleGroupItem>
+          </ToggleGroup>
           <Button variant="outline" onClick={() => setBulkAddOpen(true)}>
             <Upload className="mr-2 h-4 w-4" /> Importar
           </Button>
