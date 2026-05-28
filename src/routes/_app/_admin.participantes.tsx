@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { Lock, LockOpen, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -128,6 +128,7 @@ function ParticipantesPage() {
 
   const [deleteOne, setDeleteOne] = useState<Pessoa | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [inlineEdit, setInlineEdit] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["pessoas"],
@@ -191,36 +192,43 @@ function ParticipantesPage() {
       if (error) { toast.error(error.message); throw error; }
       qc.invalidateQueries({ queryKey: ["pessoas"] });
     };
+    const muted = (v: any) => <span className="text-muted-foreground">{(v as string) || "—"}</span>;
     const text = (field: keyof Pessoa, type: "text" | "date" = "text") =>
       ({ getValue, row }: any) => (
-        <InlineText value={getValue() as string | null} type={type} onSave={save(row.original.id, field)} />
+        inlineEdit
+          ? <InlineText value={getValue() as string | null} type={type} onSave={save(row.original.id, field)} />
+          : muted(getValue())
       );
+    const sel = (field: keyof Pessoa, options: { value: string; label: string }[], placeholder: string, allowClear = true) =>
+      ({ row }: any) => {
+        const v = (row.original as any)[field] as string | null;
+        if (inlineEdit) {
+          return <InlineSelect value={v} options={options} placeholder={placeholder} allowClear={allowClear} onSave={save(row.original.id, field)} />;
+        }
+        return muted(options.find((o) => o.value === v)?.label ?? "");
+      };
     return [
       { id: "nome_completo", header: "Nome", accessorKey: "nome_completo", cell: ({ getValue }) => <span className="font-medium">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nome" } satisfies ColumnFilterMeta },
       { id: "email", header: "Email", accessorKey: "email", cell: text("email"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Email" } satisfies ColumnFilterMeta },
       { id: "telefone", header: "Telefone", accessorKey: "telefone", cell: text("telefone"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Telefone" } satisfies ColumnFilterMeta },
       { id: "nif", header: "NIF", accessorKey: "nif", cell: text("nif"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "NIF" } satisfies ColumnFilterMeta },
       { id: "data_nascimento", header: "Data nascimento", accessorKey: "data_nascimento", cell: text("data_nascimento", "date"), filterFn: advancedFilterFn as any, meta: { filterVariant: "date", label: "Data nascimento" } satisfies ColumnFilterMeta },
-      { id: "genero", header: "Género", accessorKey: "genero", cell: ({ getValue, row }) => (
-        <InlineSelect value={getValue() as string | null} options={GENERO_OPTS.map((g) => ({ value: g, label: g }))} placeholder="não definido" onSave={save(row.original.id, "genero")} />
-      ), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: GENERO_OPTS, label: "Género" } satisfies ColumnFilterMeta },
+      { id: "genero", header: "Género", accessorKey: "genero", cell: sel("genero", GENERO_OPTS.map((g) => ({ value: g, label: g })), "não definido"), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: GENERO_OPTS, label: "Género" } satisfies ColumnFilterMeta },
       { id: "nacionalidade", header: "Nacionalidade", accessorKey: "nacionalidade", cell: text("nacionalidade"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nacionalidade" } satisfies ColumnFilterMeta },
       { id: "cidade_residencia", header: "Cidade", accessorKey: "cidade_residencia", cell: text("cidade_residencia"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Cidade" } satisfies ColumnFilterMeta },
       { id: "religiao", header: "Religião", accessorKey: "religiao", cell: text("religiao"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Religião" } satisfies ColumnFilterMeta },
-      { id: "familia_id", header: "Família", accessorFn: (p) => p.familia_id ? (familias?.find((f) => f.id === p.familia_id)?.nome ?? "") : "", cell: ({ row }) => (
-        <InlineSelect value={row.original.familia_id} options={(familias ?? []).map((f) => ({ value: f.id, label: f.nome }))} placeholder="sem família" onSave={save(row.original.id, "familia_id")} />
-      ), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (familias ?? []).map((f) => f.nome), label: "Família" } satisfies ColumnFilterMeta },
-      { id: "projeto_id", header: "Projeto", accessorFn: (p) => p.projeto_id ? (projetos?.find((x) => x.id === p.projeto_id)?.nome ?? "") : "", cell: ({ row }) => (
-        <InlineSelect value={row.original.projeto_id} options={(projetos ?? []).map((p) => ({ value: p.id, label: p.nome }))} placeholder="sem projeto" onSave={save(row.original.id, "projeto_id")} />
-      ), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (projetos ?? []).map((x) => x.nome), label: "Projeto" } satisfies ColumnFilterMeta },
-      { id: "tipo_user_id", header: "Tipo", accessorFn: (p) => p.tipo_user_id ? (tipos?.find((t) => t.id === p.tipo_user_id)?.nome ?? "") : "", cell: ({ row }) => (
-        <InlineSelect value={row.original.tipo_user_id} options={(tipos ?? []).map((t) => ({ value: t.id, label: t.nome }))} placeholder="sem tipo" onSave={save(row.original.id, "tipo_user_id")} />
-      ), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (tipos ?? []).map((t) => t.nome), label: "Tipo de utilizador" } satisfies ColumnFilterMeta },
-      { id: "status", header: "Estado", accessorKey: "status", cell: ({ getValue, row }) => (
-        <InlineSelect value={getValue() as string} options={STATUS_OPTS.map((s) => ({ value: s, label: s }))} allowClear={false} onSave={save(row.original.id, "status")} />
-      ), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: STATUS_OPTS, label: "Estado" } satisfies ColumnFilterMeta },
+      { id: "familia_id", header: "Família", accessorFn: (p) => p.familia_id ? (familias?.find((f) => f.id === p.familia_id)?.nome ?? "") : "", cell: sel("familia_id", (familias ?? []).map((f) => ({ value: f.id, label: f.nome })), "sem família"), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (familias ?? []).map((f) => f.nome), label: "Família" } satisfies ColumnFilterMeta },
+      { id: "projeto_id", header: "Projeto", accessorFn: (p) => p.projeto_id ? (projetos?.find((x) => x.id === p.projeto_id)?.nome ?? "") : "", cell: sel("projeto_id", (projetos ?? []).map((p) => ({ value: p.id, label: p.nome })), "sem projeto"), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (projetos ?? []).map((x) => x.nome), label: "Projeto" } satisfies ColumnFilterMeta },
+      { id: "tipo_user_id", header: "Tipo", accessorFn: (p) => p.tipo_user_id ? (tipos?.find((t) => t.id === p.tipo_user_id)?.nome ?? "") : "", cell: sel("tipo_user_id", (tipos ?? []).map((t) => ({ value: t.id, label: t.nome })), "sem tipo"), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (tipos ?? []).map((t) => t.nome), label: "Tipo de utilizador" } satisfies ColumnFilterMeta },
+      { id: "status", header: "Estado", accessorKey: "status", cell: inlineEdit
+        ? ({ getValue, row }) => <InlineSelect value={getValue() as string} options={STATUS_OPTS.map((s) => ({ value: s, label: s }))} allowClear={false} onSave={save(row.original.id, "status")} />
+        : ({ getValue }) => {
+            const s = getValue() as string;
+            return <Badge variant={s === "ativo" ? "default" : s === "suspeito_duplicado" ? "destructive" : "outline"}>{s}</Badge>;
+          },
+        filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: STATUS_OPTS, label: "Estado" } satisfies ColumnFilterMeta },
     ];
-  }, [familias, tipos, projetos, qc]);
+  }, [familias, tipos, projetos, qc, inlineEdit]);
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -410,6 +418,14 @@ function ParticipantesPage() {
           <Input placeholder="Pesquisar…" className="w-56" value={q} onChange={(e) => setQ(e.target.value)} />
           <AdvancedTableFilters table={table} />
           <DataTableViewOptions table={table} />
+          <Button
+            variant={inlineEdit ? "default" : "outline"}
+            size="icon"
+            title={inlineEdit ? "Bloquear edição na tabela" : "Desbloquear edição na tabela"}
+            onClick={() => setInlineEdit((v) => !v)}
+          >
+            {inlineEdit ? <LockOpen className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+          </Button>
           <Button variant="outline" onClick={() => setBulkAddOpen(true)}>
             <Upload className="mr-2 h-4 w-4" /> Importar
           </Button>
