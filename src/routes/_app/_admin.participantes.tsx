@@ -987,11 +987,13 @@ function parseBulkCsv(text: string, familias: { id: string; nome: string }[], pr
         if (!id) throw new Error(`Família "${familia}" não encontrada (linha: "${line}")`);
         familia_id = id;
       }
-      let projeto_id: string | null = null;
+      const projeto_ids: string[] = [];
       if (projeto) {
-        const id = projByName.get(projeto.toLowerCase());
-        if (!id) throw new Error(`Projeto "${projeto}" não encontrado (linha: "${line}")`);
-        projeto_id = id;
+        for (const raw of projeto.split(/[;|]/).map((s) => s.trim()).filter(Boolean)) {
+          const id = projByName.get(raw.toLowerCase());
+          if (!id) throw new Error(`Projeto "${raw}" não encontrado (linha: "${line}")`);
+          projeto_ids.push(id);
+        }
       }
       let generoVal: string | null = null;
       if (genero) {
@@ -1011,7 +1013,7 @@ function parseBulkCsv(text: string, familias: { id: string; nome: string }[], pr
         cidade_residencia: cidade_residencia || null,
         religiao: religiao || null,
         familia_id,
-        projeto_id,
+        projeto_ids,
       };
     });
 }
