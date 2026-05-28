@@ -1385,7 +1385,7 @@ function AcoesPageInner() {
           {(data ?? []).length === 0 && <p className="text-sm text-muted-foreground">Sem ações.</p>}
           {data?.map((a) => {
             const fields = parseFields(a.config_campos);
-            const inscritos = inscricaoCounts?.get(a.id) ?? 0;
+            const counts = inscricaoCounts?.get(a.id) ?? { total: 0, presentes: 0 };
             const inscricoesAbertas = (a as any).inscricoes_abertas ?? true;
             return (
               <Card
@@ -1431,8 +1431,14 @@ function AcoesPageInner() {
                   </label>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Inscritos</span>
-                    <span className="text-sm font-semibold text-foreground">{inscritos}</span>
+                    <span className="text-sm font-semibold text-foreground">{counts.total}</span>
                   </div>
+                  {counts.presentes > 0 && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Presentes</span>
+                      <span className="text-sm font-semibold text-foreground">{counts.presentes}</span>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );
