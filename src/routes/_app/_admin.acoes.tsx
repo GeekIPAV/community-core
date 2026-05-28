@@ -276,12 +276,13 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
   const [bulkEditField, setBulkEditField] = useState<string>("");
   const [bulkEditValue, setBulkEditValue] = useState<any>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [groupByFamilia, setGroupByFamilia] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ["inscricoes", acaoId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("inscricoes")
-        .select("id, status, valores_dinamicos, created_at, pessoa:pessoas(id, nome_completo, email, telefone, data_nascimento, nif, cidade_residencia, genero, nacionalidade)")
+        .select("id, status, valores_dinamicos, created_at, pessoa:pessoas(id, nome_completo, email, telefone, data_nascimento, nif, cidade_residencia, genero, nacionalidade, familia_id, familia:familias(id, nome))")
         .eq("acao_id", acaoId)
         .order("created_at", { ascending: true });
       if (error) throw error;
@@ -369,6 +370,11 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
     () => new Set(baseRows.map((r) => r.pessoa?.id).filter(Boolean) as string[]),
     [baseRows]
   );
+  const familiasOptions = useMemo(() => {
+    const set = new Set<string>();
+    baseRows.forEach((r) => { const n = r.pessoa?.familia?.nome; if (n) set.add(n); });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [baseRows]);
   const [addOpen, setAddOpen] = useState(false);
 
   const columns: ColumnDef<InscricaoRow>[] = useMemo(() => [
@@ -398,6 +404,14 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
     { id: "data_nascimento", header: "Data nasc.", accessorFn: (r) => r.pessoa?.data_nascimento ?? "", filterFn: advancedFilterFn as any, meta: { filterVariant: "date", label: "Data nascimento" } satisfies ColumnFilterMeta },
     { id: "nif", header: "NIF", accessorFn: (r) => r.pessoa?.nif ?? "", filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "NIF" } satisfies ColumnFilterMeta },
     { id: "cidade", header: "Cidade", accessorFn: (r) => r.pessoa?.cidade_residencia ?? "", filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Cidade" } satisfies ColumnFilterMeta },
+    {
+      id: "familia",
+      header: "Família",
+      accessorFn: (r) => r.pessoa?.familia?.nome ?? "",
+      filterFn: advancedFilterFn as any,
+      meta: { filterVariant: "select", filterOptions: familiasOptions, label: "Família" } satisfies ColumnFilterMeta,
+      cell: ({ row }) => row.original.pessoa?.familia?.nome ?? <span className="text-muted-foreground">—</span>,
+    },
     ...fields.map<ColumnDef<InscricaoRow>>((f) => {
       const variant: ColumnFilterMeta["filterVariant"] =
         f.type === "date" ? "date" : f.type === "number" ? "number" : (f.type === "select" || f.type === "multiselect") ? "select" : "text";
@@ -441,7 +455,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
         </div>
       ),
     },
-  ], [fields]);
+  ], [fields, familiasOptions]);
 
   const table = useReactTable({
     data: baseRows,
@@ -491,6 +505,10 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
         </div>
         <div className="ml-auto">
           <AdvancedTableFilters table={table} />
+        </div>
+        <div className="flex items-center gap-2 rounded-md border px-3 py-1.5">
+          <Switch id="group-familia" checked={groupByFamilia} onCheckedChange={setGroupByFamilia} />
+          <Label htmlFor="group-familia" className="text-xs cursor-pointer">Agrupar por família</Label>
         </div>
         <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}>
           <UserPlus className="mr-1 h-3.5 w-3.5" /> Adicionar Pessoas
@@ -562,7 +580,9 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
                     </TableCell>
                   </TableRow>
                 )}
-                {filteredRows.map((row) => (
+                {(() => {
+                  if (!groupByFamilia) {
+                    return filteredRows.map((row) => (
                   <TableRow key={row.id} data-state={selected.has(row.original.id) ? "selected" : undefined}>
                     <TableCell>
                       <Checkbox checked={selected.has(row.original.id)} onCheckedChange={() => toggleOne(row.original.id)} />
@@ -573,7 +593,55 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
                       </TableCell>
                     ))}
                   </TableRow>
-                ))}
+                    ));
+                  }
+                  const groups = new Map<string, typeof filteredRows>();
+                  filteredRows.forEach((row) => {
+                    const key = row.original.pessoa?.familia?.nome ?? "— Sem família —";
+                    const arr = groups.get(key) ?? [];
+                    arr.push(row);
+                    groups.set(key, arr);
+                  });
+                  const sortedKeys = Array.from(groups.keys()).sort((a, b) => a.localeCompare(b));
+                  const colSpan = table.getVisibleLeafColumns().length + 1;
+                  const out: any[] = [];
+                  sortedKeys.forEach((key) => {
+                    const rows = groups.get(key)!;
+                    const groupIds = rows.map((r) => r.original.id);
+                    const allGroupSelected = groupIds.every((id) => selected.has(id));
+                    const toggleGroup = () => {
+                      const next = new Set(selected);
+                      if (allGroupSelected) groupIds.forEach((id) => next.delete(id));
+                      else groupIds.forEach((id) => next.add(id));
+                      setSelected(next);
+                    };
+                    out.push(
+                      <TableRow key={`group-${key}`} className="bg-muted/50 hover:bg-muted/50">
+                        <TableCell>
+                          <Checkbox checked={allGroupSelected} onCheckedChange={toggleGroup} />
+                        </TableCell>
+                        <TableCell colSpan={colSpan - 1} className="font-medium text-sm">
+                          {key} <span className="text-muted-foreground font-normal">({rows.length})</span>
+                        </TableCell>
+                      </TableRow>
+                    );
+                    rows.forEach((row) => {
+                      out.push(
+                        <TableRow key={row.id} data-state={selected.has(row.original.id) ? "selected" : undefined}>
+                          <TableCell>
+                            <Checkbox checked={selected.has(row.original.id)} onCheckedChange={() => toggleOne(row.original.id)} />
+                          </TableCell>
+                          {row.getVisibleCells().map((cell) => (
+                            <TableCell key={cell.id} className="whitespace-nowrap">
+                              {flexRender(cell.column.columnDef.cell ?? ((c: any) => c.getValue() || "—"), cell.getContext())}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      );
+                    });
+                  });
+                  return out;
+                })()}
               </TableBody>
             </Table>
           </div>
