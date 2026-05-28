@@ -443,8 +443,12 @@ function ParticipantesPage() {
               {rows.map((row) => {
                 const p = row.original;
                 return (
-                  <TableRow key={row.id}>
-                    <TableCell>
+                  <TableRow
+                    key={row.id}
+                    className="cursor-pointer"
+                    onClick={() => { setEditing({ ...p }); setEditOpen(true); }}
+                  >
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <Checkbox checked={selected.has(p.id)} onCheckedChange={() => toggleOne(p.id)} />
                     </TableCell>
                     {row.getVisibleCells().map((cell) => (
@@ -452,7 +456,7 @@ function ParticipantesPage() {
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <Button size="icon" variant="ghost" onClick={() => { setEditing({ ...p }); setEditOpen(true); }}>
                         <Pencil className="h-4 w-4" />
                       </Button>
