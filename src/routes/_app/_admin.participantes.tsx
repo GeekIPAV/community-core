@@ -460,7 +460,7 @@ function ParticipantesPage() {
               <SelectItem value="nacionalidade">Nacionalidade</SelectItem>
               <SelectItem value="religiao">Religião</SelectItem>
               <SelectItem value="genero">Género</SelectItem>
-              <SelectItem value="projeto_id">Projeto</SelectItem>
+              <SelectItem value="projeto_ids">Projetos</SelectItem>
               <SelectItem value="cidade_residencia">Cidade</SelectItem>
               <SelectItem value="status">Estado</SelectItem>
               <SelectItem value="tipo_user_id">Tipo</SelectItem>
