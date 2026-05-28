@@ -185,7 +185,6 @@ function ParticipantesPage() {
     );
   }, [data, q]);
 
-  const tableColumns = useMemo<ColumnDef<Pessoa>[]>(() => [
   const tableColumns = useMemo<ColumnDef<Pessoa>[]>(() => {
     const save = (id: string, field: keyof Pessoa) => async (v: any) => {
       const { error } = await supabase.from("pessoas").update({ [field]: v } as any).eq("id", id);
