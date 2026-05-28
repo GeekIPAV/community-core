@@ -6,6 +6,7 @@ import { LogOut } from "lucide-react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/lib/auth-context";
+import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -46,9 +47,11 @@ function AppLayout() {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
-        <AppSidebar />
+        <div className="hidden md:block">
+          <AppSidebar />
+        </div>
         <div className="flex flex-1 flex-col">
-          <header className="flex h-14 items-center justify-between border-b border-border/60 bg-background px-6">
+          <header className="flex h-14 items-center justify-between border-b border-border/60 bg-background px-4 md:px-6">
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold tracking-tight text-foreground">Meeru</span>
               <span className="h-1.5 w-1.5 rounded-full bg-accent" />
@@ -62,7 +65,7 @@ function AppLayout() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-muted-foreground hover:text-foreground"
+                className="hidden text-muted-foreground hover:text-foreground md:inline-flex"
                 onClick={async () => {
                   await supabase.auth.signOut();
                   navigate({ to: "/", replace: true });
@@ -72,9 +75,10 @@ function AppLayout() {
               </Button>
             </div>
           </header>
-          <main className="flex-1 px-6 py-8 md:px-10 md:py-10">
+          <main className="flex-1 px-4 py-5 pb-24 md:px-10 md:py-10 md:pb-10">
             <Outlet />
           </main>
+          <MobileBottomNav />
         </div>
       </div>
     </SidebarProvider>
