@@ -1421,19 +1421,27 @@ function AcoesPageInner() {
               <Card
                 key={a.id}
                 className="cursor-pointer transition-colors hover:bg-muted/30"
-                onClick={() => setEditing({
-                  id: a.id,
-                  nome: a.nome ?? "",
-                  local: a.local ?? "",
-                  mapa_url: (a as any).mapa_url ?? "",
-                  imagem_url: (a as any).imagem_url ?? "",
-                  descricao: a.descricao ?? "",
-                  data_inicio: toDtLocal(a.data_inicio),
-                  data_fim: toDtLocal(a.data_fim),
-                  status: String((a as any).status ?? "ativa"),
-                  inscricoes_abertas: inscricoesAbertas,
-                  fields,
-                })}
+                onClick={async () => {
+                  // Lazy-load the heavy `descricao` HTML only when opening the editor.
+                  const { data: full } = await supabase
+                    .from("acoes")
+                    .select("descricao")
+                    .eq("id", a.id)
+                    .maybeSingle();
+                  setEditing({
+                    id: a.id,
+                    nome: a.nome ?? "",
+                    local: a.local ?? "",
+                    mapa_url: (a as any).mapa_url ?? "",
+                    imagem_url: (a as any).imagem_url ?? "",
+                    descricao: full?.descricao ?? "",
+                    data_inicio: toDtLocal(a.data_inicio),
+                    data_fim: toDtLocal(a.data_fim),
+                    status: String((a as any).status ?? "ativa"),
+                    inscricoes_abertas: inscricoesAbertas,
+                    fields,
+                  });
+                }}
               >
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
