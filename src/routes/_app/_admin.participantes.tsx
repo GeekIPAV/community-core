@@ -232,7 +232,7 @@ function ParticipantesPage() {
           const ids = row.original.projeto_ids ?? [];
           const opts = (projetos ?? []).map((p) => ({ value: p.id, label: p.nome }));
           if (inlineEdit) {
-            return <InlineMultiSelect values={ids} options={opts} placeholder="sem projetos" onSave={async (v) => { await save(row.original.id, "projeto_ids")(v); }} />;
+            return <InlineMultiSelect values={ids} options={opts} placeholder="sem projetos" onSave={async (v: string[]) => { await save(row.original.id, "projeto_ids")(v); }} />;
           }
           const names = ids.map((id) => opts.find((o) => o.value === id)?.label).filter(Boolean) as string[];
           return <span className="text-muted-foreground">{names.length ? names.join(", ") : "—"}</span>;
@@ -612,7 +612,7 @@ function ParticipantesPage() {
                 values={form.projeto_ids ?? []}
                 options={(projetos ?? []).map((p) => ({ value: p.id, label: p.nome }))}
                 placeholder="sem projetos"
-                onChange={(v) => setForm({ ...form, projeto_ids: v })}
+                onChange={(v: string[]) => setForm({ ...form, projeto_ids: v })}
               />
             </Field>
             <Field label="Tipo de utilizador" className="col-span-2">
@@ -671,7 +671,7 @@ function ParticipantesPage() {
                   values={editing.projeto_ids ?? []}
                   options={(projetos ?? []).map((p) => ({ value: p.id, label: p.nome }))}
                   placeholder="sem projetos"
-                  onChange={(v) => setEditing({ ...editing, projeto_ids: v })}
+                  onChange={(v: string[]) => setEditing({ ...editing, projeto_ids: v })}
                 />
               </Field>
               <Field label="Tipo de utilizador" className="col-span-2">
