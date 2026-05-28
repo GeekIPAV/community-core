@@ -866,6 +866,7 @@ function AddPessoasDialog({
   const qc = useQueryClient();
   const [tab, setTab] = useState<"pessoas" | "familias">("pessoas");
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [familiaFilter, setFamiliaFilter] = useState<string>("__all");
   const [cidadeFilter, setCidadeFilter] = useState<string>("__all");
