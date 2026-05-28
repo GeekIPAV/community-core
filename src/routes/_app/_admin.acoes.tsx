@@ -269,6 +269,9 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([]);
+  const [editingInscricao, setEditingInscricao] = useState<InscricaoRow | null>(null);
+  const [editValores, setEditValores] = useState<Record<string, any>>({});
+  const [confirmDelete, setConfirmDelete] = useState<InscricaoRow | null>(null);
   const { data, isLoading } = useQuery({
     queryKey: ["inscricoes", acaoId],
     queryFn: async () => {
@@ -288,6 +291,33 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["inscricoes", acaoId] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const updateValores = useMutation({
+    mutationFn: async ({ id, valores }: { id: string; valores: Record<string, any> }) => {
+      const { error } = await supabase.from("inscricoes").update({ valores_dinamicos: valores }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["inscricoes", acaoId] });
+      toast.success("Respostas atualizadas");
+      setEditingInscricao(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteInscricao = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("inscricoes").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["inscricoes", acaoId] });
+      qc.invalidateQueries({ queryKey: ["acoes", "inscricoes-count"] });
+      toast.success("Inscrição removida");
+      setConfirmDelete(null);
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -345,6 +375,34 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
         meta: { filterVariant: variant, filterOptions: f.options, label: f.label } satisfies ColumnFilterMeta,
       };
     }),
+    {
+      id: "actions",
+      header: "",
+      enableHiding: false,
+      enableSorting: false,
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+            onClick={() => { setEditingInscricao(row.original); setEditValores({ ...(row.original.valores_dinamicos ?? {}) }); }}
+            title="Editar respostas"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8 text-destructive hover:text-destructive"
+            onClick={() => setConfirmDelete(row.original)}
+            title="Apagar inscrição"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      ),
+    },
   ], [fields]);
 
   const table = useReactTable({
@@ -466,6 +524,102 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
           </div>
         </>
       )}
+
+      <Dialog open={!!editingInscricao} onOpenChange={(o) => { if (!o) setEditingInscricao(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Editar respostas</DialogTitle>
+            <DialogDescription>
+              {editingInscricao?.pessoa?.nome_completo ?? ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+            {fields.length === 0 && (
+              <p className="text-sm text-muted-foreground">Esta ação não tem campos personalizados.</p>
+            )}
+            {fields.map((f) => {
+              const v = editValores[f.key];
+              const setV = (val: any) => setEditValores({ ...editValores, [f.key]: val });
+              return (
+                <div key={f.key} className="space-y-1.5">
+                  <Label>{f.label}{f.required ? " *" : ""}</Label>
+                  {f.type === "text" && (
+                    <Input value={v ?? ""} onChange={(e) => setV(e.target.value)} />
+                  )}
+                  {f.type === "number" && (
+                    <Input type="number" value={v ?? ""} onChange={(e) => setV(e.target.value === "" ? null : Number(e.target.value))} />
+                  )}
+                  {f.type === "date" && (
+                    <Input type="date" value={v ?? ""} onChange={(e) => setV(e.target.value)} />
+                  )}
+                  {f.type === "checkbox" && (
+                    <div className="flex items-center gap-2">
+                      <Checkbox checked={!!v} onCheckedChange={(c) => setV(!!c)} />
+                      <span className="text-sm text-muted-foreground">Sim</span>
+                    </div>
+                  )}
+                  {f.type === "select" && (
+                    <Select value={v ?? "__none"} onValueChange={(val) => setV(val === "__none" ? null : val)}>
+                      <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none">—</SelectItem>
+                        {(f.options ?? []).map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {f.type === "multiselect" && (
+                    <div className="flex flex-wrap gap-2 rounded-md border p-2">
+                      {(f.options ?? []).map((o) => {
+                        const arr: string[] = Array.isArray(v) ? v : [];
+                        const checked = arr.includes(o);
+                        return (
+                          <label key={o} className="flex items-center gap-1.5 text-sm">
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={(c) => setV(c ? [...arr, o] : arr.filter((x) => x !== o))}
+                            />
+                            <span>{o}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingInscricao(null)}>Cancelar</Button>
+            <Button
+              onClick={() => editingInscricao && updateValores.mutate({ id: editingInscricao.id, valores: editValores })}
+              disabled={updateValores.isPending}
+            >
+              {updateValores.isPending ? "A guardar…" : "Guardar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!confirmDelete} onOpenChange={(o) => { if (!o) setConfirmDelete(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Apagar inscrição</DialogTitle>
+            <DialogDescription>
+              Tens a certeza que queres apagar a inscrição de {confirmDelete?.pessoa?.nome_completo ?? "esta pessoa"}? Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDelete(null)}>Cancelar</Button>
+            <Button
+              variant="destructive"
+              onClick={() => confirmDelete && deleteInscricao.mutate(confirmDelete.id)}
+              disabled={deleteInscricao.isPending}
+            >
+              {deleteInscricao.isPending ? "A apagar…" : "Apagar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
