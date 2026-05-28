@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { User, Users, Users2, AlertTriangle, CalendarDays, Globe, Shield, Briefcase } from "lucide-react";
+import { User, Users, Users2, AlertTriangle, CalendarDays, Globe, Shield, Briefcase, BarChart3 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -14,6 +14,7 @@ import { useAuth } from "@/lib/auth-context";
 
 const publicItems = [
   { title: "Portal Público", url: "/", icon: Globe },
+  { title: "Resultados", url: "/resultados", icon: BarChart3 },
   { title: "O Meu Perfil", url: "/perfil", icon: User },
 ];
 
