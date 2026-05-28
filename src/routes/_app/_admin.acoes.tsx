@@ -667,6 +667,33 @@ function AddPessoasDialog({
             <TabsTrigger value="familias" className="flex-1">Famílias</TabsTrigger>
           </TabsList>
           <TabsContent value="pessoas" className="flex-1 overflow-hidden">
+            <div className="flex flex-wrap items-center gap-2 py-2">
+              <Select value={familiaFilter} onValueChange={setFamiliaFilter}>
+                <SelectTrigger className="h-8 w-[180px]"><SelectValue placeholder="Família" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">Todas as famílias</SelectItem>
+                  <SelectItem value="__none">Sem família</SelectItem>
+                  {(familias ?? []).slice().sort((a, b) => a.nome.localeCompare(b.nome)).map((f) => (
+                    <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={cidadeFilter} onValueChange={setCidadeFilter}>
+                <SelectTrigger className="h-8 w-[180px]"><SelectValue placeholder="Cidade" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">Todas as cidades</SelectItem>
+                  <SelectItem value="__none">Sem cidade</SelectItem>
+                  {cidadesDisponiveis.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {(familiaFilter !== "__all" || cidadeFilter !== "__all") && (
+                <Button size="sm" variant="ghost" onClick={() => { setFamiliaFilter("__all"); setCidadeFilter("__all"); }}>
+                  Limpar
+                </Button>
+              )}
+            </div>
             <div className="flex items-center gap-2 border-b py-2">
               <Checkbox
                 checked={allPessoasSelected}
