@@ -1305,6 +1305,7 @@ function AcoesPageInner() {
 
   const create = useMutation({
     mutationFn: async () => {
+      if (!validateAcaoForm(form)) throw new Error("Validação falhou");
       const { error } = await supabase.from("acoes").insert({
         nome: form.nome,
         local: form.local || null,
@@ -1331,6 +1332,7 @@ function AcoesPageInner() {
   const update = useMutation({
     mutationFn: async () => {
       if (!editing) return;
+      if (!validateAcaoForm(editing)) throw new Error("Validação falhou");
       const { error } = await supabase
         .from("acoes")
         .update({
