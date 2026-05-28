@@ -580,7 +580,9 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
                     </TableCell>
                   </TableRow>
                 )}
-                {filteredRows.map((row) => (
+                {(() => {
+                  if (!groupByFamilia) {
+                    return filteredRows.map((row) => (
                   <TableRow key={row.id} data-state={selected.has(row.original.id) ? "selected" : undefined}>
                     <TableCell>
                       <Checkbox checked={selected.has(row.original.id)} onCheckedChange={() => toggleOne(row.original.id)} />
@@ -591,7 +593,55 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
                       </TableCell>
                     ))}
                   </TableRow>
-                ))}
+                    ));
+                  }
+                  const groups = new Map<string, typeof filteredRows>();
+                  filteredRows.forEach((row) => {
+                    const key = row.original.pessoa?.familia?.nome ?? "— Sem família —";
+                    const arr = groups.get(key) ?? [];
+                    arr.push(row);
+                    groups.set(key, arr);
+                  });
+                  const sortedKeys = Array.from(groups.keys()).sort((a, b) => a.localeCompare(b));
+                  const colSpan = table.getVisibleLeafColumns().length + 1;
+                  const out: React.ReactNode[] = [];
+                  sortedKeys.forEach((key) => {
+                    const rows = groups.get(key)!;
+                    const groupIds = rows.map((r) => r.original.id);
+                    const allGroupSelected = groupIds.every((id) => selected.has(id));
+                    const toggleGroup = () => {
+                      const next = new Set(selected);
+                      if (allGroupSelected) groupIds.forEach((id) => next.delete(id));
+                      else groupIds.forEach((id) => next.add(id));
+                      setSelected(next);
+                    };
+                    out.push(
+                      <TableRow key={`group-${key}`} className="bg-muted/50 hover:bg-muted/50">
+                        <TableCell>
+                          <Checkbox checked={allGroupSelected} onCheckedChange={toggleGroup} />
+                        </TableCell>
+                        <TableCell colSpan={colSpan - 1} className="font-medium text-sm">
+                          {key} <span className="text-muted-foreground font-normal">({rows.length})</span>
+                        </TableCell>
+                      </TableRow>
+                    );
+                    rows.forEach((row) => {
+                      out.push(
+                        <TableRow key={row.id} data-state={selected.has(row.original.id) ? "selected" : undefined}>
+                          <TableCell>
+                            <Checkbox checked={selected.has(row.original.id)} onCheckedChange={() => toggleOne(row.original.id)} />
+                          </TableCell>
+                          {row.getVisibleCells().map((cell) => (
+                            <TableCell key={cell.id} className="whitespace-nowrap">
+                              {flexRender(cell.column.columnDef.cell ?? ((c: any) => c.getValue() || "—"), cell.getContext())}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      );
+                    });
+                  });
+                  return out;
+                })()}
               </TableBody>
             </Table>
           </div>
