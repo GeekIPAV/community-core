@@ -46,12 +46,16 @@ export const Route = createFileRoute("/resultados")({
 });
 
 const PIE_COLORS = [
-  "hsl(var(--primary))",
-  "hsl(var(--accent))",
-  "hsl(var(--secondary))",
-  "hsl(var(--muted-foreground))",
-  "hsl(var(--destructive))",
-  "hsl(var(--ring))",
+  "#6366f1", // indigo
+  "#06b6d4", // cyan
+  "#f59e0b", // amber
+  "#ec4899", // pink
+  "#10b981", // emerald
+  "#8b5cf6", // violet
+  "#ef4444", // red
+  "#14b8a6", // teal
+  "#f97316", // orange
+  "#3b82f6", // blue
 ];
 
 function ResultadosPage() {
@@ -232,7 +236,7 @@ function BarGrafico({ data }: { data: { name: string; value: number }[] }) {
           }}
           cursor={{ fill: "hsl(var(--muted) / 0.3)" }}
         />
-        <Bar dataKey="value" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
+        <Bar dataKey="value" fill="#6366f1" radius={[6, 6, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );
