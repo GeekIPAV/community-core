@@ -13,6 +13,7 @@ import { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthProvider } from "@/lib/auth-context";
+import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 
 function NotFoundComponent() {
   return (
@@ -138,7 +139,10 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
+        <div className="pb-[68px] md:pb-0">
+          <Outlet />
+        </div>
+        <MobileBottomNav />
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>

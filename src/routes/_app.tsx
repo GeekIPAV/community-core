@@ -6,7 +6,6 @@ import { LogOut } from "lucide-react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/lib/auth-context";
-import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -75,10 +74,9 @@ function AppLayout() {
               </Button>
             </div>
           </header>
-          <main className="flex-1 px-4 py-5 pb-24 md:px-10 md:py-10 md:pb-10">
+          <main className="flex-1 px-4 py-5 md:px-10 md:py-10">
             <Outlet />
           </main>
-          <MobileBottomNav />
         </div>
       </div>
     </SidebarProvider>
