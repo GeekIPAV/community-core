@@ -31,6 +31,7 @@ import {
 import { AdvancedTableFilters, advancedFilterFn, type ColumnFilterMeta } from "@/components/advanced-table-filters";
 import { DataTableViewOptions } from "@/components/data-table-view-options";
 import { DraggableTableHeaders } from "@/components/draggable-table-headers";
+import { useMobileColumnVisibility } from "@/hooks/use-mobile-columns";
 
 export const Route = createFileRoute("/_app/_admin/projetos")({
   component: ProjetosPage,
@@ -127,6 +128,8 @@ function ProjetosPage() {
     getFilteredRowModel: getFilteredRowModel(),
     getRowId: (r) => r.id,
   });
+
+  useMobileColumnVisibility(table, ["nome", "membros"]);
   const tableRows = table.getRowModel().rows;
 
   return (
