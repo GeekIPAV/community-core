@@ -566,14 +566,16 @@ function FamiliasPage() {
 
       {/* Detalhe da família */}
       <Dialog open={!!membrosFamilia} onOpenChange={(o) => { if (!o) { setMembrosFamilia(null); setEditing(null); } }}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-[min(1200px,95vw)] w-[95vw] sm:w-full p-0 overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="p-6 pb-0">
           <DialogHeader>
             <DialogTitle>{membrosFamilia?.nome}</DialogTitle>
             <DialogDescription>
               {loadingMembros ? "A carregar…" : `${membros?.length ?? 0} membro(s)`}
             </DialogDescription>
           </DialogHeader>
-          <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as "dados" | "membros" | "acoes")}>
+          </div>
+          <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as "dados" | "membros" | "acoes")} className="flex flex-col flex-1 min-h-0 px-6 pb-6">
             <TabsList className="w-full">
               <TabsTrigger value="dados" className="flex-1">Dados</TabsTrigger>
               <TabsTrigger value="membros" className="flex-1">Membros</TabsTrigger>
@@ -614,8 +616,8 @@ function FamiliasPage() {
               )}
             </TabsContent>
 
-            <TabsContent value="membros" className="pt-4">
-              <div className="max-h-[60vh] overflow-auto rounded-md border">
+            <TabsContent value="membros" className="pt-4 flex-1 min-h-0 overflow-hidden">
+              <div className="h-full max-h-[65vh] overflow-auto rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -658,8 +660,8 @@ function FamiliasPage() {
               </div>
             </TabsContent>
 
-            <TabsContent value="acoes" className="pt-4">
-              <div className="max-h-[60vh] overflow-auto rounded-md border">
+            <TabsContent value="acoes" className="pt-4 flex-1 min-h-0 overflow-hidden">
+              <div className="h-full max-h-[65vh] overflow-auto rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
