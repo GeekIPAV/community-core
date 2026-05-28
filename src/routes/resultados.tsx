@@ -1,9 +1,34 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   ResponsiveContainer,
   PieChart,
@@ -17,7 +42,16 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
-import { Users, HeartHandshake, Calendar, FolderKanban, Home, Globe2, LogIn } from "lucide-react";
+import {
+  HeartHandshake,
+  Calendar,
+  FolderKanban,
+  Home,
+  LogIn,
+  Plus,
+  Settings2,
+  Trash2,
+} from "lucide-react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/lib/auth-context";
@@ -49,17 +83,56 @@ export const Route = createFileRoute("/resultados")({
 });
 
 const PIE_COLORS = [
-  "#6366f1", // indigo
-  "#06b6d4", // cyan
-  "#f59e0b", // amber
-  "#ec4899", // pink
-  "#10b981", // emerald
-  "#8b5cf6", // violet
-  "#ef4444", // red
-  "#14b8a6", // teal
-  "#f97316", // orange
-  "#3b82f6", // blue
+  "#6366f1",
+  "#06b6d4",
+  "#f59e0b",
+  "#ec4899",
+  "#10b981",
+  "#8b5cf6",
+  "#ef4444",
+  "#14b8a6",
+  "#f97316",
+  "#3b82f6",
 ];
+
+type Dataset = "generos" | "religioes" | "nacionalidades" | "projetos";
+type ChartType = "pie" | "bar" | "barH";
+type ChartConfig = { id: string; title: string; dataset: Dataset; type: ChartType };
+
+const DATASET_LABEL: Record<Dataset, string> = {
+  generos: "Géneros",
+  religioes: "Religiões",
+  nacionalidades: "Nacionalidades",
+  projetos: "Participantes por projeto",
+};
+
+const CHART_TYPE_LABEL: Record<ChartType, string> = {
+  pie: "Circular",
+  bar: "Barras (vertical)",
+  barH: "Barras (horizontal)",
+};
+
+const DEFAULT_CHARTS: ChartConfig[] = [
+  { id: "c1", title: "Distribuição por género", dataset: "generos", type: "pie" },
+  { id: "c2", title: "Religiões", dataset: "religioes", type: "pie" },
+  { id: "c3", title: "Nacionalidades", dataset: "nacionalidades", type: "bar" },
+  { id: "c4", title: "Participantes por projeto", dataset: "projetos", type: "bar" },
+];
+
+const STORAGE_KEY = "resultados.charts.v1";
+
+function getDatasetSeries(data: Estatisticas, dataset: Dataset): { name: string; value: number }[] {
+  switch (dataset) {
+    case "generos":
+      return data.generos_detalhe.map((g) => ({ name: g.nome, value: g.count }));
+    case "religioes":
+      return data.religioes_detalhe.map((r) => ({ name: r.nome, value: r.count }));
+    case "nacionalidades":
+      return data.nacionalidades_detalhe.map((n) => ({ name: n.nome, value: n.count }));
+    case "projetos":
+      return data.projetos_detalhe.map((p) => ({ name: p.nome, value: p.participantes }));
+  }
+}
 
 function ResultadosPage() {
   const navigate = useNavigate();
@@ -96,24 +169,24 @@ function ResultadosPage() {
           </header>
 
           <main className="mx-auto w-full max-w-6xl space-y-8 px-4 py-10">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Resultados e Impacto</h1>
-          <p className="text-sm text-muted-foreground">
-            Uma visão agregada e anónima do alcance da nossa comunidade.
-          </p>
-        </div>
+            <div>
+              <h1 className="text-3xl font-semibold tracking-tight">Resultados e Impacto</h1>
+              <p className="text-sm text-muted-foreground">
+                Uma visão agregada e anónima do alcance da nossa comunidade.
+              </p>
+            </div>
 
-        {isLoading ? (
-          <div className="grid gap-4 md:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-32 w-full" />
-            ))}
-          </div>
-        ) : error ? (
-          <p className="text-sm text-destructive">Não foi possível carregar as estatísticas.</p>
-        ) : data ? (
-          <Conteudo data={data} />
-        ) : null}
+            {isLoading ? (
+              <div className="grid gap-4 md:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-32 w-full" />
+                ))}
+              </div>
+            ) : error ? (
+              <p className="text-sm text-destructive">Não foi possível carregar as estatísticas.</p>
+            ) : data ? (
+              <Conteudo data={data} />
+            ) : null}
           </main>
         </div>
       </div>
@@ -122,6 +195,46 @@ function ResultadosPage() {
 }
 
 function Conteudo({ data }: { data: Estatisticas }) {
+  const [charts, setCharts] = useState<ChartConfig[]>(() => {
+    if (typeof window === "undefined") return DEFAULT_CHARTS;
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) return DEFAULT_CHARTS;
+      const parsed = JSON.parse(raw) as ChartConfig[];
+      return Array.isArray(parsed) && parsed.length ? parsed : DEFAULT_CHARTS;
+    } catch {
+      return DEFAULT_CHARTS;
+    }
+  });
+  const [editing, setEditing] = useState<ChartConfig | null>(null);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(charts));
+    } catch {
+      // ignore
+    }
+  }, [charts]);
+
+  const addChart = () => {
+    const novo: ChartConfig = {
+      id: `c${Date.now()}`,
+      title: "Novo gráfico",
+      dataset: "generos",
+      type: "bar",
+    };
+    setCharts((prev) => [...prev, novo]);
+    setEditing(novo);
+  };
+
+  const updateChart = (next: ChartConfig) => {
+    setCharts((prev) => prev.map((c) => (c.id === next.id ? next : c)));
+  };
+
+  const removeChart = (id: string) => {
+    setCharts((prev) => prev.filter((c) => c.id !== id));
+  };
+
   return (
     <div className="space-y-8">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -131,47 +244,43 @@ function Conteudo({ data }: { data: Estatisticas }) {
         <KPI icon={<FolderKanban className="h-5 w-5" />} label="Projetos" value={data.projetos_total} sub={`${data.participantes_projetos_total} participações`} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Distribuição por género</CardTitle>
-            <CardDescription>Pessoas ativas com género declarado</CardDescription>
-          </CardHeader>
-          <CardContent className="h-72">
-            <PieGrafico data={data.generos_detalhe} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Religiões</CardTitle>
-            <CardDescription>{data.religioes_total} religiões representadas</CardDescription>
-          </CardHeader>
-          <CardContent className="h-72">
-            <PieGrafico data={data.religioes_detalhe} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2"><Globe2 className="h-4 w-4" /> Nacionalidades</CardTitle>
-            <CardDescription>{data.nacionalidades_total} nacionalidades</CardDescription>
-          </CardHeader>
-          <CardContent className="h-80">
-            <BarGrafico data={data.nacionalidades_detalhe.map((n) => ({ name: n.nome, value: n.count }))} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2"><Users className="h-4 w-4" /> Participantes por projeto</CardTitle>
-            <CardDescription>Total de inscrições ativas em projetos</CardDescription>
-          </CardHeader>
-          <CardContent className="h-80">
-            <BarGrafico data={data.projetos_detalhe.map((p) => ({ name: p.nome, value: p.participantes }))} />
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Gráficos</h2>
+        <Button size="sm" onClick={addChart}>
+          <Plus className="mr-2 h-4 w-4" /> Novo gráfico
+        </Button>
       </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {charts.map((cfg) => (
+          <ChartBlock
+            key={cfg.id}
+            config={cfg}
+            series={getDatasetSeries(data, cfg.dataset)}
+            onEdit={() => setEditing(cfg)}
+            onRemove={() => removeChart(cfg.id)}
+          />
+        ))}
+        {charts.length === 0 && (
+          <Card className="lg:col-span-2 border-dashed">
+            <CardContent className="flex h-40 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
+              Sem gráficos. Adiciona o primeiro.
+              <Button size="sm" variant="outline" onClick={addChart}>
+                <Plus className="mr-2 h-4 w-4" /> Novo gráfico
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      <ChartConfigDialog
+        chart={editing}
+        onClose={() => setEditing(null)}
+        onSave={(next) => {
+          updateChart(next);
+          setEditing(null);
+        }}
+      />
     </div>
   );
 }
@@ -190,43 +299,92 @@ function KPI({ icon, label, value, sub }: { icon: React.ReactNode; label: string
   );
 }
 
-function PieGrafico({ data }: { data: { nome: string; count: number }[] }) {
-  if (!data || data.length === 0) {
-    return <p className="flex h-full items-center justify-center text-sm text-muted-foreground">Sem dados</p>;
-  }
+function ChartBlock({
+  config,
+  series,
+  onEdit,
+  onRemove,
+}: {
+  config: ChartConfig;
+  series: { name: string; value: number }[];
+  onEdit: () => void;
+  onRemove: () => void;
+}) {
   return (
-    <ResponsiveContainer width="100%" height="100%">
-      <PieChart>
-        <Pie
-          data={data}
-          dataKey="count"
-          nameKey="nome"
-          cx="50%"
-          cy="50%"
-          outerRadius={90}
-          label={(entry: { nome: string }) => entry.nome}
-        >
-          {data.map((_, i) => (
-            <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-          ))}
-        </Pie>
-        <Tooltip
-          contentStyle={{
-            background: "hsl(var(--background))",
-            border: "1px solid hsl(var(--border))",
-            borderRadius: 8,
-            fontSize: 12,
-          }}
-        />
-        <Legend wrapperStyle={{ fontSize: 12 }} />
-      </PieChart>
-    </ResponsiveContainer>
+    <Card>
+      <CardHeader className="flex flex-row items-start justify-between space-y-0">
+        <div>
+          <CardTitle className="text-base">{config.title}</CardTitle>
+          <CardDescription>
+            {DATASET_LABEL[config.dataset]} · {CHART_TYPE_LABEL[config.type]}
+          </CardDescription>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="icon" variant="ghost" className="h-8 w-8">
+              <Settings2 className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={onEdit}>
+              <Settings2 className="mr-2 h-4 w-4" /> Configurar
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onRemove} className="text-destructive focus:text-destructive">
+              <Trash2 className="mr-2 h-4 w-4" /> Remover
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </CardHeader>
+      <CardContent className="h-80">
+        <ChartRenderer type={config.type} data={series} />
+      </CardContent>
+    </Card>
   );
 }
 
-function BarGrafico({ data }: { data: { name: string; value: number }[] }) {
+function ChartRenderer({ type, data }: { type: ChartType; data: { name: string; value: number }[] }) {
   if (!data || data.length === 0) {
-    return <p className="flex h-full items-center justify-center text-sm text-muted-foreground">Sem dados</p>;
+    return (
+      <p className="flex h-full items-center justify-center text-sm text-muted-foreground">Sem dados</p>
+    );
+  }
+  if (type === "pie") {
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={(e: { name: string }) => e.name}>
+            {data.map((_, i) => (
+              <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+            ))}
+          </Pie>
+          <Tooltip
+            contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+          />
+          <Legend wrapperStyle={{ fontSize: 12 }} />
+        </PieChart>
+      </ResponsiveContainer>
+    );
+  }
+  if (type === "barH") {
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} layout="vertical" margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+          <XAxis type="number" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} allowDecimals={false} />
+          <YAxis dataKey="name" type="category" width={110} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+          <Tooltip
+            contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+            cursor={{ fill: "hsl(var(--muted) / 0.3)" }}
+          />
+          <Bar dataKey="value" radius={[0, 6, 6, 0]}>
+            {data.map((_, i) => (
+              <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    );
   }
   return (
     <ResponsiveContainer width="100%" height="100%">
@@ -242,16 +400,91 @@ function BarGrafico({ data }: { data: { name: string; value: number }[] }) {
         />
         <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} allowDecimals={false} />
         <Tooltip
-          contentStyle={{
-            background: "hsl(var(--background))",
-            border: "1px solid hsl(var(--border))",
-            borderRadius: 8,
-            fontSize: 12,
-          }}
+          contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
           cursor={{ fill: "hsl(var(--muted) / 0.3)" }}
         />
-        <Bar dataKey="value" fill="#6366f1" radius={[6, 6, 0, 0]} />
+        <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+          {data.map((_, i) => (
+            <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+          ))}
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
+  );
+}
+
+function ChartConfigDialog({
+  chart,
+  onClose,
+  onSave,
+}: {
+  chart: ChartConfig | null;
+  onClose: () => void;
+  onSave: (next: ChartConfig) => void;
+}) {
+  const [draft, setDraft] = useState<ChartConfig | null>(chart);
+  useEffect(() => setDraft(chart), [chart]);
+  if (!draft) return null;
+  return (
+    <Dialog open={!!chart} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Configurar gráfico</DialogTitle>
+          <DialogDescription>Escolhe o título, os dados e o tipo de visualização.</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-2">
+          <div className="grid gap-2">
+            <Label htmlFor="chart-title">Título</Label>
+            <Input
+              id="chart-title"
+              value={draft.title}
+              onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label>Dados</Label>
+            <Select
+              value={draft.dataset}
+              onValueChange={(v: Dataset) => setDraft({ ...draft, dataset: v })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(DATASET_LABEL) as Dataset[]).map((k) => (
+                  <SelectItem key={k} value={k}>
+                    {DATASET_LABEL[k]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-2">
+            <Label>Tipo de gráfico</Label>
+            <Select
+              value={draft.type}
+              onValueChange={(v: ChartType) => setDraft({ ...draft, type: v })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(CHART_TYPE_LABEL) as ChartType[]).map((k) => (
+                  <SelectItem key={k} value={k}>
+                    {CHART_TYPE_LABEL[k]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button onClick={() => onSave(draft)}>Guardar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
