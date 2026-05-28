@@ -19,6 +19,8 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, Maximize2, Minimize2, ArrowUpDown, UserPlus, Search } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { RichTextEditor } from "@/components/rich-text-editor";
+import { ImageUpload } from "@/components/image-upload";
 import {
   useReactTable, getCoreRowModel, getSortedRowModel, getFilteredRowModel,
   flexRender, type ColumnDef, type SortingState, type VisibilityState, type ColumnOrderState,
@@ -201,6 +203,8 @@ function OptionsEditor({ options, setOptions }: { options: string[]; setOptions:
 type AcaoForm = {
   nome: string;
   local: string;
+  mapa_url: string;
+  imagem_url: string;
   descricao: string;
   data_inicio: string;
   data_fim: string;
@@ -209,7 +213,7 @@ type AcaoForm = {
   fields: FieldDef[];
 };
 
-const EMPTY_FORM: AcaoForm = { nome: "", local: "", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, fields: [] };
+const EMPTY_FORM: AcaoForm = { nome: "", local: "", mapa_url: "", imagem_url: "", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, fields: [] };
 
 const DEFAULT_STATUSES = ["ativa", "cancelada", "concluida"];
 
@@ -1267,6 +1271,8 @@ function AcoesPageInner() {
       const { error } = await supabase.from("acoes").insert({
         nome: form.nome,
         local: form.local || null,
+        mapa_url: form.mapa_url || null,
+        imagem_url: form.imagem_url || null,
         descricao: form.descricao || null,
         data_inicio: fromDtLocal(form.data_inicio),
         data_fim: fromDtLocal(form.data_fim),
@@ -1293,6 +1299,8 @@ function AcoesPageInner() {
         .update({
           nome: editing.nome,
           local: editing.local || null,
+          mapa_url: editing.mapa_url || null,
+          imagem_url: editing.imagem_url || null,
           descricao: editing.descricao || null,
           data_inicio: fromDtLocal(editing.data_inicio),
           data_fim: fromDtLocal(editing.data_fim),
@@ -1344,6 +1352,10 @@ function AcoesPageInner() {
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2"><Label>Nome</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} /></div>
+              <div className="space-y-2">
+                <Label>Imagem do evento</Label>
+                <ImageUpload value={form.imagem_url} onChange={(url) => setForm({ ...form, imagem_url: url ?? "" })} />
+              </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2"><Label>Local</Label><Input value={form.local} onChange={(e) => setForm({ ...form, local: e.target.value })} /></div>
                 <div className="space-y-2">
@@ -1354,6 +1366,15 @@ function AcoesPageInner() {
                     options={(data ?? []).map((a: any) => a.status).filter(Boolean)}
                   />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Link do Google Maps</Label>
+                <Input
+                  type="url"
+                  placeholder="https://maps.app.goo.gl/…"
+                  value={form.mapa_url}
+                  onChange={(e) => setForm({ ...form, mapa_url: e.target.value })}
+                />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2"><Label>Data de início</Label><Input type="datetime-local" value={form.data_inicio} onChange={(e) => setForm({ ...form, data_inicio: e.target.value })} /></div>
@@ -1366,7 +1387,10 @@ function AcoesPageInner() {
                 </div>
                 <Switch checked={form.inscricoes_abertas} onCheckedChange={(c) => setForm({ ...form, inscricoes_abertas: c })} />
               </label>
-              <div className="space-y-2"><Label>Descrição</Label><Textarea value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} /></div>
+              <div className="space-y-2">
+                <Label>Descrição</Label>
+                <RichTextEditor value={form.descricao} onChange={(v) => setForm({ ...form, descricao: v })} />
+              </div>
               <FieldsEditor fields={form.fields} setFields={(fields) => setForm({ ...form, fields })} />
             </div>
             <DialogFooter>
@@ -1395,6 +1419,8 @@ function AcoesPageInner() {
                   id: a.id,
                   nome: a.nome ?? "",
                   local: a.local ?? "",
+                  mapa_url: (a as any).mapa_url ?? "",
+                  imagem_url: (a as any).imagem_url ?? "",
                   descricao: a.descricao ?? "",
                   data_inicio: toDtLocal(a.data_inicio),
                   data_fim: toDtLocal(a.data_fim),
@@ -1477,6 +1503,10 @@ function AcoesPageInner() {
               </TabsList>
               <TabsContent value="detalhes" className="space-y-4 min-w-0">
               <div className="space-y-2"><Label>Nome</Label><Input value={editing.nome} onChange={(e) => setEditing({ ...editing, nome: e.target.value })} /></div>
+              <div className="space-y-2">
+                <Label>Imagem do evento</Label>
+                <ImageUpload value={editing.imagem_url} onChange={(url) => setEditing({ ...editing, imagem_url: url ?? "" })} />
+              </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2"><Label>Local</Label><Input value={editing.local} onChange={(e) => setEditing({ ...editing, local: e.target.value })} /></div>
                 <div className="space-y-2">
@@ -1487,6 +1517,15 @@ function AcoesPageInner() {
                     options={(data ?? []).map((a: any) => a.status).filter(Boolean)}
                   />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Link do Google Maps</Label>
+                <Input
+                  type="url"
+                  placeholder="https://maps.app.goo.gl/…"
+                  value={editing.mapa_url}
+                  onChange={(e) => setEditing({ ...editing, mapa_url: e.target.value })}
+                />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2"><Label>Data de início</Label><Input type="datetime-local" value={editing.data_inicio} onChange={(e) => setEditing({ ...editing, data_inicio: e.target.value })} /></div>
@@ -1499,7 +1538,10 @@ function AcoesPageInner() {
                 </div>
                 <Switch checked={editing.inscricoes_abertas} onCheckedChange={(c) => setEditing({ ...editing, inscricoes_abertas: c })} />
               </label>
-              <div className="space-y-2"><Label>Descrição</Label><Textarea value={editing.descricao} onChange={(e) => setEditing({ ...editing, descricao: e.target.value })} /></div>
+              <div className="space-y-2">
+                <Label>Descrição</Label>
+                <RichTextEditor value={editing.descricao} onChange={(v) => setEditing({ ...editing, descricao: v })} />
+              </div>
               <FieldsEditor fields={editing.fields} setFields={(fields) => setEditing({ ...editing, fields })} />
               </TabsContent>
               <TabsContent value="inscricoes" className="min-w-0">
