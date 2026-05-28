@@ -12,7 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { ArrowLeft, MapPin, CalendarDays } from "lucide-react";
+import { ArrowLeft, MapPin, CalendarDays, ExternalLink } from "lucide-react";
+import { RichTextView } from "@/components/rich-text-view";
 
 export const Route = createFileRoute("/acao/$id")({
   component: AcaoDetailPage,
@@ -63,18 +64,40 @@ function AcaoDetailPage() {
         ) : !acao ? (
           <p className="text-sm text-muted-foreground">Ação não encontrada.</p>
         ) : (
-          <Card>
+          <Card className="overflow-hidden">
+            {acao.imagem_url && (
+              <img
+                src={acao.imagem_url}
+                alt={acao.nome}
+                className="h-56 w-full object-cover sm:h-72"
+              />
+            )}
             <CardHeader>
               <CardTitle className="text-2xl">{acao.nome}</CardTitle>
               <CardDescription className="space-y-1">
                 {acao.data_inicio && (
                   <span className="flex items-center gap-2"><CalendarDays className="h-4 w-4" /> {new Date(acao.data_inicio).toLocaleString("pt-PT", { dateStyle: "full", timeStyle: "short" })}</span>
                 )}
-                {acao.local && <span className="flex items-center gap-2"><MapPin className="h-4 w-4" /> {acao.local}</span>}
+                {(acao.local || acao.mapa_url) && (
+                  <span className="flex flex-wrap items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    {acao.local && <span>{acao.local}</span>}
+                    {acao.mapa_url && (
+                      <a
+                        href={acao.mapa_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-primary hover:underline"
+                      >
+                        Abrir no Google Maps <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                  </span>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {acao.descricao && <p className="whitespace-pre-wrap text-sm">{acao.descricao}</p>}
+              {acao.descricao && <RichTextView html={acao.descricao} />}
               <Button size="lg" onClick={() => setOpen(true)}>Inscrever</Button>
             </CardContent>
           </Card>
