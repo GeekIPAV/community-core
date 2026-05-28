@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMemo, useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { LayoutGrid, List, Pencil, Plus, Upload, Users } from "lucide-react";
 import { formatDateBR } from "@/lib/utils";
@@ -69,7 +70,6 @@ function FamiliasPage() {
   const [nome, setNome] = useState("");
   const [notas, setNotas] = useState("");
 
-  const [editOpen, setEditOpen] = useState(false);
   const [editing, setEditing] = useState<Familia | null>(null);
 
   const [bulkAddOpen, setBulkAddOpen] = useState(false);
@@ -82,6 +82,7 @@ function FamiliasPage() {
 
   const [membrosFamilia, setMembrosFamilia] = useState<Familia | null>(null);
   const [view, setView] = useState<"tabela" | "galeria">("tabela");
+  const [detailTab, setDetailTab] = useState<"dados" | "membros" | "acoes">("membros");
 
   const { data, isLoading } = useQuery({
     queryKey: ["familias"],
@@ -173,11 +174,51 @@ function FamiliasPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, email, telefone, data_nascimento, status")
+        .select("id, nome_completo, email, telefone, data_nascimento, status, genero, cidade_residencia, nacionalidade, religiao, nif, projeto_ids")
         .eq("familia_id", membrosFamilia!.id)
         .order("nome_completo");
       if (error) throw error;
-      return data as Array<{ id: string; nome_completo: string; email: string | null; telefone: string | null; data_nascimento: string | null; status: string }>;
+      return data as Array<{
+        id: string; nome_completo: string; email: string | null; telefone: string | null;
+        data_nascimento: string | null; status: string; genero: string | null;
+        cidade_residencia: string | null; nacionalidade: string | null; religiao: string | null;
+        nif: string | null; projeto_ids: string[] | null;
+      }>;
+    },
+  });
+
+  const { data: projetosList } = useQuery({
+    queryKey: ["projetos", "lista"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("projetos").select("id, nome");
+      if (error) throw error;
+      return new Map((data ?? []).map((p: any) => [p.id as string, p.nome as string]));
+    },
+  });
+
+  const { data: acoesFamilia, isLoading: loadingAcoesFamilia } = useQuery({
+    queryKey: ["familias", "acoes", membrosFamilia?.id],
+    enabled: !!membrosFamilia && !!membros,
+    queryFn: async () => {
+      const ids = (membros ?? []).map((m) => m.id);
+      if (ids.length === 0) return [] as Array<{ inscricao_id: string; acao_id: string; nome: string; data_inicio: string | null; local: string | null; status: string; pessoa_id: string; pessoa_nome: string }>;
+      const { data, error } = await supabase
+        .from("inscricoes")
+        .select("id, status, pessoa_id, acao:acoes(id, nome, data_inicio, local)")
+        .in("pessoa_id", ids)
+        .neq("status", "cancelada");
+      if (error) throw error;
+      const nomeById = new Map((membros ?? []).map((m) => [m.id, m.nome_completo]));
+      return (data ?? []).map((r: any) => ({
+        inscricao_id: r.id,
+        acao_id: r.acao?.id,
+        nome: r.acao?.nome ?? "—",
+        data_inicio: r.acao?.data_inicio ?? null,
+        local: r.acao?.local ?? null,
+        status: r.status,
+        pessoa_id: r.pessoa_id,
+        pessoa_nome: nomeById.get(r.pessoa_id) ?? "—",
+      }));
     },
   });
 
@@ -210,7 +251,6 @@ function FamiliasPage() {
     onSuccess: () => {
       toast.success("Família atualizada");
       invalidate();
-      setEditOpen(false);
       setEditing(null);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -317,6 +357,12 @@ function FamiliasPage() {
     setSelected(next);
   };
 
+  const openDetail = (f: Familia, tab: "dados" | "membros" | "acoes" = "membros") => {
+    setMembrosFamilia(f);
+    setEditing({ ...f });
+    setDetailTab(tab);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -383,7 +429,7 @@ function FamiliasPage() {
                 onClick={(e) => {
                   const target = e.target as HTMLElement;
                   if (target.closest("button, [role=checkbox], input")) return;
-                  setMembrosFamilia(f);
+                  openDetail(f, "membros");
                 }}
               >
                 <div className="flex items-start justify-between gap-2">
@@ -404,10 +450,10 @@ function FamiliasPage() {
                 )}
                 {f.notas && <div className="text-xs text-muted-foreground line-clamp-2">{f.notas}</div>}
                 <div className="flex justify-end gap-1 pt-1">
-                  <Button size="icon" variant="ghost" title="Ver membros" onClick={() => setMembrosFamilia(f)}>
+                  <Button size="icon" variant="ghost" title="Ver membros" onClick={() => openDetail(f, "membros")}>
                     <Users className="h-4 w-4" />
                   </Button>
-                  <Button size="icon" variant="ghost" title="Editar" onClick={() => { setEditing({ ...f }); setEditOpen(true); }}>
+                  <Button size="icon" variant="ghost" title="Editar" onClick={() => openDetail(f, "dados")}>
                     <Pencil className="h-4 w-4" />
                   </Button>
                 </div>
@@ -435,7 +481,7 @@ function FamiliasPage() {
                   <TableRow key={row.id} className="cursor-pointer" onClick={(e) => {
                     const target = e.target as HTMLElement;
                     if (target.closest("button, [role=checkbox], input")) return;
-                    setMembrosFamilia(f);
+                    openDetail(f, "membros");
                   }}>
                     <TableCell><Checkbox checked={selected.has(f.id)} onCheckedChange={() => toggleOne(f.id)} /></TableCell>
                     {row.getVisibleCells().map((cell) => (
@@ -443,10 +489,10 @@ function FamiliasPage() {
                     ))}
                     <TableCell>
                       <div className="flex justify-end gap-1">
-                        <Button size="icon" variant="ghost" title="Ver membros" onClick={() => setMembrosFamilia(f)}>
+                        <Button size="icon" variant="ghost" title="Ver membros" onClick={() => openDetail(f, "membros")}>
                           <Users className="h-4 w-4" />
                         </Button>
-                        <Button size="icon" variant="ghost" title="Editar" onClick={() => { setEditing({ ...f }); setEditOpen(true); }}>
+                        <Button size="icon" variant="ghost" title="Editar" onClick={() => openDetail(f, "dados")}>
                           <Pencil className="h-4 w-4" />
                         </Button>
                       </div>
@@ -458,44 +504,6 @@ function FamiliasPage() {
           </Table>
         </div>
       )}
-
-      {/* Edit */}
-      <Dialog open={editOpen} onOpenChange={(o) => { setEditOpen(o); if (!o) setEditing(null); }}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Editar família</DialogTitle></DialogHeader>
-          {editing && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Nome</Label>
-                <Input value={editing.nome} onChange={(e) => setEditing({ ...editing, nome: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select value={editing.status} onValueChange={(v) => setEditing({ ...editing, status: v as FamiliaStatus })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {STATUS_GROUPS.map((g) => (
-                      <div key={g.label}>
-                        <div className="px-2 py-1 text-xs text-muted-foreground">{g.label}</div>
-                        {g.options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                      </div>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Notas</Label>
-                <Textarea value={editing.notas ?? ""} onChange={(e) => setEditing({ ...editing, notas: e.target.value })} />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button onClick={() => update.mutate()} disabled={!editing?.nome.trim() || update.isPending}>
-              {update.isPending ? "A guardar…" : "Guardar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Bulk add */}
       <Dialog open={bulkAddOpen} onOpenChange={setBulkAddOpen}>
@@ -556,40 +564,133 @@ function FamiliasPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Membros */}
-      <Dialog open={!!membrosFamilia} onOpenChange={(o) => { if (!o) setMembrosFamilia(null); }}>
-        <DialogContent className="max-w-2xl">
+      {/* Detalhe da família */}
+      <Dialog open={!!membrosFamilia} onOpenChange={(o) => { if (!o) { setMembrosFamilia(null); setEditing(null); } }}>
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Membros de {membrosFamilia?.nome}</DialogTitle>
+            <DialogTitle>{membrosFamilia?.nome}</DialogTitle>
             <DialogDescription>
               {loadingMembros ? "A carregar…" : `${membros?.length ?? 0} membro(s)`}
             </DialogDescription>
           </DialogHeader>
-          <div className="max-h-[60vh] overflow-auto rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Data nasc.</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(!membros || membros.length === 0) && !loadingMembros && (
-                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Sem membros</TableCell></TableRow>
-                )}
-                {membros?.map((m) => (
-                  <TableRow key={m.id}>
-                    <TableCell className="font-medium">{m.nome_completo}</TableCell>
-                    <TableCell className="text-muted-foreground">{m.email ?? "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">{m.telefone ?? "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">{formatDateBR(m.data_nascimento)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as "dados" | "membros" | "acoes")}>
+            <TabsList className="w-full">
+              <TabsTrigger value="dados" className="flex-1">Dados</TabsTrigger>
+              <TabsTrigger value="membros" className="flex-1">Membros</TabsTrigger>
+              <TabsTrigger value="acoes" className="flex-1">Ações</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="dados" className="space-y-4 pt-4">
+              {editing && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Nome</Label>
+                    <Input value={editing.nome} onChange={(e) => setEditing({ ...editing, nome: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <Select value={editing.status} onValueChange={(v) => setEditing({ ...editing, status: v as FamiliaStatus })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {STATUS_GROUPS.map((g) => (
+                          <div key={g.label}>
+                            <div className="px-2 py-1 text-xs text-muted-foreground">{g.label}</div>
+                            {g.options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                          </div>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Notas</Label>
+                    <Textarea value={editing.notas ?? ""} onChange={(e) => setEditing({ ...editing, notas: e.target.value })} />
+                  </div>
+                  <DialogFooter>
+                    <Button onClick={() => update.mutate()} disabled={!editing.nome.trim() || update.isPending}>
+                      {update.isPending ? "A guardar…" : "Guardar"}
+                    </Button>
+                  </DialogFooter>
+                </>
+              )}
+            </TabsContent>
+
+            <TabsContent value="membros" className="pt-4">
+              <div className="max-h-[60vh] overflow-auto rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Telefone</TableHead>
+                      <TableHead>Data nasc.</TableHead>
+                      <TableHead>Género</TableHead>
+                      <TableHead>Cidade</TableHead>
+                      <TableHead>Nacionalidade</TableHead>
+                      <TableHead>Religião</TableHead>
+                      <TableHead>NIF</TableHead>
+                      <TableHead>Projetos</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(!membros || membros.length === 0) && !loadingMembros && (
+                      <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground">Sem membros</TableCell></TableRow>
+                    )}
+                    {membros?.map((m) => (
+                      <TableRow key={m.id}>
+                        <TableCell className="font-medium whitespace-nowrap">{m.nome_completo}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.email ?? "—"}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.telefone ?? "—"}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{formatDateBR(m.data_nascimento)}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.genero ?? "—"}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.cidade_residencia ?? "—"}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.nacionalidade ?? "—"}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.religiao ?? "—"}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.nif ?? "—"}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">
+                          {(m.projeto_ids ?? []).map((id) => projetosList?.get(id)).filter(Boolean).join(", ") || "—"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.status}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="acoes" className="pt-4">
+              <div className="max-h-[60vh] overflow-auto rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Ação</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Local</TableHead>
+                      <TableHead>Membro</TableHead>
+                      <TableHead>Estado</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loadingAcoesFamilia && (
+                      <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">A carregar…</TableCell></TableRow>
+                    )}
+                    {!loadingAcoesFamilia && (!acoesFamilia || acoesFamilia.length === 0) && (
+                      <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sem inscrições</TableCell></TableRow>
+                    )}
+                    {acoesFamilia?.map((a) => (
+                      <TableRow key={a.inscricao_id}>
+                        <TableCell className="font-medium whitespace-nowrap">{a.nome}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{a.data_inicio ? formatDateBR(a.data_inicio) : "—"}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{a.local ?? "—"}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{a.pessoa_nome}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{a.status}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
     </div>
