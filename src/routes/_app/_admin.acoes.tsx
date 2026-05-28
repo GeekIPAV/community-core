@@ -30,6 +30,7 @@ import {
 import { AdvancedTableFilters, advancedFilterFn, type ColumnFilterMeta } from "@/components/advanced-table-filters";
 import { DataTableViewOptions } from "@/components/data-table-view-options";
 import { DraggableTableHeaders } from "@/components/draggable-table-headers";
+import { useMobileColumnVisibility } from "@/hooks/use-mobile-columns";
 
 export const Route = createFileRoute("/_app/_admin/acoes")({
   component: AcoesPage,
@@ -506,6 +507,8 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
     getFilteredRowModel: getFilteredRowModel(),
     getRowId: (r) => r.id,
   });
+
+  useMobileColumnVisibility(table, ["status", "nome", "telefone", "actions"]);
 
   if (isLoading) return <Skeleton className="h-32 w-full" />;
 
