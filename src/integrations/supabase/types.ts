@@ -26,6 +26,7 @@ export type Database = {
           local: string | null
           nome: string
           status: string
+          tipo: string
           updated_at: string
         }
         Insert: {
@@ -39,6 +40,7 @@ export type Database = {
           local?: string | null
           nome: string
           status?: string
+          tipo?: string
           updated_at?: string
         }
         Update: {
@@ -52,6 +54,7 @@ export type Database = {
           local?: string | null
           nome?: string
           status?: string
+          tipo?: string
           updated_at?: string
         }
         Relationships: []
@@ -148,6 +151,7 @@ export type Database = {
           id: string
           ignorar_duplicado: boolean
           is_admin: boolean
+          is_voluntario: boolean
           nacionalidade: string | null
           nif: string | null
           nome_completo: string
@@ -171,6 +175,7 @@ export type Database = {
           id?: string
           ignorar_duplicado?: boolean
           is_admin?: boolean
+          is_voluntario?: boolean
           nacionalidade?: string | null
           nif?: string | null
           nome_completo: string
@@ -194,6 +199,7 @@ export type Database = {
           id?: string
           ignorar_duplicado?: boolean
           is_admin?: boolean
+          is_voluntario?: boolean
           nacionalidade?: string | null
           nif?: string | null
           nome_completo?: string
@@ -337,6 +343,7 @@ export type Database = {
         Args: { duplicado: string; principal: string }
         Returns: undefined
       }
+      get_estatisticas_publicas: { Args: never; Returns: Json }
       inscrever_publico:
         | {
             Args: {

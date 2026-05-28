@@ -81,6 +81,9 @@ function Home() {
         <div className="flex h-14 items-center justify-between px-4">
           <span className="text-sm font-semibold">Meeru</span>
           <div className="flex items-center gap-2">
+            <Link to="/resultados" className="text-xs font-medium text-muted-foreground hover:text-foreground">
+              Resultados
+            </Link>
             {session ? (
               <Button size="sm" variant="outline" onClick={() => navigate({ to: isAdmin ? "/participantes" : "/perfil" })}>
                 {pessoa?.nome_completo?.split(" ")[0] ?? "Área pessoal"}
