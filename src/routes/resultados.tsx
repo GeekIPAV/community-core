@@ -18,6 +18,9 @@ import {
   Legend,
 } from "recharts";
 import { Users, HeartHandshake, Calendar, FolderKanban, Home, Globe2, LogIn } from "lucide-react";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import { useAuth } from "@/lib/auth-context";
 
 type Estatisticas = {
   familias_total: number;
@@ -60,6 +63,7 @@ const PIE_COLORS = [
 
 function ResultadosPage() {
   const navigate = useNavigate();
+  const { session, pessoa, isAdmin } = useAuth();
   const { data, isLoading, error } = useQuery({
     queryKey: ["estatisticas_publicas"],
     queryFn: async () => {
@@ -70,20 +74,28 @@ function ResultadosPage() {
   });
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <Link to="/" className="text-sm font-semibold">Meeru</Link>
-          <div className="flex items-center gap-2">
-            <Link to="/resultados" className="text-xs font-medium text-primary">Resultados</Link>
-            <Button size="sm" variant="outline" onClick={() => navigate({ to: "/login" })}>
-              <LogIn className="mr-2 h-4 w-4" /> Entrar
-            </Button>
-          </div>
-        </div>
-      </header>
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full bg-background">
+        <AppSidebar />
+        <div className="flex flex-1 flex-col">
+          <header className="border-b">
+            <div className="flex h-14 items-center justify-between px-4">
+              <span className="text-sm font-semibold">Meeru</span>
+              <div className="flex items-center gap-2">
+                {session ? (
+                  <Button size="sm" variant="outline" onClick={() => navigate({ to: isAdmin ? "/participantes" : "/perfil" })}>
+                    {pessoa?.nome_completo?.split(" ")[0] ?? "Área pessoal"}
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="outline" onClick={() => navigate({ to: "/login" })}>
+                    <LogIn className="mr-2 h-4 w-4" /> Entrar
+                  </Button>
+                )}
+              </div>
+            </div>
+          </header>
 
-      <main className="mx-auto w-full max-w-6xl space-y-8 px-4 py-10">
+          <main className="mx-auto w-full max-w-6xl space-y-8 px-4 py-10">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Resultados e Impacto</h1>
           <p className="text-sm text-muted-foreground">
@@ -102,8 +114,10 @@ function ResultadosPage() {
         ) : data ? (
           <Conteudo data={data} />
         ) : null}
-      </main>
-    </div>
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
   );
 }
 
