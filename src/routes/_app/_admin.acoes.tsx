@@ -472,6 +472,291 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
 
 function AcoesPage() {
   const qc = useQueryClient();
+  return <AcoesPageInner />;
+}
+
+function AddPessoasDialog({
+  open,
+  onOpenChange,
+  acaoId,
+  inscritosIds,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  acaoId: string;
+  inscritosIds: Set<string>;
+}) {
+  const qc = useQueryClient();
+  const [tab, setTab] = useState<"pessoas" | "familias">("pessoas");
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const { data: pessoas, isLoading: loadingPessoas } = useQuery({
+    queryKey: ["pessoas-atribuir"],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pessoas")
+        .select("id, nome_completo, telefone, email, familia_id")
+        .eq("status", "ativo")
+        .order("nome_completo", { ascending: true });
+      if (error) throw error;
+      return data as Array<{ id: string; nome_completo: string; telefone: string | null; email: string | null; familia_id: string | null }>;
+    },
+  });
+
+  const { data: familias, isLoading: loadingFamilias } = useQuery({
+    queryKey: ["familias-atribuir"],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("familias")
+        .select("id, nome");
+      if (error) throw error;
+      return data as Array<{ id: string; nome: string }>;
+    },
+  });
+
+  const familiaMembros = useMemo(() => {
+    const m = new Map<string, Array<{ id: string; nome_completo: string }>>();
+    (pessoas ?? []).forEach((p) => {
+      if (!p.familia_id) return;
+      const arr = m.get(p.familia_id) ?? [];
+      arr.push({ id: p.id, nome_completo: p.nome_completo });
+      m.set(p.familia_id, arr);
+    });
+    return m;
+  }, [pessoas]);
+
+  const filteredPessoas = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const list = pessoas ?? [];
+    if (!q) return list;
+    return list.filter((p) =>
+      [p.nome_completo, p.telefone ?? "", p.email ?? ""].some((v) => v.toLowerCase().includes(q))
+    );
+  }, [pessoas, search]);
+
+  const filteredFamilias = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const list = familias ?? [];
+    if (!q) return list;
+    return list.filter((f) => f.nome.toLowerCase().includes(q));
+  }, [familias, search]);
+
+  const toggleOne = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectablePessoas = filteredPessoas.filter((p) => !inscritosIds.has(p.id));
+  const allPessoasSelected = selectablePessoas.length > 0 && selectablePessoas.every((p) => selected.has(p.id));
+  const togglePessoasAll = () => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allPessoasSelected) selectablePessoas.forEach((p) => next.delete(p.id));
+      else selectablePessoas.forEach((p) => next.add(p.id));
+      return next;
+    });
+  };
+
+  const getFamiliaState = (familiaId: string) => {
+    const membros = familiaMembros.get(familiaId) ?? [];
+    if (membros.length === 0) return { label: "Sem membros", variant: "outline" as const, selectable: [] as string[], allInscritos: false };
+    const inscritos = membros.filter((m) => inscritosIds.has(m.id));
+    const naoInscritos = membros.filter((m) => !inscritosIds.has(m.id));
+    if (inscritos.length === membros.length) return { label: "Totalmente inscrita", variant: "secondary" as const, selectable: [], allInscritos: true };
+    if (inscritos.length > 0) return { label: `Parcialmente inscrita (${inscritos.length}/${membros.length})`, variant: "outline" as const, selectable: naoInscritos.map((m) => m.id), allInscritos: false };
+    return { label: `Não inscrita (${membros.length})`, variant: "outline" as const, selectable: naoInscritos.map((m) => m.id), allInscritos: false };
+  };
+
+  const toggleFamilia = (familiaId: string) => {
+    const { selectable } = getFamiliaState(familiaId);
+    if (selectable.length === 0) return;
+    setSelected((prev) => {
+      const next = new Set(prev);
+      const allIn = selectable.every((id) => next.has(id));
+      if (allIn) selectable.forEach((id) => next.delete(id));
+      else selectable.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+
+  const selectableFamiliasIds = filteredFamilias
+    .map((f) => getFamiliaState(f.id))
+    .flatMap((s) => s.selectable);
+  const allFamiliasSelected = selectableFamiliasIds.length > 0 && selectableFamiliasIds.every((id) => selected.has(id));
+  const toggleFamiliasAll = () => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allFamiliasSelected) selectableFamiliasIds.forEach((id) => next.delete(id));
+      else selectableFamiliasIds.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+
+  const inscrever = useMutation({
+    mutationFn: async (ids: string[]) => {
+      if (ids.length === 0) return;
+      const rows = ids.map((pessoa_id) => ({
+        pessoa_id,
+        acao_id: acaoId,
+        status: "confirmada" as const,
+        valores_dinamicos: {},
+      }));
+      const { error } = await supabase.from("inscricoes").insert(rows as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["inscricoes", acaoId] });
+      qc.invalidateQueries({ queryKey: ["inscricao-counts"] });
+      toast.success("Pessoas inscritas com sucesso");
+      setSelected(new Set());
+      setSearch("");
+      onOpenChange(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const initials = (nome: string) =>
+    nome.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("");
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="flex w-full flex-col gap-4 sm:max-w-xl">
+        <SheetHeader>
+          <SheetTitle>Atribuição Manual</SheetTitle>
+          <SheetDescription>Adiciona pessoas ou famílias inteiras a esta ação.</SheetDescription>
+        </SheetHeader>
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Pesquisar por nome, telefone ou email…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8"
+          />
+        </div>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as "pessoas" | "familias")} className="flex flex-1 flex-col overflow-hidden">
+          <TabsList className="w-full">
+            <TabsTrigger value="pessoas" className="flex-1">Pessoas</TabsTrigger>
+            <TabsTrigger value="familias" className="flex-1">Famílias</TabsTrigger>
+          </TabsList>
+          <TabsContent value="pessoas" className="flex-1 overflow-hidden">
+            <div className="flex items-center gap-2 border-b py-2">
+              <Checkbox
+                checked={allPessoasSelected}
+                onCheckedChange={togglePessoasAll}
+                disabled={selectablePessoas.length === 0}
+                aria-label="Selecionar visíveis"
+              />
+              <span className="text-xs text-muted-foreground">
+                Selecionar visíveis ({selectablePessoas.length} disponíveis)
+              </span>
+            </div>
+            <ScrollArea className="h-[60vh]">
+              {loadingPessoas ? (
+                <Skeleton className="m-2 h-32" />
+              ) : filteredPessoas.length === 0 ? (
+                <p className="p-4 text-center text-sm text-muted-foreground">Sem resultados.</p>
+              ) : (
+                <ul className="divide-y">
+                  {filteredPessoas.map((p) => {
+                    const inscrito = inscritosIds.has(p.id);
+                    return (
+                      <li key={p.id} className="flex items-center gap-3 px-1 py-2">
+                        <Checkbox
+                          checked={selected.has(p.id)}
+                          disabled={inscrito}
+                          onCheckedChange={() => toggleOne(p.id)}
+                        />
+                        <div className="grid h-8 w-8 place-content-center rounded-full bg-muted text-xs font-medium">
+                          {initials(p.nome_completo) || "?"}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{p.nome_completo}</p>
+                          {(p.telefone || p.email) && (
+                            <p className="truncate text-xs text-muted-foreground">
+                              {p.telefone ?? p.email}
+                            </p>
+                          )}
+                        </div>
+                        {inscrito && <Badge variant="secondary">Já inscrito</Badge>}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </ScrollArea>
+          </TabsContent>
+          <TabsContent value="familias" className="flex-1 overflow-hidden">
+            <div className="flex items-center gap-2 border-b py-2">
+              <Checkbox
+                checked={allFamiliasSelected}
+                onCheckedChange={toggleFamiliasAll}
+                disabled={selectableFamiliasIds.length === 0}
+                aria-label="Selecionar visíveis"
+              />
+              <span className="text-xs text-muted-foreground">
+                Selecionar visíveis ({selectableFamiliasIds.length} membros disponíveis)
+              </span>
+            </div>
+            <ScrollArea className="h-[60vh]">
+              {loadingFamilias || loadingPessoas ? (
+                <Skeleton className="m-2 h-32" />
+              ) : filteredFamilias.length === 0 ? (
+                <p className="p-4 text-center text-sm text-muted-foreground">Sem resultados.</p>
+              ) : (
+                <ul className="divide-y">
+                  {filteredFamilias.map((f) => {
+                    const state = getFamiliaState(f.id);
+                    const membros = familiaMembros.get(f.id) ?? [];
+                    const checked = state.selectable.length > 0 && state.selectable.every((id) => selected.has(id));
+                    return (
+                      <li key={f.id} className="flex items-center gap-3 px-1 py-2">
+                        <Checkbox
+                          checked={checked}
+                          disabled={state.selectable.length === 0}
+                          onCheckedChange={() => toggleFamilia(f.id)}
+                        />
+                        <div className="grid h-8 w-8 place-content-center rounded-full bg-muted text-xs font-medium">
+                          {initials(f.nome) || "F"}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{f.nome}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {membros.length} membro(s)
+                          </p>
+                        </div>
+                        <Badge variant={state.variant}>{state.label}</Badge>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </ScrollArea>
+          </TabsContent>
+        </Tabs>
+        <SheetFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button
+            disabled={selected.size === 0 || inscrever.isPending}
+            onClick={() => inscrever.mutate(Array.from(selected))}
+          >
+            Inscrever Selecionados ({selected.size})
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function AcoesPageInner() {
+  const qc = useQueryClient();
   const [addOpen, setAddOpen] = useState(false);
   const [form, setForm] = useState<AcaoForm>(EMPTY_FORM);
 
