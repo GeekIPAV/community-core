@@ -38,7 +38,7 @@ export function AppSidebar() {
   const visibleAcoes = acoesItems.filter((i) => hasPage(i.page));
 
   return (
-    <Sidebar collapsible="none">
+    <Sidebar collapsible="icon">
       <SidebarContent className="gap-1 px-2 py-4">
         <SidebarGroup>
           <SidebarGroupLabel className="px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">
