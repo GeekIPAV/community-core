@@ -276,12 +276,13 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
   const [bulkEditField, setBulkEditField] = useState<string>("");
   const [bulkEditValue, setBulkEditValue] = useState<any>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [groupByFamilia, setGroupByFamilia] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ["inscricoes", acaoId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("inscricoes")
-        .select("id, status, valores_dinamicos, created_at, pessoa:pessoas(id, nome_completo, email, telefone, data_nascimento, nif, cidade_residencia, genero, nacionalidade)")
+        .select("id, status, valores_dinamicos, created_at, pessoa:pessoas(id, nome_completo, email, telefone, data_nascimento, nif, cidade_residencia, genero, nacionalidade, familia_id, familia:familias(id, nome))")
         .eq("acao_id", acaoId)
         .order("created_at", { ascending: true });
       if (error) throw error;
