@@ -370,7 +370,7 @@ function ParticipantesPage() {
         nacionalidade?: string | null;
         cidade_residencia?: string | null;
         religiao?: string | null;
-        projeto_id?: string | null;
+        projeto_ids?: string[];
       } = {};
       if (bulkFamilia !== "__noop") patch.familia_id = bulkFamilia === "__null" ? null : bulkFamilia;
       if (bulkStatus !== "__noop") patch.status = bulkStatus;
@@ -379,7 +379,8 @@ function ParticipantesPage() {
       if (bulkNacionalidade.trim()) patch.nacionalidade = bulkNacionalidade.trim();
       if (bulkCidade.trim()) patch.cidade_residencia = bulkCidade.trim();
       if (bulkReligiao.trim()) patch.religiao = bulkReligiao.trim();
-      if (bulkProjeto !== "__noop") patch.projeto_id = bulkProjeto === "__null" ? null : bulkProjeto;
+      if (bulkProjetosMode === "clear") patch.projeto_ids = [];
+      else if (bulkProjetosMode === "set") patch.projeto_ids = bulkProjetos;
       if (Object.keys(patch).length === 0) throw new Error("Nada para alterar");
       const { error } = await supabase.from("pessoas").update(patch).in("id", ids);
       if (error) throw error;
@@ -397,7 +398,8 @@ function ParticipantesPage() {
       setBulkNacionalidade("");
       setBulkCidade("");
       setBulkReligiao("");
-      setBulkProjeto("__noop");
+      setBulkProjetosMode("noop");
+      setBulkProjetos([]);
     },
     onError: (e: Error) => toast.error(e.message),
   });
