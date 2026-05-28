@@ -256,6 +256,10 @@ function ResultadosPage() {
       if (error) throw error;
       return data as unknown as Estatisticas;
     },
+    staleTime: 1000 * 60 * 30,
+    gcTime: 1000 * 60 * 60,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   return (
