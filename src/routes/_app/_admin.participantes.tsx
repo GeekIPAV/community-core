@@ -680,6 +680,7 @@ function ParticipantesPage() {
               <Field label="Nacionalidade"><Input value={editing.nacionalidade ?? ""} onChange={(e) => setEditing({ ...editing, nacionalidade: e.target.value })} /></Field>
               <Field label="Cidade residência"><Input value={editing.cidade_residencia ?? ""} onChange={(e) => setEditing({ ...editing, cidade_residencia: e.target.value })} /></Field>
               <Field label="Religião"><Input value={editing.religiao ?? ""} onChange={(e) => setEditing({ ...editing, religiao: e.target.value })} /></Field>
+              <Field label="Profissão"><Input value={editing.profissao ?? ""} onChange={(e) => setEditing({ ...editing, profissao: e.target.value })} /></Field>
               <Field label="Família" className="col-span-2">
                 <Select value={editing.familia_id ?? "__null"} onValueChange={(v) => setEditing({ ...editing, familia_id: v === "__null" ? null : v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -1088,6 +1089,7 @@ function parseBulkCsv(text: string, familias: { id: string; nome: string }[], pr
         nacionalidade,
         cidade_residencia,
         religiao,
+        profissao,
         familia,
         projeto,
       ] = parts;
@@ -1125,6 +1127,7 @@ function parseBulkCsv(text: string, familias: { id: string; nome: string }[], pr
         nacionalidade: nacionalidade || null,
         cidade_residencia: cidade_residencia || null,
         religiao: religiao || null,
+        profissao: profissao || null,
         familia_id,
         projeto_ids,
       };
