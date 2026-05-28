@@ -70,7 +70,6 @@ function FamiliasPage() {
   const [nome, setNome] = useState("");
   const [notas, setNotas] = useState("");
 
-  const [editOpen, setEditOpen] = useState(false);
   const [editing, setEditing] = useState<Familia | null>(null);
 
   const [bulkAddOpen, setBulkAddOpen] = useState(false);
@@ -252,7 +251,6 @@ function FamiliasPage() {
     onSuccess: () => {
       toast.success("Família atualizada");
       invalidate();
-      setEditOpen(false);
       setEditing(null);
     },
     onError: (e: Error) => toast.error(e.message),
