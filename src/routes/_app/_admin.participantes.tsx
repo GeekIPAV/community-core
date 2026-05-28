@@ -62,6 +62,8 @@ type Pessoa = {
   email: string | null;
   telefone: string | null;
   nif: string | null;
+  cartao_cidadao: string | null;
+  morada: string | null;
   data_nascimento: string | null;
   familia_id: string | null;
   status: string;
@@ -82,6 +84,8 @@ const BULK_COLUMNS = [
   "email",
   "telefone",
   "nif",
+  "cartao_cidadao",
+  "morada",
   "data_nascimento",
   "genero",
   "nacionalidade",
@@ -96,6 +100,8 @@ const emptyForm: Omit<Pessoa, "id" | "status"> & { status?: string } = {
   email: "",
   telefone: "",
   nif: "",
+  cartao_cidadao: "",
+  morada: "",
   data_nascimento: "",
   familia_id: null,
   notas: "",
@@ -141,7 +147,7 @@ function ParticipantesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, email, telefone, nif, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao, projeto_ids")
+        .select("id, nome_completo, email, telefone, nif, cartao_cidadao, morada, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao, projeto_ids")
         .order("nome_completo", { ascending: true });
       if (error) throw error;
       return (data ?? []).map((p: any) => ({ ...p, projeto_ids: p.projeto_ids ?? [] })) as Pessoa[];
@@ -218,6 +224,8 @@ function ParticipantesPage() {
       { id: "email", header: "Email", accessorKey: "email", cell: text("email"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Email" } satisfies ColumnFilterMeta },
       { id: "telefone", header: "Telefone", accessorKey: "telefone", cell: text("telefone"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Telefone" } satisfies ColumnFilterMeta },
       { id: "nif", header: "NIF", accessorKey: "nif", cell: text("nif"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "NIF" } satisfies ColumnFilterMeta },
+      { id: "cartao_cidadao", header: "Cartão de Cidadão", accessorKey: "cartao_cidadao", cell: text("cartao_cidadao"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Cartão de Cidadão" } satisfies ColumnFilterMeta },
+      { id: "morada", header: "Morada", accessorKey: "morada", cell: text("morada"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Morada" } satisfies ColumnFilterMeta },
       { id: "data_nascimento", header: "Data nascimento", accessorKey: "data_nascimento", cell: text("data_nascimento", "date"), filterFn: advancedFilterFn as any, meta: { filterVariant: "date", label: "Data nascimento" } satisfies ColumnFilterMeta },
       { id: "genero", header: "Género", accessorKey: "genero", cell: sel("genero", GENERO_OPTS.map((g) => ({ value: g, label: g })), "não definido"), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: GENERO_OPTS, label: "Género" } satisfies ColumnFilterMeta },
       { id: "nacionalidade", header: "Nacionalidade", accessorKey: "nacionalidade", cell: text("nacionalidade"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nacionalidade" } satisfies ColumnFilterMeta },
@@ -286,6 +294,8 @@ function ParticipantesPage() {
         email: form.email?.trim() || null,
         telefone: form.telefone?.trim() || null,
         nif: form.nif?.trim() || null,
+        cartao_cidadao: form.cartao_cidadao?.trim() || null,
+        morada: form.morada?.trim() || null,
         data_nascimento: form.data_nascimento || null,
         familia_id: form.familia_id || null,
         notas: form.notas?.trim() || null,
@@ -318,6 +328,8 @@ function ParticipantesPage() {
           email: editing.email || null,
           telefone: editing.telefone || null,
           nif: editing.nif || null,
+          cartao_cidadao: editing.cartao_cidadao || null,
+          morada: editing.morada || null,
           data_nascimento: editing.data_nascimento || null,
           familia_id: editing.familia_id || null,
           status: editing.status as any,
