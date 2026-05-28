@@ -733,7 +733,7 @@ function ParticipantesPage() {
 
       {/* Bulk add */}
       <Dialog open={bulkAddOpen} onOpenChange={setBulkAddOpen}>
-        <DialogContent className="max-w-xl">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>Importar pessoas em massa</DialogTitle>
             <DialogDescription>
@@ -744,6 +744,7 @@ function ParticipantesPage() {
           </DialogHeader>
           <Textarea
             rows={10}
+            className="font-mono text-xs whitespace-pre"
             placeholder={"Ana Silva, ana@mail.com, 912345678, 123456789, 1990-04-12, Feminino, Portuguesa, Lisboa, Católica, Família Silva\nJoão Costa, , , , , Masculino, , Porto, , "}
             value={bulkText}
             onChange={(e) => setBulkText(e.target.value)}
