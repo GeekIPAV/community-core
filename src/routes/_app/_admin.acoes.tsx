@@ -604,7 +604,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
                   });
                   const sortedKeys = Array.from(groups.keys()).sort((a, b) => a.localeCompare(b));
                   const colSpan = table.getVisibleLeafColumns().length + 1;
-                  const out: React.ReactNode[] = [];
+                  const out: any[] = [];
                   sortedKeys.forEach((key) => {
                     const rows = groups.get(key)!;
                     const groupIds = rows.map((r) => r.original.id);
