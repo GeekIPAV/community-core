@@ -297,6 +297,11 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
   );
   const total = baseRows.length;
   const presentes = baseRows.filter((r) => r.status === "presente").length;
+  const inscritosIds = useMemo(
+    () => new Set(baseRows.map((r) => r.pessoa?.id).filter(Boolean) as string[]),
+    [baseRows]
+  );
+  const [addOpen, setAddOpen] = useState(false);
 
   const columns: ColumnDef<InscricaoRow>[] = useMemo(() => [
     {
@@ -391,8 +396,17 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
         <div className="ml-auto">
           <AdvancedTableFilters table={table} />
         </div>
+        <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}>
+          <UserPlus className="mr-1 h-3.5 w-3.5" /> Adicionar Pessoas
+        </Button>
         <DataTableViewOptions table={table} />
       </div>
+      <AddPessoasDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        acaoId={acaoId}
+        inscritosIds={inscritosIds}
+      />
       {baseRows.length === 0 ? (
         <p className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">
           Ainda ninguém se inscreveu.
