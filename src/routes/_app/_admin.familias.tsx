@@ -431,7 +431,7 @@ function FamiliasPage() {
                 onClick={(e) => {
                   const target = e.target as HTMLElement;
                   if (target.closest("button, [role=checkbox], input")) return;
-                  setMembrosFamilia(f);
+                  openDetail(f, "membros");
                 }}
               >
                 <div className="flex items-start justify-between gap-2">
@@ -452,10 +452,10 @@ function FamiliasPage() {
                 )}
                 {f.notas && <div className="text-xs text-muted-foreground line-clamp-2">{f.notas}</div>}
                 <div className="flex justify-end gap-1 pt-1">
-                  <Button size="icon" variant="ghost" title="Ver membros" onClick={() => setMembrosFamilia(f)}>
+                  <Button size="icon" variant="ghost" title="Ver membros" onClick={() => openDetail(f, "membros")}>
                     <Users className="h-4 w-4" />
                   </Button>
-                  <Button size="icon" variant="ghost" title="Editar" onClick={() => { setEditing({ ...f }); setEditOpen(true); }}>
+                  <Button size="icon" variant="ghost" title="Editar" onClick={() => openDetail(f, "dados")}>
                     <Pencil className="h-4 w-4" />
                   </Button>
                 </div>
@@ -483,7 +483,7 @@ function FamiliasPage() {
                   <TableRow key={row.id} className="cursor-pointer" onClick={(e) => {
                     const target = e.target as HTMLElement;
                     if (target.closest("button, [role=checkbox], input")) return;
-                    setMembrosFamilia(f);
+                    openDetail(f, "membros");
                   }}>
                     <TableCell><Checkbox checked={selected.has(f.id)} onCheckedChange={() => toggleOne(f.id)} /></TableCell>
                     {row.getVisibleCells().map((cell) => (
@@ -491,10 +491,10 @@ function FamiliasPage() {
                     ))}
                     <TableCell>
                       <div className="flex justify-end gap-1">
-                        <Button size="icon" variant="ghost" title="Ver membros" onClick={() => setMembrosFamilia(f)}>
+                        <Button size="icon" variant="ghost" title="Ver membros" onClick={() => openDetail(f, "membros")}>
                           <Users className="h-4 w-4" />
                         </Button>
-                        <Button size="icon" variant="ghost" title="Editar" onClick={() => { setEditing({ ...f }); setEditOpen(true); }}>
+                        <Button size="icon" variant="ghost" title="Editar" onClick={() => openDetail(f, "dados")}>
                           <Pencil className="h-4 w-4" />
                         </Button>
                       </div>
