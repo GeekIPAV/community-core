@@ -54,7 +54,10 @@ function TiposUserPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["tipos_user"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("tipos_user").select("*").order("nome");
+      const { data, error } = await supabase
+        .from("tipos_user")
+        .select("id, nome, paginas")
+        .order("nome");
       if (error) throw error;
       return data as TipoUser[];
     },
