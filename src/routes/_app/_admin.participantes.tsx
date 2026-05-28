@@ -21,17 +21,21 @@ import {
 } from "@/components/ui/dialog";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Lock, LockOpen, Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { ChevronDown, ChevronRight, Lock, LockOpen, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import {
   useReactTable,
   getCoreRowModel,
   getFilteredRowModel,
   getSortedRowModel,
+  getGroupedRowModel,
+  getExpandedRowModel,
   flexRender,
   type ColumnDef,
   type SortingState,
   type VisibilityState,
   type ColumnOrderState,
+  type GroupingState,
+  type ExpandedState,
 } from "@tanstack/react-table";
 import { AdvancedTableFilters, advancedFilterFn, type ColumnFilterMeta } from "@/components/advanced-table-filters";
 import { DataTableViewOptions } from "@/components/data-table-view-options";
