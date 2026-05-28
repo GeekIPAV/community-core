@@ -958,6 +958,92 @@ function InlineSelect({
   );
 }
 
+function MultiSelect({
+  values,
+  options,
+  onChange,
+  placeholder = "—",
+  triggerClassName = "",
+}: {
+  values: string[];
+  options: { value: string; label: string }[];
+  onChange: (next: string[]) => void;
+  placeholder?: string;
+  triggerClassName?: string;
+}) {
+  const labels = values.map((v) => options.find((o) => o.value === v)?.label).filter(Boolean) as string[];
+  const toggle = (v: string) => {
+    onChange(values.includes(v) ? values.filter((x) => x !== v) : [...values, v]);
+  };
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          onClick={(e) => e.stopPropagation()}
+          className={`flex min-h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-1.5 text-left text-sm shadow-sm hover:bg-muted/50 ${triggerClassName}`}
+        >
+          <span className={labels.length ? "" : "text-muted-foreground"}>
+            {labels.length ? labels.join(", ") : placeholder}
+          </span>
+          <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-1" onClick={(e) => e.stopPropagation()}>
+        <div className="max-h-64 overflow-auto">
+          {options.length === 0 && (
+            <div className="px-2 py-1.5 text-sm text-muted-foreground">Sem opções</div>
+          )}
+          {options.map((o) => {
+            const checked = values.includes(o.value);
+            return (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => toggle(o.value)}
+                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent"
+              >
+                <Checkbox checked={checked} />
+                <span>{o.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function InlineMultiSelect({
+  values,
+  options,
+  onSave,
+  placeholder = "—",
+}: {
+  values: string[];
+  options: { value: string; label: string }[];
+  onSave: (next: string[]) => Promise<void> | void;
+  placeholder?: string;
+}) {
+  const [local, setLocal] = useState<string[]>(values);
+  useEffect(() => { setLocal(values); }, [values.join(",")]);
+  const commit = async (next: string[]) => {
+    setLocal(next);
+    if (next.join(",") !== values.join(",")) await onSave(next);
+  };
+  return (
+    <div onClick={(e) => e.stopPropagation()}>
+      <MultiSelect
+        values={local}
+        options={options}
+        placeholder={placeholder}
+        onChange={commit}
+        triggerClassName="h-7 border-transparent shadow-none hover:border-border px-1.5"
+      />
+    </div>
+  );
+}
+
 function parseBulkCsv(text: string, familias: { id: string; nome: string }[], projetos: { id: string; nome: string }[]) {
   const famByName = new Map(familias.map((f) => [f.nome.trim().toLowerCase(), f.id]));
   const projByName = new Map(projetos.map((p) => [p.nome.trim().toLowerCase(), p.id]));
