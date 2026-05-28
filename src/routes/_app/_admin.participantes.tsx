@@ -267,7 +267,19 @@ function ParticipantesPage() {
   }, [familias, tipos, projetos, qc, inlineEdit]);
 
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
+    // Hidden by default to evitar scroll horizontal — utilizador pode reativar em "Colunas"
+    cartao_cidadao: false,
+    morada: false,
+    data_nascimento: false,
+    genero: false,
+    nacionalidade: false,
+    cidade_residencia: false,
+    religiao: false,
+    profissao: false,
+    projeto_ids: false,
+    nif: false,
+  });
   const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([]);
   const [grouping, setGrouping] = useState<GroupingState>([]);
   const [expanded, setExpanded] = useState<ExpandedState>({});
