@@ -273,6 +273,8 @@ function ParticipantesPage() {
   const [expanded, setExpanded] = useState<ExpandedState>({});
 
   const table = useReactTable({
+    columnResizeMode: "onChange",
+    defaultColumn: { minSize: 60, size: 160, maxSize: 800 },
     data: searchFiltered,
     columns: tableColumns,
     state: { sorting, columnVisibility, columnOrder, grouping, expanded },

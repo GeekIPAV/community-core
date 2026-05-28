@@ -117,6 +117,8 @@ function ProjetosPage() {
   const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([]);
 
   const table = useReactTable({
+    columnResizeMode: "onChange",
+    defaultColumn: { minSize: 60, size: 160, maxSize: 800 },
     data: data ?? [],
     columns,
     state: { sorting, columnVisibility, columnOrder },
