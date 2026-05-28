@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Lock, LockOpen, Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { ChevronDown, ChevronRight, Lock, LockOpen, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import {
   useReactTable,
   getCoreRowModel,
