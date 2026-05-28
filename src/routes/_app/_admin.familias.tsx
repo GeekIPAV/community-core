@@ -32,6 +32,10 @@ import { DataTableViewOptions } from "@/components/data-table-view-options";
 import { DraggableTableHeaders } from "@/components/draggable-table-headers";
 import { Card } from "@/components/ui/card";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { InlineText, InlineSelect, InlineMultiSelect } from "@/components/inline-edit";
+
+const PESSOA_STATUS_OPTS = ["ativo", "suspeito_duplicado", "fundido", "arquivado"];
+const GENERO_OPTS = ["Masculino", "Feminino"];
 
 export const Route = createFileRoute("/_app/_admin/familias")({
   component: FamiliasPage,
@@ -192,9 +196,19 @@ function FamiliasPage() {
     queryFn: async () => {
       const { data, error } = await supabase.from("projetos").select("id, nome");
       if (error) throw error;
-      return new Map((data ?? []).map((p: any) => [p.id as string, p.nome as string]));
+      return (data ?? []) as { id: string; nome: string }[];
     },
   });
+  const projetosMap = useMemo(() => new Map((projetosList ?? []).map((p) => [p.id, p.nome])), [projetosList]);
+
+  const savePessoa = (id: string, field: string) => async (v: any) => {
+    const { error } = await supabase.from("pessoas").update({ [field]: v } as any).eq("id", id);
+    if (error) { toast.error(error.message); throw error; }
+    qc.invalidateQueries({ queryKey: ["familias", "membros", membrosFamilia?.id] });
+    qc.invalidateQueries({ queryKey: ["familias", "contagens"] });
+    qc.invalidateQueries({ queryKey: ["familias", "agregados"] });
+    qc.invalidateQueries({ queryKey: ["pessoas"] });
+  };
 
   const { data: acoesFamilia, isLoading: loadingAcoesFamilia } = useQuery({
     queryKey: ["familias", "acoes", membrosFamilia?.id],
@@ -638,21 +652,37 @@ function FamiliasPage() {
                     {(!membros || membros.length === 0) && !loadingMembros && (
                       <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground">Sem membros</TableCell></TableRow>
                     )}
-                    {membros?.map((m) => (
-                      <TableRow key={m.id}>
-                        <TableCell className="font-medium whitespace-nowrap">{m.nome_completo}</TableCell>
-                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.email ?? "—"}</TableCell>
-                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.telefone ?? "—"}</TableCell>
-                        <TableCell className="text-muted-foreground whitespace-nowrap">{formatDateBR(m.data_nascimento)}</TableCell>
-                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.genero ?? "—"}</TableCell>
-                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.cidade_residencia ?? "—"}</TableCell>
-                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.nacionalidade ?? "—"}</TableCell>
-                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.religiao ?? "—"}</TableCell>
-                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.nif ?? "—"}</TableCell>
-                        <TableCell className="text-muted-foreground whitespace-nowrap">
-                          {(m.projeto_ids ?? []).map((id) => projetosList?.get(id)).filter(Boolean).join(", ") || "—"}
+                     {membros?.map((m) => (
+                       <TableRow key={m.id}>
+                         <TableCell className="font-medium whitespace-nowrap min-w-[180px]">
+                           <InlineText value={m.nome_completo} onSave={async (v) => { if (v) await savePessoa(m.id, "nome_completo")(v); }} />
+                         </TableCell>
+                         <TableCell className="min-w-[200px]"><InlineText value={m.email} onSave={savePessoa(m.id, "email")} /></TableCell>
+                         <TableCell className="min-w-[140px]"><InlineText value={m.telefone} onSave={savePessoa(m.id, "telefone")} /></TableCell>
+                         <TableCell className="min-w-[140px]"><InlineText value={m.data_nascimento} type="date" onSave={savePessoa(m.id, "data_nascimento")} /></TableCell>
+                         <TableCell className="min-w-[120px]">
+                           <InlineSelect value={m.genero} options={GENERO_OPTS.map((g) => ({ value: g, label: g }))} placeholder="não definido" onSave={savePessoa(m.id, "genero")} />
+                         </TableCell>
+                         <TableCell className="min-w-[160px]"><InlineText value={m.cidade_residencia} onSave={savePessoa(m.id, "cidade_residencia")} /></TableCell>
+                         <TableCell className="min-w-[140px]"><InlineText value={m.nacionalidade} onSave={savePessoa(m.id, "nacionalidade")} /></TableCell>
+                         <TableCell className="min-w-[140px]"><InlineText value={m.religiao} onSave={savePessoa(m.id, "religiao")} /></TableCell>
+                         <TableCell className="min-w-[120px]"><InlineText value={m.nif} onSave={savePessoa(m.id, "nif")} /></TableCell>
+                        <TableCell>
+                          <InlineMultiSelect
+                            values={m.projeto_ids ?? []}
+                            options={(projetosList ?? []).map((p) => ({ value: p.id, label: p.nome }))}
+                            placeholder="sem projetos"
+                            onSave={(v) => savePessoa(m.id, "projeto_ids")(v)}
+                          />
                         </TableCell>
-                        <TableCell className="text-muted-foreground whitespace-nowrap">{m.status}</TableCell>
+                        <TableCell>
+                          <InlineSelect
+                            value={m.status}
+                            options={PESSOA_STATUS_OPTS.map((s) => ({ value: s, label: s }))}
+                            allowClear={false}
+                            onSave={savePessoa(m.id, "status")}
+                          />
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
