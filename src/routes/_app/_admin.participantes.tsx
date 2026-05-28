@@ -91,6 +91,7 @@ const BULK_COLUMNS = [
   "nacionalidade",
   "cidade_residencia",
   "religiao",
+  "profissao",
   "familia",
   "projeto",
 ] as const;
