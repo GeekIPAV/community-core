@@ -370,6 +370,11 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
     () => new Set(baseRows.map((r) => r.pessoa?.id).filter(Boolean) as string[]),
     [baseRows]
   );
+  const familiasOptions = useMemo(() => {
+    const set = new Set<string>();
+    baseRows.forEach((r) => { const n = r.pessoa?.familia?.nome; if (n) set.add(n); });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [baseRows]);
   const [addOpen, setAddOpen] = useState(false);
 
   const columns: ColumnDef<InscricaoRow>[] = useMemo(() => [
@@ -399,6 +404,14 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
     { id: "data_nascimento", header: "Data nasc.", accessorFn: (r) => r.pessoa?.data_nascimento ?? "", filterFn: advancedFilterFn as any, meta: { filterVariant: "date", label: "Data nascimento" } satisfies ColumnFilterMeta },
     { id: "nif", header: "NIF", accessorFn: (r) => r.pessoa?.nif ?? "", filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "NIF" } satisfies ColumnFilterMeta },
     { id: "cidade", header: "Cidade", accessorFn: (r) => r.pessoa?.cidade_residencia ?? "", filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Cidade" } satisfies ColumnFilterMeta },
+    {
+      id: "familia",
+      header: "Família",
+      accessorFn: (r) => r.pessoa?.familia?.nome ?? "",
+      filterFn: advancedFilterFn as any,
+      meta: { filterVariant: "select", filterOptions: familiasOptions, label: "Família" } satisfies ColumnFilterMeta,
+      cell: ({ row }) => row.original.pessoa?.familia?.nome ?? <span className="text-muted-foreground">—</span>,
+    },
     ...fields.map<ColumnDef<InscricaoRow>>((f) => {
       const variant: ColumnFilterMeta["filterVariant"] =
         f.type === "date" ? "date" : f.type === "number" ? "number" : (f.type === "select" || f.type === "multiselect") ? "select" : "text";
@@ -442,7 +455,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
         </div>
       ),
     },
-  ], [fields]);
+  ], [fields, familiasOptions]);
 
   const table = useReactTable({
     data: baseRows,
