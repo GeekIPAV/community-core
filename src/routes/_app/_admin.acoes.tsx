@@ -15,6 +15,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useState, useMemo } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
+import { z } from "zod";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, Maximize2, Minimize2, ArrowUpDown, UserPlus, Search } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
@@ -907,7 +909,7 @@ function AddPessoasDialog({
   }, [pessoas]);
 
   const filteredPessoas = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = debouncedSearch.trim().toLowerCase();
     const list = pessoas ?? [];
     return list.filter((p) => {
       if (q && ![p.nome_completo, p.telefone ?? "", p.email ?? ""].some((v) => v.toLowerCase().includes(q))) return false;
@@ -924,7 +926,7 @@ function AddPessoasDialog({
       }
       return true;
     });
-  }, [pessoas, search, familiaFilter, cidadeFilter, statusPessoaFilter]);
+  }, [pessoas, debouncedSearch, familiaFilter, cidadeFilter, statusPessoaFilter]);
 
   const statusesPessoa = useMemo(() => {
     const set = new Set<string>();
@@ -942,14 +944,14 @@ function AddPessoasDialog({
   }, [pessoas]);
 
   const filteredFamilias = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = debouncedSearch.trim().toLowerCase();
     const list = familias ?? [];
     return list.filter((f) => {
       if (q && !f.nome.toLowerCase().includes(q)) return false;
       if (statusFamiliaFilter !== "__all" && (f.status ?? "") !== statusFamiliaFilter) return false;
       return true;
     });
-  }, [familias, search, statusFamiliaFilter]);
+  }, [familias, debouncedSearch, statusFamiliaFilter]);
 
   const statusesFamilia = useMemo(() => {
     const set = new Set<string>();
