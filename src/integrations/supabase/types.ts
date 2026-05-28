@@ -141,6 +141,7 @@ export type Database = {
       pessoas: {
         Row: {
           auth_user_id: string | null
+          cartao_cidadao: string | null
           cidade_residencia: string | null
           created_at: string
           data_nascimento: string | null
@@ -152,6 +153,7 @@ export type Database = {
           ignorar_duplicado: boolean
           is_admin: boolean
           is_voluntario: boolean
+          morada: string | null
           nacionalidade: string | null
           nif: string | null
           nome_completo: string
@@ -165,6 +167,7 @@ export type Database = {
         }
         Insert: {
           auth_user_id?: string | null
+          cartao_cidadao?: string | null
           cidade_residencia?: string | null
           created_at?: string
           data_nascimento?: string | null
@@ -176,6 +179,7 @@ export type Database = {
           ignorar_duplicado?: boolean
           is_admin?: boolean
           is_voluntario?: boolean
+          morada?: string | null
           nacionalidade?: string | null
           nif?: string | null
           nome_completo: string
@@ -189,6 +193,7 @@ export type Database = {
         }
         Update: {
           auth_user_id?: string | null
+          cartao_cidadao?: string | null
           cidade_residencia?: string | null
           created_at?: string
           data_nascimento?: string | null
@@ -200,6 +205,7 @@ export type Database = {
           ignorar_duplicado?: boolean
           is_admin?: boolean
           is_voluntario?: boolean
+          morada?: string | null
           nacionalidade?: string | null
           nif?: string | null
           nome_completo?: string
