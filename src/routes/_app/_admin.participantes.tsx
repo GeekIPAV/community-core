@@ -224,7 +224,22 @@ function ParticipantesPage() {
       { id: "cidade_residencia", header: "Cidade", accessorKey: "cidade_residencia", cell: text("cidade_residencia"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Cidade" } satisfies ColumnFilterMeta },
       { id: "religiao", header: "Religião", accessorKey: "religiao", cell: text("religiao"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Religião" } satisfies ColumnFilterMeta },
       { id: "familia_id", header: "Família", accessorFn: (p) => p.familia_id ? (familias?.find((f) => f.id === p.familia_id)?.nome ?? "") : "", cell: sel("familia_id", (familias ?? []).map((f) => ({ value: f.id, label: f.nome })), "sem família"), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (familias ?? []).map((f) => f.nome), label: "Família" } satisfies ColumnFilterMeta },
-      { id: "projeto_id", header: "Projeto", accessorFn: (p) => p.projeto_id ? (projetos?.find((x) => x.id === p.projeto_id)?.nome ?? "") : "", cell: sel("projeto_id", (projetos ?? []).map((p) => ({ value: p.id, label: p.nome })), "sem projeto"), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (projetos ?? []).map((x) => x.nome), label: "Projeto" } satisfies ColumnFilterMeta },
+      {
+        id: "projeto_ids",
+        header: "Projetos",
+        accessorFn: (p) => (p.projeto_ids ?? []).map((id) => projetos?.find((x) => x.id === id)?.nome).filter(Boolean).join(", "),
+        cell: ({ row }) => {
+          const ids = row.original.projeto_ids ?? [];
+          const opts = (projetos ?? []).map((p) => ({ value: p.id, label: p.nome }));
+          if (inlineEdit) {
+            return <InlineMultiSelect values={ids} options={opts} placeholder="sem projetos" onSave={async (v) => { await save(row.original.id, "projeto_ids")(v); }} />;
+          }
+          const names = ids.map((id) => opts.find((o) => o.value === id)?.label).filter(Boolean) as string[];
+          return <span className="text-muted-foreground">{names.length ? names.join(", ") : "—"}</span>;
+        },
+        filterFn: advancedFilterFn as any,
+        meta: { filterVariant: "select", filterOptions: (projetos ?? []).map((x) => x.nome), label: "Projetos" } satisfies ColumnFilterMeta,
+      },
       { id: "tipo_user_id", header: "Tipo", accessorFn: (p) => p.tipo_user_id ? (tipos?.find((t) => t.id === p.tipo_user_id)?.nome ?? "") : "", cell: sel("tipo_user_id", (tipos ?? []).map((t) => ({ value: t.id, label: t.nome })), "sem tipo"), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (tipos ?? []).map((t) => t.nome), label: "Tipo de utilizador" } satisfies ColumnFilterMeta },
       { id: "status", header: "Estado", accessorKey: "status", cell: inlineEdit
         ? ({ getValue, row }) => <InlineSelect value={getValue() as string} options={STATUS_OPTS.map((s) => ({ value: s, label: s }))} allowClear={false} onSave={save(row.original.id, "status")} />
@@ -279,7 +294,7 @@ function ParticipantesPage() {
         nacionalidade: form.nacionalidade?.trim() || null,
         cidade_residencia: form.cidade_residencia?.trim() || null,
         religiao: form.religiao?.trim() || null,
-        projeto_id: form.projeto_id || null,
+        projeto_ids: form.projeto_ids ?? [],
       };
       const { error } = await supabase.from("pessoas").insert(payload);
       if (error) throw error;
@@ -312,7 +327,7 @@ function ParticipantesPage() {
           nacionalidade: editing.nacionalidade || null,
           cidade_residencia: editing.cidade_residencia || null,
           religiao: editing.religiao || null,
-          projeto_id: editing.projeto_id || null,
+          projeto_ids: editing.projeto_ids ?? [],
         })
         .eq("id", editing.id);
       if (error) throw error;
