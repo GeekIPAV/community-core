@@ -489,6 +489,8 @@ function AddPessoasDialog({
   const [tab, setTab] = useState<"pessoas" | "familias">("pessoas");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [familiaFilter, setFamiliaFilter] = useState<string>("__all");
+  const [cidadeFilter, setCidadeFilter] = useState<string>("__all");
 
   const { data: pessoas, isLoading: loadingPessoas } = useQuery({
     queryKey: ["pessoas-atribuir"],
@@ -496,11 +498,11 @@ function AddPessoasDialog({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, telefone, email, familia_id")
+        .select("id, nome_completo, telefone, email, familia_id, cidade_residencia")
         .eq("status", "ativo")
         .order("nome_completo", { ascending: true });
       if (error) throw error;
-      return data as Array<{ id: string; nome_completo: string; telefone: string | null; email: string | null; familia_id: string | null }>;
+      return data as Array<{ id: string; nome_completo: string; telefone: string | null; email: string | null; familia_id: string | null; cidade_residencia: string | null }>;
     },
   });
 
@@ -530,11 +532,30 @@ function AddPessoasDialog({
   const filteredPessoas = useMemo(() => {
     const q = search.trim().toLowerCase();
     const list = pessoas ?? [];
-    if (!q) return list;
-    return list.filter((p) =>
-      [p.nome_completo, p.telefone ?? "", p.email ?? ""].some((v) => v.toLowerCase().includes(q))
-    );
-  }, [pessoas, search]);
+    return list.filter((p) => {
+      if (q && ![p.nome_completo, p.telefone ?? "", p.email ?? ""].some((v) => v.toLowerCase().includes(q))) return false;
+      if (familiaFilter === "__none") {
+        if (p.familia_id) return false;
+      } else if (familiaFilter !== "__all") {
+        if (p.familia_id !== familiaFilter) return false;
+      }
+      if (cidadeFilter === "__none") {
+        if (p.cidade_residencia && p.cidade_residencia.trim()) return false;
+      } else if (cidadeFilter !== "__all") {
+        if ((p.cidade_residencia ?? "") !== cidadeFilter) return false;
+      }
+      return true;
+    });
+  }, [pessoas, search, familiaFilter, cidadeFilter]);
+
+  const cidadesDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    (pessoas ?? []).forEach((p) => {
+      const c = (p.cidade_residencia ?? "").trim();
+      if (c) set.add(c);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [pessoas]);
 
   const filteredFamilias = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -646,6 +667,33 @@ function AddPessoasDialog({
             <TabsTrigger value="familias" className="flex-1">Famílias</TabsTrigger>
           </TabsList>
           <TabsContent value="pessoas" className="flex-1 overflow-hidden">
+            <div className="flex flex-wrap items-center gap-2 py-2">
+              <Select value={familiaFilter} onValueChange={setFamiliaFilter}>
+                <SelectTrigger className="h-8 w-[180px]"><SelectValue placeholder="Família" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">Todas as famílias</SelectItem>
+                  <SelectItem value="__none">Sem família</SelectItem>
+                  {(familias ?? []).slice().sort((a, b) => a.nome.localeCompare(b.nome)).map((f) => (
+                    <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={cidadeFilter} onValueChange={setCidadeFilter}>
+                <SelectTrigger className="h-8 w-[180px]"><SelectValue placeholder="Cidade" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">Todas as cidades</SelectItem>
+                  <SelectItem value="__none">Sem cidade</SelectItem>
+                  {cidadesDisponiveis.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {(familiaFilter !== "__all" || cidadeFilter !== "__all") && (
+                <Button size="sm" variant="ghost" onClick={() => { setFamiliaFilter("__all"); setCidadeFilter("__all"); }}>
+                  Limpar
+                </Button>
+              )}
+            </div>
             <div className="flex items-center gap-2 border-b py-2">
               <Checkbox
                 checked={allPessoasSelected}
