@@ -73,6 +73,7 @@ type Pessoa = {
   nacionalidade: string | null;
   cidade_residencia: string | null;
   religiao: string | null;
+  profissao: string | null;
   projeto_ids: string[];
 };
 
@@ -111,6 +112,7 @@ const emptyForm: Omit<Pessoa, "id" | "status"> & { status?: string } = {
   nacionalidade: "",
   cidade_residencia: "",
   religiao: "",
+  profissao: "",
   projeto_ids: [],
 };
 
@@ -148,7 +150,7 @@ function ParticipantesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, email, telefone, nif, cartao_cidadao, morada, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao, projeto_ids")
+        .select("id, nome_completo, email, telefone, nif, cartao_cidadao, morada, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao, profissao, projeto_ids")
         .order("nome_completo", { ascending: true });
       if (error) throw error;
       return (data ?? []).map((p: any) => ({ ...p, projeto_ids: p.projeto_ids ?? [] })) as Pessoa[];
@@ -232,6 +234,7 @@ function ParticipantesPage() {
       { id: "nacionalidade", header: "Nacionalidade", accessorKey: "nacionalidade", cell: text("nacionalidade"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nacionalidade" } satisfies ColumnFilterMeta },
       { id: "cidade_residencia", header: "Cidade", accessorKey: "cidade_residencia", cell: text("cidade_residencia"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Cidade" } satisfies ColumnFilterMeta },
       { id: "religiao", header: "Religião", accessorKey: "religiao", cell: text("religiao"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Religião" } satisfies ColumnFilterMeta },
+      { id: "profissao", header: "Profissão", accessorKey: "profissao", cell: text("profissao"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Profissão" } satisfies ColumnFilterMeta },
       { id: "familia_id", header: "Família", accessorFn: (p) => p.familia_id ? (familias?.find((f) => f.id === p.familia_id)?.nome ?? "") : "", cell: sel("familia_id", (familias ?? []).map((f) => ({ value: f.id, label: f.nome })), "sem família"), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (familias ?? []).map((f) => f.nome), label: "Família" } satisfies ColumnFilterMeta },
       {
         id: "projeto_ids",
@@ -305,6 +308,7 @@ function ParticipantesPage() {
         nacionalidade: form.nacionalidade?.trim() || null,
         cidade_residencia: form.cidade_residencia?.trim() || null,
         religiao: form.religiao?.trim() || null,
+        profissao: form.profissao?.trim() || null,
         projeto_ids: form.projeto_ids ?? [],
       };
       const { error } = await supabase.from("pessoas").insert(payload);
@@ -340,6 +344,7 @@ function ParticipantesPage() {
           nacionalidade: editing.nacionalidade || null,
           cidade_residencia: editing.cidade_residencia || null,
           religiao: editing.religiao || null,
+          profissao: editing.profissao || null,
           projeto_ids: editing.projeto_ids ?? [],
         })
         .eq("id", editing.id);
@@ -613,6 +618,7 @@ function ParticipantesPage() {
             <Field label="Nacionalidade"><Input value={form.nacionalidade ?? ""} onChange={(e) => setForm({ ...form, nacionalidade: e.target.value })} /></Field>
             <Field label="Cidade residência"><Input value={form.cidade_residencia ?? ""} onChange={(e) => setForm({ ...form, cidade_residencia: e.target.value })} /></Field>
             <Field label="Religião"><Input value={form.religiao ?? ""} onChange={(e) => setForm({ ...form, religiao: e.target.value })} /></Field>
+            <Field label="Profissão"><Input value={form.profissao ?? ""} onChange={(e) => setForm({ ...form, profissao: e.target.value })} /></Field>
             <Field label="Família" className="col-span-2">
               <Select value={form.familia_id ?? "__null"} onValueChange={(v) => setForm({ ...form, familia_id: v === "__null" ? null : v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
