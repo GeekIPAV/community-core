@@ -9,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { useAuth } from "@/lib/auth-context";
 import { CalendarDays, LayoutGrid, LogIn, MapPin, ExternalLink } from "lucide-react";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { RichTextView } from "@/components/rich-text-view";
 
@@ -76,21 +76,26 @@ function Home() {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
-        <AppSidebar />
+        <div className="hidden md:block">
+          <AppSidebar />
+        </div>
         <div className="flex flex-1 flex-col">
       <header className="border-b">
         <div className="flex h-14 items-center justify-between px-4">
-          <span className="text-sm font-semibold">Meeru</span>
           <div className="flex items-center gap-2">
-            <Link to="/resultados" className="text-xs font-medium text-muted-foreground hover:text-foreground">
+            <SidebarTrigger className="hidden md:inline-flex" />
+            <span className="text-sm font-semibold">Meeru</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link to="/resultados" className="hidden text-xs font-medium text-muted-foreground hover:text-foreground sm:inline">
               Resultados
             </Link>
             {session ? (
-              <Button size="sm" variant="outline" onClick={() => navigate({ to: isAdmin ? "/participantes" : "/perfil" })}>
+              <Button size="sm" variant="outline" className="hidden sm:inline-flex" onClick={() => navigate({ to: isAdmin ? "/participantes" : "/perfil" })}>
                 {pessoa?.nome_completo?.split(" ")[0] ?? "Área pessoal"}
               </Button>
             ) : (
-              <Button size="sm" variant="outline" onClick={() => navigate({ to: "/login" })}>
+              <Button size="sm" variant="outline" className="hidden sm:inline-flex" onClick={() => navigate({ to: "/login" })}>
                 <LogIn className="mr-2 h-4 w-4" /> Entrar
               </Button>
             )}
@@ -98,9 +103,9 @@ function Home() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl space-y-6 px-4 py-8">
+      <main className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 md:py-8">
         <div>
-          <h1 className="text-3xl font-semibold">Próximas ações</h1>
+          <h1 className="text-2xl font-semibold md:text-3xl">Próximas ações</h1>
           <p className="text-sm text-muted-foreground">Escolhe uma ação e inscreve-te.</p>
         </div>
 
@@ -112,13 +117,13 @@ function Home() {
 
           <TabsContent value="galeria" className="mt-4">
             {isLoading ? (
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-44 w-full" />)}
               </div>
             ) : acoesAbertas.length === 0 ? (
               <p className="text-sm text-muted-foreground">Sem ações abertas no momento.</p>
             ) : (
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {acoesAbertas.map((a) => <AcaoCard key={a.id} acao={a} />)}
               </div>
             )}
@@ -133,7 +138,7 @@ function Home() {
                   onSelect={setSelectedDate}
                   modifiers={{ acao: diasComAcao }}
                   modifiersClassNames={{ acao: "font-semibold text-primary" }}
-                  className="w-full [--cell-size:5.5rem] sm:[--cell-size:7rem]"
+                  className="w-full [--cell-size:2.75rem] sm:[--cell-size:5.5rem] md:[--cell-size:7rem]"
                   classNames={{
                     months: "relative flex w-full flex-col gap-4",
                     month: "flex w-full flex-col gap-4",
@@ -150,15 +155,15 @@ function Home() {
                             modifiers.selected && !modifiers.range_start && !modifiers.range_end && !modifiers.range_middle
                           }
                           className={
-                            "flex h-full w-full flex-col items-stretch gap-1 rounded-md border border-transparent p-1 text-left transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[selected-single=true]:border-primary data-[selected-single=true]:bg-primary/10 " +
+                            "flex h-full w-full flex-col items-stretch gap-0.5 rounded-md border border-transparent p-0.5 text-left transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[selected-single=true]:border-primary data-[selected-single=true]:bg-primary/10 sm:gap-1 sm:p-1 " +
                             (modifiers.today ? "bg-accent/40 " : "") +
                             (btnClass ?? "")
                           }
                         >
-                          <span className={"text-xs font-medium " + (list.length > 0 ? "text-primary" : "text-muted-foreground")}>
+                          <span className={"text-[11px] font-medium sm:text-xs " + (list.length > 0 ? "text-primary" : "text-muted-foreground")}>
                             {day.date.getDate()}
                           </span>
-                          <div className="flex flex-1 flex-col gap-0.5 overflow-hidden">
+                          <div className="hidden flex-1 flex-col gap-0.5 overflow-hidden sm:flex">
                             {list.slice(0, 3).map((a) => (
                               <span
                                 key={a.id}
@@ -172,6 +177,9 @@ function Home() {
                               <span className="text-[10px] text-muted-foreground">+{list.length - 3}</span>
                             )}
                           </div>
+                          {list.length > 0 && (
+                            <span className="mx-auto mt-auto h-1 w-1 rounded-full bg-primary sm:hidden" />
+                          )}
                         </button>
                       );
                     },
@@ -183,7 +191,7 @@ function Home() {
                   </Button>
                 )}
               </div>
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {acoesDoDia.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Sem ações neste dia.</p>
                 ) : (

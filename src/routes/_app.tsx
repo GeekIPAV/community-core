@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/lib/auth-context";
 
@@ -52,6 +52,7 @@ function AppLayout() {
         <div className="flex flex-1 flex-col">
           <header className="flex h-14 items-center justify-between border-b border-border/60 bg-background px-4 md:px-6">
             <div className="flex items-center gap-2">
+              <SidebarTrigger className="hidden md:inline-flex" />
               <span className="text-sm font-bold tracking-tight text-foreground">Meeru</span>
               <span className="h-1.5 w-1.5 rounded-full bg-accent" />
             </div>
