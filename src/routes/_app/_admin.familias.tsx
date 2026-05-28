@@ -359,6 +359,12 @@ function FamiliasPage() {
     setSelected(next);
   };
 
+  const openDetail = (f: Familia, tab: "dados" | "membros" | "acoes" = "membros") => {
+    setMembrosFamilia(f);
+    setEditing({ ...f });
+    setDetailTab(tab);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
