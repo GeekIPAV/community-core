@@ -236,11 +236,7 @@ function BarGrafico({ data }: { data: { name: string; value: number }[] }) {
           }}
           cursor={{ fill: "hsl(var(--muted) / 0.3)" }}
         />
-        <Bar dataKey="value" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
+        <Bar dataKey="value" fill="#6366f1" radius={[6, 6, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );
