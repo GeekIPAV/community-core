@@ -352,6 +352,10 @@ export type Database = {
         Args: { duplicado: string; principal: string }
         Returns: undefined
       }
+      get_agrupamento: {
+        Args: { p_coluna: string; p_tabela: string }
+        Returns: Json
+      }
       get_estatisticas_publicas: { Args: never; Returns: Json }
       inscrever_publico:
         | {
