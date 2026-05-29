@@ -57,6 +57,8 @@ import {
   Church,
   UserCheck,
   BarChart3,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -405,6 +407,16 @@ function Conteudo({ data, isAdmin }: { data: Estatisticas; isAdmin: boolean }) {
     persist({ charts: charts.filter((c) => c.id !== id), kpis });
   };
 
+  const moveChart = (id: string, dir: -1 | 1) => {
+    const idx = charts.findIndex((c) => c.id === id);
+    if (idx < 0) return;
+    const target = idx + dir;
+    if (target < 0 || target >= charts.length) return;
+    const next = [...charts];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    persist({ charts: next, kpis });
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -451,12 +463,14 @@ function Conteudo({ data, isAdmin }: { data: Estatisticas; isAdmin: boolean }) {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        {charts.map((cfg) => (
+        {charts.map((cfg, i) => (
           <ChartBlock
             key={cfg.id}
             config={cfg}
             onEdit={isAdmin ? () => setEditing(cfg) : undefined}
             onRemove={isAdmin ? () => removeChart(cfg.id) : undefined}
+            onMoveUp={isAdmin && i > 0 ? () => moveChart(cfg.id, -1) : undefined}
+            onMoveDown={isAdmin && i < charts.length - 1 ? () => moveChart(cfg.id, 1) : undefined}
           />
         ))}
         {charts.length === 0 && (
@@ -650,10 +664,14 @@ function ChartBlock({
   config,
   onEdit,
   onRemove,
+  onMoveUp,
+  onMoveDown,
 }: {
   config: ChartConfig;
   onEdit?: () => void;
   onRemove?: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
 }) {
   const { data: series, isLoading, error } = useQuery({
     queryKey: ["agrupamento", config.tabela, config.coluna],
@@ -678,7 +696,7 @@ function ChartBlock({
             {TABELA_LABEL[config.tabela]} · {colunaLabel} · {CHART_TYPE_LABEL[config.type]}
           </CardDescription>
         </div>
-        {(onEdit || onRemove) && (
+        {(onEdit || onRemove || onMoveUp || onMoveDown) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button size="icon" variant="ghost" className="h-8 w-8">
@@ -686,6 +704,17 @@ function ChartBlock({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              {onMoveUp && (
+                <DropdownMenuItem onClick={onMoveUp}>
+                  <ArrowUp className="mr-2 h-4 w-4" /> Mover para cima
+                </DropdownMenuItem>
+              )}
+              {onMoveDown && (
+                <DropdownMenuItem onClick={onMoveDown}>
+                  <ArrowDown className="mr-2 h-4 w-4" /> Mover para baixo
+                </DropdownMenuItem>
+              )}
+              {(onMoveUp || onMoveDown) && (onEdit || onRemove) && <DropdownMenuSeparator />}
               {onEdit && (
                 <DropdownMenuItem onClick={onEdit}>
                   <Settings2 className="mr-2 h-4 w-4" /> Configurar
