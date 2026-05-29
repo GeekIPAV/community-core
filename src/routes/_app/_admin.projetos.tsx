@@ -16,7 +16,9 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2, X, UserPlus } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import {
   useReactTable,
   getCoreRowModel,
@@ -38,6 +40,7 @@ export const Route = createFileRoute("/_app/_admin/projetos")({
 });
 
 type Projeto = { id: string; nome: string; descricao: string | null };
+type PessoaLite = { id: string; nome_completo: string; email: string | null; projeto_ids: string[] };
 
 function ProjetosPage() {
   const qc = useQueryClient();
@@ -77,7 +80,10 @@ function ProjetosPage() {
     },
   });
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["projetos"] });
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["projetos"] });
+    qc.invalidateQueries({ queryKey: ["projeto-membros"] });
+  };
 
   const openNew = () => { setEditing(null); setNome(""); setDescricao(""); setOpen(true); };
   const openEdit = (p: Projeto) => { setEditing(p); setNome(p.nome); setDescricao(p.descricao ?? ""); setOpen(true); };
@@ -109,7 +115,10 @@ function ProjetosPage() {
   const columns = useMemo<ColumnDef<Projeto>[]>(() => [
     { id: "nome", header: "Nome", accessorKey: "nome", cell: ({ getValue }) => <span className="font-medium">{getValue() as string}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nome" } satisfies ColumnFilterMeta },
     { id: "descricao", header: "Descrição", accessorKey: "descricao", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Descrição" } satisfies ColumnFilterMeta },
-    { id: "membros", header: "Membros", accessorFn: (p) => contagens?.get(p.id) ?? 0, cell: ({ getValue }) => <span className="text-muted-foreground">{getValue() as number}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "number", label: "Membros" } satisfies ColumnFilterMeta },
+    { id: "pessoas", header: "Pessoas", accessorFn: (p) => contagens?.get(p.id) ?? 0, cell: ({ getValue }) => {
+        const n = getValue() as number;
+        return <span className="inline-flex h-6 min-w-8 items-center justify-center rounded-full bg-muted px-2 text-xs font-medium tabular-nums">{n}</span>;
+      }, filterFn: advancedFilterFn as any, meta: { filterVariant: "number", label: "Pessoas" } satisfies ColumnFilterMeta },
   ], [contagens]);
 
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -131,7 +140,7 @@ function ProjetosPage() {
     getRowId: (r) => r.id,
   });
 
-  useMobileColumnVisibility(table, ["nome", "membros"]);
+  useMobileColumnVisibility(table, ["nome", "pessoas"]);
   const tableRows = table.getRowModel().rows;
 
   return (
