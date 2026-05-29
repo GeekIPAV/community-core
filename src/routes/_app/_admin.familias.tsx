@@ -754,8 +754,10 @@ function FamiliasPage() {
                        return (
                          <TableRow key={m.id}>
                          <TableCell className="font-medium whitespace-nowrap min-w-[180px]">
-                           <span className="inline-flex items-center gap-1.5">
-                             <PersonIco aria-hidden className="h-4 w-4 text-muted-foreground" />
+                           <span className="inline-flex items-center gap-2">
+                             <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                               <PersonIco aria-hidden className="h-4 w-4" strokeWidth={2.25} />
+                             </span>
                              <InlineText value={m.nome_completo} onSave={async (v) => { if (v) await savePessoa(m.id, "nome_completo")(v); }} />
                            </span>
                          </TableCell>
