@@ -1,4 +1,5 @@
 // Helpers to display person icon (by gender + age) and country flag emoji.
+import { Baby, User, UserRound, PersonStanding, Accessibility, type LucideIcon } from "lucide-react";
 
 function ageFrom(dateISO: string | null | undefined): number | null {
   if (!dateISO) return null;
@@ -21,19 +22,19 @@ function normGenero(g: string | null | undefined): "M" | "F" | null {
   return null;
 }
 
-/** Returns an emoji representing the person based on gender + age. */
+/** Returns a Lucide icon component representing the person based on gender + age. */
 export function personIcon(
   genero: string | null | undefined,
   dataNascimento: string | null | undefined,
-): string {
+): LucideIcon {
   const age = ageFrom(dataNascimento);
   const g = normGenero(genero);
-  if (age != null && age < 3) return "👶";
-  if (age != null && age < 13) return "🧒";
-  if (age != null && age >= 65) return g === "F" ? "👵" : g === "M" ? "👴" : "🧓";
-  if (g === "M") return "🚶";
-  if (g === "F") return "🚶‍♀️";
-  return "🧑";
+  if (age != null && age < 3) return Baby;
+  if (age != null && age < 13) return PersonStanding;
+  if (age != null && age >= 65) return Accessibility;
+  if (g === "F") return UserRound;
+  if (g === "M") return User;
+  return User;
 }
 
 // Map common country names (PT/EN, with/without accents) to ISO 3166-1 alpha-2.
