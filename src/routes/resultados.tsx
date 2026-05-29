@@ -407,6 +407,16 @@ function Conteudo({ data, isAdmin }: { data: Estatisticas; isAdmin: boolean }) {
     persist({ charts: charts.filter((c) => c.id !== id), kpis });
   };
 
+  const moveChart = (id: string, dir: -1 | 1) => {
+    const idx = charts.findIndex((c) => c.id === id);
+    if (idx < 0) return;
+    const target = idx + dir;
+    if (target < 0 || target >= charts.length) return;
+    const next = [...charts];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    persist({ charts: next, kpis });
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -453,12 +463,14 @@ function Conteudo({ data, isAdmin }: { data: Estatisticas; isAdmin: boolean }) {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        {charts.map((cfg) => (
+        {charts.map((cfg, i) => (
           <ChartBlock
             key={cfg.id}
             config={cfg}
             onEdit={isAdmin ? () => setEditing(cfg) : undefined}
             onRemove={isAdmin ? () => removeChart(cfg.id) : undefined}
+            onMoveUp={isAdmin && i > 0 ? () => moveChart(cfg.id, -1) : undefined}
+            onMoveDown={isAdmin && i < charts.length - 1 ? () => moveChart(cfg.id, 1) : undefined}
           />
         ))}
         {charts.length === 0 && (
