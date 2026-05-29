@@ -158,9 +158,6 @@ const DEFAULT_CHARTS: ChartConfig[] = [
   { id: "c4", title: "Participantes por projeto", tabela: "inscricoes", coluna: "acao", type: "bar" },
 ];
 
-const STORAGE_KEY = "resultados.charts.v1";
-const KPI_STORAGE_KEY = "resultados.kpis.v1";
-
 type MetricKey =
   | "voluntarios_total"
   | "familias_total"
