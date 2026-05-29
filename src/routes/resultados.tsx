@@ -527,6 +527,7 @@ function KPI({
   onEdit?: () => void;
   onRemove?: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Card className="group relative">
       <CardHeader className="pb-2 flex flex-row items-start justify-between space-y-0">
@@ -541,13 +542,13 @@ function KPI({
             <DropdownMenuContent align="end">
               {onEdit && (
                 <DropdownMenuItem onClick={onEdit}>
-                  <Settings2 className="mr-2 h-4 w-4" /> Configurar
+                  <Settings2 className="me-2 h-4 w-4" /> {t("results.configure")}
                 </DropdownMenuItem>
               )}
               {onEdit && onRemove && <DropdownMenuSeparator />}
               {onRemove && (
                 <DropdownMenuItem onClick={onRemove} className="text-destructive focus:text-destructive">
-                  <Trash2 className="mr-2 h-4 w-4" /> Remover
+                  <Trash2 className="me-2 h-4 w-4" /> {t("common.remove")}
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -677,6 +678,7 @@ function ChartBlock({
   onMoveUp?: () => void;
   onMoveDown?: () => void;
 }) {
+  const { t } = useTranslation();
   const { data: series, isLoading, error } = useQuery({
     queryKey: ["agrupamento", config.tabela, config.coluna],
     queryFn: async () => {
@@ -710,36 +712,36 @@ function ChartBlock({
             <DropdownMenuContent align="end">
               {onMoveUp && (
                 <DropdownMenuItem onClick={onMoveUp}>
-                  <ArrowUp className="mr-2 h-4 w-4" /> Mover para cima
+                  <ArrowUp className="me-2 h-4 w-4" /> {t("results.moveUp")}
                 </DropdownMenuItem>
               )}
               {onMoveDown && (
                 <DropdownMenuItem onClick={onMoveDown}>
-                  <ArrowDown className="mr-2 h-4 w-4" /> Mover para baixo
+                  <ArrowDown className="me-2 h-4 w-4" /> {t("results.moveDown")}
                 </DropdownMenuItem>
               )}
               {(onMoveUp || onMoveDown) && (onEdit || onRemove) && <DropdownMenuSeparator />}
               {onEdit && (
                 <DropdownMenuItem onClick={onEdit}>
-                  <Settings2 className="mr-2 h-4 w-4" /> Configurar
+                  <Settings2 className="me-2 h-4 w-4" /> {t("results.configure")}
                 </DropdownMenuItem>
               )}
               {onEdit && onRemove && <DropdownMenuSeparator />}
               {onRemove && (
                 <DropdownMenuItem onClick={onRemove} className="text-destructive focus:text-destructive">
-                  <Trash2 className="mr-2 h-4 w-4" /> Remover
+                  <Trash2 className="me-2 h-4 w-4" /> {t("common.remove")}
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
         )}
       </CardHeader>
-      <CardContent className="h-80">
+      <CardContent className="h-64 sm:h-80 overflow-hidden" dir="ltr">
         {isLoading ? (
           <Skeleton className="h-full w-full" />
         ) : error ? (
           <p className="flex h-full items-center justify-center text-sm text-destructive">
-            Não foi possível carregar os dados.
+            {t("results.dataLoadError")}
           </p>
         ) : (
           <ChartRenderer type={config.type} data={series ?? []} />
@@ -750,9 +752,10 @@ function ChartBlock({
 }
 
 function ChartRenderer({ type, data }: { type: ChartType; data: { name: string; value: number }[] }) {
+  const { t } = useTranslation();
   if (!data || data.length === 0) {
     return (
-      <p className="flex h-full items-center justify-center text-sm text-muted-foreground">Sem dados</p>
+      <p className="flex h-full items-center justify-center text-sm text-muted-foreground">{t("results.noData")}</p>
     );
   }
   const total = data.reduce((acc, d) => acc + (d.value ?? 0), 0);
