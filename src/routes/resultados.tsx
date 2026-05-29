@@ -315,6 +315,7 @@ function ResultadosPage() {
 
 function Conteudo({ data, isAdmin }: { data: Estatisticas; isAdmin: boolean }) {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   const { data: config } = useQuery({
     queryKey: ["dashboard-config", "resultados"],
@@ -374,7 +375,7 @@ function Conteudo({ data, isAdmin }: { data: Estatisticas; isAdmin: boolean }) {
   const addKpi = () => {
     const novo: KPIConfig = {
       id: `k${Date.now()}`,
-      label: "Nova métrica",
+      label: t("results.newMetric"),
       metric: "voluntarios_total",
       icon: "bar",
     };
@@ -393,7 +394,7 @@ function Conteudo({ data, isAdmin }: { data: Estatisticas; isAdmin: boolean }) {
   const addChart = () => {
     const novo: ChartConfig = {
       id: `c${Date.now()}`,
-      title: "Novo gráfico",
+      title: t("results.newChart"),
       tabela: "pessoas",
       coluna: "genero",
       type: "bar",
@@ -422,11 +423,11 @@ function Conteudo({ data, isAdmin }: { data: Estatisticas; isAdmin: boolean }) {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Resumo</h2>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-lg font-semibold">{t("results.summary")}</h2>
         {isAdmin && (
-          <Button size="sm" variant="outline" onClick={addKpi}>
-            <Plus className="mr-2 h-4 w-4" /> Nova métrica
+          <Button size="sm" variant="outline" onClick={addKpi} className="self-start sm:self-auto">
+            <Plus className="me-2 h-4 w-4" /> {t("results.newMetric")}
           </Button>
         )}
       </div>
@@ -445,10 +446,10 @@ function Conteudo({ data, isAdmin }: { data: Estatisticas; isAdmin: boolean }) {
         {kpis.length === 0 && (
           <Card className="sm:col-span-2 lg:col-span-4 border-dashed">
             <CardContent className="flex h-32 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
-              {isAdmin ? "Sem métricas. Adiciona a primeira." : "Sem métricas."}
+              {isAdmin ? t("results.emptyMetricsAdmin") : t("results.emptyMetrics")}
               {isAdmin && (
                 <Button size="sm" variant="outline" onClick={addKpi}>
-                  <Plus className="mr-2 h-4 w-4" /> Nova métrica
+                  <Plus className="me-2 h-4 w-4" /> {t("results.newMetric")}
                 </Button>
               )}
             </CardContent>
@@ -456,11 +457,11 @@ function Conteudo({ data, isAdmin }: { data: Estatisticas; isAdmin: boolean }) {
         )}
       </div>
 
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Gráficos</h2>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-lg font-semibold">{t("results.charts")}</h2>
         {isAdmin && (
-          <Button size="sm" onClick={addChart}>
-            <Plus className="mr-2 h-4 w-4" /> Novo gráfico
+          <Button size="sm" onClick={addChart} className="self-start sm:self-auto">
+            <Plus className="me-2 h-4 w-4" /> {t("results.newChart")}
           </Button>
         )}
       </div>
@@ -479,10 +480,10 @@ function Conteudo({ data, isAdmin }: { data: Estatisticas; isAdmin: boolean }) {
         {charts.length === 0 && (
           <Card className="lg:col-span-2 border-dashed">
             <CardContent className="flex h-40 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
-              {isAdmin ? "Sem gráficos. Adiciona o primeiro." : "Sem gráficos."}
+              {isAdmin ? t("results.emptyChartsAdmin") : t("results.emptyCharts")}
               {isAdmin && (
                 <Button size="sm" variant="outline" onClick={addChart}>
-                  <Plus className="mr-2 h-4 w-4" /> Novo gráfico
+                  <Plus className="me-2 h-4 w-4" /> {t("results.newChart")}
                 </Button>
               )}
             </CardContent>
