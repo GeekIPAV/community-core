@@ -89,6 +89,38 @@ function FamiliasPage() {
   const [view, setView] = useState<"tabela" | "galeria">("tabela");
   const [detailTab, setDetailTab] = useState<"dados" | "membros" | "acoes">("membros");
 
+  const [addMembroOpen, setAddMembroOpen] = useState(false);
+  const [novoMembroNome, setNovoMembroNome] = useState("");
+  const [novoMembroEmail, setNovoMembroEmail] = useState("");
+  const [novoMembroTelefone, setNovoMembroTelefone] = useState("");
+
+  const addMembro = useMutation({
+    mutationFn: async () => {
+      if (!membrosFamilia) throw new Error("Família não selecionada");
+      const nome = novoMembroNome.trim();
+      if (!nome) throw new Error("Nome é obrigatório");
+      const { error } = await supabase.from("pessoas").insert({
+        nome_completo: nome,
+        email: novoMembroEmail.trim() || null,
+        telefone: novoMembroTelefone.trim() || null,
+        familia_id: membrosFamilia.id,
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Membro adicionado");
+      qc.invalidateQueries({ queryKey: ["familias", "membros", membrosFamilia?.id] });
+      qc.invalidateQueries({ queryKey: ["familias", "contagens"] });
+      qc.invalidateQueries({ queryKey: ["familias", "agregados"] });
+      qc.invalidateQueries({ queryKey: ["pessoas"] });
+      setAddMembroOpen(false);
+      setNovoMembroNome("");
+      setNovoMembroEmail("");
+      setNovoMembroTelefone("");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const { data, isLoading } = useQuery({
     queryKey: ["familias"],
     queryFn: async () => {
@@ -639,7 +671,13 @@ function FamiliasPage() {
             </TabsContent>
 
             <TabsContent value="membros" className="pt-4 flex-1 min-h-0 overflow-hidden">
-              <div className="h-full max-h-[65vh] overflow-auto rounded-md border">
+              <div className="flex flex-col h-full min-h-0 gap-3">
+                <div className="flex justify-end">
+                  <Button size="sm" onClick={() => setAddMembroOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" /> Adicionar membro
+                  </Button>
+                </div>
+                <div className="flex-1 min-h-0 max-h-[60vh] overflow-auto rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -695,6 +733,7 @@ function FamiliasPage() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </div>
             </TabsContent>
 
@@ -731,6 +770,37 @@ function FamiliasPage() {
               </div>
             </TabsContent>
           </Tabs>
+        </DialogContent>
+      </Dialog>
+
+      {/* Adicionar membro à família */}
+      <Dialog open={addMembroOpen} onOpenChange={setAddMembroOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Adicionar membro</DialogTitle>
+            <DialogDescription>
+              {membrosFamilia ? `Família: ${membrosFamilia.nome}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="membro-nome">Nome completo</Label>
+              <Input id="membro-nome" value={novoMembroNome} onChange={(e) => setNovoMembroNome(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="membro-email">Email</Label>
+              <Input id="membro-email" type="email" value={novoMembroEmail} onChange={(e) => setNovoMembroEmail(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="membro-telefone">Telefone</Label>
+              <Input id="membro-telefone" value={novoMembroTelefone} onChange={(e) => setNovoMembroTelefone(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => addMembro.mutate()} disabled={!novoMembroNome.trim() || addMembro.isPending}>
+              {addMembro.isPending ? "A guardar…" : "Adicionar"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
