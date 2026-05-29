@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { LayoutGrid, List, Pencil, Plus, Upload, Users } from "lucide-react";
+import { LayoutGrid, List, Pencil, Plus, Trash2, Upload, UserMinus, Users } from "lucide-react";
 import { formatDateBR } from "@/lib/utils";
 import {
   useReactTable,
@@ -134,6 +134,38 @@ function FamiliasPage() {
       qc.invalidateQueries({ queryKey: ["pessoas"] });
       setAddMembroOpen(false);
       setNovoMembro(emptyMembro);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const removeFromFamilia = useMutation({
+    mutationFn: async (pessoaId: string) => {
+      const { error } = await supabase.from("pessoas").update({ familia_id: null } as any).eq("id", pessoaId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Membro removido da família");
+      qc.invalidateQueries({ queryKey: ["familias", "membros", membrosFamilia?.id] });
+      qc.invalidateQueries({ queryKey: ["familias", "contagens"] });
+      qc.invalidateQueries({ queryKey: ["familias", "agregados"] });
+      qc.invalidateQueries({ queryKey: ["pessoas"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deletePessoa = useMutation({
+    mutationFn: async (pessoaId: string) => {
+      await supabase.from("inscricoes").delete().eq("pessoa_id", pessoaId);
+      const { error } = await supabase.from("pessoas").delete().eq("id", pessoaId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Utilizador apagado");
+      qc.invalidateQueries({ queryKey: ["familias", "membros", membrosFamilia?.id] });
+      qc.invalidateQueries({ queryKey: ["familias", "contagens"] });
+      qc.invalidateQueries({ queryKey: ["familias", "agregados"] });
+      qc.invalidateQueries({ queryKey: ["familias", "acoes", membrosFamilia?.id] });
+      qc.invalidateQueries({ queryKey: ["pessoas"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -709,11 +741,12 @@ function FamiliasPage() {
                       <TableHead>NIF</TableHead>
                       <TableHead>Projetos</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead className="w-20 text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {(!membros || membros.length === 0) && !loadingMembros && (
-                      <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground">Sem membros</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground">Sem membros</TableCell></TableRow>
                     )}
                      {membros?.map((m) => (
                        <TableRow key={m.id}>
@@ -745,6 +778,34 @@ function FamiliasPage() {
                             allowClear={false}
                             onSave={savePessoa(m.id, "status")}
                           />
+                        </TableCell>
+                        <TableCell className="text-right whitespace-nowrap">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              title="Remover da família"
+                              onClick={() => {
+                                if (confirm(`Remover ${m.nome_completo} desta família? O utilizador continua a existir.`)) {
+                                  removeFromFamilia.mutate(m.id);
+                                }
+                              }}
+                            >
+                              <UserMinus className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              title="Apagar utilizador"
+                              onClick={() => {
+                                if (confirm(`Apagar ${m.nome_completo} definitivamente? Esta ação não pode ser desfeita.`)) {
+                                  deletePessoa.mutate(m.id);
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
