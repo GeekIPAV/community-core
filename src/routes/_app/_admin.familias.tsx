@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { LayoutGrid, List, Pencil, Plus, Upload, Users } from "lucide-react";
+import { LayoutGrid, List, Pencil, Plus, Trash2, Upload, UserMinus, Users } from "lucide-react";
 import { formatDateBR } from "@/lib/utils";
 import {
   useReactTable,
@@ -134,6 +134,38 @@ function FamiliasPage() {
       qc.invalidateQueries({ queryKey: ["pessoas"] });
       setAddMembroOpen(false);
       setNovoMembro(emptyMembro);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const removeFromFamilia = useMutation({
+    mutationFn: async (pessoaId: string) => {
+      const { error } = await supabase.from("pessoas").update({ familia_id: null } as any).eq("id", pessoaId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Membro removido da família");
+      qc.invalidateQueries({ queryKey: ["familias", "membros", membrosFamilia?.id] });
+      qc.invalidateQueries({ queryKey: ["familias", "contagens"] });
+      qc.invalidateQueries({ queryKey: ["familias", "agregados"] });
+      qc.invalidateQueries({ queryKey: ["pessoas"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deletePessoa = useMutation({
+    mutationFn: async (pessoaId: string) => {
+      await supabase.from("inscricoes").delete().eq("pessoa_id", pessoaId);
+      const { error } = await supabase.from("pessoas").delete().eq("id", pessoaId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Utilizador apagado");
+      qc.invalidateQueries({ queryKey: ["familias", "membros", membrosFamilia?.id] });
+      qc.invalidateQueries({ queryKey: ["familias", "contagens"] });
+      qc.invalidateQueries({ queryKey: ["familias", "agregados"] });
+      qc.invalidateQueries({ queryKey: ["familias", "acoes", membrosFamilia?.id] });
+      qc.invalidateQueries({ queryKey: ["pessoas"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
