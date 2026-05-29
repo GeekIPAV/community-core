@@ -664,10 +664,14 @@ function ChartBlock({
   config,
   onEdit,
   onRemove,
+  onMoveUp,
+  onMoveDown,
 }: {
   config: ChartConfig;
   onEdit?: () => void;
   onRemove?: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
 }) {
   const { data: series, isLoading, error } = useQuery({
     queryKey: ["agrupamento", config.tabela, config.coluna],
@@ -692,7 +696,7 @@ function ChartBlock({
             {TABELA_LABEL[config.tabela]} · {colunaLabel} · {CHART_TYPE_LABEL[config.type]}
           </CardDescription>
         </div>
-        {(onEdit || onRemove) && (
+        {(onEdit || onRemove || onMoveUp || onMoveDown) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button size="icon" variant="ghost" className="h-8 w-8">
@@ -700,6 +704,17 @@ function ChartBlock({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              {onMoveUp && (
+                <DropdownMenuItem onClick={onMoveUp}>
+                  <ArrowUp className="mr-2 h-4 w-4" /> Mover para cima
+                </DropdownMenuItem>
+              )}
+              {onMoveDown && (
+                <DropdownMenuItem onClick={onMoveDown}>
+                  <ArrowDown className="mr-2 h-4 w-4" /> Mover para baixo
+                </DropdownMenuItem>
+              )}
+              {(onMoveUp || onMoveDown) && (onEdit || onRemove) && <DropdownMenuSeparator />}
               {onEdit && (
                 <DropdownMenuItem onClick={onEdit}>
                   <Settings2 className="mr-2 h-4 w-4" /> Configurar
