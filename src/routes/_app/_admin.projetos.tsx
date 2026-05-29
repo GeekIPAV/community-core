@@ -231,7 +231,7 @@ function ProjetoMembros({ projetoId }: { projetoId: string }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, email, projeto_ids, familia_id")
+        .select("id, nome_completo, email, projeto_ids, familia_id, is_voluntario")
         .eq("status", "ativo")
         .order("nome_completo");
       if (error) throw error;
