@@ -18,7 +18,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Pencil, Plus, Trash2, X, UserPlus } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from "@/components/ui/command";
 import {
   useReactTable,
   getCoreRowModel,
@@ -40,7 +40,8 @@ export const Route = createFileRoute("/_app/_admin/projetos")({
 });
 
 type Projeto = { id: string; nome: string; descricao: string | null };
-type PessoaLite = { id: string; nome_completo: string; email: string | null; projeto_ids: string[] };
+type PessoaLite = { id: string; nome_completo: string; email: string | null; projeto_ids: string[]; familia_id: string | null };
+type FamiliaLite = { id: string; nome: string };
 
 function ProjetosPage() {
   const qc = useQueryClient();
@@ -229,13 +230,36 @@ function ProjetoMembros({ projetoId }: { projetoId: string }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, email, projeto_ids")
+        .select("id, nome_completo, email, projeto_ids, familia_id")
         .eq("status", "ativo")
         .order("nome_completo");
       if (error) throw error;
       return (data ?? []) as PessoaLite[];
     },
   });
+
+  const { data: familias } = useQuery({
+    queryKey: ["projeto-membros", "familias"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("familias").select("id, nome").order("nome");
+      if (error) throw error;
+      return (data ?? []) as FamiliaLite[];
+    },
+  });
+
+  const familiasDisponiveis = useMemo(() => {
+    const byFam = new Map<string, PessoaLite[]>();
+    for (const p of pessoas ?? []) {
+      if (!p.familia_id) continue;
+      if ((p.projeto_ids ?? []).includes(projetoId)) continue;
+      const arr = byFam.get(p.familia_id) ?? [];
+      arr.push(p);
+      byFam.set(p.familia_id, arr);
+    }
+    return (familias ?? [])
+      .map((f) => ({ ...f, pessoas: byFam.get(f.id) ?? [] }))
+      .filter((f) => f.pessoas.length > 0);
+  }, [pessoas, familias, projetoId]);
 
   const membros = useMemo(
     () => (pessoas ?? []).filter((p) => (p.projeto_ids ?? []).includes(projetoId)),
@@ -258,6 +282,22 @@ function ProjetoMembros({ projetoId }: { projetoId: string }) {
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Pessoa adicionada"); invalidate(); setAddOpen(false); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const addFamilia = useMutation({
+    mutationFn: async (fam: { id: string; nome: string; pessoas: PessoaLite[] }) => {
+      await Promise.all(
+        fam.pessoas.map((p) => {
+          const next = Array.from(new Set([...(p.projeto_ids ?? []), projetoId]));
+          return supabase.from("pessoas").update({ projeto_ids: next }).eq("id", p.id).then(({ error }) => {
+            if (error) throw error;
+          });
+        }),
+      );
+      return fam.pessoas.length;
+    },
+    onSuccess: (n) => { toast.success(`${n} pessoa(s) adicionada(s)`); invalidate(); setAddOpen(false); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -286,7 +326,26 @@ function ProjetoMembros({ projetoId }: { projetoId: string }) {
               <CommandInput placeholder="Procurar pessoa…" />
               <CommandList>
                 <CommandEmpty>Sem resultados.</CommandEmpty>
-                <CommandGroup>
+                {familiasDisponiveis.length > 0 && (
+                  <>
+                    <CommandGroup heading="Famílias">
+                      {familiasDisponiveis.map((f) => (
+                        <CommandItem
+                          key={`fam-${f.id}`}
+                          value={`familia ${f.nome}`}
+                          onSelect={() => addFamilia.mutate(f)}
+                        >
+                          <div className="flex w-full items-center justify-between gap-2">
+                            <span className="truncate">{f.nome}</span>
+                            <span className="rounded-full bg-muted px-2 text-xs tabular-nums">{f.pessoas.length}</span>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                    <CommandSeparator />
+                  </>
+                )}
+                <CommandGroup heading="Pessoas">
                   {disponiveis.map((p) => (
                     <CommandItem
                       key={p.id}
