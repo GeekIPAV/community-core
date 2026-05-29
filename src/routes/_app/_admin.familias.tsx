@@ -90,19 +90,38 @@ function FamiliasPage() {
   const [detailTab, setDetailTab] = useState<"dados" | "membros" | "acoes">("membros");
 
   const [addMembroOpen, setAddMembroOpen] = useState(false);
-  const [novoMembroNome, setNovoMembroNome] = useState("");
-  const [novoMembroEmail, setNovoMembroEmail] = useState("");
-  const [novoMembroTelefone, setNovoMembroTelefone] = useState("");
+  const emptyMembro = {
+    nome_completo: "",
+    email: "",
+    telefone: "",
+    data_nascimento: "",
+    genero: "" as string,
+    cidade_residencia: "",
+    nacionalidade: "",
+    religiao: "",
+    nif: "",
+    projeto_ids: [] as string[],
+    status: "ativo" as string,
+  };
+  const [novoMembro, setNovoMembro] = useState(emptyMembro);
 
   const addMembro = useMutation({
     mutationFn: async () => {
       if (!membrosFamilia) throw new Error("Família não selecionada");
-      const nome = novoMembroNome.trim();
+      const nome = novoMembro.nome_completo.trim();
       if (!nome) throw new Error("Nome é obrigatório");
       const { error } = await supabase.from("pessoas").insert({
         nome_completo: nome,
-        email: novoMembroEmail.trim() || null,
-        telefone: novoMembroTelefone.trim() || null,
+        email: novoMembro.email.trim() || null,
+        telefone: novoMembro.telefone.trim() || null,
+        data_nascimento: novoMembro.data_nascimento || null,
+        genero: novoMembro.genero || null,
+        cidade_residencia: novoMembro.cidade_residencia.trim() || null,
+        nacionalidade: novoMembro.nacionalidade.trim() || null,
+        religiao: novoMembro.religiao.trim() || null,
+        nif: novoMembro.nif.trim() || null,
+        projeto_ids: novoMembro.projeto_ids,
+        status: novoMembro.status,
         familia_id: membrosFamilia.id,
       } as any);
       if (error) throw error;
@@ -114,9 +133,7 @@ function FamiliasPage() {
       qc.invalidateQueries({ queryKey: ["familias", "agregados"] });
       qc.invalidateQueries({ queryKey: ["pessoas"] });
       setAddMembroOpen(false);
-      setNovoMembroNome("");
-      setNovoMembroEmail("");
-      setNovoMembroTelefone("");
+      setNovoMembro(emptyMembro);
     },
     onError: (e: Error) => toast.error(e.message),
   });
