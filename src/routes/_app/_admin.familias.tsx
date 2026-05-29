@@ -823,7 +823,8 @@ function FamiliasPage() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    );
+                    })}
                   </TableBody>
                 </Table>
                 </div>
