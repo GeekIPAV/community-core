@@ -43,6 +43,7 @@ import { AdvancedTableFilters, advancedFilterFn, type ColumnFilterMeta } from "@
 import { DataTableViewOptions } from "@/components/data-table-view-options";
 import { DraggableTableHeaders } from "@/components/draggable-table-headers";
 import { useMobileColumnVisibility } from "@/hooks/use-mobile-columns";
+import { personIcon, flagFor } from "@/lib/person-display";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -226,7 +227,15 @@ function ParticipantesPage() {
         return muted(options.find((o) => o.value === v)?.label ?? "");
       };
     return [
-      { id: "nome_completo", header: "Nome", accessorKey: "nome_completo", cell: ({ getValue }) => <span className="font-medium">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nome" } satisfies ColumnFilterMeta },
+      { id: "nome_completo", header: "Nome", accessorKey: "nome_completo", cell: ({ getValue, row }) => {
+        const p = row.original as Pessoa;
+        return (
+          <span className="font-medium inline-flex items-center gap-1.5">
+            <span aria-hidden className="text-base leading-none">{personIcon(p.genero, p.data_nascimento)}</span>
+            <span>{(getValue() as string) ?? "—"}</span>
+          </span>
+        );
+      }, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nome" } satisfies ColumnFilterMeta },
       { id: "email", header: "Email", accessorKey: "email", cell: text("email"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Email" } satisfies ColumnFilterMeta },
       { id: "telefone", header: "Telefone", accessorKey: "telefone", cell: text("telefone"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Telefone" } satisfies ColumnFilterMeta },
       { id: "nif", header: "NIF", accessorKey: "nif", cell: text("nif"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "NIF" } satisfies ColumnFilterMeta },
@@ -234,7 +243,13 @@ function ParticipantesPage() {
       { id: "morada", header: "Morada", accessorKey: "morada", cell: text("morada"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Morada" } satisfies ColumnFilterMeta },
       { id: "data_nascimento", header: "Data nascimento", accessorKey: "data_nascimento", cell: text("data_nascimento", "date"), filterFn: advancedFilterFn as any, meta: { filterVariant: "date", label: "Data nascimento" } satisfies ColumnFilterMeta },
       { id: "genero", header: "Género", accessorKey: "genero", cell: sel("genero", GENERO_OPTS.map((g) => ({ value: g, label: g })), "não definido"), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: GENERO_OPTS, label: "Género" } satisfies ColumnFilterMeta },
-      { id: "nacionalidade", header: "Nacionalidade", accessorKey: "nacionalidade", cell: text("nacionalidade"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nacionalidade" } satisfies ColumnFilterMeta },
+      { id: "nacionalidade", header: "Nacionalidade", accessorKey: "nacionalidade", cell: ({ getValue, row }) => {
+        const v = getValue() as string | null;
+        if (inlineEdit) return <InlineText value={v} onSave={save(row.original.id, "nacionalidade")} />;
+        if (!v) return <span className="text-muted-foreground">—</span>;
+        const flag = flagFor(v);
+        return <span className="inline-flex items-center gap-1.5"><span aria-hidden>{flag}</span><span>{v}</span></span>;
+      }, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nacionalidade" } satisfies ColumnFilterMeta },
       { id: "cidade_residencia", header: "Cidade", accessorKey: "cidade_residencia", cell: text("cidade_residencia"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Cidade" } satisfies ColumnFilterMeta },
       { id: "religiao", header: "Religião", accessorKey: "religiao", cell: text("religiao"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Religião" } satisfies ColumnFilterMeta },
       { id: "profissao", header: "Profissão", accessorKey: "profissao", cell: text("profissao"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Profissão" } satisfies ColumnFilterMeta },

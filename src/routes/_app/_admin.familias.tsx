@@ -34,6 +34,7 @@ import { useMobileColumnVisibility } from "@/hooks/use-mobile-columns";
 import { Card } from "@/components/ui/card";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { InlineText, InlineSelect, InlineMultiSelect } from "@/components/inline-edit";
+import { personIcon, flagFor } from "@/lib/person-display";
 
 const PESSOA_STATUS_OPTS = ["ativo", "suspeito_duplicado", "fundido", "arquivado"];
 const GENERO_OPTS = ["Masculino", "Feminino"];
@@ -751,7 +752,10 @@ function FamiliasPage() {
                      {membros?.map((m) => (
                        <TableRow key={m.id}>
                          <TableCell className="font-medium whitespace-nowrap min-w-[180px]">
-                           <InlineText value={m.nome_completo} onSave={async (v) => { if (v) await savePessoa(m.id, "nome_completo")(v); }} />
+                           <span className="inline-flex items-center gap-1.5">
+                             <span aria-hidden className="text-base leading-none">{personIcon(m.genero, m.data_nascimento)}</span>
+                             <InlineText value={m.nome_completo} onSave={async (v) => { if (v) await savePessoa(m.id, "nome_completo")(v); }} />
+                           </span>
                          </TableCell>
                          <TableCell className="min-w-[200px]"><InlineText value={m.email} onSave={savePessoa(m.id, "email")} /></TableCell>
                          <TableCell className="min-w-[140px]"><InlineText value={m.telefone} onSave={savePessoa(m.id, "telefone")} /></TableCell>
@@ -760,7 +764,16 @@ function FamiliasPage() {
                            <InlineSelect value={m.genero} options={GENERO_OPTS.map((g) => ({ value: g, label: g }))} placeholder="não definido" onSave={savePessoa(m.id, "genero")} />
                          </TableCell>
                          <TableCell className="min-w-[160px]"><InlineText value={m.cidade_residencia} onSave={savePessoa(m.id, "cidade_residencia")} /></TableCell>
-                         <TableCell className="min-w-[140px]"><InlineText value={m.nacionalidade} onSave={savePessoa(m.id, "nacionalidade")} /></TableCell>
+                         <TableCell className="min-w-[140px]">
+                           {m.nacionalidade ? (
+                             <span className="inline-flex items-center gap-1.5">
+                               <span aria-hidden>{flagFor(m.nacionalidade)}</span>
+                               <InlineText value={m.nacionalidade} onSave={savePessoa(m.id, "nacionalidade")} />
+                             </span>
+                           ) : (
+                             <InlineText value={m.nacionalidade} onSave={savePessoa(m.id, "nacionalidade")} />
+                           )}
+                         </TableCell>
                          <TableCell className="min-w-[140px]"><InlineText value={m.religiao} onSave={savePessoa(m.id, "religiao")} /></TableCell>
                          <TableCell className="min-w-[120px]"><InlineText value={m.nif} onSave={savePessoa(m.id, "nif")} /></TableCell>
                         <TableCell>
