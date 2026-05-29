@@ -652,8 +652,8 @@ function ChartBlock({
   onRemove,
 }: {
   config: ChartConfig;
-  onEdit: () => void;
-  onRemove: () => void;
+  onEdit?: () => void;
+  onRemove?: () => void;
 }) {
   const { data: series, isLoading, error } = useQuery({
     queryKey: ["agrupamento", config.tabela, config.coluna],
@@ -678,22 +678,28 @@ function ChartBlock({
             {TABELA_LABEL[config.tabela]} · {colunaLabel} · {CHART_TYPE_LABEL[config.type]}
           </CardDescription>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="icon" variant="ghost" className="h-8 w-8">
-              <Settings2 className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onEdit}>
-              <Settings2 className="mr-2 h-4 w-4" /> Configurar
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onRemove} className="text-destructive focus:text-destructive">
-              <Trash2 className="mr-2 h-4 w-4" /> Remover
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {(onEdit || onRemove) && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="icon" variant="ghost" className="h-8 w-8">
+                <Settings2 className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {onEdit && (
+                <DropdownMenuItem onClick={onEdit}>
+                  <Settings2 className="mr-2 h-4 w-4" /> Configurar
+                </DropdownMenuItem>
+              )}
+              {onEdit && onRemove && <DropdownMenuSeparator />}
+              {onRemove && (
+                <DropdownMenuItem onClick={onRemove} className="text-destructive focus:text-destructive">
+                  <Trash2 className="mr-2 h-4 w-4" /> Remover
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </CardHeader>
       <CardContent className="h-80">
         {isLoading ? (
