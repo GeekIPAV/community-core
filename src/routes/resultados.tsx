@@ -302,7 +302,7 @@ function ResultadosPage() {
             ) : error ? (
               <p className="text-sm text-destructive">Não foi possível carregar as estatísticas.</p>
             ) : data ? (
-              <Conteudo data={data} />
+              <Conteudo data={data} isAdmin={isAdmin} />
             ) : null}
           </main>
         </div>
