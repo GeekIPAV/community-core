@@ -63,6 +63,8 @@ import {
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/lib/auth-context";
+import { useTranslation } from "react-i18next";
+import { useDir } from "@/lib/i18n";
 
 type Estatisticas = {
   familias_total: number;
@@ -249,6 +251,7 @@ function migrarChart(raw: unknown): ChartConfig | null {
 function ResultadosPage() {
   const navigate = useNavigate();
   const { session, pessoa, isAdmin } = useAuth();
+  const { t } = useTranslation();
   const { data, isLoading, error } = useQuery({
     queryKey: ["estatisticas_publicas"],
     queryFn: async () => {
@@ -273,22 +276,22 @@ function ResultadosPage() {
               <div className="flex items-center gap-2">
                 {session ? (
                   <Button size="sm" variant="outline" onClick={() => navigate({ to: isAdmin ? "/participantes" : "/perfil" })}>
-                    {pessoa?.nome_completo?.split(" ")[0] ?? "Área pessoal"}
+                    {pessoa?.nome_completo?.split(" ")[0] ?? t("header.personalArea")}
                   </Button>
                 ) : (
                   <Button size="sm" variant="outline" onClick={() => navigate({ to: "/login" })}>
-                    <LogIn className="mr-2 h-4 w-4" /> Entrar
+                    <LogIn className="me-2 h-4 w-4" /> {t("header.signIn")}
                   </Button>
                 )}
               </div>
             </div>
           </header>
 
-          <main className="mx-auto w-full max-w-6xl space-y-8 px-4 py-10">
+          <main className="mx-auto w-full max-w-6xl space-y-8 px-4 py-6 md:py-10">
             <div>
-              <h1 className="text-3xl font-semibold tracking-tight">Resultados e Impacto</h1>
+              <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">{t("results.title")}</h1>
               <p className="text-sm text-muted-foreground">
-                Uma visão agregada e anónima do alcance da nossa comunidade.
+                {t("results.subtitle")}
               </p>
             </div>
 
@@ -299,7 +302,7 @@ function ResultadosPage() {
                 ))}
               </div>
             ) : error ? (
-              <p className="text-sm text-destructive">Não foi possível carregar as estatísticas.</p>
+              <p className="text-sm text-destructive">{t("results.loadError")}</p>
             ) : data ? (
               <Conteudo data={data} isAdmin={isAdmin} />
             ) : null}
