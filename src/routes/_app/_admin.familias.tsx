@@ -671,7 +671,13 @@ function FamiliasPage() {
             </TabsContent>
 
             <TabsContent value="membros" className="pt-4 flex-1 min-h-0 overflow-hidden">
-              <div className="h-full max-h-[65vh] overflow-auto rounded-md border">
+              <div className="flex flex-col h-full min-h-0 gap-3">
+                <div className="flex justify-end">
+                  <Button size="sm" onClick={() => setAddMembroOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" /> Adicionar membro
+                  </Button>
+                </div>
+                <div className="flex-1 min-h-0 max-h-[60vh] overflow-auto rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -727,6 +733,7 @@ function FamiliasPage() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </div>
             </TabsContent>
 
