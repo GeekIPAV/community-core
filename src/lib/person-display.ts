@@ -40,7 +40,7 @@ export function personIcon(
 const COUNTRY_TO_ISO: Record<string, string> = {
   portugal: "PT",
   espanha: "ES", spain: "ES",
-  franca: "FR", franca_": "FR", "frança": "FR", france: "FR",
+  franca: "FR", "frança": "FR", france: "FR",
   alemanha: "DE", germany: "DE",
   italia: "IT", "itália": "IT", italy: "IT",
   "reino unido": "GB", "inglaterra": "GB", "uk": "GB",
