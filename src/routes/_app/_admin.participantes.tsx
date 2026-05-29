@@ -231,8 +231,10 @@ function ParticipantesPage() {
         const p = row.original as Pessoa;
         const Icon = personIcon(p.genero, p.data_nascimento);
         return (
-          <span className="font-medium inline-flex items-center gap-1.5">
-            <Icon aria-hidden className="h-4 w-4 text-muted-foreground" />
+          <span className="font-medium inline-flex items-center gap-2">
+            <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Icon aria-hidden className="h-4 w-4" strokeWidth={2.25} />
+            </span>
             <span>{(getValue() as string) ?? "—"}</span>
           </span>
         );
