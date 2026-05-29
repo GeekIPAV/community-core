@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { Pencil, Plus, Trash2, X, UserPlus } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from "@/components/ui/command";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   useReactTable,
   getCoreRowModel,
@@ -40,7 +41,7 @@ export const Route = createFileRoute("/_app/_admin/projetos")({
 });
 
 type Projeto = { id: string; nome: string; descricao: string | null };
-type PessoaLite = { id: string; nome_completo: string; email: string | null; projeto_ids: string[]; familia_id: string | null };
+type PessoaLite = { id: string; nome_completo: string; email: string | null; projeto_ids: string[]; familia_id: string | null; is_voluntario: boolean };
 type FamiliaLite = { id: string; nome: string };
 
 function ProjetosPage() {
@@ -230,7 +231,7 @@ function ProjetoMembros({ projetoId }: { projetoId: string }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, email, projeto_ids, familia_id")
+        .select("id, nome_completo, email, projeto_ids, familia_id, is_voluntario")
         .eq("status", "ativo")
         .order("nome_completo");
       if (error) throw error;
@@ -269,6 +270,22 @@ function ProjetoMembros({ projetoId }: { projetoId: string }) {
     () => (pessoas ?? []).filter((p) => !(p.projeto_ids ?? []).includes(projetoId)),
     [pessoas, projetoId],
   );
+  const voluntariosNoProjeto = useMemo(() => membros.filter((p) => p.is_voluntario), [membros]);
+  const voluntariosDisponiveis = useMemo(() => disponiveis.filter((p) => p.is_voluntario), [disponiveis]);
+  const familiasNoProjeto = useMemo(() => {
+    const byFam = new Map<string, PessoaLite[]>();
+    for (const p of membros) {
+      if (!p.familia_id) continue;
+      const arr = byFam.get(p.familia_id) ?? [];
+      arr.push(p);
+      byFam.set(p.familia_id, arr);
+    }
+    return (familias ?? [])
+      .filter((f) => byFam.has(f.id))
+      .map((f) => ({ ...f, pessoas: byFam.get(f.id) ?? [] }));
+  }, [membros, familias]);
+
+  const [tab, setTab] = useState<"membros" | "voluntarios" | "familias">("membros");
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["projeto-membros"] });
@@ -311,24 +328,61 @@ function ProjetoMembros({ projetoId }: { projetoId: string }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  return (
-    <div className="space-y-2 border-t pt-4">
-      <div className="flex items-center justify-between">
-        <Label className="text-sm">Pessoas no projeto ({membros.length})</Label>
-        <Popover open={addOpen} onOpenChange={setAddOpen}>
-          <PopoverTrigger asChild>
-            <Button size="sm" variant="outline">
-              <UserPlus className="me-2 h-4 w-4" /> Adicionar
+  const renderPessoasList = (lista: PessoaLite[], emptyText: string) => {
+    if (isLoading) {
+      return <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-9 w-full" />)}</div>;
+    }
+    if (lista.length === 0) {
+      return <p className="rounded-md border border-dashed py-6 text-center text-sm text-muted-foreground">{emptyText}</p>;
+    }
+    return (
+      <ul className="divide-y rounded-md border">
+        {lista.map((p) => (
+          <li key={p.id} className="flex items-center justify-between gap-2 px-3 py-2">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">{p.nome_completo}</p>
+              {p.email && <p className="truncate text-xs text-muted-foreground">{p.email}</p>}
+            </div>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="text-muted-foreground hover:text-destructive"
+              onClick={() => remove.mutate(p)}
+              disabled={remove.isPending}
+              aria-label={`Remover ${p.nome_completo}`}
+            >
+              <X className="h-4 w-4" />
             </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-80 p-0" align="end">
-            <Command>
-              <CommandInput placeholder="Procurar pessoa…" />
-              <CommandList>
-                <CommandEmpty>Sem resultados.</CommandEmpty>
-                {familiasDisponiveis.length > 0 && (
-                  <>
-                    <CommandGroup heading="Famílias">
+          </li>
+        ))}
+      </ul>
+    );
+  };
+
+  const addLabel = tab === "familias" ? "Adicionar família" : tab === "voluntarios" ? "Adicionar voluntário" : "Adicionar pessoa";
+
+  return (
+    <div className="space-y-3 border-t pt-4">
+      <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <TabsList>
+            <TabsTrigger value="membros">Membros ({membros.length})</TabsTrigger>
+            <TabsTrigger value="voluntarios">Voluntários ({voluntariosNoProjeto.length})</TabsTrigger>
+            <TabsTrigger value="familias">Famílias ({familiasNoProjeto.length})</TabsTrigger>
+          </TabsList>
+          <Popover open={addOpen} onOpenChange={setAddOpen}>
+            <PopoverTrigger asChild>
+              <Button size="sm" variant="outline">
+                <UserPlus className="me-2 h-4 w-4" /> {addLabel}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-0" align="end">
+              <Command>
+                <CommandInput placeholder={tab === "familias" ? "Procurar família…" : "Procurar pessoa…"} />
+                <CommandList>
+                  <CommandEmpty>Sem resultados.</CommandEmpty>
+                  {tab === "familias" ? (
+                    <CommandGroup heading="Famílias disponíveis">
                       {familiasDisponiveis.map((f) => (
                         <CommandItem
                           key={`fam-${f.id}`}
@@ -342,57 +396,92 @@ function ProjetoMembros({ projetoId }: { projetoId: string }) {
                         </CommandItem>
                       ))}
                     </CommandGroup>
-                    <CommandSeparator />
-                  </>
-                )}
-                <CommandGroup heading="Pessoas">
-                  {disponiveis.map((p) => (
-                    <CommandItem
-                      key={p.id}
-                      value={`${p.nome_completo} ${p.email ?? ""}`}
-                      onSelect={() => add.mutate(p)}
-                    >
-                      <div className="flex flex-col">
-                        <span>{p.nome_completo}</span>
-                        {p.email && <span className="text-xs text-muted-foreground">{p.email}</span>}
-                      </div>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-      </div>
+                  ) : tab === "voluntarios" ? (
+                    <CommandGroup heading="Voluntários disponíveis">
+                      {voluntariosDisponiveis.map((p) => (
+                        <CommandItem
+                          key={p.id}
+                          value={`${p.nome_completo} ${p.email ?? ""}`}
+                          onSelect={() => add.mutate(p)}
+                        >
+                          <div className="flex flex-col">
+                            <span>{p.nome_completo}</span>
+                            {p.email && <span className="text-xs text-muted-foreground">{p.email}</span>}
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  ) : (
+                    <>
+                      {familiasDisponiveis.length > 0 && (
+                        <>
+                          <CommandGroup heading="Famílias">
+                            {familiasDisponiveis.map((f) => (
+                              <CommandItem
+                                key={`fam-${f.id}`}
+                                value={`familia ${f.nome}`}
+                                onSelect={() => addFamilia.mutate(f)}
+                              >
+                                <div className="flex w-full items-center justify-between gap-2">
+                                  <span className="truncate">{f.nome}</span>
+                                  <span className="rounded-full bg-muted px-2 text-xs tabular-nums">{f.pessoas.length}</span>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                          <CommandSeparator />
+                        </>
+                      )}
+                      <CommandGroup heading="Pessoas">
+                        {disponiveis.map((p) => (
+                          <CommandItem
+                            key={p.id}
+                            value={`${p.nome_completo} ${p.email ?? ""}`}
+                            onSelect={() => add.mutate(p)}
+                          >
+                            <div className="flex flex-col">
+                              <span>{p.nome_completo}</span>
+                              {p.email && <span className="text-xs text-muted-foreground">{p.email}</span>}
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </>
+                  )}
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+        </div>
 
-      {isLoading ? (
-        <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-9 w-full" />)}</div>
-      ) : membros.length === 0 ? (
-        <p className="rounded-md border border-dashed py-6 text-center text-sm text-muted-foreground">
-          Sem pessoas atribuídas a este projeto.
-        </p>
-      ) : (
-        <ul className="divide-y rounded-md border">
-          {membros.map((p) => (
-            <li key={p.id} className="flex items-center justify-between gap-2 px-3 py-2">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{p.nome_completo}</p>
-                {p.email && <p className="truncate text-xs text-muted-foreground">{p.email}</p>}
-              </div>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="text-muted-foreground hover:text-destructive"
-                onClick={() => remove.mutate(p)}
-                disabled={remove.isPending}
-                aria-label={`Remover ${p.nome_completo}`}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </li>
-          ))}
-        </ul>
-      )}
+        <TabsContent value="membros">
+          {renderPessoasList(membros, "Sem pessoas atribuídas a este projeto.")}
+        </TabsContent>
+        <TabsContent value="voluntarios">
+          {renderPessoasList(voluntariosNoProjeto, "Sem voluntários neste projeto.")}
+        </TabsContent>
+        <TabsContent value="familias">
+          {isLoading ? (
+            <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-9 w-full" />)}</div>
+          ) : familiasNoProjeto.length === 0 ? (
+            <p className="rounded-md border border-dashed py-6 text-center text-sm text-muted-foreground">Sem famílias neste projeto.</p>
+          ) : (
+            <ul className="divide-y rounded-md border">
+              {familiasNoProjeto.map((f) => (
+                <li key={f.id} className="px-3 py-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-sm font-medium">{f.nome}</p>
+                    <span className="rounded-full bg-muted px-2 text-xs tabular-nums">{f.pessoas.length}</span>
+                  </div>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {f.pessoas.map((p) => p.nome_completo).join(", ")}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
