@@ -39,7 +39,10 @@ function AppLayout() {
 
   if (!ready) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
+      <div
+        className="flex min-h-screen items-center justify-center text-sm text-muted-foreground"
+        suppressHydrationWarning
+      >
         {t("common.loading")}
       </div>
     );
