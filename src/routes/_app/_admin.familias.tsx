@@ -89,6 +89,38 @@ function FamiliasPage() {
   const [view, setView] = useState<"tabela" | "galeria">("tabela");
   const [detailTab, setDetailTab] = useState<"dados" | "membros" | "acoes">("membros");
 
+  const [addMembroOpen, setAddMembroOpen] = useState(false);
+  const [novoMembroNome, setNovoMembroNome] = useState("");
+  const [novoMembroEmail, setNovoMembroEmail] = useState("");
+  const [novoMembroTelefone, setNovoMembroTelefone] = useState("");
+
+  const addMembro = useMutation({
+    mutationFn: async () => {
+      if (!membrosFamilia) throw new Error("Família não selecionada");
+      const nome = novoMembroNome.trim();
+      if (!nome) throw new Error("Nome é obrigatório");
+      const { error } = await supabase.from("pessoas").insert({
+        nome_completo: nome,
+        email: novoMembroEmail.trim() || null,
+        telefone: novoMembroTelefone.trim() || null,
+        familia_id: membrosFamilia.id,
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Membro adicionado");
+      qc.invalidateQueries({ queryKey: ["familias", "membros", membrosFamilia?.id] });
+      qc.invalidateQueries({ queryKey: ["familias", "contagens"] });
+      qc.invalidateQueries({ queryKey: ["familias", "agregados"] });
+      qc.invalidateQueries({ queryKey: ["pessoas"] });
+      setAddMembroOpen(false);
+      setNovoMembroNome("");
+      setNovoMembroEmail("");
+      setNovoMembroTelefone("");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const { data, isLoading } = useQuery({
     queryKey: ["familias"],
     queryFn: async () => {
