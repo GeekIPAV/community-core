@@ -1,6 +1,8 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const pt = {
   common: {
@@ -35,6 +37,25 @@ const pt = {
     title: "Famílias", members: "Membros", addMember: "Adicionar membro",
     removeFromFamily: "Remover da família", deleteUser: "Apagar utilizador",
   },
+  results: {
+    title: "Resultados e Impacto",
+    subtitle: "Uma visão agregada e anónima do alcance da nossa comunidade.",
+    summary: "Resumo",
+    charts: "Gráficos",
+    newMetric: "Nova métrica",
+    newChart: "Novo gráfico",
+    configure: "Configurar",
+    moveUp: "Mover para cima",
+    moveDown: "Mover para baixo",
+    emptyMetricsAdmin: "Sem métricas. Adiciona a primeira.",
+    emptyMetrics: "Sem métricas.",
+    emptyChartsAdmin: "Sem gráficos. Adiciona o primeiro.",
+    emptyCharts: "Sem gráficos.",
+    loadError: "Não foi possível carregar as estatísticas.",
+    dataLoadError: "Não foi possível carregar os dados.",
+    noData: "Sem dados",
+  },
+  header: { personalArea: "Área pessoal", signIn: "Entrar", brand: "Meeru" },
 };
 
 const en = {
@@ -70,6 +91,25 @@ const en = {
     title: "Families", members: "Members", addMember: "Add member",
     removeFromFamily: "Remove from family", deleteUser: "Delete user",
   },
+  results: {
+    title: "Results & Impact",
+    subtitle: "An aggregated, anonymous view of our community's reach.",
+    summary: "Summary",
+    charts: "Charts",
+    newMetric: "New metric",
+    newChart: "New chart",
+    configure: "Configure",
+    moveUp: "Move up",
+    moveDown: "Move down",
+    emptyMetricsAdmin: "No metrics yet. Add the first.",
+    emptyMetrics: "No metrics.",
+    emptyChartsAdmin: "No charts yet. Add the first.",
+    emptyCharts: "No charts.",
+    loadError: "Could not load statistics.",
+    dataLoadError: "Could not load data.",
+    noData: "No data",
+  },
+  header: { personalArea: "Personal area", signIn: "Sign in", brand: "Meeru" },
 };
 
 const ar = {
@@ -105,6 +145,25 @@ const ar = {
     title: "العائلات", members: "الأعضاء", addMember: "إضافة عضو",
     removeFromFamily: "إزالة من العائلة", deleteUser: "حذف المستخدم",
   },
+  results: {
+    title: "النتائج والأثر",
+    subtitle: "نظرة مجمّعة ومجهولة الهوية على امتداد مجتمعنا.",
+    summary: "ملخص",
+    charts: "الرسوم البيانية",
+    newMetric: "مقياس جديد",
+    newChart: "رسم بياني جديد",
+    configure: "إعداد",
+    moveUp: "نقل لأعلى",
+    moveDown: "نقل لأسفل",
+    emptyMetricsAdmin: "لا توجد مقاييس. أضف الأول.",
+    emptyMetrics: "لا توجد مقاييس.",
+    emptyChartsAdmin: "لا توجد رسوم. أضف الأول.",
+    emptyCharts: "لا توجد رسوم.",
+    loadError: "تعذّر تحميل الإحصائيات.",
+    dataLoadError: "تعذّر تحميل البيانات.",
+    noData: "لا توجد بيانات",
+  },
+  header: { personalArea: "المنطقة الشخصية", signIn: "تسجيل الدخول", brand: "ميرو" },
 };
 
 export const LANGUAGES = [
@@ -139,3 +198,19 @@ applyDir(i18n.language);
 i18n.on("languageChanged", applyDir);
 
 export default i18n;
+
+export function useDir(): "rtl" | "ltr" {
+  const { i18n } = useTranslation();
+  const [dir, setDir] = useState<"rtl" | "ltr">(
+    (i18n.dir?.(i18n.language) as "rtl" | "ltr") ?? "ltr",
+  );
+  useEffect(() => {
+    const update = (lng: string) => setDir(lng === "ar" ? "rtl" : "ltr");
+    update(i18n.language);
+    i18n.on("languageChanged", update);
+    return () => {
+      i18n.off("languageChanged", update);
+    };
+  }, [i18n]);
+  return dir;
+}

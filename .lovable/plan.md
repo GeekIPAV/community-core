@@ -1,64 +1,51 @@
+## Objetivo
 
-## Contexto
+Quando o utilizador troca para árabe a plataforma deve sentir-se nativa: sidebar à direita, conteúdo a fluir da direita para a esquerda, ícones direcionais espelhados, e tudo a comportar-se bem em ecrãs pequenos (independente do idioma).
 
-Hoje, na página `/resultados`:
-- A página é **pública** e **qualquer pessoa** vê os botões "Nova métrica" / "Novo gráfico" / editar / remover.
-- As alterações são guardadas só em **`localStorage`** do browser (`resultados.charts.v1`, `resultados.kpis.v1`), por isso **não ficam guardadas** para os outros utilizadores — cada pessoa vê a sua própria configuração local, e tu vês configurações diferentes em browsers/dispositivos diferentes.
+## 1. Trocar a orientação quando idioma = árabe
 
-Objetivo: tornar a configuração de KPIs e gráficos **partilhada para todos** (uma única configuração global guardada no Lovable Cloud), e permitir **editar apenas a admins**. Visitantes anónimos e utilizadores não-admin continuam a ver tudo, mas em modo leitura.
+Hoje só fazemos `document.documentElement.dir = "rtl"` em `src/lib/i18n.ts`. Isso vira o texto mas a sidebar do shadcn continua "side=left", os menus continuam ancorados a `align="end"` em coordenadas LTR, e várias classes usam `ml-/mr-/left-/right-` fixas.
 
-## Mudanças
+Mudanças:
 
-### 1. Base de dados (migração)
+- **Hook `useDir()`** novo em `src/lib/i18n.ts` que devolve `"rtl" | "ltr"` reactivo (reage a `i18n.on("languageChanged")`), para os componentes poderem condicionar comportamento.
+- **`AppSidebar`** (`src/components/app-sidebar.tsx`): passar `side={dir === "rtl" ? "right" : "left"}` ao `<Sidebar>`. Assim o painel encaixa do lado correto e o botão de colapsar fica no sítio certo.
+- **Substituir margens/paddings direcionais** por equivalentes lógicos nos componentes partilhados que aparecem em todas as páginas: `ml-* → ms-*`, `mr-* → me-*`, `pl-* → ps-*`, `pr-* → pe-*`, `left-* → start-*`, `right-* → end-*`, `text-left → text-start`, `text-right → text-end`. Alvo: `app-sidebar.tsx`, header de `_app.tsx`, header/cards de `resultados.tsx`, dialogs partilhados (`DropdownMenu`, `Dialog` já usam `align="end"` que o Radix trata bem; deixar como está).
+- **Ícones direcionais** (`ChevronLeft/Right`, `ArrowLeft/Right`, setas de mover) — onde representam navegação (voltar, próximo, breadcrumb), espelhar com `className="rtl:rotate-180"`. Não espelhar ícones neutros (lupa, lixo, lápis, etc.).
+- **Recharts**: legendas/tooltips ficam OK; apenas garantir que o container do gráfico tem `dir="ltr"` interno (os números/eixos têm de ler-se LTR mesmo em RTL). Isto é uma `<div dir="ltr">` à volta do `<ResponsiveContainer>` em `ChartBlock` (`src/routes/resultados.tsx`).
+- **Inputs numéricos / email / tel**: forçar `dir="ltr"` quando o conteúdo é inerentemente LTR (números, emails). Aplicar nos `Input` dessas colunas em `participantes`/`familias` quando `type` é `email`, `tel`, `number`, `date`.
 
-Nova tabela `dashboard_config` para guardar uma única configuração global:
+## 2. Tradução em falta
 
-- `id` (uuid, PK)
-- `key` (text, unique) — `"resultados"`
-- `charts` (jsonb) — array de `ChartConfig`
-- `kpis` (jsonb) — array de `KPIConfig`
-- `updated_at`, `created_at`
+Para o árabe parecer completo, precisamos de traduzir o que ainda está só em PT no shell visível:
 
-RLS:
-- `SELECT` aberto a `anon` + `authenticated` (a página é pública).
-- `INSERT` / `UPDATE` apenas se `is_current_user_admin()` (reutiliza a função já existente).
-- `DELETE` bloqueado.
+- Cabeçalho do `/resultados`: "Resultados e Impacto", "Resumo", "Gráficos", "Nova métrica", "Novo gráfico", "Configurar", "Mover para cima/baixo", "Remover", "Sem métricas/gráficos".
+- Header global (`_app.tsx`): nome/área pessoal, "Entrar".
+- Vamos adicionar chaves novas em `pt/en/ar` no `src/lib/i18n.ts` (namespaces `results` e `header`) e usar `useTranslation()` nesses sítios. Não vamos traduzir o backoffice todo neste passo — só o que está visível ao público + à barra lateral.
 
-GRANTs:
-- `SELECT` a `anon` e `authenticated`.
-- `INSERT, UPDATE` a `authenticated`.
-- `ALL` a `service_role`.
+## 3. Responsive
 
-Seed inicial: inserir uma linha `key='resultados'` com os defaults atuais (`DEFAULT_CHARTS` / `DEFAULT_KPIS`) para que a primeira visita já mostre a configuração standard.
+Problemas conhecidos a corrigir:
 
-### 2. Frontend — `src/routes/resultados.tsx`
+- **`/resultados`**: grelha de KPIs passa para `sm:grid-cols-2 lg:grid-cols-4` mas o header da página ("Resumo" + botão "Nova métrica") encosta-se ao limite em 375px → trocar para `flex-col gap-2 sm:flex-row sm:items-center sm:justify-between`. Mesma coisa para "Gráficos".
+- **`ChartBlock`**: hoje a altura está fixa em `h-80` e a Card é 1 coluna até `lg`. Em mobile com tooltip do recharts a legenda corta. Reduzir para `h-64 sm:h-80` e adicionar `overflow-hidden` à Card.
+- **Tabelas em `/participantes` e `/familias`**: garantir wrapper `overflow-x-auto` no container da tabela; barra de filtros (pesquisa + colunas + ações) deve ser `flex-wrap gap-2` em vez de uma única linha que estoura. Adicionar `min-w-0` aos filhos que truncam.
+- **Sidebar mobile**: já usa Sheet — apenas verificar que ao passar para `dir=rtl` o Sheet abre do lado direito (passar `side="right"` no `SheetContent` quando RTL).
+- **Header global**: stack vertical em <640px (logo em cima, ações em baixo) com `flex-wrap`.
 
-- Substituir os dois `useState` + `localStorage` por **um único `useQuery`** que lê `dashboard_config` (`key = 'resultados'`) via cliente Supabase do browser.
-- Criar uma `useMutation` que faz `upsert` em `dashboard_config` com `{ charts, kpis }`; é chamada sempre que um admin guarda, adiciona ou remove um gráfico/KPI.
-- Ler `isAdmin` do `useAuth()` (já existente em `src/lib/auth-context.tsx`).
-- Condicionar à flag `isAdmin`:
-  - Botões "Nova métrica" e "Novo gráfico" no topo de cada secção.
-  - Botões de editar / remover no `KPI` e `ChartBlock` (passar `isAdmin` como prop e esconder os controlos quando `false`).
-  - Os diálogos `ChartConfigDialog` e equivalente para KPIs só abrem para admins.
-- Remover o fallback de criação no estado vazio (cartão "Sem gráficos. Adiciona o primeiro.") para não-admins; mostrar apenas "Sem gráficos ainda."
-- Apagar o código que lê/escreve `STORAGE_KEY` e `KPI_STORAGE_KEY` (já não é preciso).
-- Mostrar um toast de erro com `sonner` quando o `upsert` falhar (ex.: utilizador não admin que tente forçar).
+## 4. Detalhes técnicos
 
-### 3. Sem alterações a:
-- `get_estatisticas_publicas` (continua a alimentar os números).
-- Restantes páginas.
-- Sidebar / tradução.
+- Tailwind v4 já suporta variantes `rtl:` e utilitários lógicos (`ms-*`, `me-*`, `ps-*`, `pe-*`, `start-*`, `end-*`) sem config extra.
+- O `useDir()` hook subscreve `i18n.on("languageChanged", ...)` e devolve `i18n.dir()`. Inicializa com `i18n.dir(i18n.language)` para SSR.
+- Para evitar mismatch de hidratação no SSR (o servidor não sabe o idioma do utilizador), o `<html dir>` continua a ser actualizado no cliente; nenhum componente deve ler `document.documentElement.dir` durante render — usar sempre o hook.
+- Ficheiros tocados:
+  - `src/lib/i18n.ts` (novo hook + novas chaves de tradução)
+  - `src/components/app-sidebar.tsx` (side dinâmico + classes lógicas)
+  - `src/routes/_app.tsx` (header responsive + traduções + classes lógicas)
+  - `src/routes/resultados.tsx` (header responsive, ChartBlock dir="ltr" interno, traduções, classes lógicas)
+  - `src/routes/_app/_admin.participantes.tsx` e `_admin.familias.tsx` (filtros `flex-wrap`, `overflow-x-auto` na tabela, inputs `dir="ltr"` onde aplicável)
 
-## Detalhes técnicos
+## Fora de âmbito
 
-- Acesso à BD a partir do componente é feito com o `supabase` client do browser (já é o padrão usado nesta página, ex.: `useQuery` para `estatisticas`). RLS protege as escritas — não é preciso server function.
-- O `upsert` usa `onConflict: 'key'` para manter sempre uma única linha por `key`.
-- A query e a mutação invalidam a mesma `queryKey: ['dashboard-config','resultados']` para refletir mudanças imediatamente.
-- Tipos: criar `type DashboardConfigRow = { charts: ChartConfig[]; kpis: KPIConfig[] }` e fazer cast do `jsonb` ao ler.
-- Para evitar o problema de hidratação SSR atual (a configuração inicial dependia de `localStorage`), passar a usar sempre o valor do servidor — render consistente entre server e client.
-
-## Ordem de execução
-
-1. Criar e aplicar a migração (`dashboard_config` + RLS + GRANTs).
-2. Fazer o seed inicial com os defaults via `insert`.
-3. Refactor de `resultados.tsx` para usar o Supabase e a flag `isAdmin`.
+- Tradução completa de todos os formulários e dialogs de admin (fica para um passo seguinte).
+- Mudança de fontes para uma família que renderize melhor árabe (podemos discutir se quiseres — Tajawal/IBM Plex Sans Arabic).

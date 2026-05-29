@@ -13,13 +13,14 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/lib/auth-context";
-import { LANGUAGES } from "@/lib/i18n";
+import { LANGUAGES, useDir } from "@/lib/i18n";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { isAdmin, hasPage } = useAuth();
   const { t, i18n } = useTranslation();
+  const dir = useDir();
 
   const publicItems = [
     { title: t("nav.publicPortal"), url: "/", icon: Globe },
@@ -41,7 +42,7 @@ export function AppSidebar() {
   const visibleAcoes = acoesItems.filter((i) => hasPage(i.page));
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" side={dir === "rtl" ? "right" : "left"}>
       <SidebarContent className="gap-1 px-2 py-4">
         <SidebarGroup>
           <SidebarGroupLabel className="px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">
@@ -137,7 +138,7 @@ export function AppSidebar() {
             <SelectContent>
               {LANGUAGES.map((l) => (
                 <SelectItem key={l.code} value={l.code} className="text-xs">
-                  <span className="mr-1">{l.flag}</span> {l.label}
+                  <span className="me-1">{l.flag}</span> {l.label}
                 </SelectItem>
               ))}
             </SelectContent>

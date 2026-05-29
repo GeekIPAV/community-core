@@ -63,6 +63,8 @@ import {
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/lib/auth-context";
+import { useTranslation } from "react-i18next";
+import { useDir } from "@/lib/i18n";
 
 type Estatisticas = {
   familias_total: number;
@@ -249,6 +251,7 @@ function migrarChart(raw: unknown): ChartConfig | null {
 function ResultadosPage() {
   const navigate = useNavigate();
   const { session, pessoa, isAdmin } = useAuth();
+  const { t } = useTranslation();
   const { data, isLoading, error } = useQuery({
     queryKey: ["estatisticas_publicas"],
     queryFn: async () => {
@@ -273,22 +276,22 @@ function ResultadosPage() {
               <div className="flex items-center gap-2">
                 {session ? (
                   <Button size="sm" variant="outline" onClick={() => navigate({ to: isAdmin ? "/participantes" : "/perfil" })}>
-                    {pessoa?.nome_completo?.split(" ")[0] ?? "Área pessoal"}
+                    {pessoa?.nome_completo?.split(" ")[0] ?? t("header.personalArea")}
                   </Button>
                 ) : (
                   <Button size="sm" variant="outline" onClick={() => navigate({ to: "/login" })}>
-                    <LogIn className="mr-2 h-4 w-4" /> Entrar
+                    <LogIn className="me-2 h-4 w-4" /> {t("header.signIn")}
                   </Button>
                 )}
               </div>
             </div>
           </header>
 
-          <main className="mx-auto w-full max-w-6xl space-y-8 px-4 py-10">
+          <main className="mx-auto w-full max-w-6xl space-y-8 px-4 py-6 md:py-10">
             <div>
-              <h1 className="text-3xl font-semibold tracking-tight">Resultados e Impacto</h1>
+              <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">{t("results.title")}</h1>
               <p className="text-sm text-muted-foreground">
-                Uma visão agregada e anónima do alcance da nossa comunidade.
+                {t("results.subtitle")}
               </p>
             </div>
 
@@ -299,7 +302,7 @@ function ResultadosPage() {
                 ))}
               </div>
             ) : error ? (
-              <p className="text-sm text-destructive">Não foi possível carregar as estatísticas.</p>
+              <p className="text-sm text-destructive">{t("results.loadError")}</p>
             ) : data ? (
               <Conteudo data={data} isAdmin={isAdmin} />
             ) : null}
@@ -312,6 +315,7 @@ function ResultadosPage() {
 
 function Conteudo({ data, isAdmin }: { data: Estatisticas; isAdmin: boolean }) {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   const { data: config } = useQuery({
     queryKey: ["dashboard-config", "resultados"],
@@ -371,7 +375,7 @@ function Conteudo({ data, isAdmin }: { data: Estatisticas; isAdmin: boolean }) {
   const addKpi = () => {
     const novo: KPIConfig = {
       id: `k${Date.now()}`,
-      label: "Nova métrica",
+      label: t("results.newMetric"),
       metric: "voluntarios_total",
       icon: "bar",
     };
@@ -390,7 +394,7 @@ function Conteudo({ data, isAdmin }: { data: Estatisticas; isAdmin: boolean }) {
   const addChart = () => {
     const novo: ChartConfig = {
       id: `c${Date.now()}`,
-      title: "Novo gráfico",
+      title: t("results.newChart"),
       tabela: "pessoas",
       coluna: "genero",
       type: "bar",
@@ -419,11 +423,11 @@ function Conteudo({ data, isAdmin }: { data: Estatisticas; isAdmin: boolean }) {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Resumo</h2>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-lg font-semibold">{t("results.summary")}</h2>
         {isAdmin && (
-          <Button size="sm" variant="outline" onClick={addKpi}>
-            <Plus className="mr-2 h-4 w-4" /> Nova métrica
+          <Button size="sm" variant="outline" onClick={addKpi} className="self-start sm:self-auto">
+            <Plus className="me-2 h-4 w-4" /> {t("results.newMetric")}
           </Button>
         )}
       </div>
@@ -442,10 +446,10 @@ function Conteudo({ data, isAdmin }: { data: Estatisticas; isAdmin: boolean }) {
         {kpis.length === 0 && (
           <Card className="sm:col-span-2 lg:col-span-4 border-dashed">
             <CardContent className="flex h-32 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
-              {isAdmin ? "Sem métricas. Adiciona a primeira." : "Sem métricas."}
+              {isAdmin ? t("results.emptyMetricsAdmin") : t("results.emptyMetrics")}
               {isAdmin && (
                 <Button size="sm" variant="outline" onClick={addKpi}>
-                  <Plus className="mr-2 h-4 w-4" /> Nova métrica
+                  <Plus className="me-2 h-4 w-4" /> {t("results.newMetric")}
                 </Button>
               )}
             </CardContent>
@@ -453,11 +457,11 @@ function Conteudo({ data, isAdmin }: { data: Estatisticas; isAdmin: boolean }) {
         )}
       </div>
 
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Gráficos</h2>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-lg font-semibold">{t("results.charts")}</h2>
         {isAdmin && (
-          <Button size="sm" onClick={addChart}>
-            <Plus className="mr-2 h-4 w-4" /> Novo gráfico
+          <Button size="sm" onClick={addChart} className="self-start sm:self-auto">
+            <Plus className="me-2 h-4 w-4" /> {t("results.newChart")}
           </Button>
         )}
       </div>
@@ -476,10 +480,10 @@ function Conteudo({ data, isAdmin }: { data: Estatisticas; isAdmin: boolean }) {
         {charts.length === 0 && (
           <Card className="lg:col-span-2 border-dashed">
             <CardContent className="flex h-40 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
-              {isAdmin ? "Sem gráficos. Adiciona o primeiro." : "Sem gráficos."}
+              {isAdmin ? t("results.emptyChartsAdmin") : t("results.emptyCharts")}
               {isAdmin && (
                 <Button size="sm" variant="outline" onClick={addChart}>
-                  <Plus className="mr-2 h-4 w-4" /> Novo gráfico
+                  <Plus className="me-2 h-4 w-4" /> {t("results.newChart")}
                 </Button>
               )}
             </CardContent>
@@ -523,6 +527,7 @@ function KPI({
   onEdit?: () => void;
   onRemove?: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Card className="group relative">
       <CardHeader className="pb-2 flex flex-row items-start justify-between space-y-0">
@@ -537,13 +542,13 @@ function KPI({
             <DropdownMenuContent align="end">
               {onEdit && (
                 <DropdownMenuItem onClick={onEdit}>
-                  <Settings2 className="mr-2 h-4 w-4" /> Configurar
+                  <Settings2 className="me-2 h-4 w-4" /> {t("results.configure")}
                 </DropdownMenuItem>
               )}
               {onEdit && onRemove && <DropdownMenuSeparator />}
               {onRemove && (
                 <DropdownMenuItem onClick={onRemove} className="text-destructive focus:text-destructive">
-                  <Trash2 className="mr-2 h-4 w-4" /> Remover
+                  <Trash2 className="me-2 h-4 w-4" /> {t("common.remove")}
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -673,6 +678,7 @@ function ChartBlock({
   onMoveUp?: () => void;
   onMoveDown?: () => void;
 }) {
+  const { t } = useTranslation();
   const { data: series, isLoading, error } = useQuery({
     queryKey: ["agrupamento", config.tabela, config.coluna],
     queryFn: async () => {
@@ -706,36 +712,36 @@ function ChartBlock({
             <DropdownMenuContent align="end">
               {onMoveUp && (
                 <DropdownMenuItem onClick={onMoveUp}>
-                  <ArrowUp className="mr-2 h-4 w-4" /> Mover para cima
+                  <ArrowUp className="me-2 h-4 w-4" /> {t("results.moveUp")}
                 </DropdownMenuItem>
               )}
               {onMoveDown && (
                 <DropdownMenuItem onClick={onMoveDown}>
-                  <ArrowDown className="mr-2 h-4 w-4" /> Mover para baixo
+                  <ArrowDown className="me-2 h-4 w-4" /> {t("results.moveDown")}
                 </DropdownMenuItem>
               )}
               {(onMoveUp || onMoveDown) && (onEdit || onRemove) && <DropdownMenuSeparator />}
               {onEdit && (
                 <DropdownMenuItem onClick={onEdit}>
-                  <Settings2 className="mr-2 h-4 w-4" /> Configurar
+                  <Settings2 className="me-2 h-4 w-4" /> {t("results.configure")}
                 </DropdownMenuItem>
               )}
               {onEdit && onRemove && <DropdownMenuSeparator />}
               {onRemove && (
                 <DropdownMenuItem onClick={onRemove} className="text-destructive focus:text-destructive">
-                  <Trash2 className="mr-2 h-4 w-4" /> Remover
+                  <Trash2 className="me-2 h-4 w-4" /> {t("common.remove")}
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
         )}
       </CardHeader>
-      <CardContent className="h-80">
+      <CardContent className="h-64 sm:h-80 overflow-hidden" dir="ltr">
         {isLoading ? (
           <Skeleton className="h-full w-full" />
         ) : error ? (
           <p className="flex h-full items-center justify-center text-sm text-destructive">
-            Não foi possível carregar os dados.
+            {t("results.dataLoadError")}
           </p>
         ) : (
           <ChartRenderer type={config.type} data={series ?? []} />
@@ -746,9 +752,10 @@ function ChartBlock({
 }
 
 function ChartRenderer({ type, data }: { type: ChartType; data: { name: string; value: number }[] }) {
+  const { t } = useTranslation();
   if (!data || data.length === 0) {
     return (
-      <p className="flex h-full items-center justify-center text-sm text-muted-foreground">Sem dados</p>
+      <p className="flex h-full items-center justify-center text-sm text-muted-foreground">{t("results.noData")}</p>
     );
   }
   const total = data.reduce((acc, d) => acc + (d.value ?? 0), 0);
