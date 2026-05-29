@@ -752,7 +752,7 @@ function FamiliasPage() {
                      {membros?.map((m) => {
                        const PersonIco = personIcon(m.genero, m.data_nascimento);
                        return (
-                       <TableRow key={m.id}>
+                         <TableRow key={m.id}>
                          <TableCell className="font-medium whitespace-nowrap min-w-[180px]">
                            <span className="inline-flex items-center gap-1.5">
                              <PersonIco aria-hidden className="h-4 w-4 text-muted-foreground" />
@@ -821,10 +821,10 @@ function FamiliasPage() {
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                    })}
+                         </TableCell>
+                         </TableRow>
+                       );
+                     })}
                   </TableBody>
                 </Table>
                 </div>
