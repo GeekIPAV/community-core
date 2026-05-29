@@ -232,9 +232,7 @@ function ParticipantesPage() {
         const Icon = personIcon(p.genero, p.data_nascimento);
         return (
           <span className="font-medium inline-flex items-center gap-2">
-            <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <Icon aria-hidden className="h-4 w-4" strokeWidth={2.25} />
-            </span>
+            <Icon aria-hidden className="h-5 w-5 shrink-0 text-primary" strokeWidth={2.25} />
             <span>{(getValue() as string) ?? "—"}</span>
           </span>
         );
