@@ -792,29 +792,77 @@ function FamiliasPage() {
 
       {/* Adicionar membro à família */}
       <Dialog open={addMembroOpen} onOpenChange={setAddMembroOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Adicionar membro</DialogTitle>
             <DialogDescription>
               {membrosFamilia ? `Família: ${membrosFamilia.nome}` : ""}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="membro-nome">Nome completo</Label>
-              <Input id="membro-nome" value={novoMembroNome} onChange={(e) => setNovoMembroNome(e.target.value)} />
+              <Input id="membro-nome" value={novoMembro.nome_completo} onChange={(e) => setNovoMembro({ ...novoMembro, nome_completo: e.target.value })} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="membro-email">Email</Label>
-              <Input id="membro-email" type="email" value={novoMembroEmail} onChange={(e) => setNovoMembroEmail(e.target.value)} />
+              <Input id="membro-email" type="email" value={novoMembro.email} onChange={(e) => setNovoMembro({ ...novoMembro, email: e.target.value })} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="membro-telefone">Telefone</Label>
-              <Input id="membro-telefone" value={novoMembroTelefone} onChange={(e) => setNovoMembroTelefone(e.target.value)} />
+              <Input id="membro-telefone" value={novoMembro.telefone} onChange={(e) => setNovoMembro({ ...novoMembro, telefone: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="membro-data">Data de nascimento</Label>
+              <Input id="membro-data" type="date" value={novoMembro.data_nascimento} onChange={(e) => setNovoMembro({ ...novoMembro, data_nascimento: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Género</Label>
+              <Select value={novoMembro.genero || "__none"} onValueChange={(v) => setNovoMembro({ ...novoMembro, genero: v === "__none" ? "" : v })}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">—</SelectItem>
+                  {GENERO_OPTS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="membro-cidade">Cidade</Label>
+              <Input id="membro-cidade" value={novoMembro.cidade_residencia} onChange={(e) => setNovoMembro({ ...novoMembro, cidade_residencia: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="membro-nacionalidade">Nacionalidade</Label>
+              <Input id="membro-nacionalidade" value={novoMembro.nacionalidade} onChange={(e) => setNovoMembro({ ...novoMembro, nacionalidade: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="membro-religiao">Religião</Label>
+              <Input id="membro-religiao" value={novoMembro.religiao} onChange={(e) => setNovoMembro({ ...novoMembro, religiao: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="membro-nif">NIF</Label>
+              <Input id="membro-nif" value={novoMembro.nif} onChange={(e) => setNovoMembro({ ...novoMembro, nif: e.target.value })} />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Projetos</Label>
+              <InlineMultiSelect
+                values={novoMembro.projeto_ids}
+                options={(projetosList ?? []).map((p) => ({ value: p.id, label: p.nome }))}
+                placeholder="sem projetos"
+                onSave={(v) => setNovoMembro({ ...novoMembro, projeto_ids: v })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={novoMembro.status} onValueChange={(v) => setNovoMembro({ ...novoMembro, status: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {PESSOA_STATUS_OPTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={() => addMembro.mutate()} disabled={!novoMembroNome.trim() || addMembro.isPending}>
+            <Button onClick={() => addMembro.mutate()} disabled={!novoMembro.nome_completo.trim() || addMembro.isPending}>
               {addMembro.isPending ? "A guardar…" : "Adicionar"}
             </Button>
           </DialogFooter>
