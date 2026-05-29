@@ -90,19 +90,38 @@ function FamiliasPage() {
   const [detailTab, setDetailTab] = useState<"dados" | "membros" | "acoes">("membros");
 
   const [addMembroOpen, setAddMembroOpen] = useState(false);
-  const [novoMembroNome, setNovoMembroNome] = useState("");
-  const [novoMembroEmail, setNovoMembroEmail] = useState("");
-  const [novoMembroTelefone, setNovoMembroTelefone] = useState("");
+  const emptyMembro = {
+    nome_completo: "",
+    email: "",
+    telefone: "",
+    data_nascimento: "",
+    genero: "" as string,
+    cidade_residencia: "",
+    nacionalidade: "",
+    religiao: "",
+    nif: "",
+    projeto_ids: [] as string[],
+    status: "ativo" as string,
+  };
+  const [novoMembro, setNovoMembro] = useState(emptyMembro);
 
   const addMembro = useMutation({
     mutationFn: async () => {
       if (!membrosFamilia) throw new Error("Família não selecionada");
-      const nome = novoMembroNome.trim();
+      const nome = novoMembro.nome_completo.trim();
       if (!nome) throw new Error("Nome é obrigatório");
       const { error } = await supabase.from("pessoas").insert({
         nome_completo: nome,
-        email: novoMembroEmail.trim() || null,
-        telefone: novoMembroTelefone.trim() || null,
+        email: novoMembro.email.trim() || null,
+        telefone: novoMembro.telefone.trim() || null,
+        data_nascimento: novoMembro.data_nascimento || null,
+        genero: novoMembro.genero || null,
+        cidade_residencia: novoMembro.cidade_residencia.trim() || null,
+        nacionalidade: novoMembro.nacionalidade.trim() || null,
+        religiao: novoMembro.religiao.trim() || null,
+        nif: novoMembro.nif.trim() || null,
+        projeto_ids: novoMembro.projeto_ids,
+        status: novoMembro.status,
         familia_id: membrosFamilia.id,
       } as any);
       if (error) throw error;
@@ -114,9 +133,7 @@ function FamiliasPage() {
       qc.invalidateQueries({ queryKey: ["familias", "agregados"] });
       qc.invalidateQueries({ queryKey: ["pessoas"] });
       setAddMembroOpen(false);
-      setNovoMembroNome("");
-      setNovoMembroEmail("");
-      setNovoMembroTelefone("");
+      setNovoMembro(emptyMembro);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -775,29 +792,77 @@ function FamiliasPage() {
 
       {/* Adicionar membro à família */}
       <Dialog open={addMembroOpen} onOpenChange={setAddMembroOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Adicionar membro</DialogTitle>
             <DialogDescription>
               {membrosFamilia ? `Família: ${membrosFamilia.nome}` : ""}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="membro-nome">Nome completo</Label>
-              <Input id="membro-nome" value={novoMembroNome} onChange={(e) => setNovoMembroNome(e.target.value)} />
+              <Input id="membro-nome" value={novoMembro.nome_completo} onChange={(e) => setNovoMembro({ ...novoMembro, nome_completo: e.target.value })} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="membro-email">Email</Label>
-              <Input id="membro-email" type="email" value={novoMembroEmail} onChange={(e) => setNovoMembroEmail(e.target.value)} />
+              <Input id="membro-email" type="email" value={novoMembro.email} onChange={(e) => setNovoMembro({ ...novoMembro, email: e.target.value })} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="membro-telefone">Telefone</Label>
-              <Input id="membro-telefone" value={novoMembroTelefone} onChange={(e) => setNovoMembroTelefone(e.target.value)} />
+              <Input id="membro-telefone" value={novoMembro.telefone} onChange={(e) => setNovoMembro({ ...novoMembro, telefone: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="membro-data">Data de nascimento</Label>
+              <Input id="membro-data" type="date" value={novoMembro.data_nascimento} onChange={(e) => setNovoMembro({ ...novoMembro, data_nascimento: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Género</Label>
+              <Select value={novoMembro.genero || "__none"} onValueChange={(v) => setNovoMembro({ ...novoMembro, genero: v === "__none" ? "" : v })}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">—</SelectItem>
+                  {GENERO_OPTS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="membro-cidade">Cidade</Label>
+              <Input id="membro-cidade" value={novoMembro.cidade_residencia} onChange={(e) => setNovoMembro({ ...novoMembro, cidade_residencia: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="membro-nacionalidade">Nacionalidade</Label>
+              <Input id="membro-nacionalidade" value={novoMembro.nacionalidade} onChange={(e) => setNovoMembro({ ...novoMembro, nacionalidade: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="membro-religiao">Religião</Label>
+              <Input id="membro-religiao" value={novoMembro.religiao} onChange={(e) => setNovoMembro({ ...novoMembro, religiao: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="membro-nif">NIF</Label>
+              <Input id="membro-nif" value={novoMembro.nif} onChange={(e) => setNovoMembro({ ...novoMembro, nif: e.target.value })} />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Projetos</Label>
+              <InlineMultiSelect
+                values={novoMembro.projeto_ids}
+                options={(projetosList ?? []).map((p) => ({ value: p.id, label: p.nome }))}
+                placeholder="sem projetos"
+                onSave={(v) => setNovoMembro({ ...novoMembro, projeto_ids: v })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={novoMembro.status} onValueChange={(v) => setNovoMembro({ ...novoMembro, status: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {PESSOA_STATUS_OPTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={() => addMembro.mutate()} disabled={!novoMembroNome.trim() || addMembro.isPending}>
+            <Button onClick={() => addMembro.mutate()} disabled={!novoMembro.nome_completo.trim() || addMembro.isPending}>
               {addMembro.isPending ? "A guardar…" : "Adicionar"}
             </Button>
           </DialogFooter>
