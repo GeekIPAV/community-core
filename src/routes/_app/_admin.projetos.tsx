@@ -16,7 +16,9 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2, X, UserPlus } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import {
   useReactTable,
   getCoreRowModel,
@@ -38,6 +40,7 @@ export const Route = createFileRoute("/_app/_admin/projetos")({
 });
 
 type Projeto = { id: string; nome: string; descricao: string | null };
+type PessoaLite = { id: string; nome_completo: string; email: string | null; projeto_ids: string[] };
 
 function ProjetosPage() {
   const qc = useQueryClient();
@@ -77,7 +80,10 @@ function ProjetosPage() {
     },
   });
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["projetos"] });
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["projetos"] });
+    qc.invalidateQueries({ queryKey: ["projeto-membros"] });
+  };
 
   const openNew = () => { setEditing(null); setNome(""); setDescricao(""); setOpen(true); };
   const openEdit = (p: Projeto) => { setEditing(p); setNome(p.nome); setDescricao(p.descricao ?? ""); setOpen(true); };
@@ -109,7 +115,10 @@ function ProjetosPage() {
   const columns = useMemo<ColumnDef<Projeto>[]>(() => [
     { id: "nome", header: "Nome", accessorKey: "nome", cell: ({ getValue }) => <span className="font-medium">{getValue() as string}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nome" } satisfies ColumnFilterMeta },
     { id: "descricao", header: "Descrição", accessorKey: "descricao", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Descrição" } satisfies ColumnFilterMeta },
-    { id: "membros", header: "Membros", accessorFn: (p) => contagens?.get(p.id) ?? 0, cell: ({ getValue }) => <span className="text-muted-foreground">{getValue() as number}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "number", label: "Membros" } satisfies ColumnFilterMeta },
+    { id: "pessoas", header: "Pessoas", accessorFn: (p) => contagens?.get(p.id) ?? 0, cell: ({ getValue }) => {
+        const n = getValue() as number;
+        return <span className="inline-flex h-6 min-w-8 items-center justify-center rounded-full bg-muted px-2 text-xs font-medium tabular-nums">{n}</span>;
+      }, filterFn: advancedFilterFn as any, meta: { filterVariant: "number", label: "Pessoas" } satisfies ColumnFilterMeta },
   ], [contagens]);
 
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -131,7 +140,7 @@ function ProjetosPage() {
     getRowId: (r) => r.id,
   });
 
-  useMobileColumnVisibility(table, ["nome", "membros"]);
+  useMobileColumnVisibility(table, ["nome", "pessoas"]);
   const tableRows = table.getRowModel().rows;
 
   return (
@@ -187,9 +196,9 @@ function ProjetosPage() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>{editing ? "Editar projeto" : "Novo projeto"}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
             <div className="space-y-2">
               <Label>Nome</Label>
               <Input value={nome} onChange={(e) => setNome(e.target.value)} />
@@ -198,6 +207,7 @@ function ProjetosPage() {
               <Label>Descrição</Label>
               <Textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} />
             </div>
+            {editing && <ProjetoMembros projetoId={editing.id} />}
           </div>
           <DialogFooter>
             <Button onClick={() => save.mutate()} disabled={!nome.trim() || save.isPending}>
@@ -206,6 +216,124 @@ function ProjetosPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function ProjetoMembros({ projetoId }: { projetoId: string }) {
+  const qc = useQueryClient();
+  const [addOpen, setAddOpen] = useState(false);
+
+  const { data: pessoas, isLoading } = useQuery({
+    queryKey: ["projeto-membros", "all-ativos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pessoas")
+        .select("id, nome_completo, email, projeto_ids")
+        .eq("status", "ativo")
+        .order("nome_completo");
+      if (error) throw error;
+      return (data ?? []) as PessoaLite[];
+    },
+  });
+
+  const membros = useMemo(
+    () => (pessoas ?? []).filter((p) => (p.projeto_ids ?? []).includes(projetoId)),
+    [pessoas, projetoId],
+  );
+  const disponiveis = useMemo(
+    () => (pessoas ?? []).filter((p) => !(p.projeto_ids ?? []).includes(projetoId)),
+    [pessoas, projetoId],
+  );
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["projeto-membros"] });
+    qc.invalidateQueries({ queryKey: ["projetos", "contagens"] });
+  };
+
+  const add = useMutation({
+    mutationFn: async (pessoa: PessoaLite) => {
+      const next = Array.from(new Set([...(pessoa.projeto_ids ?? []), projetoId]));
+      const { error } = await supabase.from("pessoas").update({ projeto_ids: next }).eq("id", pessoa.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Pessoa adicionada"); invalidate(); setAddOpen(false); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (pessoa: PessoaLite) => {
+      const next = (pessoa.projeto_ids ?? []).filter((id) => id !== projetoId);
+      const { error } = await supabase.from("pessoas").update({ projeto_ids: next }).eq("id", pessoa.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Pessoa removida"); invalidate(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="space-y-2 border-t pt-4">
+      <div className="flex items-center justify-between">
+        <Label className="text-sm">Pessoas no projeto ({membros.length})</Label>
+        <Popover open={addOpen} onOpenChange={setAddOpen}>
+          <PopoverTrigger asChild>
+            <Button size="sm" variant="outline">
+              <UserPlus className="me-2 h-4 w-4" /> Adicionar
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 p-0" align="end">
+            <Command>
+              <CommandInput placeholder="Procurar pessoa…" />
+              <CommandList>
+                <CommandEmpty>Sem resultados.</CommandEmpty>
+                <CommandGroup>
+                  {disponiveis.map((p) => (
+                    <CommandItem
+                      key={p.id}
+                      value={`${p.nome_completo} ${p.email ?? ""}`}
+                      onSelect={() => add.mutate(p)}
+                    >
+                      <div className="flex flex-col">
+                        <span>{p.nome_completo}</span>
+                        {p.email && <span className="text-xs text-muted-foreground">{p.email}</span>}
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-9 w-full" />)}</div>
+      ) : membros.length === 0 ? (
+        <p className="rounded-md border border-dashed py-6 text-center text-sm text-muted-foreground">
+          Sem pessoas atribuídas a este projeto.
+        </p>
+      ) : (
+        <ul className="divide-y rounded-md border">
+          {membros.map((p) => (
+            <li key={p.id} className="flex items-center justify-between gap-2 px-3 py-2">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{p.nome_completo}</p>
+                {p.email && <p className="truncate text-xs text-muted-foreground">{p.email}</p>}
+              </div>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="text-muted-foreground hover:text-destructive"
+                onClick={() => remove.mutate(p)}
+                disabled={remove.isPending}
+                aria-label={`Remover ${p.nome_completo}`}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
