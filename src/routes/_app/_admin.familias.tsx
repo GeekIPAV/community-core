@@ -749,11 +749,13 @@ function FamiliasPage() {
                     {(!membros || membros.length === 0) && !loadingMembros && (
                       <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground">Sem membros</TableCell></TableRow>
                     )}
-                     {membros?.map((m) => (
+                     {membros?.map((m) => {
+                       const PersonIco = personIcon(m.genero, m.data_nascimento);
+                       return (
                        <TableRow key={m.id}>
                          <TableCell className="font-medium whitespace-nowrap min-w-[180px]">
                            <span className="inline-flex items-center gap-1.5">
-                             <span aria-hidden className="text-base leading-none">{personIcon(m.genero, m.data_nascimento)}</span>
+                             <PersonIco aria-hidden className="h-4 w-4 text-muted-foreground" />
                              <InlineText value={m.nome_completo} onSave={async (v) => { if (v) await savePessoa(m.id, "nome_completo")(v); }} />
                            </span>
                          </TableCell>
@@ -821,7 +823,8 @@ function FamiliasPage() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    );
+                    })}
                   </TableBody>
                 </Table>
                 </div>

@@ -229,9 +229,10 @@ function ParticipantesPage() {
     return [
       { id: "nome_completo", header: "Nome", accessorKey: "nome_completo", cell: ({ getValue, row }) => {
         const p = row.original as Pessoa;
+        const Icon = personIcon(p.genero, p.data_nascimento);
         return (
           <span className="font-medium inline-flex items-center gap-1.5">
-            <span aria-hidden className="text-base leading-none">{personIcon(p.genero, p.data_nascimento)}</span>
+            <Icon aria-hidden className="h-4 w-4 text-muted-foreground" />
             <span>{(getValue() as string) ?? "—"}</span>
           </span>
         );
