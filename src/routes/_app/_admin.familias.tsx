@@ -772,6 +772,37 @@ function FamiliasPage() {
           </Tabs>
         </DialogContent>
       </Dialog>
+
+      {/* Adicionar membro à família */}
+      <Dialog open={addMembroOpen} onOpenChange={setAddMembroOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Adicionar membro</DialogTitle>
+            <DialogDescription>
+              {membrosFamilia ? `Família: ${membrosFamilia.nome}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="membro-nome">Nome completo</Label>
+              <Input id="membro-nome" value={novoMembroNome} onChange={(e) => setNovoMembroNome(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="membro-email">Email</Label>
+              <Input id="membro-email" type="email" value={novoMembroEmail} onChange={(e) => setNovoMembroEmail(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="membro-telefone">Telefone</Label>
+              <Input id="membro-telefone" value={novoMembroTelefone} onChange={(e) => setNovoMembroTelefone(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => addMembro.mutate()} disabled={!novoMembroNome.trim() || addMembro.isPending}>
+              {addMembro.isPending ? "A guardar…" : "Adicionar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
