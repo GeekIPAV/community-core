@@ -6,6 +6,7 @@ import { LogOut } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/lib/auth-context";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -15,6 +16,7 @@ function AppLayout() {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
   const { pessoa } = useAuth();
+  const { t } = useTranslation();
 
   useEffect(() => {
     let active = true;
@@ -38,7 +40,7 @@ function AppLayout() {
   if (!ready) {
     return (
       <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
-        A carregar…
+        {t("common.loading")}
       </div>
     );
   }
@@ -50,15 +52,15 @@ function AppLayout() {
           <AppSidebar />
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="flex h-14 items-center justify-between border-b border-border/60 bg-background px-4 md:px-6">
-            <div className="flex items-center gap-2">
+          <header className="flex h-auto min-h-14 flex-wrap items-center justify-between gap-2 border-b border-border/60 bg-background px-4 py-2 md:px-6">
+            <div className="flex items-center gap-2 min-w-0">
               <SidebarTrigger className="hidden md:inline-flex" />
               <span className="text-sm font-bold tracking-tight text-foreground">Meeru</span>
               <span className="h-1.5 w-1.5 rounded-full bg-accent" />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               {pessoa && (
-                <span className="hidden text-xs text-muted-foreground sm:inline">
+                <span className="hidden truncate text-xs text-muted-foreground sm:inline">
                   {pessoa.nome_completo ?? pessoa.email}
                 </span>
               )}
@@ -71,7 +73,7 @@ function AppLayout() {
                   navigate({ to: "/", replace: true });
                 }}
               >
-                <LogOut className="mr-2 h-4 w-4" /> Sair
+                <LogOut className="me-2 h-4 w-4" /> {t("common.signOut")}
               </Button>
             </div>
           </header>
