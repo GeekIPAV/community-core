@@ -1,37 +1,40 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { User, Users, Users2, AlertTriangle, CalendarDays, Globe, Shield, Briefcase, BarChart3 } from "lucide-react";
+import { User, Users, Users2, AlertTriangle, CalendarDays, Globe, Shield, Briefcase, BarChart3, Languages } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarFooter,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/lib/auth-context";
-
-const publicItems = [
-  { title: "Portal Público", url: "/", icon: Globe },
-  { title: "Resultados", url: "/resultados", icon: BarChart3 },
-  { title: "O Meu Perfil", url: "/perfil", icon: User },
-];
-
-const participantesItems = [
-  { title: "Participantes", url: "/participantes", icon: Users, page: "participantes" as const },
-  { title: "Famílias", url: "/familias", icon: Users2, page: "familias" as const },
-  { title: "Projetos", url: "/projetos", icon: Briefcase, page: "projetos" as const },
-  { title: "Duplicados", url: "/duplicados", icon: AlertTriangle, page: "duplicados" as const },
-];
-
-const acoesItems = [
-  { title: "Ações", url: "/acoes", icon: CalendarDays, page: "acoes" as const },
-];
+import { LANGUAGES } from "@/lib/i18n";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { isAdmin, hasPage } = useAuth();
+  const { t, i18n } = useTranslation();
+
+  const publicItems = [
+    { title: t("nav.publicPortal"), url: "/", icon: Globe },
+    { title: t("nav.results"), url: "/resultados", icon: BarChart3 },
+    { title: t("nav.myProfile"), url: "/perfil", icon: User },
+  ];
+  const participantesItems = [
+    { title: t("nav.participants"), url: "/participantes", icon: Users, page: "participantes" as const },
+    { title: t("nav.families"), url: "/familias", icon: Users2, page: "familias" as const },
+    { title: t("nav.projects"), url: "/projetos", icon: Briefcase, page: "projetos" as const },
+    { title: t("nav.duplicates"), url: "/duplicados", icon: AlertTriangle, page: "duplicados" as const },
+  ];
+  const acoesItems = [
+    { title: t("nav.actions"), url: "/acoes", icon: CalendarDays, page: "acoes" as const },
+  ];
 
   const isActive = (url: string) => pathname === url;
   const visibleParticipantes = participantesItems.filter((i) => hasPage(i.page));
@@ -42,7 +45,7 @@ export function AppSidebar() {
       <SidebarContent className="gap-1 px-2 py-4">
         <SidebarGroup>
           <SidebarGroupLabel className="px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">
-            Comunidade
+            {t("nav.community")}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -63,7 +66,7 @@ export function AppSidebar() {
         {visibleParticipantes.length > 0 && (
           <SidebarGroup>
             <SidebarGroupLabel className="px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">
-              Gestão de Participantes
+              {t("nav.participantsMgmt")}
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
@@ -85,7 +88,7 @@ export function AppSidebar() {
         {visibleAcoes.length > 0 && (
           <SidebarGroup>
             <SidebarGroupLabel className="px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">
-              Gestão de Ações
+              {t("nav.actionsMgmt")}
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
@@ -107,7 +110,7 @@ export function AppSidebar() {
         {isAdmin && (
           <SidebarGroup>
             <SidebarGroupLabel className="px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">
-              Administração
+              {t("nav.admin")}
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
@@ -115,7 +118,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild isActive={isActive("/tipos-user")}>
                     <Link to="/tipos-user" className="flex items-center gap-2">
                       <Shield className="h-4 w-4" />
-                      <span>Tipos de Utilizador</span>
+                      <span>{t("nav.userTypes")}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -124,6 +127,23 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
       </SidebarContent>
+      <SidebarFooter className="px-3 py-3 border-t">
+        <div className="flex items-center gap-2">
+          <Languages className="h-4 w-4 text-muted-foreground shrink-0" />
+          <Select value={i18n.language?.split("-")[0] ?? "pt"} onValueChange={(v) => i18n.changeLanguage(v)}>
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue placeholder={t("common.language")} />
+            </SelectTrigger>
+            <SelectContent>
+              {LANGUAGES.map((l) => (
+                <SelectItem key={l.code} value={l.code} className="text-xs">
+                  <span className="mr-1">{l.flag}</span> {l.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </SidebarFooter>
     </Sidebar>
   );
 }
