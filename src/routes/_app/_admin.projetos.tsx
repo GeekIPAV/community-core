@@ -18,7 +18,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Pencil, Plus, Trash2, X, UserPlus } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from "@/components/ui/command";
 import {
   useReactTable,
   getCoreRowModel,
@@ -40,7 +40,8 @@ export const Route = createFileRoute("/_app/_admin/projetos")({
 });
 
 type Projeto = { id: string; nome: string; descricao: string | null };
-type PessoaLite = { id: string; nome_completo: string; email: string | null; projeto_ids: string[] };
+type PessoaLite = { id: string; nome_completo: string; email: string | null; projeto_ids: string[]; familia_id: string | null };
+type FamiliaLite = { id: string; nome: string };
 
 function ProjetosPage() {
   const qc = useQueryClient();
