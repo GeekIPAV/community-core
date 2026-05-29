@@ -14,6 +14,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthProvider } from "@/lib/auth-context";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
+import "@/lib/i18n";
 
 function NotFoundComponent() {
   return (
