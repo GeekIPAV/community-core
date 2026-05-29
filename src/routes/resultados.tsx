@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -157,9 +158,6 @@ const DEFAULT_CHARTS: ChartConfig[] = [
   { id: "c4", title: "Participantes por projeto", tabela: "inscricoes", coluna: "acao", type: "bar" },
 ];
 
-const STORAGE_KEY = "resultados.charts.v1";
-const KPI_STORAGE_KEY = "resultados.kpis.v1";
-
 type MetricKey =
   | "voluntarios_total"
   | "familias_total"
@@ -301,7 +299,7 @@ function ResultadosPage() {
             ) : error ? (
               <p className="text-sm text-destructive">Não foi possível carregar as estatísticas.</p>
             ) : data ? (
-              <Conteudo data={data} />
+              <Conteudo data={data} isAdmin={isAdmin} />
             ) : null}
           </main>
         </div>
@@ -310,27 +308,63 @@ function ResultadosPage() {
   );
 }
 
-function Conteudo({ data }: { data: Estatisticas }) {
-  const [kpis, setKpis] = useState<KPIConfig[]>(() => {
-    if (typeof window === "undefined") return DEFAULT_KPIS;
-    try {
-      const raw = window.localStorage.getItem(KPI_STORAGE_KEY);
-      if (!raw) return DEFAULT_KPIS;
-      const parsed = JSON.parse(raw) as KPIConfig[];
-      return Array.isArray(parsed) ? parsed : DEFAULT_KPIS;
-    } catch {
-      return DEFAULT_KPIS;
-    }
-  });
-  const [editingKpi, setEditingKpi] = useState<KPIConfig | null>(null);
+function Conteudo({ data, isAdmin }: { data: Estatisticas; isAdmin: boolean }) {
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(KPI_STORAGE_KEY, JSON.stringify(kpis));
-    } catch {
-      // ignore
-    }
-  }, [kpis]);
+  const { data: config } = useQuery({
+    queryKey: ["dashboard-config", "resultados"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dashboard_config")
+        .select("charts, kpis")
+        .eq("key", "resultados")
+        .maybeSingle();
+      if (error) throw error;
+      const rawCharts = Array.isArray(data?.charts) ? (data!.charts as unknown[]) : [];
+      const migrated = rawCharts.map(migrarChart).filter((c): c is ChartConfig => c !== null);
+      const rawKpis = Array.isArray(data?.kpis) ? (data!.kpis as unknown as KPIConfig[]) : [];
+      return {
+        charts: migrated.length ? migrated : DEFAULT_CHARTS,
+        kpis: rawKpis.length ? rawKpis : DEFAULT_KPIS,
+      };
+    },
+    staleTime: 1000 * 60,
+  });
+
+  const kpis = config?.kpis ?? DEFAULT_KPIS;
+  const charts = config?.charts ?? DEFAULT_CHARTS;
+
+  const saveMutation = useMutation({
+    mutationFn: async (next: { charts: ChartConfig[]; kpis: KPIConfig[] }) => {
+      const { error } = await supabase
+        .from("dashboard_config")
+        .upsert(
+          { key: "resultados", charts: next.charts, kpis: next.kpis },
+          { onConflict: "key" },
+        );
+      if (error) throw error;
+    },
+    onMutate: async (next) => {
+      await queryClient.cancelQueries({ queryKey: ["dashboard-config", "resultados"] });
+      const prev = queryClient.getQueryData(["dashboard-config", "resultados"]);
+      queryClient.setQueryData(["dashboard-config", "resultados"], next);
+      return { prev };
+    },
+    onError: (err: Error, _next, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(["dashboard-config", "resultados"], ctx.prev);
+      toast.error(err.message || "Não foi possível guardar");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["dashboard-config", "resultados"] });
+    },
+  });
+
+  const persist = (next: { charts: ChartConfig[]; kpis: KPIConfig[] }) => {
+    saveMutation.mutate(next);
+  };
+
+  const [editingKpi, setEditingKpi] = useState<KPIConfig | null>(null);
+  const [editing, setEditing] = useState<ChartConfig | null>(null);
 
   const addKpi = () => {
     const novo: KPIConfig = {
@@ -339,40 +373,17 @@ function Conteudo({ data }: { data: Estatisticas }) {
       metric: "voluntarios_total",
       icon: "bar",
     };
-    setKpis((prev) => [...prev, novo]);
+    persist({ charts, kpis: [...kpis, novo] });
     setEditingKpi(novo);
   };
 
   const updateKpi = (next: KPIConfig) => {
-    setKpis((prev) => prev.map((k) => (k.id === next.id ? next : k)));
+    persist({ charts, kpis: kpis.map((k) => (k.id === next.id ? next : k)) });
   };
 
   const removeKpi = (id: string) => {
-    setKpis((prev) => prev.filter((k) => k.id !== id));
+    persist({ charts, kpis: kpis.filter((k) => k.id !== id) });
   };
-
-  const [charts, setCharts] = useState<ChartConfig[]>(() => {
-    if (typeof window === "undefined") return DEFAULT_CHARTS;
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (!raw) return DEFAULT_CHARTS;
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_CHARTS;
-      const migrated = parsed.map(migrarChart).filter((c): c is ChartConfig => c !== null);
-      return migrated.length ? migrated : DEFAULT_CHARTS;
-    } catch {
-      return DEFAULT_CHARTS;
-    }
-  });
-  const [editing, setEditing] = useState<ChartConfig | null>(null);
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(charts));
-    } catch {
-      // ignore
-    }
-  }, [charts]);
 
   const addChart = () => {
     const novo: ChartConfig = {
@@ -382,25 +393,27 @@ function Conteudo({ data }: { data: Estatisticas }) {
       coluna: "genero",
       type: "bar",
     };
-    setCharts((prev) => [...prev, novo]);
+    persist({ charts: [...charts, novo], kpis });
     setEditing(novo);
   };
 
   const updateChart = (next: ChartConfig) => {
-    setCharts((prev) => prev.map((c) => (c.id === next.id ? next : c)));
+    persist({ charts: charts.map((c) => (c.id === next.id ? next : c)), kpis });
   };
 
   const removeChart = (id: string) => {
-    setCharts((prev) => prev.filter((c) => c.id !== id));
+    persist({ charts: charts.filter((c) => c.id !== id), kpis });
   };
 
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Resumo</h2>
-        <Button size="sm" variant="outline" onClick={addKpi}>
-          <Plus className="mr-2 h-4 w-4" /> Nova métrica
-        </Button>
+        {isAdmin && (
+          <Button size="sm" variant="outline" onClick={addKpi}>
+            <Plus className="mr-2 h-4 w-4" /> Nova métrica
+          </Button>
+        )}
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((k) => (
@@ -410,17 +423,19 @@ function Conteudo({ data }: { data: Estatisticas }) {
             label={k.label}
             value={data[k.metric] as number}
             sub={k.subMetric ? `${data[k.subMetric] as number}${k.subSuffix ? ` ${k.subSuffix}` : ""}` : undefined}
-            onEdit={() => setEditingKpi(k)}
-            onRemove={() => removeKpi(k.id)}
+            onEdit={isAdmin ? () => setEditingKpi(k) : undefined}
+            onRemove={isAdmin ? () => removeKpi(k.id) : undefined}
           />
         ))}
         {kpis.length === 0 && (
           <Card className="sm:col-span-2 lg:col-span-4 border-dashed">
             <CardContent className="flex h-32 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
-              Sem métricas. Adiciona a primeira.
-              <Button size="sm" variant="outline" onClick={addKpi}>
-                <Plus className="mr-2 h-4 w-4" /> Nova métrica
-              </Button>
+              {isAdmin ? "Sem métricas. Adiciona a primeira." : "Sem métricas."}
+              {isAdmin && (
+                <Button size="sm" variant="outline" onClick={addKpi}>
+                  <Plus className="mr-2 h-4 w-4" /> Nova métrica
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}
@@ -428,9 +443,11 @@ function Conteudo({ data }: { data: Estatisticas }) {
 
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Gráficos</h2>
-        <Button size="sm" onClick={addChart}>
-          <Plus className="mr-2 h-4 w-4" /> Novo gráfico
-        </Button>
+        {isAdmin && (
+          <Button size="sm" onClick={addChart}>
+            <Plus className="mr-2 h-4 w-4" /> Novo gráfico
+          </Button>
+        )}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -438,17 +455,19 @@ function Conteudo({ data }: { data: Estatisticas }) {
           <ChartBlock
             key={cfg.id}
             config={cfg}
-            onEdit={() => setEditing(cfg)}
-            onRemove={() => removeChart(cfg.id)}
+            onEdit={isAdmin ? () => setEditing(cfg) : undefined}
+            onRemove={isAdmin ? () => removeChart(cfg.id) : undefined}
           />
         ))}
         {charts.length === 0 && (
           <Card className="lg:col-span-2 border-dashed">
             <CardContent className="flex h-40 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
-              Sem gráficos. Adiciona o primeiro.
-              <Button size="sm" variant="outline" onClick={addChart}>
-                <Plus className="mr-2 h-4 w-4" /> Novo gráfico
-              </Button>
+              {isAdmin ? "Sem gráficos. Adiciona o primeiro." : "Sem gráficos."}
+              {isAdmin && (
+                <Button size="sm" variant="outline" onClick={addChart}>
+                  <Plus className="mr-2 h-4 w-4" /> Novo gráfico
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}
@@ -633,8 +652,8 @@ function ChartBlock({
   onRemove,
 }: {
   config: ChartConfig;
-  onEdit: () => void;
-  onRemove: () => void;
+  onEdit?: () => void;
+  onRemove?: () => void;
 }) {
   const { data: series, isLoading, error } = useQuery({
     queryKey: ["agrupamento", config.tabela, config.coluna],
@@ -659,22 +678,28 @@ function ChartBlock({
             {TABELA_LABEL[config.tabela]} · {colunaLabel} · {CHART_TYPE_LABEL[config.type]}
           </CardDescription>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="icon" variant="ghost" className="h-8 w-8">
-              <Settings2 className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onEdit}>
-              <Settings2 className="mr-2 h-4 w-4" /> Configurar
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onRemove} className="text-destructive focus:text-destructive">
-              <Trash2 className="mr-2 h-4 w-4" /> Remover
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {(onEdit || onRemove) && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="icon" variant="ghost" className="h-8 w-8">
+                <Settings2 className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {onEdit && (
+                <DropdownMenuItem onClick={onEdit}>
+                  <Settings2 className="mr-2 h-4 w-4" /> Configurar
+                </DropdownMenuItem>
+              )}
+              {onEdit && onRemove && <DropdownMenuSeparator />}
+              {onRemove && (
+                <DropdownMenuItem onClick={onRemove} className="text-destructive focus:text-destructive">
+                  <Trash2 className="mr-2 h-4 w-4" /> Remover
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </CardHeader>
       <CardContent className="h-80">
         {isLoading ? (

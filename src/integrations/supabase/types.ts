@@ -65,6 +65,33 @@ export type Database = {
         }
         Relationships: []
       }
+      dashboard_config: {
+        Row: {
+          charts: Json
+          created_at: string
+          id: string
+          key: string
+          kpis: Json
+          updated_at: string
+        }
+        Insert: {
+          charts?: Json
+          created_at?: string
+          id?: string
+          key: string
+          kpis?: Json
+          updated_at?: string
+        }
+        Update: {
+          charts?: Json
+          created_at?: string
+          id?: string
+          key?: string
+          kpis?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       familias: {
         Row: {
           created_at: string
