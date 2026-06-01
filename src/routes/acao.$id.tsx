@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { ArrowLeft, MapPin, CalendarDays, ExternalLink } from "lucide-react";
 import { RichTextView } from "@/components/rich-text-view";
+import { matchCidade, formatEuro, type CidadeBolsa } from "@/lib/bolsa-transporte";
 
 export const Route = createFileRoute("/acao/$id")({
   component: AcaoDetailPage,
