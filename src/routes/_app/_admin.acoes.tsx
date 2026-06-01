@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useState, useMemo } from "react";
+import { useState, useMemo, Fragment } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -1312,10 +1312,11 @@ function BolsaTab({ acaoId }: { acaoId: string }) {
     porCidade.set(key, cur);
   }
 
-  const porFamilia = new Map<string, { nome: string; membros: typeof rows; total: number; elegiveis: number }>();
+  type Row = (typeof rows)[number];
+  const porFamilia = new Map<string, { nome: string; membros: Row[]; total: number; elegiveis: number }>();
   for (const r of rows) {
     const key = r.familia || "__sem_familia__";
-    const cur = porFamilia.get(key) ?? { nome: r.familia || "(Sem família)", membros: [], total: 0, elegiveis: 0 };
+    const cur = porFamilia.get(key) ?? { nome: r.familia || "(Sem família)", membros: [] as Row[], total: 0, elegiveis: 0 };
     cur.membros.push(r);
     cur.total += r.valor;
     if (r.cidade) cur.elegiveis += 1;
