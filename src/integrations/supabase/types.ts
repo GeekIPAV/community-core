@@ -68,6 +68,33 @@ export type Database = {
         }
         Relationships: []
       }
+      atividades_catalogo: {
+        Row: {
+          ativo: boolean
+          categoria: string | null
+          created_at: string
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string | null
+          created_at?: string
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string | null
+          created_at?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bolsas_cidades: {
         Row: {
           ativo: boolean
@@ -121,6 +148,54 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      familia_atividades: {
+        Row: {
+          atividade_id: string
+          created_at: string
+          created_by: string | null
+          data: string | null
+          descricao: string | null
+          familia_id: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          atividade_id: string
+          created_at?: string
+          created_by?: string | null
+          data?: string | null
+          descricao?: string | null
+          familia_id: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          atividade_id?: string
+          created_at?: string
+          created_by?: string | null
+          data?: string | null
+          descricao?: string | null
+          familia_id?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "familia_atividades_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "atividades_catalogo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "familia_atividades_familia_id_fkey"
+            columns: ["familia_id"]
+            isOneToOne: false
+            referencedRelation: "familias"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       familias: {
         Row: {
