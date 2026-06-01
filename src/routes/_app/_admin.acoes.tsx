@@ -1312,6 +1312,17 @@ function BolsaTab({ acaoId }: { acaoId: string }) {
     porCidade.set(key, cur);
   }
 
+  const porFamilia = new Map<string, { nome: string; membros: typeof rows; total: number; elegiveis: number }>();
+  for (const r of rows) {
+    const key = r.familia || "__sem_familia__";
+    const cur = porFamilia.get(key) ?? { nome: r.familia || "(Sem família)", membros: [], total: 0, elegiveis: 0 };
+    cur.membros.push(r);
+    cur.total += r.valor;
+    if (r.cidade) cur.elegiveis += 1;
+    porFamilia.set(key, cur);
+  }
+  const familias = Array.from(porFamilia.values()).sort((a, b) => b.total - a.total);
+
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-3">
@@ -1337,20 +1348,29 @@ function BolsaTab({ acaoId }: { acaoId: string }) {
       )}
 
       <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-base">Por pessoa</CardTitle></CardHeader>
+        <CardHeader className="pb-2"><CardTitle className="text-base">Por família</CardTitle></CardHeader>
         <CardContent>
           <Table>
-            <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Família</TableHead><TableHead>Cidade do perfil</TableHead><TableHead>Cidade aplicada</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Cidade do perfil</TableHead><TableHead>Cidade aplicada</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
             <TableBody>
-              {rows.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground">Sem inscritos.</TableCell></TableRow>}
-              {rows.map((r) => (
-                <TableRow key={r.id} className={r.cidade ? "" : "opacity-60"}>
-                  <TableCell>{r.nome}</TableCell>
-                  <TableCell className="text-muted-foreground">{r.familia}</TableCell>
-                  <TableCell className="text-muted-foreground">{r.cidadeResidencia || "—"}</TableCell>
-                  <TableCell>{r.cidade ? <Badge variant="secondary">{r.cidade.nome}</Badge> : <span className="text-xs text-muted-foreground">Sem correspondência</span>}</TableCell>
-                  <TableCell className="text-right font-medium">{r.cidade ? formatEuro(r.valor) : "—"}</TableCell>
-                </TableRow>
+              {familias.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-sm text-muted-foreground">Sem inscritos.</TableCell></TableRow>}
+              {familias.map((f) => (
+                <Fragment key={f.nome}>
+                  <TableRow className="bg-muted/40">
+                    <TableCell colSpan={3} className="font-medium">
+                      {f.nome} <span className="text-xs text-muted-foreground font-normal">· {f.membros.length} {f.membros.length === 1 ? "pessoa" : "pessoas"} ({f.elegiveis} elegíve{f.elegiveis === 1 ? "l" : "is"})</span>
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">{formatEuro(f.total)}</TableCell>
+                  </TableRow>
+                  {f.membros.map((r) => (
+                    <TableRow key={r.id} className={r.cidade ? "" : "opacity-60"}>
+                      <TableCell className="pl-6">{r.nome}</TableCell>
+                      <TableCell className="text-muted-foreground">{r.cidadeResidencia || "—"}</TableCell>
+                      <TableCell>{r.cidade ? <Badge variant="secondary">{r.cidade.nome}</Badge> : <span className="text-xs text-muted-foreground">Sem correspondência</span>}</TableCell>
+                      <TableCell className="text-right font-medium">{r.cidade ? formatEuro(r.valor) : "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </Fragment>
               ))}
             </TableBody>
           </Table>
