@@ -31,6 +31,7 @@ import { AdvancedTableFilters, advancedFilterFn, type ColumnFilterMeta } from "@
 import { DataTableViewOptions } from "@/components/data-table-view-options";
 import { DraggableTableHeaders } from "@/components/draggable-table-headers";
 import { useMobileColumnVisibility } from "@/hooks/use-mobile-columns";
+import { matchCidade, formatEuro, type CidadeBolsa } from "@/lib/bolsa-transporte";
 
 export const Route = createFileRoute("/_app/_admin/acoes")({
   component: AcoesPage,
@@ -213,10 +214,11 @@ type AcaoForm = {
   data_fim: string;
   status: string;
   inscricoes_abertas: boolean;
+  bolsa_transporte: boolean;
   fields: FieldDef[];
 };
 
-const EMPTY_FORM: AcaoForm = { nome: "", local: "", mapa_url: "", imagem_url: "", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, fields: [] };
+const EMPTY_FORM: AcaoForm = { nome: "", local: "", mapa_url: "", imagem_url: "", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, bolsa_transporte: false, fields: [] };
 
 const acaoFormSchema = z
   .object({
@@ -234,6 +236,7 @@ const acaoFormSchema = z
     data_fim: z.string(),
     status: z.string().trim().min(1, "Estado é obrigatório").max(50),
     inscricoes_abertas: z.boolean(),
+    bolsa_transporte: z.boolean().optional(),
   })
   .refine((v) => !v.data_inicio || !v.data_fim || new Date(v.data_fim) >= new Date(v.data_inicio), {
     message: "Data de fim deve ser igual ou posterior à data de início",
@@ -1257,6 +1260,106 @@ function AddPessoasDialog({
   );
 }
 
+function BolsaTab({ acaoId }: { acaoId: string }) {
+  const { data: cidades } = useQuery({
+    queryKey: ["bolsas-cidades"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("bolsas_cidades" as any)
+        .select("id, nome, valor_sentido, ativo")
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as unknown as CidadeBolsa[];
+    },
+  });
+
+  const { data: inscricoes, isLoading } = useQuery({
+    queryKey: ["bolsa-inscricoes", acaoId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("inscricoes")
+        .select("id, status, pessoa:pessoas(id, nome_completo, cidade_residencia, familia:familias(id, nome))")
+        .eq("acao_id", acaoId)
+        .neq("status", "cancelada");
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  if (isLoading || !cidades) return <Skeleton className="h-40 w-full" />;
+
+  const rows = (inscricoes ?? []).map((r: any) => {
+    const cidade = matchCidade(r.pessoa?.cidade_residencia, cidades);
+    const valor = cidade ? cidade.valor_sentido * 2 : 0;
+    return {
+      id: r.id,
+      nome: r.pessoa?.nome_completo ?? "—",
+      familia: r.pessoa?.familia?.nome ?? "",
+      cidadeResidencia: r.pessoa?.cidade_residencia ?? "",
+      cidade,
+      valor,
+    };
+  });
+
+  const elegiveis = rows.filter((r) => r.cidade);
+  const total = elegiveis.reduce((s, r) => s + r.valor, 0);
+  const porCidade = new Map<string, { count: number; total: number }>();
+  for (const r of elegiveis) {
+    const key = r.cidade!.nome;
+    const cur = porCidade.get(key) ?? { count: 0, total: 0 };
+    cur.count += 1;
+    cur.total += r.valor;
+    porCidade.set(key, cur);
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Card><CardHeader className="pb-2"><CardDescription>Elegíveis</CardDescription><CardTitle className="text-2xl">{elegiveis.length}</CardTitle></CardHeader></Card>
+        <Card><CardHeader className="pb-2"><CardDescription>Total inscritos</CardDescription><CardTitle className="text-2xl">{rows.length}</CardTitle></CardHeader></Card>
+        <Card><CardHeader className="pb-2"><CardDescription>Total a pagar</CardDescription><CardTitle className="text-2xl">{formatEuro(total)}</CardTitle></CardHeader></Card>
+      </div>
+
+      {porCidade.size > 0 && (
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Por cidade</CardTitle></CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader><TableRow><TableHead>Cidade</TableHead><TableHead className="text-right">Pessoas</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {Array.from(porCidade.entries()).map(([nome, v]) => (
+                  <TableRow key={nome}><TableCell>{nome}</TableCell><TableCell className="text-right">{v.count}</TableCell><TableCell className="text-right font-medium">{formatEuro(v.total)}</TableCell></TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-base">Por pessoa</CardTitle></CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Família</TableHead><TableHead>Cidade do perfil</TableHead><TableHead>Cidade aplicada</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
+            <TableBody>
+              {rows.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground">Sem inscritos.</TableCell></TableRow>}
+              {rows.map((r) => (
+                <TableRow key={r.id} className={r.cidade ? "" : "opacity-60"}>
+                  <TableCell>{r.nome}</TableCell>
+                  <TableCell className="text-muted-foreground">{r.familia}</TableCell>
+                  <TableCell className="text-muted-foreground">{r.cidadeResidencia || "—"}</TableCell>
+                  <TableCell>{r.cidade ? <Badge variant="secondary">{r.cidade.nome}</Badge> : <span className="text-xs text-muted-foreground">Sem correspondência</span>}</TableCell>
+                  <TableCell className="text-right font-medium">{r.cidade ? formatEuro(r.valor) : "—"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function AcoesPageInner() {
   const qc = useQueryClient();
   const [addOpen, setAddOpen] = useState(false);
@@ -1271,7 +1374,7 @@ function AcoesPageInner() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("acoes")
-        .select("id, nome, local, mapa_url, imagem_url, data_inicio, data_fim, status, inscricoes_abertas, config_campos")
+        .select("id, nome, local, mapa_url, imagem_url, data_inicio, data_fim, status, inscricoes_abertas, bolsa_transporte, config_campos")
         .order("data_inicio", { ascending: false, nullsFirst: false });
       if (error) throw error;
       return data;
@@ -1321,6 +1424,7 @@ function AcoesPageInner() {
         data_fim: fromDtLocal(form.data_fim),
         status: form.status,
         inscricoes_abertas: form.inscricoes_abertas,
+        bolsa_transporte: form.bolsa_transporte,
         config_campos: { fields: form.fields },
       } as any);
       if (error) throw error;
@@ -1352,6 +1456,7 @@ function AcoesPageInner() {
           data_fim: fromDtLocal(editing.data_fim),
           status: editing.status,
           inscricoes_abertas: editing.inscricoes_abertas,
+          bolsa_transporte: editing.bolsa_transporte,
           config_campos: { fields: editing.fields },
         } as any)
         .eq("id", editing.id);
@@ -1435,6 +1540,13 @@ function AcoesPageInner() {
                 </div>
                 <Switch checked={form.inscricoes_abertas} onCheckedChange={(c) => setForm({ ...form, inscricoes_abertas: c })} />
               </label>
+              <label className="flex items-center justify-between rounded-md border p-3">
+                <div>
+                  <p className="text-sm font-medium">Bolsa de transporte</p>
+                  <p className="text-xs text-muted-foreground">Quando ligada, mostra ao participante (com base na cidade do perfil) quanto receberá por pessoa inscrita.</p>
+                </div>
+                <Switch checked={form.bolsa_transporte} onCheckedChange={(c) => setForm({ ...form, bolsa_transporte: c })} />
+              </label>
               <div className="space-y-2">
                 <Label>Descrição</Label>
                 <RichTextEditor value={form.descricao} onChange={(v) => setForm({ ...form, descricao: v })} />
@@ -1481,6 +1593,7 @@ function AcoesPageInner() {
                     data_fim: toDtLocal(a.data_fim),
                     status: String((a as any).status ?? "ativa"),
                     inscricoes_abertas: inscricoesAbertas,
+                    bolsa_transporte: !!(a as any).bolsa_transporte,
                     fields,
                   });
                 }}
@@ -1556,6 +1669,7 @@ function AcoesPageInner() {
               <TabsList>
                 <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
                 <TabsTrigger value="inscricoes">Inscrições</TabsTrigger>
+                {editing.bolsa_transporte && <TabsTrigger value="bolsa">Bolsa</TabsTrigger>}
               </TabsList>
               <TabsContent value="detalhes" className="space-y-4 min-w-0">
               <div className="space-y-2"><Label>Nome</Label><Input value={editing.nome} onChange={(e) => setEditing({ ...editing, nome: e.target.value })} /></div>
@@ -1594,6 +1708,13 @@ function AcoesPageInner() {
                 </div>
                 <Switch checked={editing.inscricoes_abertas} onCheckedChange={(c) => setEditing({ ...editing, inscricoes_abertas: c })} />
               </label>
+              <label className="flex items-center justify-between rounded-md border p-3">
+                <div>
+                  <p className="text-sm font-medium">Bolsa de transporte</p>
+                  <p className="text-xs text-muted-foreground">Quando ligada, mostra ao participante (com base na cidade do perfil) quanto receberá por pessoa inscrita.</p>
+                </div>
+                <Switch checked={editing.bolsa_transporte} onCheckedChange={(c) => setEditing({ ...editing, bolsa_transporte: c })} />
+              </label>
               <div className="space-y-2">
                 <Label>Descrição</Label>
                 <RichTextEditor value={editing.descricao} onChange={(v) => setEditing({ ...editing, descricao: v })} />
@@ -1603,6 +1724,11 @@ function AcoesPageInner() {
               <TabsContent value="inscricoes" className="min-w-0">
                 <InscricoesTab acaoId={editing.id} fields={editing.fields} />
               </TabsContent>
+              {editing.bolsa_transporte && (
+                <TabsContent value="bolsa" className="min-w-0">
+                  <BolsaTab acaoId={editing.id} />
+                </TabsContent>
+              )}
             </Tabs>
           )}
           <DialogFooter className="gap-2 sm:justify-between">
