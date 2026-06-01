@@ -88,7 +88,7 @@ function FamiliasPage() {
 
   const [membrosFamilia, setMembrosFamilia] = useState<Familia | null>(null);
   const [view, setView] = useState<"tabela" | "galeria">("tabela");
-  const [detailTab, setDetailTab] = useState<"dados" | "membros" | "acoes">("membros");
+  const [detailTab, setDetailTab] = useState<"dados" | "membros" | "acoes" | "atividades">("membros");
 
   const [addMembroOpen, setAddMembroOpen] = useState(false);
   const emptyMembro = {
@@ -679,11 +679,12 @@ function FamiliasPage() {
             </DialogDescription>
           </DialogHeader>
           </div>
-          <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as "dados" | "membros" | "acoes")} className="flex flex-col flex-1 min-h-0 px-6 pb-6">
+          <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as "dados" | "membros" | "acoes" | "atividades")} className="flex flex-col flex-1 min-h-0 px-6 pb-6">
             <TabsList className="w-full">
               <TabsTrigger value="dados" className="flex-1">Dados</TabsTrigger>
               <TabsTrigger value="membros" className="flex-1">Membros</TabsTrigger>
               <TabsTrigger value="acoes" className="flex-1">Ações</TabsTrigger>
+              <TabsTrigger value="atividades" className="flex-1">Atividades</TabsTrigger>
             </TabsList>
 
             <TabsContent value="dados" className="space-y-4 pt-4">
