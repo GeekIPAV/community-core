@@ -31,6 +31,7 @@ import { AdvancedTableFilters, advancedFilterFn, type ColumnFilterMeta } from "@
 import { DataTableViewOptions } from "@/components/data-table-view-options";
 import { DraggableTableHeaders } from "@/components/draggable-table-headers";
 import { useMobileColumnVisibility } from "@/hooks/use-mobile-columns";
+import { matchCidade, formatEuro, type CidadeBolsa } from "@/lib/bolsa-transporte";
 
 export const Route = createFileRoute("/_app/_admin/acoes")({
   component: AcoesPage,
