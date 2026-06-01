@@ -1260,6 +1260,106 @@ function AddPessoasDialog({
   );
 }
 
+function BolsaTab({ acaoId }: { acaoId: string }) {
+  const { data: cidades } = useQuery({
+    queryKey: ["bolsas-cidades"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("bolsas_cidades" as any)
+        .select("id, nome, valor_sentido, ativo")
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as unknown as CidadeBolsa[];
+    },
+  });
+
+  const { data: inscricoes, isLoading } = useQuery({
+    queryKey: ["bolsa-inscricoes", acaoId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("inscricoes")
+        .select("id, status, pessoa:pessoas(id, nome_completo, cidade_residencia, familia:familias(id, nome))")
+        .eq("acao_id", acaoId)
+        .neq("status", "cancelada");
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  if (isLoading || !cidades) return <Skeleton className="h-40 w-full" />;
+
+  const rows = (inscricoes ?? []).map((r: any) => {
+    const cidade = matchCidade(r.pessoa?.cidade_residencia, cidades);
+    const valor = cidade ? cidade.valor_sentido * 2 : 0;
+    return {
+      id: r.id,
+      nome: r.pessoa?.nome_completo ?? "—",
+      familia: r.pessoa?.familia?.nome ?? "",
+      cidadeResidencia: r.pessoa?.cidade_residencia ?? "",
+      cidade,
+      valor,
+    };
+  });
+
+  const elegiveis = rows.filter((r) => r.cidade);
+  const total = elegiveis.reduce((s, r) => s + r.valor, 0);
+  const porCidade = new Map<string, { count: number; total: number }>();
+  for (const r of elegiveis) {
+    const key = r.cidade!.nome;
+    const cur = porCidade.get(key) ?? { count: 0, total: 0 };
+    cur.count += 1;
+    cur.total += r.valor;
+    porCidade.set(key, cur);
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Card><CardHeader className="pb-2"><CardDescription>Elegíveis</CardDescription><CardTitle className="text-2xl">{elegiveis.length}</CardTitle></CardHeader></Card>
+        <Card><CardHeader className="pb-2"><CardDescription>Total inscritos</CardDescription><CardTitle className="text-2xl">{rows.length}</CardTitle></CardHeader></Card>
+        <Card><CardHeader className="pb-2"><CardDescription>Total a pagar</CardDescription><CardTitle className="text-2xl">{formatEuro(total)}</CardTitle></CardHeader></Card>
+      </div>
+
+      {porCidade.size > 0 && (
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Por cidade</CardTitle></CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader><TableRow><TableHead>Cidade</TableHead><TableHead className="text-right">Pessoas</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {Array.from(porCidade.entries()).map(([nome, v]) => (
+                  <TableRow key={nome}><TableCell>{nome}</TableCell><TableCell className="text-right">{v.count}</TableCell><TableCell className="text-right font-medium">{formatEuro(v.total)}</TableCell></TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-base">Por pessoa</CardTitle></CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Família</TableHead><TableHead>Cidade do perfil</TableHead><TableHead>Cidade aplicada</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
+            <TableBody>
+              {rows.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground">Sem inscritos.</TableCell></TableRow>}
+              {rows.map((r) => (
+                <TableRow key={r.id} className={r.cidade ? "" : "opacity-60"}>
+                  <TableCell>{r.nome}</TableCell>
+                  <TableCell className="text-muted-foreground">{r.familia}</TableCell>
+                  <TableCell className="text-muted-foreground">{r.cidadeResidencia || "—"}</TableCell>
+                  <TableCell>{r.cidade ? <Badge variant="secondary">{r.cidade.nome}</Badge> : <span className="text-xs text-muted-foreground">Sem correspondência</span>}</TableCell>
+                  <TableCell className="text-right font-medium">{r.cidade ? formatEuro(r.valor) : "—"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function AcoesPageInner() {
   const qc = useQueryClient();
   const [addOpen, setAddOpen] = useState(false);
