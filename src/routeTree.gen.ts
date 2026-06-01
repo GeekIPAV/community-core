@@ -21,6 +21,7 @@ import { Route as AppAdminProjetosRouteImport } from './routes/_app/_admin.proje
 import { Route as AppAdminParticipantesRouteImport } from './routes/_app/_admin.participantes'
 import { Route as AppAdminFamiliasRouteImport } from './routes/_app/_admin.familias'
 import { Route as AppAdminDuplicadosRouteImport } from './routes/_app/_admin.duplicados'
+import { Route as AppAdminBolsasTransporteRouteImport } from './routes/_app/_admin.bolsas-transporte'
 import { Route as AppAdminAcoesRouteImport } from './routes/_app/_admin.acoes'
 
 const ResultadosRoute = ResultadosRouteImport.update({
@@ -81,6 +82,12 @@ const AppAdminDuplicadosRoute = AppAdminDuplicadosRouteImport.update({
   path: '/duplicados',
   getParentRoute: () => AppAdminRoute,
 } as any)
+const AppAdminBolsasTransporteRoute =
+  AppAdminBolsasTransporteRouteImport.update({
+    id: '/bolsas-transporte',
+    path: '/bolsas-transporte',
+    getParentRoute: () => AppAdminRoute,
+  } as any)
 const AppAdminAcoesRoute = AppAdminAcoesRouteImport.update({
   id: '/acoes',
   path: '/acoes',
@@ -94,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/perfil': typeof AppPerfilRoute
   '/acao/$id': typeof AcaoIdRoute
   '/acoes': typeof AppAdminAcoesRoute
+  '/bolsas-transporte': typeof AppAdminBolsasTransporteRoute
   '/duplicados': typeof AppAdminDuplicadosRoute
   '/familias': typeof AppAdminFamiliasRoute
   '/participantes': typeof AppAdminParticipantesRoute
@@ -107,6 +115,7 @@ export interface FileRoutesByTo {
   '/perfil': typeof AppPerfilRoute
   '/acao/$id': typeof AcaoIdRoute
   '/acoes': typeof AppAdminAcoesRoute
+  '/bolsas-transporte': typeof AppAdminBolsasTransporteRoute
   '/duplicados': typeof AppAdminDuplicadosRoute
   '/familias': typeof AppAdminFamiliasRoute
   '/participantes': typeof AppAdminParticipantesRoute
@@ -123,6 +132,7 @@ export interface FileRoutesById {
   '/_app/perfil': typeof AppPerfilRoute
   '/acao/$id': typeof AcaoIdRoute
   '/_app/_admin/acoes': typeof AppAdminAcoesRoute
+  '/_app/_admin/bolsas-transporte': typeof AppAdminBolsasTransporteRoute
   '/_app/_admin/duplicados': typeof AppAdminDuplicadosRoute
   '/_app/_admin/familias': typeof AppAdminFamiliasRoute
   '/_app/_admin/participantes': typeof AppAdminParticipantesRoute
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/acao/$id'
     | '/acoes'
+    | '/bolsas-transporte'
     | '/duplicados'
     | '/familias'
     | '/participantes'
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/acao/$id'
     | '/acoes'
+    | '/bolsas-transporte'
     | '/duplicados'
     | '/familias'
     | '/participantes'
@@ -166,6 +178,7 @@ export interface FileRouteTypes {
     | '/_app/perfil'
     | '/acao/$id'
     | '/_app/_admin/acoes'
+    | '/_app/_admin/bolsas-transporte'
     | '/_app/_admin/duplicados'
     | '/_app/_admin/familias'
     | '/_app/_admin/participantes'
@@ -267,6 +280,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminDuplicadosRouteImport
       parentRoute: typeof AppAdminRoute
     }
+    '/_app/_admin/bolsas-transporte': {
+      id: '/_app/_admin/bolsas-transporte'
+      path: '/bolsas-transporte'
+      fullPath: '/bolsas-transporte'
+      preLoaderRoute: typeof AppAdminBolsasTransporteRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
     '/_app/_admin/acoes': {
       id: '/_app/_admin/acoes'
       path: '/acoes'
@@ -279,6 +299,7 @@ declare module '@tanstack/react-router' {
 
 interface AppAdminRouteChildren {
   AppAdminAcoesRoute: typeof AppAdminAcoesRoute
+  AppAdminBolsasTransporteRoute: typeof AppAdminBolsasTransporteRoute
   AppAdminDuplicadosRoute: typeof AppAdminDuplicadosRoute
   AppAdminFamiliasRoute: typeof AppAdminFamiliasRoute
   AppAdminParticipantesRoute: typeof AppAdminParticipantesRoute
@@ -288,6 +309,7 @@ interface AppAdminRouteChildren {
 
 const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminAcoesRoute: AppAdminAcoesRoute,
+  AppAdminBolsasTransporteRoute: AppAdminBolsasTransporteRoute,
   AppAdminDuplicadosRoute: AppAdminDuplicadosRoute,
   AppAdminFamiliasRoute: AppAdminFamiliasRoute,
   AppAdminParticipantesRoute: AppAdminParticipantesRoute,
@@ -321,3 +343,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
