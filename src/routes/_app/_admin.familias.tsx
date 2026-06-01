@@ -864,6 +864,10 @@ function FamiliasPage() {
                 </Table>
               </div>
             </TabsContent>
+
+            <TabsContent value="atividades" className="pt-4 flex-1 min-h-0 overflow-hidden">
+              {membrosFamilia && <AtividadesFamiliaTab familiaId={membrosFamilia.id} />}
+            </TabsContent>
           </Tabs>
         </DialogContent>
       </Dialog>
