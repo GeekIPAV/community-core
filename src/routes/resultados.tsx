@@ -471,6 +471,8 @@ function Conteudo({ data, isAdmin }: { data: Estatisticas; isAdmin: boolean }) {
         )}
       </div>
 
+      <AtividadesSection data={data} />
+
       <div className="grid gap-4 lg:grid-cols-2">
         {charts.map((cfg, i) => (
           <ChartBlock
