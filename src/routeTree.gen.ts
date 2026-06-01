@@ -22,6 +22,7 @@ import { Route as AppAdminParticipantesRouteImport } from './routes/_app/_admin.
 import { Route as AppAdminFamiliasRouteImport } from './routes/_app/_admin.familias'
 import { Route as AppAdminDuplicadosRouteImport } from './routes/_app/_admin.duplicados'
 import { Route as AppAdminBolsasTransporteRouteImport } from './routes/_app/_admin.bolsas-transporte'
+import { Route as AppAdminAtividadesRouteImport } from './routes/_app/_admin.atividades'
 import { Route as AppAdminAcoesRouteImport } from './routes/_app/_admin.acoes'
 
 const ResultadosRoute = ResultadosRouteImport.update({
@@ -88,6 +89,11 @@ const AppAdminBolsasTransporteRoute =
     path: '/bolsas-transporte',
     getParentRoute: () => AppAdminRoute,
   } as any)
+const AppAdminAtividadesRoute = AppAdminAtividadesRouteImport.update({
+  id: '/atividades',
+  path: '/atividades',
+  getParentRoute: () => AppAdminRoute,
+} as any)
 const AppAdminAcoesRoute = AppAdminAcoesRouteImport.update({
   id: '/acoes',
   path: '/acoes',
@@ -101,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/perfil': typeof AppPerfilRoute
   '/acao/$id': typeof AcaoIdRoute
   '/acoes': typeof AppAdminAcoesRoute
+  '/atividades': typeof AppAdminAtividadesRoute
   '/bolsas-transporte': typeof AppAdminBolsasTransporteRoute
   '/duplicados': typeof AppAdminDuplicadosRoute
   '/familias': typeof AppAdminFamiliasRoute
@@ -115,6 +122,7 @@ export interface FileRoutesByTo {
   '/perfil': typeof AppPerfilRoute
   '/acao/$id': typeof AcaoIdRoute
   '/acoes': typeof AppAdminAcoesRoute
+  '/atividades': typeof AppAdminAtividadesRoute
   '/bolsas-transporte': typeof AppAdminBolsasTransporteRoute
   '/duplicados': typeof AppAdminDuplicadosRoute
   '/familias': typeof AppAdminFamiliasRoute
@@ -132,6 +140,7 @@ export interface FileRoutesById {
   '/_app/perfil': typeof AppPerfilRoute
   '/acao/$id': typeof AcaoIdRoute
   '/_app/_admin/acoes': typeof AppAdminAcoesRoute
+  '/_app/_admin/atividades': typeof AppAdminAtividadesRoute
   '/_app/_admin/bolsas-transporte': typeof AppAdminBolsasTransporteRoute
   '/_app/_admin/duplicados': typeof AppAdminDuplicadosRoute
   '/_app/_admin/familias': typeof AppAdminFamiliasRoute
@@ -148,6 +157,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/acao/$id'
     | '/acoes'
+    | '/atividades'
     | '/bolsas-transporte'
     | '/duplicados'
     | '/familias'
@@ -162,6 +172,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/acao/$id'
     | '/acoes'
+    | '/atividades'
     | '/bolsas-transporte'
     | '/duplicados'
     | '/familias'
@@ -178,6 +189,7 @@ export interface FileRouteTypes {
     | '/_app/perfil'
     | '/acao/$id'
     | '/_app/_admin/acoes'
+    | '/_app/_admin/atividades'
     | '/_app/_admin/bolsas-transporte'
     | '/_app/_admin/duplicados'
     | '/_app/_admin/familias'
@@ -287,6 +299,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminBolsasTransporteRouteImport
       parentRoute: typeof AppAdminRoute
     }
+    '/_app/_admin/atividades': {
+      id: '/_app/_admin/atividades'
+      path: '/atividades'
+      fullPath: '/atividades'
+      preLoaderRoute: typeof AppAdminAtividadesRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
     '/_app/_admin/acoes': {
       id: '/_app/_admin/acoes'
       path: '/acoes'
@@ -299,6 +318,7 @@ declare module '@tanstack/react-router' {
 
 interface AppAdminRouteChildren {
   AppAdminAcoesRoute: typeof AppAdminAcoesRoute
+  AppAdminAtividadesRoute: typeof AppAdminAtividadesRoute
   AppAdminBolsasTransporteRoute: typeof AppAdminBolsasTransporteRoute
   AppAdminDuplicadosRoute: typeof AppAdminDuplicadosRoute
   AppAdminFamiliasRoute: typeof AppAdminFamiliasRoute
@@ -309,6 +329,7 @@ interface AppAdminRouteChildren {
 
 const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminAcoesRoute: AppAdminAcoesRoute,
+  AppAdminAtividadesRoute: AppAdminAtividadesRoute,
   AppAdminBolsasTransporteRoute: AppAdminBolsasTransporteRoute,
   AppAdminDuplicadosRoute: AppAdminDuplicadosRoute,
   AppAdminFamiliasRoute: AppAdminFamiliasRoute,
