@@ -305,14 +305,27 @@ function LoggedInForm({ acao, pessoa, fields, onDone }: { acao: any; pessoa: any
     queryFn: async () => {
       if (!pessoa) return [];
       if (!pessoa.familia_id) {
-        return [{ id: pessoa.id, nome_completo: pessoa.nome_completo }];
+        return [{ id: pessoa.id, nome_completo: pessoa.nome_completo, cidade_residencia: pessoa.cidade_residencia }];
       }
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo")
+        .select("id, nome_completo, cidade_residencia")
         .eq("familia_id", pessoa.familia_id);
       if (error) throw error;
       return data;
+    },
+  });
+
+  const { data: cidadesBolsa } = useQuery({
+    queryKey: ["bolsas-cidades"],
+    enabled: !!acao?.bolsa_transporte,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("bolsas_cidades" as any)
+        .select("id, nome, valor_sentido, ativo")
+        .eq("ativo", true);
+      if (error) throw error;
+      return (data ?? []) as unknown as CidadeBolsa[];
     },
   });
 
@@ -424,6 +437,46 @@ function LoggedInForm({ acao, pessoa, fields, onDone }: { acao: any; pessoa: any
           ))}
         </div>
       </div>
+      {acao?.bolsa_transporte && cidadesBolsa && (
+        (() => {
+          const items = (agregado ?? [])
+            .filter((m: any) => selected[m.id])
+            .map((m: any) => ({ m, cidade: matchCidade(m.cidade_residencia, cidadesBolsa) }));
+          const elegiveis = items.filter((i) => i.cidade);
+          const total = elegiveis.reduce((s, i) => s + i.cidade!.valor_sentido * 2, 0);
+          return (
+            <div className="space-y-2 rounded-md border border-primary/30 bg-primary/5 p-3">
+              <p className="text-sm font-semibold">Bolsa de transporte</p>
+              {items.length === 0 ? (
+                <p className="text-xs text-muted-foreground">Seleciona quem queres inscrever para ver o valor da bolsa.</p>
+              ) : elegiveis.length === 0 ? (
+                <p className="text-xs text-muted-foreground">Esta ação tem bolsa de transporte, mas a tua cidade de residência não consta na lista de cidades elegíveis. Atualiza no teu perfil se for o caso.</p>
+              ) : (
+                <>
+                  <ul className="space-y-1 text-xs">
+                    {items.map(({ m, cidade }) => (
+                      <li key={m.id} className="flex justify-between gap-2">
+                        <span>{m.nome_completo}</span>
+                        {cidade ? (
+                          <span className="text-muted-foreground">
+                            {cidade.nome} · {formatEuro(cidade.valor_sentido)} × 2 = <span className="font-medium text-foreground">{formatEuro(cidade.valor_sentido * 2)}</span>
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground italic">sem cidade elegível</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="flex items-center justify-between border-t pt-2 text-sm font-semibold">
+                    <span>Total a receber</span>
+                    <span>{formatEuro(total)}</span>
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })()
+      )}
       <DialogFooter>
         <Button type="submit" disabled={checkSubmit.isPending || finalSubmit.isPending}>
           {checkSubmit.isPending || finalSubmit.isPending ? "A enviar…" : "Confirmar inscrição"}
