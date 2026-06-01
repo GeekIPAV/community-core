@@ -37,7 +37,7 @@ async function loadPessoa(session: Session | null): Promise<PessoaCtx | null> {
   const uid = session.user.id;
   const email = session.user.email ?? null;
 
-  const cols = "id, nome_completo, email, familia_id, is_admin, auth_user_id, tipo_user_id";
+  const cols = "id, nome_completo, email, familia_id, is_admin, auth_user_id, tipo_user_id, cidade_residencia";
 
   // 1. Prefer match by auth_user_id
   const byId = await supabase.from("pessoas").select(cols).eq("auth_user_id", uid).maybeSingle();
