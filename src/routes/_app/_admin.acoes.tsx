@@ -213,10 +213,11 @@ type AcaoForm = {
   data_fim: string;
   status: string;
   inscricoes_abertas: boolean;
+  bolsa_transporte: boolean;
   fields: FieldDef[];
 };
 
-const EMPTY_FORM: AcaoForm = { nome: "", local: "", mapa_url: "", imagem_url: "", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, fields: [] };
+const EMPTY_FORM: AcaoForm = { nome: "", local: "", mapa_url: "", imagem_url: "", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, bolsa_transporte: false, fields: [] };
 
 const acaoFormSchema = z
   .object({
@@ -234,6 +235,7 @@ const acaoFormSchema = z
     data_fim: z.string(),
     status: z.string().trim().min(1, "Estado é obrigatório").max(50),
     inscricoes_abertas: z.boolean(),
+    bolsa_transporte: z.boolean().optional(),
   })
   .refine((v) => !v.data_inicio || !v.data_fim || new Date(v.data_fim) >= new Date(v.data_inicio), {
     message: "Data de fim deve ser igual ou posterior à data de início",
@@ -1271,7 +1273,7 @@ function AcoesPageInner() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("acoes")
-        .select("id, nome, local, mapa_url, imagem_url, data_inicio, data_fim, status, inscricoes_abertas, config_campos")
+        .select("id, nome, local, mapa_url, imagem_url, data_inicio, data_fim, status, inscricoes_abertas, bolsa_transporte, config_campos")
         .order("data_inicio", { ascending: false, nullsFirst: false });
       if (error) throw error;
       return data;
@@ -1321,6 +1323,7 @@ function AcoesPageInner() {
         data_fim: fromDtLocal(form.data_fim),
         status: form.status,
         inscricoes_abertas: form.inscricoes_abertas,
+        bolsa_transporte: form.bolsa_transporte,
         config_campos: { fields: form.fields },
       } as any);
       if (error) throw error;
@@ -1352,6 +1355,7 @@ function AcoesPageInner() {
           data_fim: fromDtLocal(editing.data_fim),
           status: editing.status,
           inscricoes_abertas: editing.inscricoes_abertas,
+          bolsa_transporte: editing.bolsa_transporte,
           config_campos: { fields: editing.fields },
         } as any)
         .eq("id", editing.id);
@@ -1481,6 +1485,7 @@ function AcoesPageInner() {
                     data_fim: toDtLocal(a.data_fim),
                     status: String((a as any).status ?? "ativa"),
                     inscricoes_abertas: inscricoesAbertas,
+                    bolsa_transporte: !!(a as any).bolsa_transporte,
                     fields,
                   });
                 }}
