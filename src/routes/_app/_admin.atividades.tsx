@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -207,8 +207,8 @@ function AtividadesPage() {
               {linhasFiltradas.map((l) => {
                 const open = !!expanded[l.atividade.id];
                 return (
-                  <>
-                    <TableRow key={l.atividade.id} className={l.total > 0 ? "cursor-pointer" : ""} onClick={() => l.total > 0 && setExpanded((s) => ({ ...s, [l.atividade.id]: !s[l.atividade.id] }))}>
+                  <Fragment key={l.atividade.id}>
+                    <TableRow className={l.total > 0 ? "cursor-pointer" : ""} onClick={() => l.total > 0 && setExpanded((s) => ({ ...s, [l.atividade.id]: !s[l.atividade.id] }))}>
                       <TableCell>
                         {l.total > 0 ? (open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />) : null}
                       </TableCell>
@@ -225,7 +225,7 @@ function AtividadesPage() {
                       </TableCell>
                     </TableRow>
                     {open && l.porFamilia.length > 0 && (
-                      <TableRow key={l.atividade.id + "-detail"} className="bg-muted/30">
+                      <TableRow className="bg-muted/30">
                         <TableCell />
                         <TableCell colSpan={5}>
                           <div className="flex flex-wrap gap-2 py-1">
@@ -240,7 +240,7 @@ function AtividadesPage() {
                         </TableCell>
                       </TableRow>
                     )}
-                  </>
+                  </Fragment>
                 );
               })}
               {linhasFiltradas.length === 0 && (
