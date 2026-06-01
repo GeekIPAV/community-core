@@ -80,6 +80,9 @@ type Estatisticas = {
   religioes_detalhe: { nome: string; count: number }[];
   generos_detalhe: { nome: string; count: number }[];
   voluntarios_total: number;
+  atividades_total: number;
+  atividades_por_categoria: { nome: string; count: number }[];
+  atividades_top: { nome: string; count: number }[];
 };
 
 export const Route = createFileRoute("/resultados")({
@@ -171,7 +174,8 @@ type MetricKey =
   | "projetos_total"
   | "participantes_projetos_total"
   | "nacionalidades_total"
-  | "religioes_total";
+  | "religioes_total"
+  | "atividades_total";
 
 type IconKey = "heart" | "home" | "calendar" | "folder" | "users" | "globe" | "church" | "userCheck" | "bar";
 
@@ -194,6 +198,7 @@ const METRIC_LABEL: Record<MetricKey, string> = {
   participantes_projetos_total: "Participações em projetos",
   nacionalidades_total: "Nacionalidades",
   religioes_total: "Religiões",
+  atividades_total: "Atividades registadas",
 };
 
 const ICON_MAP: Record<IconKey, React.ReactNode> = {
