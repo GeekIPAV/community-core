@@ -1439,6 +1439,13 @@ function AcoesPageInner() {
                 </div>
                 <Switch checked={form.inscricoes_abertas} onCheckedChange={(c) => setForm({ ...form, inscricoes_abertas: c })} />
               </label>
+              <label className="flex items-center justify-between rounded-md border p-3">
+                <div>
+                  <p className="text-sm font-medium">Bolsa de transporte</p>
+                  <p className="text-xs text-muted-foreground">Quando ligada, mostra ao participante (com base na cidade do perfil) quanto receberá por pessoa inscrita.</p>
+                </div>
+                <Switch checked={form.bolsa_transporte} onCheckedChange={(c) => setForm({ ...form, bolsa_transporte: c })} />
+              </label>
               <div className="space-y-2">
                 <Label>Descrição</Label>
                 <RichTextEditor value={form.descricao} onChange={(v) => setForm({ ...form, descricao: v })} />
@@ -1561,6 +1568,7 @@ function AcoesPageInner() {
               <TabsList>
                 <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
                 <TabsTrigger value="inscricoes">Inscrições</TabsTrigger>
+                {editing.bolsa_transporte && <TabsTrigger value="bolsa">Bolsa</TabsTrigger>}
               </TabsList>
               <TabsContent value="detalhes" className="space-y-4 min-w-0">
               <div className="space-y-2"><Label>Nome</Label><Input value={editing.nome} onChange={(e) => setEditing({ ...editing, nome: e.target.value })} /></div>
@@ -1599,6 +1607,13 @@ function AcoesPageInner() {
                 </div>
                 <Switch checked={editing.inscricoes_abertas} onCheckedChange={(c) => setEditing({ ...editing, inscricoes_abertas: c })} />
               </label>
+              <label className="flex items-center justify-between rounded-md border p-3">
+                <div>
+                  <p className="text-sm font-medium">Bolsa de transporte</p>
+                  <p className="text-xs text-muted-foreground">Quando ligada, mostra ao participante (com base na cidade do perfil) quanto receberá por pessoa inscrita.</p>
+                </div>
+                <Switch checked={editing.bolsa_transporte} onCheckedChange={(c) => setEditing({ ...editing, bolsa_transporte: c })} />
+              </label>
               <div className="space-y-2">
                 <Label>Descrição</Label>
                 <RichTextEditor value={editing.descricao} onChange={(v) => setEditing({ ...editing, descricao: v })} />
@@ -1608,6 +1623,11 @@ function AcoesPageInner() {
               <TabsContent value="inscricoes" className="min-w-0">
                 <InscricoesTab acaoId={editing.id} fields={editing.fields} />
               </TabsContent>
+              {editing.bolsa_transporte && (
+                <TabsContent value="bolsa" className="min-w-0">
+                  <BolsaTab acaoId={editing.id} />
+                </TabsContent>
+              )}
             </Tabs>
           )}
           <DialogFooter className="gap-2 sm:justify-between">
