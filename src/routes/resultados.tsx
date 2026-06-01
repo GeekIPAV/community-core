@@ -80,6 +80,9 @@ type Estatisticas = {
   religioes_detalhe: { nome: string; count: number }[];
   generos_detalhe: { nome: string; count: number }[];
   voluntarios_total: number;
+  atividades_total: number;
+  atividades_por_categoria: { nome: string; count: number }[];
+  atividades_top: { nome: string; count: number }[];
 };
 
 export const Route = createFileRoute("/resultados")({
@@ -171,7 +174,8 @@ type MetricKey =
   | "projetos_total"
   | "participantes_projetos_total"
   | "nacionalidades_total"
-  | "religioes_total";
+  | "religioes_total"
+  | "atividades_total";
 
 type IconKey = "heart" | "home" | "calendar" | "folder" | "users" | "globe" | "church" | "userCheck" | "bar";
 
@@ -194,6 +198,7 @@ const METRIC_LABEL: Record<MetricKey, string> = {
   participantes_projetos_total: "Participações em projetos",
   nacionalidades_total: "Nacionalidades",
   religioes_total: "Religiões",
+  atividades_total: "Atividades registadas",
 };
 
 const ICON_MAP: Record<IconKey, React.ReactNode> = {
@@ -466,6 +471,8 @@ function Conteudo({ data, isAdmin }: { data: Estatisticas; isAdmin: boolean }) {
         )}
       </div>
 
+      <AtividadesSection data={data} />
+
       <div className="grid gap-4 lg:grid-cols-2">
         {charts.map((cfg, i) => (
           <ChartBlock
@@ -662,6 +669,65 @@ function KPIConfigDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function AtividadesSection({ data }: { data: Estatisticas }) {
+  const total = data.atividades_total ?? 0;
+  const porCat = data.atividades_por_categoria ?? [];
+  const top = data.atividades_top ?? [];
+  if (total === 0 && porCat.length === 0 && top.length === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      <h2 className="text-lg font-semibold">Atividades & Acompanhamento</h2>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Total de atividades registadas</CardDescription>
+            <CardTitle className="text-3xl">{total}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {porCat.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Ainda não há atividades por categoria.</p>
+            ) : (
+              <div className="h-64" dir="ltr">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={porCat} dataKey="count" nameKey="nome" outerRadius={90} label>
+                      {porCat.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Atividades mais frequentes</CardTitle>
+            <CardDescription>Top 10 atividades registadas com famílias</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {top.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sem dados ainda.</p>
+            ) : (
+              <ol className="space-y-2 text-sm">
+                {top.map((t, i) => (
+                  <li key={i} className="flex items-start justify-between gap-3">
+                    <span className="flex-1 line-clamp-2">{t.nome}</span>
+                    <span className="font-medium tabular-nums">{t.count}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }
 

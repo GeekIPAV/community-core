@@ -88,7 +88,7 @@ function FamiliasPage() {
 
   const [membrosFamilia, setMembrosFamilia] = useState<Familia | null>(null);
   const [view, setView] = useState<"tabela" | "galeria">("tabela");
-  const [detailTab, setDetailTab] = useState<"dados" | "membros" | "acoes">("membros");
+  const [detailTab, setDetailTab] = useState<"dados" | "membros" | "acoes" | "atividades">("membros");
 
   const [addMembroOpen, setAddMembroOpen] = useState(false);
   const emptyMembro = {
@@ -679,11 +679,12 @@ function FamiliasPage() {
             </DialogDescription>
           </DialogHeader>
           </div>
-          <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as "dados" | "membros" | "acoes")} className="flex flex-col flex-1 min-h-0 px-6 pb-6">
+          <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as "dados" | "membros" | "acoes" | "atividades")} className="flex flex-col flex-1 min-h-0 px-6 pb-6">
             <TabsList className="w-full">
               <TabsTrigger value="dados" className="flex-1">Dados</TabsTrigger>
               <TabsTrigger value="membros" className="flex-1">Membros</TabsTrigger>
               <TabsTrigger value="acoes" className="flex-1">Ações</TabsTrigger>
+              <TabsTrigger value="atividades" className="flex-1">Atividades</TabsTrigger>
             </TabsList>
 
             <TabsContent value="dados" className="space-y-4 pt-4">
@@ -863,6 +864,10 @@ function FamiliasPage() {
                 </Table>
               </div>
             </TabsContent>
+
+            <TabsContent value="atividades" className="pt-4 flex-1 min-h-0 overflow-hidden">
+              {membrosFamilia && <AtividadesFamiliaTab familiaId={membrosFamilia.id} />}
+            </TabsContent>
           </Tabs>
         </DialogContent>
       </Dialog>
@@ -941,6 +946,240 @@ function FamiliasPage() {
           <DialogFooter>
             <Button onClick={() => addMembro.mutate()} disabled={!novoMembro.nome_completo.trim() || addMembro.isPending}>
               {addMembro.isPending ? "A guardar…" : "Adicionar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+type AtividadeCatalogo = { id: string; nome: string; categoria: string | null };
+type FamiliaAtividadeRow = {
+  id: string;
+  data: string | null;
+  descricao: string | null;
+  created_at: string;
+  atividade: { id: string; nome: string; categoria: string | null } | null;
+};
+
+function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
+  const qc = useQueryClient();
+  const [addOpen, setAddOpen] = useState(false);
+  const [atividadeId, setAtividadeId] = useState<string>("");
+  const [data, setData] = useState<string>("");
+  const [descricao, setDescricao] = useState<string>("");
+  const [novaOpen, setNovaOpen] = useState(false);
+  const [novaNome, setNovaNome] = useState("");
+  const [novaCategoria, setNovaCategoria] = useState<string>("");
+
+  const { data: catalogo } = useQuery({
+    queryKey: ["atividades-catalogo"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("atividades_catalogo" as any)
+        .select("id, nome, categoria")
+        .eq("ativo", true)
+        .order("categoria")
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as unknown as AtividadeCatalogo[];
+    },
+  });
+
+  const { data: rows, isLoading } = useQuery({
+    queryKey: ["familia-atividades", familiaId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("familia_atividades" as any)
+        .select("id, data, descricao, created_at, atividade:atividades_catalogo(id, nome, categoria)")
+        .eq("familia_id", familiaId)
+        .order("data", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as FamiliaAtividadeRow[];
+    },
+  });
+
+  const add = useMutation({
+    mutationFn: async () => {
+      if (!atividadeId) throw new Error("Escolha uma atividade");
+      const { error } = await supabase.from("familia_atividades" as any).insert({
+        familia_id: familiaId,
+        atividade_id: atividadeId,
+        data: data || null,
+        descricao: descricao.trim() || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Atividade registada");
+      qc.invalidateQueries({ queryKey: ["familia-atividades", familiaId] });
+      setAddOpen(false);
+      setAtividadeId("");
+      setData("");
+      setDescricao("");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("familia_atividades" as any).delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Atividade removida");
+      qc.invalidateQueries({ queryKey: ["familia-atividades", familiaId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const criarAtividade = useMutation({
+    mutationFn: async () => {
+      const nome = novaNome.trim();
+      if (!nome) throw new Error("Nome obrigatório");
+      const { data: inserted, error } = await supabase
+        .from("atividades_catalogo" as any)
+        .insert({ nome, categoria: novaCategoria.trim() || null })
+        .select("id")
+        .single();
+      if (error) throw error;
+      return (inserted as any).id as string;
+    },
+    onSuccess: (id) => {
+      toast.success("Atividade criada");
+      qc.invalidateQueries({ queryKey: ["atividades-catalogo"] });
+      setNovaOpen(false);
+      setNovaNome("");
+      setNovaCategoria("");
+      setAtividadeId(id);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const categorias = Array.from(new Set((catalogo ?? []).map((c) => c.categoria || "(Sem categoria)")));
+
+  return (
+    <div className="flex flex-col h-full min-h-0 gap-3">
+      <div className="flex justify-end">
+        <Button size="sm" onClick={() => setAddOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" /> Registar atividade
+        </Button>
+      </div>
+      <div className="flex-1 min-h-0 max-h-[60vh] overflow-auto rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-32">Data</TableHead>
+              <TableHead>Atividade</TableHead>
+              <TableHead className="w-40">Categoria</TableHead>
+              <TableHead>Descrição</TableHead>
+              <TableHead className="w-16 text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading && (
+              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">A carregar…</TableCell></TableRow>
+            )}
+            {!isLoading && (!rows || rows.length === 0) && (
+              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sem atividades registadas</TableCell></TableRow>
+            )}
+            {rows?.map((r) => (
+              <TableRow key={r.id}>
+                <TableCell className="text-muted-foreground whitespace-nowrap">{r.data ? formatDateBR(r.data) : "—"}</TableCell>
+                <TableCell className="font-medium">{r.atividade?.nome ?? "—"}</TableCell>
+                <TableCell>{r.atividade?.categoria ? <Badge variant="secondary">{r.atividade.categoria}</Badge> : <span className="text-xs text-muted-foreground">—</span>}</TableCell>
+                <TableCell className="text-muted-foreground whitespace-pre-wrap">{r.descricao || "—"}</TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    title="Remover"
+                    onClick={() => { if (confirm("Remover esta atividade?")) remove.mutate(r.id); }}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Registar atividade</DialogTitle>
+            <DialogDescription>Escolha uma atividade do catálogo. Se não encontrar, pode criar uma nova.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Atividade</Label>
+              <div className="flex gap-2">
+                <Select value={atividadeId} onValueChange={setAtividadeId}>
+                  <SelectTrigger className="flex-1"><SelectValue placeholder="Escolher…" /></SelectTrigger>
+                  <SelectContent className="max-h-[60vh]">
+                    {categorias.map((cat) => (
+                      <div key={cat}>
+                        <div className="px-2 py-1 text-xs font-medium text-muted-foreground">{cat}</div>
+                        {(catalogo ?? []).filter((c) => (c.categoria || "(Sem categoria)") === cat).map((c) => (
+                          <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                        ))}
+                      </div>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button type="button" variant="outline" onClick={() => setNovaOpen(true)} title="Criar nova atividade">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Data</Label>
+              <Input type="date" value={data} onChange={(e) => setData(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Descrição</Label>
+              <Textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Notas, contexto, observações…" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => add.mutate()} disabled={!atividadeId || add.isPending}>
+              {add.isPending ? "A guardar…" : "Registar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={novaOpen} onOpenChange={setNovaOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nova atividade</DialogTitle>
+            <DialogDescription>Adiciona uma nova atividade ao catálogo para todas as famílias.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome</Label>
+              <Input value={novaNome} onChange={(e) => setNovaNome(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Categoria</Label>
+              <Select value={novaCategoria || "__none"} onValueChange={(v) => setNovaCategoria(v === "__none" ? "" : v)}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">(Sem categoria)</SelectItem>
+                  <SelectItem value="Cultural">Cultural</SelectItem>
+                  <SelectItem value="Relacional">Relacional</SelectItem>
+                  <SelectItem value="Mediação">Mediação</SelectItem>
+                  <SelectItem value="Económica Educacional e da Saúde">Económica Educacional e da Saúde</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => criarAtividade.mutate()} disabled={!novaNome.trim() || criarAtividade.isPending}>
+              {criarAtividade.isPending ? "A criar…" : "Criar"}
             </Button>
           </DialogFooter>
         </DialogContent>
