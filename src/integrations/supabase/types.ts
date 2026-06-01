@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       acoes: {
         Row: {
+          bolsa_transporte: boolean
           config_campos: Json
           created_at: string
           data_fim: string | null
@@ -32,6 +33,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          bolsa_transporte?: boolean
           config_campos?: Json
           created_at?: string
           data_fim?: string | null
@@ -48,6 +50,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          bolsa_transporte?: boolean
           config_campos?: Json
           created_at?: string
           data_fim?: string | null
@@ -62,6 +65,33 @@ export type Database = {
           status?: string
           tipo?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      bolsas_cidades: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          updated_at: string
+          valor_sentido: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          updated_at?: string
+          valor_sentido: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+          valor_sentido?: number
         }
         Relationships: []
       }
