@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { LayoutGrid, List, Pencil, Plus, Trash2, Upload, UserMinus, Users } from "lucide-react";
+import { LayoutGrid, List, Pencil, Plus, Search, Trash2, Upload, UserMinus, Users } from "lucide-react";
 import { formatDateBR } from "@/lib/utils";
 import {
   useReactTable,
@@ -88,6 +88,8 @@ function FamiliasPage() {
 
   const [membrosFamilia, setMembrosFamilia] = useState<Familia | null>(null);
   const [view, setView] = useState<"tabela" | "galeria">("tabela");
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [groupBy, setGroupBy] = useState<"none" | "status" | "projeto" | "cidade" | "religiao">("none");
   const [addAcaoOpen, setAddAcaoOpen] = useState(false);
   const [novaAcao, setNovaAcao] = useState<{ pessoa_id: string; acao_id: string }>({ pessoa_id: "", acao_id: "" });
   const [detailTab, setDetailTab] = useState<"dados" | "membros" | "acoes" | "atividades">("membros");
@@ -475,10 +477,27 @@ function FamiliasPage() {
     defaultColumn: { minSize: 60, size: 160, maxSize: 800 },
     data: rows,
     columns,
-    state: { sorting, columnVisibility, columnOrder },
+    state: { sorting, columnVisibility, columnOrder, globalFilter },
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnOrderChange: setColumnOrder,
+    onGlobalFilterChange: setGlobalFilter,
+    globalFilterFn: (row, _col, filterValue) => {
+      const q = String(filterValue ?? "").trim().toLowerCase();
+      if (!q) return true;
+      const f = row.original;
+      const agg = agregados?.get(f.id);
+      const haystack = [
+        f.nome,
+        f.notas ?? "",
+        f.status,
+        ...Array.from(agg?.projetos ?? []),
+        ...Array.from(agg?.cidades ?? []),
+        ...Array.from(agg?.religioes ?? []),
+        ...Array.from(agg?.inscricoes ?? []),
+      ].join(" ").toLowerCase();
+      return haystack.includes(q);
+    },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
