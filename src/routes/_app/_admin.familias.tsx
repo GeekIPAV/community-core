@@ -534,6 +534,27 @@ function FamiliasPage() {
           <p className="text-sm text-muted-foreground">{rows.length} famílias</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={globalFilter}
+              onChange={(e) => setGlobalFilter(e.target.value)}
+              placeholder="Pesquisar famílias…"
+              className="pl-8 h-9 w-56"
+            />
+          </div>
+          <Select value={groupBy} onValueChange={(v) => setGroupBy(v as typeof groupBy)}>
+            <SelectTrigger className="h-9 w-40">
+              <SelectValue placeholder="Agrupar por" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Sem agrupamento</SelectItem>
+              <SelectItem value="status">Agrupar: Status</SelectItem>
+              <SelectItem value="projeto">Agrupar: Projeto</SelectItem>
+              <SelectItem value="cidade">Agrupar: Cidade</SelectItem>
+              <SelectItem value="religiao">Agrupar: Religião</SelectItem>
+            </SelectContent>
+          </Select>
           <AdvancedTableFilters table={table} />
           <DataTableViewOptions table={table} />
           <ToggleGroup type="single" value={view} onValueChange={(v) => v && setView(v as "tabela" | "galeria")} variant="outline" size="sm">
