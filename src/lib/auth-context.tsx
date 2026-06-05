@@ -17,6 +17,7 @@ type AuthCtx = {
   session: Session | null;
   pessoa: PessoaCtx | null;
   isAdmin: boolean;
+  isStaff: boolean;
   permissions: string[];
   hasPage: (key: string) => boolean;
   refresh: () => Promise<void>;
@@ -27,6 +28,7 @@ const Ctx = createContext<AuthCtx>({
   session: null,
   pessoa: null,
   isAdmin: false,
+  isStaff: false,
   permissions: [],
   hasPage: () => false,
   refresh: async () => {},
@@ -66,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [pessoa, setPessoa] = useState<PessoaCtx | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
+  const [tipoNome, setTipoNome] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const hydrate = async (s: Session | null) => {
@@ -75,12 +78,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (p?.tipo_user_id) {
       const { data } = await supabase
         .from("tipos_user")
-        .select("paginas")
+        .select("paginas, nome")
         .eq("id", p.tipo_user_id)
         .maybeSingle();
       setPermissions((data?.paginas as string[]) ?? []);
+      setTipoNome((data?.nome as string) ?? null);
     } else {
       setPermissions([]);
+      setTipoNome(null);
     }
     setLoading(false);
   };
@@ -101,13 +106,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const isStaff = (tipoNome ?? "").trim().toLowerCase() === "equipa";
   const value: AuthCtx = {
     loading,
     session,
     pessoa,
     isAdmin: pessoa?.is_admin === true,
+    isStaff,
     permissions,
-    hasPage: (key: string) => pessoa?.is_admin === true || permissions.includes(key),
+    hasPage: (key: string) =>
+      pessoa?.is_admin === true || (isStaff && key !== "tipos-user") || permissions.includes(key),
     refresh: async () => {
       const { data } = await supabase.auth.getSession();
       await hydrate(data.session);
