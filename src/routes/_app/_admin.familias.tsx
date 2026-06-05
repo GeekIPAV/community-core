@@ -507,6 +507,33 @@ function FamiliasPage() {
   useMobileColumnVisibility(table, ["nome", "status", "membros"]);
 
   const tableRows = table.getRowModel().rows;
+  const groupedRows = useMemo(() => {
+    if (groupBy === "none") return null as null | { label: string; rows: typeof tableRows }[];
+    const map = new Map<string, typeof tableRows>();
+    const push = (key: string, r: typeof tableRows[number]) => {
+      const list = map.get(key) ?? [];
+      list.push(r);
+      map.set(key, list);
+    };
+    for (const r of tableRows) {
+      const f = r.original;
+      const agg = agregados?.get(f.id);
+      if (groupBy === "status") {
+        push(f.status || "Sem estado", r);
+      } else {
+        const set =
+          groupBy === "projeto" ? agg?.projetos :
+          groupBy === "cidade" ? agg?.cidades :
+          agg?.religioes;
+        const values = Array.from(set ?? []);
+        if (values.length === 0) push("—", r);
+        else for (const v of values) push(v || "—", r);
+      }
+    }
+    return Array.from(map.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([label, rows]) => ({ label, rows }));
+  }, [tableRows, groupBy, agregados]);
   const allChecked = tableRows.length > 0 && tableRows.every((r) => selected.has(r.original.id));
   const toggleAll = () => {
     const next = new Set(selected);
