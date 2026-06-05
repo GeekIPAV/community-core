@@ -623,10 +623,63 @@ function FamiliasPage() {
       {isLoading ? (
         <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
       ) : view === "galeria" ? (
+        groupedRows ? (
+          <div className="space-y-6">
+            {groupedRows.length === 0 && (
+              <div className="text-center text-muted-foreground py-8">Sem famílias</div>
+            )}
+            {groupedRows.map((g) => (
+              <div key={g.label} className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-semibold">{g.label}</h2>
+                  <Badge variant="secondary">{g.rows.length}</Badge>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                  {g.rows.map((row) => renderGalleryCard(row))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {tableRows.length === 0 && (
             <div className="col-span-full text-center text-muted-foreground py-8">Sem famílias</div>
           )}
+          {tableRows.map((row) => renderGalleryCard(row))}
+        </div>
+        )
+      ) : (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-10"><Checkbox checked={allChecked} onCheckedChange={toggleAll} /></TableHead>
+                <DraggableTableHeaders table={table} onOrderChange={setColumnOrder} />
+                <TableHead className="w-16"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {tableRows.length === 0 && (
+                <TableRow><TableCell colSpan={table.getVisibleLeafColumns().length + 2} className="text-center text-muted-foreground">Sem famílias</TableCell></TableRow>
+              )}
+              {groupedRows
+                ? groupedRows.flatMap((g) => [
+                    <TableRow key={`grp-${g.label}`} className="bg-muted/50 hover:bg-muted/50">
+                      <TableCell colSpan={table.getVisibleLeafColumns().length + 2} className="font-semibold">
+                        {g.label} <span className="text-muted-foreground font-normal">({g.rows.length})</span>
+                      </TableCell>
+                    </TableRow>,
+                    ...g.rows.map((row) => renderTableRow(row)),
+                  ])
+                : tableRows.map((row) => renderTableRow(row))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+      {/* removed-old-render-marker */}
+      {false && (
+        <>
+        <div>
           {tableRows.map((row) => {
             const f = row.original;
             const agg = agregados?.get(f.id);
@@ -672,7 +725,6 @@ function FamiliasPage() {
             );
           })}
         </div>
-      ) : (
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -714,6 +766,7 @@ function FamiliasPage() {
             </TableBody>
           </Table>
         </div>
+        </>
       )}
 
       {/* Bulk add */}
