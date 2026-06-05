@@ -198,12 +198,23 @@ function ParticipantesPage() {
     if (!data) return [];
     const s = debouncedQ.trim().toLowerCase();
     if (!s) return data;
+    const famName = (id: string | null) =>
+      id ? familias?.find((f) => f.id === id)?.nome ?? "" : "";
+    const tipoNm = (id: string | null) =>
+      id ? tipos?.find((t) => t.id === id)?.nome ?? "" : "";
+    const projNames = (ids: string[]) =>
+      (ids ?? []).map((id) => projetos?.find((x) => x.id === id)?.nome ?? "").join(" ");
     return data.filter((p) =>
-      [p.nome_completo, p.email, p.telefone, p.nif]
+      [
+        p.nome_completo, p.email, p.telefone, p.nif, p.cartao_cidadao,
+        p.morada, p.data_nascimento, p.genero, p.nacionalidade,
+        p.cidade_residencia, p.religiao, p.profissao, p.notas, p.status,
+        famName(p.familia_id), tipoNm(p.tipo_user_id), projNames(p.projeto_ids),
+      ]
         .filter(Boolean)
         .some((v: any) => String(v).toLowerCase().includes(s)),
     );
-  }, [data, debouncedQ]);
+  }, [data, debouncedQ, familias, tipos, projetos]);
 
   const tableColumns = useMemo<ColumnDef<Pessoa>[]>(() => {
     const save = (id: string, field: keyof Pessoa) => async (v: any) => {
@@ -629,7 +640,7 @@ function ParticipantesPage() {
 
       {/* Add dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Nova pessoa</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Nome *" className="col-span-2">
@@ -692,7 +703,7 @@ function ParticipantesPage() {
 
       {/* Edit dialog */}
       <Dialog open={editOpen} onOpenChange={(o) => { setEditOpen(o); if (!o) setEditing(null); }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Editar pessoa</DialogTitle></DialogHeader>
           {editing && (
             <div className="grid grid-cols-2 gap-3">
