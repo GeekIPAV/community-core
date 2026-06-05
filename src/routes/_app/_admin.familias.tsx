@@ -873,7 +873,22 @@ function FamiliasPage() {
             </TabsContent>
 
             <TabsContent value="acoes" className="pt-4 flex-1 min-h-0 overflow-hidden">
-              <div className="h-full max-h-[65vh] overflow-auto rounded-md border">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm text-muted-foreground">
+                  Inscrições dos membros desta família
+                </span>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setNovaAcao({ pessoa_id: (membros?.[0]?.id ?? ""), acao_id: "" });
+                    setAddAcaoOpen(true);
+                  }}
+                  disabled={!membros || membros.length === 0}
+                >
+                  <Plus className="h-4 w-4 mr-1" /> Adicionar ação
+                </Button>
+              </div>
+              <div className="h-full max-h-[60vh] overflow-auto rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
