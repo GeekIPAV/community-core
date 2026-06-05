@@ -25,7 +25,7 @@ const pt = {
     projects: "Projetos",
     duplicates: "Duplicados",
     actions: "Ações",
-    userTypes: "Tipos de Utilizador",
+    userTypes: "Utilizadores",
   },
   participants: {
     title: "Participantes", name: "Nome", email: "Email", phone: "Telefone",
@@ -79,7 +79,7 @@ const en = {
     projects: "Projects",
     duplicates: "Duplicates",
     actions: "Actions",
-    userTypes: "User Types",
+    userTypes: "Users",
   },
   participants: {
     title: "Participants", name: "Name", email: "Email", phone: "Phone",
@@ -133,7 +133,7 @@ const ar = {
     projects: "المشاريع",
     duplicates: "المكررات",
     actions: "الأنشطة",
-    userTypes: "أنواع المستخدمين",
+    userTypes: "المستخدمون",
   },
   participants: {
     title: "المشاركون", name: "الاسم", email: "البريد الإلكتروني", phone: "الهاتف",
