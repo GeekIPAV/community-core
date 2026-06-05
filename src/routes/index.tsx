@@ -234,9 +234,9 @@ function Home() {
   );
 }
 
-function AcaoCard({ acao }: { acao: any }) {
+function AcaoCard({ acao, passado }: { acao: any; passado?: boolean }) {
   return (
-    <Card className="overflow-hidden">
+    <Card className={"overflow-hidden " + (passado ? "opacity-70" : "")}>
       {acao.imagem_url && (
         <img src={acao.imagem_url} alt={acao.nome} className="h-36 w-full object-cover" />
       )}
@@ -265,7 +265,11 @@ function AcaoCard({ acao }: { acao: any }) {
           </p>
         )}
         {acao.descricao && <RichTextView className="line-clamp-3 text-muted-foreground" html={acao.descricao} />}
-        {acao.inscricoes_abertas ? (
+        {passado ? (
+          <Link to="/acao/$id" params={{ id: acao.id }}>
+            <Button size="sm" className="w-full" variant="secondary">Ver resumo</Button>
+          </Link>
+        ) : acao.inscricoes_abertas ? (
           <Link to="/acao/$id" params={{ id: acao.id }}>
             <Button size="sm" className="w-full">Ver e inscrever</Button>
           </Link>
