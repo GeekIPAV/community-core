@@ -41,29 +41,37 @@ function Home() {
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
 
-  const acoesAbertas = useMemo(() => {
+  const { proximos, passados } = useMemo(() => {
     const now = Date.now();
-    return (data ?? []).filter((a) => {
-      if (!a.data_inicio) return true;
-      const ini = new Date(a.data_inicio).getTime();
-      return ini >= now - 24 * 60 * 60 * 1000;
-    });
+    const prox: typeof data = [];
+    const pas: typeof data = [];
+    for (const a of data ?? []) {
+      const fim = a.data_fim ? new Date(a.data_fim).getTime() : a.data_inicio ? new Date(a.data_inicio).getTime() : now;
+      if (fim >= now - 24 * 60 * 60 * 1000) {
+        prox.push(a);
+      } else {
+        pas.push(a);
+      }
+    }
+    return { proximos: prox, passados: pas };
   }, [data]);
 
+  const todasAcoes = useMemo(() => [...proximos, ...passados], [proximos, passados]);
+
   const diasComAcao = useMemo(
-    () => acoesAbertas.filter((a) => a.data_inicio).map((a) => new Date(a.data_inicio!)),
-    [acoesAbertas],
+    () => todasAcoes.filter((a) => a.data_inicio).map((a) => new Date(a.data_inicio!)),
+    [todasAcoes],
   );
 
   const acoesDoDia = useMemo(() => {
-    if (!selectedDate) return acoesAbertas;
+    if (!selectedDate) return todasAcoes;
     const k = selectedDate.toDateString();
-    return acoesAbertas.filter((a) => a.data_inicio && new Date(a.data_inicio).toDateString() === k);
-  }, [acoesAbertas, selectedDate]);
+    return todasAcoes.filter((a) => a.data_inicio && new Date(a.data_inicio).toDateString() === k);
+  }, [todasAcoes, selectedDate]);
 
   const acoesPorDia = useMemo(() => {
-    const map = new Map<string, typeof acoesAbertas>();
-    for (const a of acoesAbertas) {
+    const map = new Map<string, typeof todasAcoes>();
+    for (const a of todasAcoes) {
       if (!a.data_inicio) continue;
       const k = new Date(a.data_inicio).toDateString();
       const arr = map.get(k) ?? [];
@@ -71,7 +79,7 @@ function Home() {
       map.set(k, arr);
     }
     return map;
-  }, [acoesAbertas]);
+  }, [todasAcoes]);
 
   return (
     <SidebarProvider>
@@ -103,10 +111,10 @@ function Home() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 md:py-8">
+      <main className="mx-auto w-full max-w-6xl space-y-8 px-4 py-6 md:py-8">
         <div>
-          <h1 className="text-2xl font-semibold md:text-3xl">Próximas ações</h1>
-          <p className="text-sm text-muted-foreground">Escolhe uma ação e inscreve-te.</p>
+          <h1 className="text-2xl font-semibold md:text-3xl">Ações da comunidade</h1>
+          <p className="text-sm text-muted-foreground">Próximas e passadas.</p>
         </div>
 
         <Tabs defaultValue="galeria">
@@ -115,17 +123,35 @@ function Home() {
             <TabsTrigger value="calendario"><CalendarDays className="mr-2 h-4 w-4" /> Calendário</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="galeria" className="mt-4">
+          <TabsContent value="galeria" className="mt-4 space-y-8">
             {isLoading ? (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-44 w-full" />)}
               </div>
-            ) : acoesAbertas.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sem ações abertas no momento.</p>
             ) : (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {acoesAbertas.map((a) => <AcaoCard key={a.id} acao={a} />)}
-              </div>
+              <>
+                <section>
+                  <h2 className="mb-3 text-xl font-semibold">Próximos eventos</h2>
+                  {proximos.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Sem ações abertas no momento.</p>
+                  ) : (
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {proximos.map((a) => <AcaoCard key={a.id} acao={a} />)}
+                    </div>
+                  )}
+                </section>
+
+                <section>
+                  <h2 className="mb-3 text-xl font-semibold">Eventos passados</h2>
+                  {passados.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Sem eventos passados.</p>
+                  ) : (
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {passados.map((a) => <AcaoCard key={a.id} acao={a} passado />)}
+                    </div>
+                  )}
+                </section>
+              </>
             )}
           </TabsContent>
 
@@ -195,7 +221,7 @@ function Home() {
                 {acoesDoDia.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Sem ações neste dia.</p>
                 ) : (
-                  acoesDoDia.map((a) => <AcaoCard key={a.id} acao={a} />)
+                  acoesDoDia.map((a) => <AcaoCard key={a.id} acao={a} passado={passados.some((p) => p.id === a.id)} />)
                 )}
               </div>
             </div>
