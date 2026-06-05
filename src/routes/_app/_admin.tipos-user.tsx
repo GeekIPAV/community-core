@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import {
   Dialog,
   DialogContent,
@@ -18,8 +23,15 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2, Link2, Unlink, Search, ShieldCheck } from "lucide-react";
 import { AVAILABLE_PAGES } from "@/lib/permissions";
+import {
+  listAuthUsers,
+  linkAuthUserToPessoa,
+  unlinkAuthUser,
+  setPessoaTipo,
+  setPessoaAdmin,
+} from "@/lib/users.functions";
 import {
   useReactTable,
   getCoreRowModel,
@@ -36,7 +48,7 @@ import { DataTableViewOptions } from "@/components/data-table-view-options";
 import { DraggableTableHeaders } from "@/components/draggable-table-headers";
 
 export const Route = createFileRoute("/_app/_admin/tipos-user")({
-  component: TiposUserPage,
+  component: UtilizadoresPage,
 });
 
 type TipoUser = { id: string; nome: string; paginas: string[] };
@@ -44,7 +56,270 @@ type TipoUser = { id: string; nome: string; paginas: string[] };
 // "tipos-user" page is reserved to admins; not selectable as a permission.
 const SELECTABLE = AVAILABLE_PAGES.filter((p) => p.key !== "tipos-user");
 
-function TiposUserPage() {
+function UtilizadoresPage() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold">Utilizadores</h1>
+        <p className="text-sm text-muted-foreground">
+          Gere os utilizadores autenticados, associa-os a participantes e define o tipo de perfil.
+        </p>
+      </div>
+      <Tabs defaultValue="users" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="users">Utilizadores</TabsTrigger>
+          <TabsTrigger value="tipos">Tipos de perfil</TabsTrigger>
+        </TabsList>
+        <TabsContent value="users" className="space-y-4">
+          <UsersTab />
+        </TabsContent>
+        <TabsContent value="tipos" className="space-y-4">
+          <TiposTab />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function UsersTab() {
+  const qc = useQueryClient();
+  const listFn = useServerFn(listAuthUsers);
+  const linkFn = useServerFn(linkAuthUserToPessoa);
+  const unlinkFn = useServerFn(unlinkAuthUser);
+  const setTipoFn = useServerFn(setPessoaTipo);
+  const setAdminFn = useServerFn(setPessoaAdmin);
+
+  const [search, setSearch] = useState("");
+
+  const usersQ = useQuery({
+    queryKey: ["auth_users"],
+    queryFn: () => listFn(),
+  });
+
+  const tiposQ = useQuery({
+    queryKey: ["tipos_user"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("tipos_user").select("id, nome").order("nome");
+      if (error) throw error;
+      return data as { id: string; nome: string }[];
+    },
+  });
+
+  const pessoasQ = useQuery({
+    queryKey: ["pessoas_unlinked"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pessoas")
+        .select("id, nome_completo, email, auth_user_id, status")
+        .eq("status", "ativo")
+        .is("auth_user_id", null)
+        .order("nome_completo");
+      if (error) throw error;
+      return data as { id: string; nome_completo: string; email: string | null }[];
+    },
+  });
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["auth_users"] });
+    qc.invalidateQueries({ queryKey: ["pessoas_unlinked"] });
+  };
+
+  const link = useMutation({
+    mutationFn: (v: { auth_user_id: string; pessoa_id: string }) => linkFn({ data: v }),
+    onSuccess: () => { toast.success("Associado"); invalidate(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const unlink = useMutation({
+    mutationFn: (v: { auth_user_id: string }) => unlinkFn({ data: v }),
+    onSuccess: () => { toast.success("Desassociado"); invalidate(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const setTipo = useMutation({
+    mutationFn: (v: { pessoa_id: string; tipo_user_id: string | null }) => setTipoFn({ data: v }),
+    onSuccess: () => { toast.success("Tipo atualizado"); invalidate(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const setAdmin = useMutation({
+    mutationFn: (v: { pessoa_id: string; is_admin: boolean }) => setAdminFn({ data: v }),
+    onSuccess: () => { toast.success("Atualizado"); invalidate(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const tiposById = useMemo(() => {
+    const m = new Map<string, string>();
+    (tiposQ.data ?? []).forEach((t) => m.set(t.id, t.nome));
+    return m;
+  }, [tiposQ.data]);
+
+  const filtered = useMemo(() => {
+    const s = search.trim().toLowerCase();
+    const rows = usersQ.data ?? [];
+    if (!s) return rows;
+    return rows.filter((u) => {
+      const tipo = u.pessoa?.tipo_user_id ? tiposById.get(u.pessoa.tipo_user_id) ?? "" : "";
+      return [u.email, u.pessoa?.nome_completo, u.pessoa?.email, tipo]
+        .filter(Boolean)
+        .some((v) => (v as string).toLowerCase().includes(s));
+    });
+  }, [usersQ.data, search, tiposById]);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Pesquisar email, nome, tipo…"
+            className="pl-8 w-80"
+          />
+        </div>
+        <div className="ml-auto text-sm text-muted-foreground">
+          {filtered.length} utilizador{filtered.length === 1 ? "" : "es"}
+        </div>
+      </div>
+
+      {usersQ.isLoading ? (
+        <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+      ) : usersQ.isError ? (
+        <div className="rounded-md border p-4 text-sm text-destructive">
+          Erro a carregar utilizadores: {(usersQ.error as Error).message}
+        </div>
+      ) : (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Email</TableHead>
+                <TableHead>Pessoa associada</TableHead>
+                <TableHead>Tipo de perfil</TableHead>
+                <TableHead>Admin</TableHead>
+                <TableHead>Último login</TableHead>
+                <TableHead className="w-24"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground">Sem utilizadores</TableCell>
+                </TableRow>
+              )}
+              {filtered.map((u) => (
+                <TableRow key={u.id}>
+                  <TableCell className="font-medium">{u.email ?? "—"}</TableCell>
+                  <TableCell>
+                    {u.pessoa ? (
+                      <div className="flex flex-col">
+                        <span>{u.pessoa.nome_completo}</span>
+                        {u.pessoa.email && u.pessoa.email !== u.email && (
+                          <span className="text-xs text-muted-foreground">{u.pessoa.email}</span>
+                        )}
+                      </div>
+                    ) : (
+                      <Badge variant="destructive">Sem pessoa</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {u.pessoa ? (
+                      <Select
+                        value={u.pessoa.tipo_user_id ?? "__none"}
+                        onValueChange={(v) =>
+                          setTipo.mutate({ pessoa_id: u.pessoa!.id, tipo_user_id: v === "__none" ? null : v })
+                        }
+                      >
+                        <SelectTrigger className="h-8 w-44"><SelectValue placeholder="—" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none">(sem tipo)</SelectItem>
+                          {(tiposQ.data ?? []).map((t) => (
+                            <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : <span className="text-muted-foreground">—</span>}
+                  </TableCell>
+                  <TableCell>
+                    {u.pessoa ? (
+                      <Checkbox
+                        checked={u.pessoa.is_admin}
+                        onCheckedChange={(c) => setAdmin.mutate({ pessoa_id: u.pessoa!.id, is_admin: !!c })}
+                      />
+                    ) : "—"}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleString("pt-PT") : "—"}
+                  </TableCell>
+                  <TableCell>
+                    {u.pessoa ? (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        title="Desassociar pessoa"
+                        onClick={() => {
+                          if (confirm("Desassociar este user da pessoa?")) unlink.mutate({ auth_user_id: u.id });
+                        }}
+                      >
+                        <Unlink className="h-4 w-4" />
+                      </Button>
+                    ) : (
+                      <LinkPessoaPopover
+                        pessoas={pessoasQ.data ?? []}
+                        onPick={(pessoa_id) => link.mutate({ auth_user_id: u.id, pessoa_id })}
+                      />
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LinkPessoaPopover({
+  pessoas,
+  onPick,
+}: {
+  pessoas: { id: string; nome_completo: string; email: string | null }[];
+  onPick: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button size="icon" variant="ghost" title="Associar a participante">
+          <Link2 className="h-4 w-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 p-0" align="end">
+        <Command>
+          <CommandInput placeholder="Procurar pessoa…" />
+          <CommandList>
+            <CommandEmpty>Sem resultados</CommandEmpty>
+            <CommandGroup>
+              {pessoas.map((p) => (
+                <CommandItem
+                  key={p.id}
+                  value={`${p.nome_completo} ${p.email ?? ""}`}
+                  onSelect={() => { onPick(p.id); setOpen(false); }}
+                >
+                  <div className="flex flex-col">
+                    <span>{p.nome_completo}</span>
+                    {p.email && <span className="text-xs text-muted-foreground">{p.email}</span>}
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function TiposTab() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<TipoUser | null>(null);
@@ -163,14 +438,11 @@ function TiposUserPage() {
   const tableRows = table.getRowModel().rows;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">Tipos de Utilizador</h1>
-          <p className="text-sm text-muted-foreground">
-            Define perfis com acesso a páginas específicas. Administradores têm sempre acesso total.
-          </p>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          Define perfis com acesso a páginas específicas. Administradores têm sempre acesso total.
+        </p>
         <div className="flex flex-wrap items-center gap-2">
           <AdvancedTableFilters table={table} />
           <DataTableViewOptions table={table} />

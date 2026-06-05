@@ -132,7 +132,7 @@ export function MobileBottomNav() {
                     )}
                   >
                     <Shield className="h-4 w-4" />
-                    Tipos de Utilizador
+                    Utilizadores
                   </Link>
                 </div>
               )}
