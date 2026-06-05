@@ -106,22 +106,21 @@ function UsersTab() {
   });
 
   const pessoasQ = useQuery({
-    queryKey: ["pessoas_unlinked"],
+    queryKey: ["pessoas_all_ativas"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
         .select("id, nome_completo, email, auth_user_id, status")
         .eq("status", "ativo")
-        .is("auth_user_id", null)
         .order("nome_completo");
       if (error) throw error;
-      return data as { id: string; nome_completo: string; email: string | null }[];
+      return data as { id: string; nome_completo: string; email: string | null; auth_user_id: string | null }[];
     },
   });
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["auth_users"] });
-    qc.invalidateQueries({ queryKey: ["pessoas_unlinked"] });
+    qc.invalidateQueries({ queryKey: ["pessoas_all_ativas"] });
   };
 
   const link = useMutation({
@@ -209,16 +208,13 @@ function UsersTab() {
                 <TableRow key={u.id}>
                   <TableCell className="font-medium">{u.email ?? "—"}</TableCell>
                   <TableCell>
-                    {u.pessoa ? (
-                      <div className="flex flex-col">
-                        <span>{u.pessoa.nome_completo}</span>
-                        {u.pessoa.email && u.pessoa.email !== u.email && (
-                          <span className="text-xs text-muted-foreground">{u.pessoa.email}</span>
-                        )}
-                      </div>
-                    ) : (
-                      <Badge variant="destructive">Sem pessoa</Badge>
-                    )}
+                    <PessoaPicker
+                      pessoas={pessoasQ.data ?? []}
+                      currentAuthUserId={u.id}
+                      current={u.pessoa}
+                      currentUserEmail={u.email}
+                      onPick={(pessoa_id) => link.mutate({ auth_user_id: u.id, pessoa_id })}
+                    />
                   </TableCell>
                   <TableCell>
                     {u.pessoa ? (
@@ -261,12 +257,7 @@ function UsersTab() {
                       >
                         <Unlink className="h-4 w-4" />
                       </Button>
-                    ) : (
-                      <LinkPessoaPopover
-                        pessoas={pessoasQ.data ?? []}
-                        onPick={(pessoa_id) => link.mutate({ auth_user_id: u.id, pessoa_id })}
-                      />
-                    )}
+                    ) : null}
                   </TableCell>
                 </TableRow>
               ))}
