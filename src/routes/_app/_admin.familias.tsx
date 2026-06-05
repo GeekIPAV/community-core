@@ -88,6 +88,8 @@ function FamiliasPage() {
 
   const [membrosFamilia, setMembrosFamilia] = useState<Familia | null>(null);
   const [view, setView] = useState<"tabela" | "galeria">("tabela");
+  const [addAcaoOpen, setAddAcaoOpen] = useState(false);
+  const [novaAcao, setNovaAcao] = useState<{ pessoa_id: string; acao_id: string }>({ pessoa_id: "", acao_id: "" });
   const [detailTab, setDetailTab] = useState<"dados" | "membros" | "acoes" | "atividades">("membros");
 
   const [addMembroOpen, setAddMembroOpen] = useState(false);
