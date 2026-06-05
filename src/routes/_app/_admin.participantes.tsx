@@ -640,7 +640,7 @@ function ParticipantesPage() {
 
       {/* Add dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Nova pessoa</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Nome *" className="col-span-2">
@@ -703,7 +703,7 @@ function ParticipantesPage() {
 
       {/* Edit dialog */}
       <Dialog open={editOpen} onOpenChange={(o) => { setEditOpen(o); if (!o) setEditing(null); }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Editar pessoa</DialogTitle></DialogHeader>
           {editing && (
             <div className="grid grid-cols-2 gap-3">
