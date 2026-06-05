@@ -326,6 +326,44 @@ function FamiliasPage() {
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["familias"] });
 
+  const { data: acoesList } = useQuery({
+    queryKey: ["acoes", "lista"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("acoes")
+        .select("id, nome, data_inicio")
+        .order("data_inicio", { ascending: false, nullsFirst: false });
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string; data_inicio: string | null }[];
+    },
+  });
+
+  const addInscricaoFamilia = useMutation({
+    mutationFn: async () => {
+      if (!novaAcao.pessoa_id || !novaAcao.acao_id) throw new Error("Escolha membro e ação");
+      const { data: existing } = await supabase
+        .from("inscricoes")
+        .select("id, status")
+        .eq("pessoa_id", novaAcao.pessoa_id)
+        .eq("acao_id", novaAcao.acao_id)
+        .neq("status", "cancelada")
+        .maybeSingle();
+      if (existing) throw new Error("Este membro já está inscrito nesta ação");
+      const { error } = await supabase
+        .from("inscricoes")
+        .insert({ pessoa_id: novaAcao.pessoa_id, acao_id: novaAcao.acao_id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Inscrição adicionada");
+      qc.invalidateQueries({ queryKey: ["familias", "acoes", membrosFamilia?.id] });
+      qc.invalidateQueries({ queryKey: ["familias", "agregados"] });
+      setAddAcaoOpen(false);
+      setNovaAcao({ pessoa_id: "", acao_id: "" });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const create = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from("familias").insert({ nome, notas: notas || null });
