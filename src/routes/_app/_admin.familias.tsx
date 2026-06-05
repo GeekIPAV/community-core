@@ -553,6 +553,77 @@ function FamiliasPage() {
     setDetailTab(tab);
   };
 
+  const renderGalleryCard = (row: typeof tableRows[number]) => {
+    const f = row.original;
+    const agg = agregados?.get(f.id);
+    const nMembros = contagens?.get(f.id) ?? 0;
+    const projetos = Array.from(agg?.projetos ?? []).sort();
+    const cidades = Array.from(agg?.cidades ?? []).sort();
+    return (
+      <Card
+        key={row.id}
+        className="p-4 cursor-pointer hover:bg-muted/40 transition-colors flex flex-col gap-2"
+        onClick={(e) => {
+          const target = e.target as HTMLElement;
+          if (target.closest("button, [role=checkbox], input")) return;
+          openDetail(f, "membros");
+        }}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Checkbox checked={selected.has(f.id)} onCheckedChange={() => toggleOne(f.id)} />
+            <span className="font-medium truncate">{f.nome}</span>
+          </div>
+          <Badge className={STATUS_STYLES[f.status] ?? ""} variant="outline">{f.status}</Badge>
+        </div>
+        <div className="text-sm text-muted-foreground flex items-center gap-1">
+          <Users className="h-3.5 w-3.5" /> {nMembros} membro(s)
+        </div>
+        {projetos.length > 0 && (
+          <div className="text-xs text-muted-foreground"><span className="font-medium">Projetos:</span> {projetos.join(", ")}</div>
+        )}
+        {cidades.length > 0 && (
+          <div className="text-xs text-muted-foreground"><span className="font-medium">Cidades:</span> {cidades.join(", ")}</div>
+        )}
+        {f.notas && <div className="text-xs text-muted-foreground line-clamp-2">{f.notas}</div>}
+        <div className="flex justify-end gap-1 pt-1">
+          <Button size="icon" variant="ghost" title="Ver membros" onClick={() => openDetail(f, "membros")}>
+            <Users className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="ghost" title="Editar" onClick={() => openDetail(f, "dados")}>
+            <Pencil className="h-4 w-4" />
+          </Button>
+        </div>
+      </Card>
+    );
+  };
+
+  const renderTableRow = (row: typeof tableRows[number]) => {
+    const f = row.original;
+    return (
+      <TableRow key={row.id} className="cursor-pointer" onClick={(e) => {
+        const target = e.target as HTMLElement;
+        if (target.closest("button, [role=checkbox], input")) return;
+        openDetail(f, "membros");
+      }}>
+        <TableCell><Checkbox checked={selected.has(f.id)} onCheckedChange={() => toggleOne(f.id)} /></TableCell>
+        {row.getVisibleCells().map((cell) => (
+          <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+        ))}
+        <TableCell>
+          <div className="flex justify-end gap-1">
+            <Button size="icon" variant="ghost" title="Ver membros" onClick={() => openDetail(f, "membros")}>
+              <Users className="h-4 w-4" />
+            </Button>
+            <Button size="icon" variant="ghost" title="Editar" onClick={() => openDetail(f, "dados")}>
+              <Pencil className="h-4 w-4" />
+            </Button>
+          </div>
+        </TableCell>
+      </TableRow>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
