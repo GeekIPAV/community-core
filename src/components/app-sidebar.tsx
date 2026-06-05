@@ -35,6 +35,7 @@ export function AppSidebar() {
   ];
   const acoesItems = [
     { title: t("nav.actions"), url: "/acoes", icon: CalendarDays, page: "acoes" as const },
+    { title: "Atividades", url: "/atividades", icon: Activity, page: "atividades" as const },
   ];
 
   const isActive = (url: string) => pathname === url;
@@ -120,14 +121,6 @@ export function AppSidebar() {
                     <Link to="/bolsas-transporte" className="flex items-center gap-2">
                       <Bus className="h-4 w-4" />
                       <span>Bolsa de Transporte</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={isActive("/atividades")}>
-                    <Link to="/atividades" className="flex items-center gap-2">
-                      <Activity className="h-4 w-4" />
-                      <span>Atividades</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
