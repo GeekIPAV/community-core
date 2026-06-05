@@ -927,6 +927,58 @@ function FamiliasPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Adicionar ação a um membro da família */}
+      <Dialog open={addAcaoOpen} onOpenChange={setAddAcaoOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Adicionar ação</DialogTitle>
+            <DialogDescription>
+              {membrosFamilia ? `Família: ${membrosFamilia.nome}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Membro</Label>
+              <Select
+                value={novaAcao.pessoa_id || undefined}
+                onValueChange={(v) => setNovaAcao((s) => ({ ...s, pessoa_id: v }))}
+              >
+                <SelectTrigger><SelectValue placeholder="Escolher membro…" /></SelectTrigger>
+                <SelectContent>
+                  {(membros ?? []).map((m) => (
+                    <SelectItem key={m.id} value={m.id}>{m.nome_completo}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Ação</Label>
+              <Select
+                value={novaAcao.acao_id || undefined}
+                onValueChange={(v) => setNovaAcao((s) => ({ ...s, acao_id: v }))}
+              >
+                <SelectTrigger><SelectValue placeholder="Escolher ação…" /></SelectTrigger>
+                <SelectContent>
+                  {(acoesList ?? []).map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.nome}{a.data_inicio ? ` — ${formatDateBR(a.data_inicio)}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => addInscricaoFamilia.mutate()}
+              disabled={!novaAcao.pessoa_id || !novaAcao.acao_id || addInscricaoFamilia.isPending}
+            >
+              {addInscricaoFamilia.isPending ? "A guardar…" : "Adicionar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Adicionar membro à família */}
       <Dialog open={addMembroOpen} onOpenChange={setAddMembroOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
