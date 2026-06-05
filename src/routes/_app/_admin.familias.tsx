@@ -88,6 +88,8 @@ function FamiliasPage() {
 
   const [membrosFamilia, setMembrosFamilia] = useState<Familia | null>(null);
   const [view, setView] = useState<"tabela" | "galeria">("tabela");
+  const [addAcaoOpen, setAddAcaoOpen] = useState(false);
+  const [novaAcao, setNovaAcao] = useState<{ pessoa_id: string; acao_id: string }>({ pessoa_id: "", acao_id: "" });
   const [detailTab, setDetailTab] = useState<"dados" | "membros" | "acoes" | "atividades">("membros");
 
   const [addMembroOpen, setAddMembroOpen] = useState(false);
@@ -323,6 +325,44 @@ function FamiliasPage() {
   });
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["familias"] });
+
+  const { data: acoesList } = useQuery({
+    queryKey: ["acoes", "lista"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("acoes")
+        .select("id, nome, data_inicio")
+        .order("data_inicio", { ascending: false, nullsFirst: false });
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string; data_inicio: string | null }[];
+    },
+  });
+
+  const addInscricaoFamilia = useMutation({
+    mutationFn: async () => {
+      if (!novaAcao.pessoa_id || !novaAcao.acao_id) throw new Error("Escolha membro e ação");
+      const { data: existing } = await supabase
+        .from("inscricoes")
+        .select("id, status")
+        .eq("pessoa_id", novaAcao.pessoa_id)
+        .eq("acao_id", novaAcao.acao_id)
+        .neq("status", "cancelada")
+        .maybeSingle();
+      if (existing) throw new Error("Este membro já está inscrito nesta ação");
+      const { error } = await supabase
+        .from("inscricoes")
+        .insert({ pessoa_id: novaAcao.pessoa_id, acao_id: novaAcao.acao_id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Inscrição adicionada");
+      qc.invalidateQueries({ queryKey: ["familias", "acoes", membrosFamilia?.id] });
+      qc.invalidateQueries({ queryKey: ["familias", "agregados"] });
+      setAddAcaoOpen(false);
+      setNovaAcao({ pessoa_id: "", acao_id: "" });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const create = useMutation({
     mutationFn: async () => {
@@ -833,7 +873,22 @@ function FamiliasPage() {
             </TabsContent>
 
             <TabsContent value="acoes" className="pt-4 flex-1 min-h-0 overflow-hidden">
-              <div className="h-full max-h-[65vh] overflow-auto rounded-md border">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm text-muted-foreground">
+                  Inscrições dos membros desta família
+                </span>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setNovaAcao({ pessoa_id: (membros?.[0]?.id ?? ""), acao_id: "" });
+                    setAddAcaoOpen(true);
+                  }}
+                  disabled={!membros || membros.length === 0}
+                >
+                  <Plus className="h-4 w-4 mr-1" /> Adicionar ação
+                </Button>
+              </div>
+              <div className="h-full max-h-[60vh] overflow-auto rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -869,6 +924,58 @@ function FamiliasPage() {
               {membrosFamilia && <AtividadesFamiliaTab familiaId={membrosFamilia.id} />}
             </TabsContent>
           </Tabs>
+        </DialogContent>
+      </Dialog>
+
+      {/* Adicionar ação a um membro da família */}
+      <Dialog open={addAcaoOpen} onOpenChange={setAddAcaoOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Adicionar ação</DialogTitle>
+            <DialogDescription>
+              {membrosFamilia ? `Família: ${membrosFamilia.nome}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Membro</Label>
+              <Select
+                value={novaAcao.pessoa_id || undefined}
+                onValueChange={(v) => setNovaAcao((s) => ({ ...s, pessoa_id: v }))}
+              >
+                <SelectTrigger><SelectValue placeholder="Escolher membro…" /></SelectTrigger>
+                <SelectContent>
+                  {(membros ?? []).map((m) => (
+                    <SelectItem key={m.id} value={m.id}>{m.nome_completo}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Ação</Label>
+              <Select
+                value={novaAcao.acao_id || undefined}
+                onValueChange={(v) => setNovaAcao((s) => ({ ...s, acao_id: v }))}
+              >
+                <SelectTrigger><SelectValue placeholder="Escolher ação…" /></SelectTrigger>
+                <SelectContent>
+                  {(acoesList ?? []).map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.nome}{a.data_inicio ? ` — ${formatDateBR(a.data_inicio)}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => addInscricaoFamilia.mutate()}
+              disabled={!novaAcao.pessoa_id || !novaAcao.acao_id || addInscricaoFamilia.isPending}
+            >
+              {addInscricaoFamilia.isPending ? "A guardar…" : "Adicionar"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

@@ -2,6 +2,7 @@ export type PageKey =
   | "participantes"
   | "familias"
   | "acoes"
+  | "atividades"
   | "duplicados"
   | "projetos"
   | "bolsas-transporte"
@@ -11,6 +12,7 @@ export const AVAILABLE_PAGES: { key: PageKey; label: string; path: string }[] = 
   { key: "participantes", label: "Gestão de Participantes", path: "/participantes" },
   { key: "familias", label: "Gestão de Famílias", path: "/familias" },
   { key: "acoes", label: "Gestão de Ações", path: "/acoes" },
+  { key: "atividades", label: "Atividades", path: "/atividades" },
   { key: "duplicados", label: "Duplicados", path: "/duplicados" },
   { key: "projetos", label: "Projetos", path: "/projetos" },
   { key: "bolsas-transporte", label: "Bolsa de Transporte", path: "/bolsas-transporte" },
