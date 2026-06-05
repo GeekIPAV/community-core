@@ -1,51 +1,47 @@
-## Objetivo
+## 1. Auto-criar pessoa em novos signups (backend)
 
-Quando o utilizador troca para árabe a plataforma deve sentir-se nativa: sidebar à direita, conteúdo a fluir da direita para a esquerda, ícones direcionais espelhados, e tudo a comportar-se bem em ecrãs pequenos (independente do idioma).
+Migration:
+- Função `public.handle_new_auth_user()` (SECURITY DEFINER, search_path=public):
+  - Procura `pessoas` ativa com `lower(email) = lower(NEW.email)` e `auth_user_id IS NULL` → faz `UPDATE` a setar `auth_user_id = NEW.id` (e preenche email se estiver vazio).
+  - Caso contrário → `INSERT` em `pessoas` com `email`, `auth_user_id = NEW.id`, `nome_completo` = `raw_user_meta_data->>'full_name'` ou `name` ou parte antes do `@`, `status='ativo'`, `is_admin=false`.
+- Trigger `on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW`.
 
-## 1. Trocar a orientação quando idioma = árabe
+Backfill (insert tool, após a migração):
+- Ligar pessoa `1723fcd5-…` (Shahd) ao `auth_user_id 384eaa7b-…` e preencher email `shahd@meeru.org`.
+- Para outros users de auth sem pessoa: link por email, ou criar nova pessoa.
 
-Hoje só fazemos `document.documentElement.dir = "rtl"` em `src/lib/i18n.ts`. Isso vira o texto mas a sidebar do shadcn continua "side=left", os menus continuam ancorados a `align="end"` em coordenadas LTR, e várias classes usam `ml-/mr-/left-/right-` fixas.
+## 2. Renomear página "Tipos de Utilizador" → "Utilizadores"
 
-Mudanças:
+- Renomear `src/routes/_app/_admin.tipos-user.tsx` → `_admin.utilizadores.tsx` (rota `/utilizadores`).
+- Atualizar `src/components/app-sidebar.tsx`: label "Utilizadores", `to="/utilizadores"`, ícone Users.
+- Atualizar referências a `/tipos-user` (procurar em todo o projeto). Manter `src/routes/_app/_admin.tipos-user.tsx` se necessário com um redirect temporário, ou simplesmente remover.
 
-- **Hook `useDir()`** novo em `src/lib/i18n.ts` que devolve `"rtl" | "ltr"` reactivo (reage a `i18n.on("languageChanged")`), para os componentes poderem condicionar comportamento.
-- **`AppSidebar`** (`src/components/app-sidebar.tsx`): passar `side={dir === "rtl" ? "right" : "left"}` ao `<Sidebar>`. Assim o painel encaixa do lado correto e o botão de colapsar fica no sítio certo.
-- **Substituir margens/paddings direcionais** por equivalentes lógicos nos componentes partilhados que aparecem em todas as páginas: `ml-* → ms-*`, `mr-* → me-*`, `pl-* → ps-*`, `pr-* → pe-*`, `left-* → start-*`, `right-* → end-*`, `text-left → text-start`, `text-right → text-end`. Alvo: `app-sidebar.tsx`, header de `_app.tsx`, header/cards de `resultados.tsx`, dialogs partilhados (`DropdownMenu`, `Dialog` já usam `align="end"` que o Radix trata bem; deixar como está).
-- **Ícones direcionais** (`ChevronLeft/Right`, `ArrowLeft/Right`, setas de mover) — onde representam navegação (voltar, próximo, breadcrumb), espelhar com `className="rtl:rotate-180"`. Não espelhar ícones neutros (lupa, lixo, lápis, etc.).
-- **Recharts**: legendas/tooltips ficam OK; apenas garantir que o container do gráfico tem `dir="ltr"` interno (os números/eixos têm de ler-se LTR mesmo em RTL). Isto é uma `<div dir="ltr">` à volta do `<ResponsiveContainer>` em `ChartBlock` (`src/routes/resultados.tsx`).
-- **Inputs numéricos / email / tel**: forçar `dir="ltr"` quando o conteúdo é inerentemente LTR (números, emails). Aplicar nos `Input` dessas colunas em `participantes`/`familias` quando `type` é `email`, `tel`, `number`, `date`.
+## 3. Nova tabela de Utilizadores dentro dessa página
 
-## 2. Tradução em falta
+A página passa a ter **duas secções/tabs**:
 
-Para o árabe parecer completo, precisamos de traduzir o que ainda está só em PT no shell visível:
+**A) Utilizadores (nova, principal)**
+- Lista todos os users de `auth.users` (via server function `listAuthUsers` com `supabaseAdmin.auth.admin.listUsers()`), junta com pessoa associada (via `pessoas.auth_user_id`).
+- Colunas: Email, Último login, Pessoa associada (nome), Tipo de perfil, Ações.
+- Pesquisa por email/nome.
+- Ações por linha:
+  - **Associar a participante** (Combobox de `pessoas` sem `auth_user_id`) → server fn `linkAuthUserToPessoa(auth_user_id, pessoa_id)` que faz `UPDATE pessoas SET auth_user_id=…` (admin).
+  - **Mudar tipo de perfil** (Select de `tipos_user`) → atualiza `pessoas.tipo_user_id` da pessoa associada.
+  - **Editar pessoa** (abre o diálogo de edição da pessoa associada com campos principais: nome, email, telefone, família, tipo, admin).
+  - **Desassociar** (limpa `auth_user_id`).
 
-- Cabeçalho do `/resultados`: "Resultados e Impacto", "Resumo", "Gráficos", "Nova métrica", "Novo gráfico", "Configurar", "Mover para cima/baixo", "Remover", "Sem métricas/gráficos".
-- Header global (`_app.tsx`): nome/área pessoal, "Entrar".
-- Vamos adicionar chaves novas em `pt/en/ar` no `src/lib/i18n.ts` (namespaces `results` e `header`) e usar `useTranslation()` nesses sítios. Não vamos traduzir o backoffice todo neste passo — só o que está visível ao público + à barra lateral.
+**B) Tipos de perfil (a antiga UI mantém-se aqui)**
+- Toda a gestão atual de `tipos_user` (criar, editar nome, páginas) fica num segundo tab "Tipos de perfil".
 
-## 3. Responsive
+## 4. Server functions novas (`src/lib/users.functions.ts`)
 
-Problemas conhecidos a corrigir:
+- `listAuthUsers` (admin) — devolve `{ id, email, last_sign_in_at, created_at, pessoa: {...} | null, tipo_user: {...} | null }[]`. Usa `supabaseAdmin` via `await import` dentro do handler.
+- `linkAuthUserToPessoa({ auth_user_id, pessoa_id })` — atualiza pessoa.
+- `unlinkAuthUser({ auth_user_id })` — limpa `auth_user_id` da pessoa.
+- `setPessoaTipo({ pessoa_id, tipo_user_id })` — atualiza tipo.
 
-- **`/resultados`**: grelha de KPIs passa para `sm:grid-cols-2 lg:grid-cols-4` mas o header da página ("Resumo" + botão "Nova métrica") encosta-se ao limite em 375px → trocar para `flex-col gap-2 sm:flex-row sm:items-center sm:justify-between`. Mesma coisa para "Gráficos".
-- **`ChartBlock`**: hoje a altura está fixa em `h-80` e a Card é 1 coluna até `lg`. Em mobile com tooltip do recharts a legenda corta. Reduzir para `h-64 sm:h-80` e adicionar `overflow-hidden` à Card.
-- **Tabelas em `/participantes` e `/familias`**: garantir wrapper `overflow-x-auto` no container da tabela; barra de filtros (pesquisa + colunas + ações) deve ser `flex-wrap gap-2` em vez de uma única linha que estoura. Adicionar `min-w-0` aos filhos que truncam.
-- **Sidebar mobile**: já usa Sheet — apenas verificar que ao passar para `dir=rtl` o Sheet abre do lado direito (passar `side="right"` no `SheetContent` quando RTL).
-- **Header global**: stack vertical em <640px (logo em cima, ações em baixo) com `flex-wrap`.
-
-## 4. Detalhes técnicos
-
-- Tailwind v4 já suporta variantes `rtl:` e utilitários lógicos (`ms-*`, `me-*`, `ps-*`, `pe-*`, `start-*`, `end-*`) sem config extra.
-- O `useDir()` hook subscreve `i18n.on("languageChanged", ...)` e devolve `i18n.dir()`. Inicializa com `i18n.dir(i18n.language)` para SSR.
-- Para evitar mismatch de hidratação no SSR (o servidor não sabe o idioma do utilizador), o `<html dir>` continua a ser actualizado no cliente; nenhum componente deve ler `document.documentElement.dir` durante render — usar sempre o hook.
-- Ficheiros tocados:
-  - `src/lib/i18n.ts` (novo hook + novas chaves de tradução)
-  - `src/components/app-sidebar.tsx` (side dinâmico + classes lógicas)
-  - `src/routes/_app.tsx` (header responsive + traduções + classes lógicas)
-  - `src/routes/resultados.tsx` (header responsive, ChartBlock dir="ltr" interno, traduções, classes lógicas)
-  - `src/routes/_app/_admin.participantes.tsx` e `_admin.familias.tsx` (filtros `flex-wrap`, `overflow-x-auto` na tabela, inputs `dir="ltr"` onde aplicável)
+Todas com middleware `requireSupabaseAuth` + verificação `is_current_user_admin()` no handler (RPC) antes de operar.
 
 ## Fora de âmbito
-
-- Tradução completa de todos os formulários e dialogs de admin (fica para um passo seguinte).
-- Mudança de fontes para uma família que renderize melhor árabe (podemos discutir se quiseres — Tajawal/IBM Plex Sans Arabic).
+- Não mexe em RLS existente.
+- Não cria UI de criar/apagar users de auth (só listagem + associação + tipo).
