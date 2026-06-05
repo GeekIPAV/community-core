@@ -106,22 +106,21 @@ function UsersTab() {
   });
 
   const pessoasQ = useQuery({
-    queryKey: ["pessoas_unlinked"],
+    queryKey: ["pessoas_all_ativas"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
         .select("id, nome_completo, email, auth_user_id, status")
         .eq("status", "ativo")
-        .is("auth_user_id", null)
         .order("nome_completo");
       if (error) throw error;
-      return data as { id: string; nome_completo: string; email: string | null }[];
+      return data as { id: string; nome_completo: string; email: string | null; auth_user_id: string | null }[];
     },
   });
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["auth_users"] });
-    qc.invalidateQueries({ queryKey: ["pessoas_unlinked"] });
+    qc.invalidateQueries({ queryKey: ["pessoas_all_ativas"] });
   };
 
   const link = useMutation({
@@ -209,16 +208,13 @@ function UsersTab() {
                 <TableRow key={u.id}>
                   <TableCell className="font-medium">{u.email ?? "—"}</TableCell>
                   <TableCell>
-                    {u.pessoa ? (
-                      <div className="flex flex-col">
-                        <span>{u.pessoa.nome_completo}</span>
-                        {u.pessoa.email && u.pessoa.email !== u.email && (
-                          <span className="text-xs text-muted-foreground">{u.pessoa.email}</span>
-                        )}
-                      </div>
-                    ) : (
-                      <Badge variant="destructive">Sem pessoa</Badge>
-                    )}
+                    <PessoaPicker
+                      pessoas={pessoasQ.data ?? []}
+                      currentAuthUserId={u.id}
+                      current={u.pessoa}
+                      currentUserEmail={u.email}
+                      onPick={(pessoa_id) => link.mutate({ auth_user_id: u.id, pessoa_id })}
+                    />
                   </TableCell>
                   <TableCell>
                     {u.pessoa ? (
@@ -261,12 +257,7 @@ function UsersTab() {
                       >
                         <Unlink className="h-4 w-4" />
                       </Button>
-                    ) : (
-                      <LinkPessoaPopover
-                        pessoas={pessoasQ.data ?? []}
-                        onPick={(pessoa_id) => link.mutate({ auth_user_id: u.id, pessoa_id })}
-                      />
-                    )}
+                    ) : null}
                   </TableCell>
                 </TableRow>
               ))}
@@ -278,35 +269,67 @@ function UsersTab() {
   );
 }
 
-function LinkPessoaPopover({
+function PessoaPicker({
   pessoas,
+  current,
+  currentAuthUserId,
+  currentUserEmail,
   onPick,
 }: {
-  pessoas: { id: string; nome_completo: string; email: string | null }[];
+  pessoas: { id: string; nome_completo: string; email: string | null; auth_user_id: string | null }[];
+  current: { id: string; nome_completo: string; email: string | null } | null;
+  currentAuthUserId: string;
+  currentUserEmail: string | null;
   onPick: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  // Selectable = unlinked OR currently linked to this user
+  const selectable = pessoas.filter(
+    (p) => p.auth_user_id === null || p.auth_user_id === currentAuthUserId,
+  );
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button size="icon" variant="ghost" title="Associar a participante">
-          <Link2 className="h-4 w-4" />
+        <Button
+          variant="ghost"
+          className="h-auto min-h-9 justify-start px-2 py-1 text-left font-normal hover:bg-accent"
+        >
+          {current ? (
+            <div className="flex flex-col items-start">
+              <span>{current.nome_completo}</span>
+              {current.email && current.email !== currentUserEmail && (
+                <span className="text-xs text-muted-foreground">{current.email}</span>
+              )}
+            </div>
+          ) : (
+            <Badge variant="destructive" className="gap-1">
+              <Link2 className="h-3 w-3" /> Sem pessoa
+            </Badge>
+          )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end">
+      <PopoverContent className="w-80 p-0" align="start">
         <Command>
           <CommandInput placeholder="Procurar pessoa…" />
           <CommandList>
             <CommandEmpty>Sem resultados</CommandEmpty>
             <CommandGroup>
-              {pessoas.map((p) => (
+              {selectable.map((p) => (
                 <CommandItem
                   key={p.id}
                   value={`${p.nome_completo} ${p.email ?? ""}`}
-                  onSelect={() => { onPick(p.id); setOpen(false); }}
+                  onSelect={() => {
+                    if (p.id !== current?.id) onPick(p.id);
+                    setOpen(false);
+                  }}
                 >
                   <div className="flex flex-col">
-                    <span>{p.nome_completo}</span>
+                    <span>
+                      {p.nome_completo}
+                      {p.id === current?.id && (
+                        <span className="ml-2 text-xs text-muted-foreground">(atual)</span>
+                      )}
+                    </span>
                     {p.email && <span className="text-xs text-muted-foreground">{p.email}</span>}
                   </div>
                 </CommandItem>
