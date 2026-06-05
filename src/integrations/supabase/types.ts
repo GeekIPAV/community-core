@@ -522,6 +522,7 @@ export type Database = {
             Returns: Json
           }
       is_current_user_admin: { Args: never; Returns: boolean }
+      is_current_user_staff: { Args: never; Returns: boolean }
     }
     Enums: {
       status_acao: "ativa" | "cancelada" | "concluida"
