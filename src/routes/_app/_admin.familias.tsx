@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { LayoutGrid, List, Pencil, Plus, Trash2, Upload, UserMinus, Users } from "lucide-react";
+import { LayoutGrid, List, Pencil, Plus, Search, Trash2, Upload, UserMinus, Users } from "lucide-react";
 import { formatDateBR } from "@/lib/utils";
 import {
   useReactTable,
@@ -88,6 +88,8 @@ function FamiliasPage() {
 
   const [membrosFamilia, setMembrosFamilia] = useState<Familia | null>(null);
   const [view, setView] = useState<"tabela" | "galeria">("tabela");
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [groupBy, setGroupBy] = useState<"none" | "status" | "projeto" | "cidade" | "religiao">("none");
   const [addAcaoOpen, setAddAcaoOpen] = useState(false);
   const [novaAcao, setNovaAcao] = useState<{ pessoa_id: string; acao_id: string }>({ pessoa_id: "", acao_id: "" });
   const [detailTab, setDetailTab] = useState<"dados" | "membros" | "acoes" | "atividades">("membros");
@@ -475,10 +477,27 @@ function FamiliasPage() {
     defaultColumn: { minSize: 60, size: 160, maxSize: 800 },
     data: rows,
     columns,
-    state: { sorting, columnVisibility, columnOrder },
+    state: { sorting, columnVisibility, columnOrder, globalFilter },
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnOrderChange: setColumnOrder,
+    onGlobalFilterChange: setGlobalFilter,
+    globalFilterFn: (row, _col, filterValue) => {
+      const q = String(filterValue ?? "").trim().toLowerCase();
+      if (!q) return true;
+      const f = row.original;
+      const agg = agregados?.get(f.id);
+      const haystack = [
+        f.nome,
+        f.notas ?? "",
+        f.status,
+        ...Array.from(agg?.projetos ?? []),
+        ...Array.from(agg?.cidades ?? []),
+        ...Array.from(agg?.religioes ?? []),
+        ...Array.from(agg?.inscricoes ?? []),
+      ].join(" ").toLowerCase();
+      return haystack.includes(q);
+    },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -488,6 +507,33 @@ function FamiliasPage() {
   useMobileColumnVisibility(table, ["nome", "status", "membros"]);
 
   const tableRows = table.getRowModel().rows;
+  const groupedRows = useMemo(() => {
+    if (groupBy === "none") return null as null | { label: string; rows: typeof tableRows }[];
+    const map = new Map<string, typeof tableRows>();
+    const push = (key: string, r: typeof tableRows[number]) => {
+      const list = map.get(key) ?? [];
+      list.push(r);
+      map.set(key, list);
+    };
+    for (const r of tableRows) {
+      const f = r.original;
+      const agg = agregados?.get(f.id);
+      if (groupBy === "status") {
+        push(f.status || "Sem estado", r);
+      } else {
+        const set =
+          groupBy === "projeto" ? agg?.projetos :
+          groupBy === "cidade" ? agg?.cidades :
+          agg?.religioes;
+        const values = Array.from(set ?? []);
+        if (values.length === 0) push("—", r);
+        else for (const v of values) push(v || "—", r);
+      }
+    }
+    return Array.from(map.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([label, rows]) => ({ label, rows }));
+  }, [tableRows, groupBy, agregados]);
   const allChecked = tableRows.length > 0 && tableRows.every((r) => selected.has(r.original.id));
   const toggleAll = () => {
     const next = new Set(selected);
@@ -507,6 +553,77 @@ function FamiliasPage() {
     setDetailTab(tab);
   };
 
+  const renderGalleryCard = (row: typeof tableRows[number]) => {
+    const f = row.original;
+    const agg = agregados?.get(f.id);
+    const nMembros = contagens?.get(f.id) ?? 0;
+    const projetos = Array.from(agg?.projetos ?? []).sort();
+    const cidades = Array.from(agg?.cidades ?? []).sort();
+    return (
+      <Card
+        key={row.id}
+        className="p-4 cursor-pointer hover:bg-muted/40 transition-colors flex flex-col gap-2"
+        onClick={(e) => {
+          const target = e.target as HTMLElement;
+          if (target.closest("button, [role=checkbox], input")) return;
+          openDetail(f, "membros");
+        }}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Checkbox checked={selected.has(f.id)} onCheckedChange={() => toggleOne(f.id)} />
+            <span className="font-medium truncate">{f.nome}</span>
+          </div>
+          <Badge className={STATUS_STYLES[f.status] ?? ""} variant="outline">{f.status}</Badge>
+        </div>
+        <div className="text-sm text-muted-foreground flex items-center gap-1">
+          <Users className="h-3.5 w-3.5" /> {nMembros} membro(s)
+        </div>
+        {projetos.length > 0 && (
+          <div className="text-xs text-muted-foreground"><span className="font-medium">Projetos:</span> {projetos.join(", ")}</div>
+        )}
+        {cidades.length > 0 && (
+          <div className="text-xs text-muted-foreground"><span className="font-medium">Cidades:</span> {cidades.join(", ")}</div>
+        )}
+        {f.notas && <div className="text-xs text-muted-foreground line-clamp-2">{f.notas}</div>}
+        <div className="flex justify-end gap-1 pt-1">
+          <Button size="icon" variant="ghost" title="Ver membros" onClick={() => openDetail(f, "membros")}>
+            <Users className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="ghost" title="Editar" onClick={() => openDetail(f, "dados")}>
+            <Pencil className="h-4 w-4" />
+          </Button>
+        </div>
+      </Card>
+    );
+  };
+
+  const renderTableRow = (row: typeof tableRows[number]) => {
+    const f = row.original;
+    return (
+      <TableRow key={row.id} className="cursor-pointer" onClick={(e) => {
+        const target = e.target as HTMLElement;
+        if (target.closest("button, [role=checkbox], input")) return;
+        openDetail(f, "membros");
+      }}>
+        <TableCell><Checkbox checked={selected.has(f.id)} onCheckedChange={() => toggleOne(f.id)} /></TableCell>
+        {row.getVisibleCells().map((cell) => (
+          <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+        ))}
+        <TableCell>
+          <div className="flex justify-end gap-1">
+            <Button size="icon" variant="ghost" title="Ver membros" onClick={() => openDetail(f, "membros")}>
+              <Users className="h-4 w-4" />
+            </Button>
+            <Button size="icon" variant="ghost" title="Editar" onClick={() => openDetail(f, "dados")}>
+              <Pencil className="h-4 w-4" />
+            </Button>
+          </div>
+        </TableCell>
+      </TableRow>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -515,6 +632,27 @@ function FamiliasPage() {
           <p className="text-sm text-muted-foreground">{rows.length} famílias</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={globalFilter}
+              onChange={(e) => setGlobalFilter(e.target.value)}
+              placeholder="Pesquisar famílias…"
+              className="pl-8 h-9 w-56"
+            />
+          </div>
+          <Select value={groupBy} onValueChange={(v) => setGroupBy(v as typeof groupBy)}>
+            <SelectTrigger className="h-9 w-40">
+              <SelectValue placeholder="Agrupar por" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Sem agrupamento</SelectItem>
+              <SelectItem value="status">Agrupar: Status</SelectItem>
+              <SelectItem value="projeto">Agrupar: Projeto</SelectItem>
+              <SelectItem value="cidade">Agrupar: Cidade</SelectItem>
+              <SelectItem value="religiao">Agrupar: Religião</SelectItem>
+            </SelectContent>
+          </Select>
           <AdvancedTableFilters table={table} />
           <DataTableViewOptions table={table} />
           <ToggleGroup type="single" value={view} onValueChange={(v) => v && setView(v as "tabela" | "galeria")} variant="outline" size="sm">
@@ -556,10 +694,63 @@ function FamiliasPage() {
       {isLoading ? (
         <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
       ) : view === "galeria" ? (
+        groupedRows ? (
+          <div className="space-y-6">
+            {groupedRows.length === 0 && (
+              <div className="text-center text-muted-foreground py-8">Sem famílias</div>
+            )}
+            {groupedRows.map((g) => (
+              <div key={g.label} className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-semibold">{g.label}</h2>
+                  <Badge variant="secondary">{g.rows.length}</Badge>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                  {g.rows.map((row) => renderGalleryCard(row))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {tableRows.length === 0 && (
             <div className="col-span-full text-center text-muted-foreground py-8">Sem famílias</div>
           )}
+          {tableRows.map((row) => renderGalleryCard(row))}
+        </div>
+        )
+      ) : (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-10"><Checkbox checked={allChecked} onCheckedChange={toggleAll} /></TableHead>
+                <DraggableTableHeaders table={table} onOrderChange={setColumnOrder} />
+                <TableHead className="w-16"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {tableRows.length === 0 && (
+                <TableRow><TableCell colSpan={table.getVisibleLeafColumns().length + 2} className="text-center text-muted-foreground">Sem famílias</TableCell></TableRow>
+              )}
+              {groupedRows
+                ? groupedRows.flatMap((g) => [
+                    <TableRow key={`grp-${g.label}`} className="bg-muted/50 hover:bg-muted/50">
+                      <TableCell colSpan={table.getVisibleLeafColumns().length + 2} className="font-semibold">
+                        {g.label} <span className="text-muted-foreground font-normal">({g.rows.length})</span>
+                      </TableCell>
+                    </TableRow>,
+                    ...g.rows.map((row) => renderTableRow(row)),
+                  ])
+                : tableRows.map((row) => renderTableRow(row))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+      {/* removed-old-render-marker */}
+      {false && (
+        <>
+        <div>
           {tableRows.map((row) => {
             const f = row.original;
             const agg = agregados?.get(f.id);
@@ -605,7 +796,6 @@ function FamiliasPage() {
             );
           })}
         </div>
-      ) : (
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -647,6 +837,7 @@ function FamiliasPage() {
             </TableBody>
           </Table>
         </div>
+        </>
       )}
 
       {/* Bulk add */}
