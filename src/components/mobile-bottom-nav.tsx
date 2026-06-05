@@ -10,6 +10,8 @@ import {
   Briefcase,
   AlertTriangle,
   CalendarDays,
+  Bus,
+  Activity,
   Shield,
   LogOut,
 } from "lucide-react";
@@ -32,6 +34,8 @@ const adminItems = [
   { title: "Projetos", url: "/projetos", icon: Briefcase, page: "projetos" as const },
   { title: "Duplicados", url: "/duplicados", icon: AlertTriangle, page: "duplicados" as const },
   { title: "Ações", url: "/acoes", icon: CalendarDays, page: "acoes" as const },
+  { title: "Atividades", url: "/atividades", icon: Activity, page: "atividades" as const },
+  { title: "Bolsa de Transporte", url: "/bolsas-transporte", icon: Bus, page: "bolsas-transporte" as const },
 ];
 
 export function MobileBottomNav() {
