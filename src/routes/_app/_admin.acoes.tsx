@@ -1587,10 +1587,12 @@ function AcoesPageInner() {
         config_campos: { fields: form.fields },
       } as any);
       if (error) throw error;
+      await upsertLocalizacao(form.local, form.mapa_url || null);
     },
     onSuccess: () => {
       toast.success("Ação criada");
       invalidate();
+      qc.invalidateQueries({ queryKey: ["localizacoes"] });
       setAddOpen(false);
       setForm(EMPTY_FORM);
     },
