@@ -1622,10 +1622,12 @@ function AcoesPageInner() {
         } as any)
         .eq("id", editing.id);
       if (error) throw error;
+      await upsertLocalizacao(editing.local, editing.mapa_url || null);
     },
     onSuccess: () => {
       toast.success("Ação atualizada");
       invalidate();
+      qc.invalidateQueries({ queryKey: ["localizacoes"] });
       setEditing(null);
     },
     onError: (e: Error) => {
