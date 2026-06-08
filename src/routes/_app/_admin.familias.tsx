@@ -958,7 +958,29 @@ function FamiliasPage() {
         <DialogContent className="max-w-[min(1200px,95vw)] w-[95vw] sm:w-full p-0 overflow-hidden flex flex-col max-h-[90vh]">
           <div className="p-6 pb-0">
           <DialogHeader>
-            <DialogTitle>{membrosFamilia?.nome}</DialogTitle>
+            <div className="flex items-center justify-between gap-3">
+              <DialogTitle>{membrosFamilia?.nome}</DialogTitle>
+              <div className="flex items-center gap-1">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  title="Família anterior"
+                  onClick={goPrevFamilia}
+                  disabled={!data || data.findIndex((f) => f.id === membrosFamilia?.id) <= 0}
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  title="Família seguinte"
+                  onClick={goNextFamilia}
+                  disabled={!data || data.findIndex((f) => f.id === membrosFamilia?.id) >= data.length - 1}
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
             <DialogDescription>
               {loadingMembros ? "A carregar…" : `${membros?.length ?? 0} membro(s)`}
             </DialogDescription>
