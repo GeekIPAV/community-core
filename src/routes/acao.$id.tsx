@@ -253,6 +253,23 @@ function AnonForm({ acao, fields, onDone }: { acao: any; fields: FieldDef[]; onD
 
   return (
     <>
+    <div className="flex items-center justify-between rounded-md border bg-muted/40 px-3 py-2 text-sm">
+      <span className="text-muted-foreground">Já tens conta?</span>
+      <Button
+        type="button"
+        variant="link"
+        size="sm"
+        className="h-auto px-0"
+        onClick={() => {
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem("postLoginRedirect", window.location.pathname);
+          }
+          navigate({ to: "/login" });
+        }}
+      >
+        Iniciar sessão
+      </Button>
+    </div>
     <form
       className="space-y-3"
       onSubmit={(e) => {
