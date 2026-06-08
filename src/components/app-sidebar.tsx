@@ -19,8 +19,7 @@ import { ImpersonationPicker } from "@/components/impersonation-picker";
 
 export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { isAdmin, isStaff, hasPage } = useAuth();
-  const { realIsAdmin, impersonating } = useAuth();
+  const { isAdmin, isStaff, hasPage, realIsAdmin } = useAuth();
   const { t, i18n } = useTranslation();
   const dir = useDir();
 
