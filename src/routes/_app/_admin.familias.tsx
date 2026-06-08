@@ -1051,7 +1051,19 @@ function FamiliasPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <DialogFooter>
+                  <DialogFooter className="flex justify-between gap-2">
+                    <Button
+                      variant="destructive"
+                      onClick={() => {
+                        if (confirm(`Eliminar a família "${editing.nome}"? Os membros ficarão sem família e as atividades associadas serão removidas. Esta ação não pode ser desfeita.`)) {
+                          deleteFamilia.mutate(editing.id);
+                        }
+                      }}
+                      disabled={deleteFamilia.isPending}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      {deleteFamilia.isPending ? "A eliminar…" : "Eliminar família"}
+                    </Button>
                     <Button onClick={() => update.mutate()} disabled={!editing.nome.trim() || update.isPending}>
                       {update.isPending ? "A guardar…" : "Guardar"}
                     </Button>
