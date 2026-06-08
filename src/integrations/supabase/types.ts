@@ -199,6 +199,7 @@ export type Database = {
       }
       familias: {
         Row: {
+          contacto_meeru_id: string | null
           created_at: string
           id: string
           nome: string
@@ -207,6 +208,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          contacto_meeru_id?: string | null
           created_at?: string
           id?: string
           nome: string
@@ -215,6 +217,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          contacto_meeru_id?: string | null
           created_at?: string
           id?: string
           nome?: string
@@ -222,7 +225,22 @@ export type Database = {
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "familias_contacto_meeru_id_fkey"
+            columns: ["contacto_meeru_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "familias_contacto_meeru_id_fkey"
+            columns: ["contacto_meeru_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       inscricoes: {
         Row: {

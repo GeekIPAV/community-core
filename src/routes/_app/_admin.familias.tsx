@@ -69,13 +69,14 @@ const STATUS_STYLES: Record<FamiliaStatus, string> = {
   "Fora do País": "bg-pink-100 text-pink-700 border-transparent dark:bg-pink-950 dark:text-pink-300",
 };
 
-type Familia = { id: string; nome: string; notas: string | null; status: FamiliaStatus };
+type Familia = { id: string; nome: string; notas: string | null; status: FamiliaStatus; contacto_meeru_id: string | null };
 
 function FamiliasPage() {
   const qc = useQueryClient();
   const [addOpen, setAddOpen] = useState(false);
   const [nome, setNome] = useState("");
   const [notas, setNotas] = useState("");
+  const [contactoMeeru, setContactoMeeru] = useState<string>("__none");
 
   const [editing, setEditing] = useState<Familia | null>(null);
 
@@ -181,7 +182,7 @@ function FamiliasPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("familias")
-        .select("id, nome, notas, status")
+        .select("id, nome, notas, status, contacto_meeru_id")
         .order("nome");
       if (error) throw error;
       return data as Familia[];
@@ -262,6 +263,21 @@ function FamiliasPage() {
       return map;
     },
   });
+
+  const { data: equipa } = useQuery({
+    queryKey: ["familias", "equipa-meeru"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pessoas")
+        .select("id, nome_completo, email, auth_user_id, is_admin, tipo_user_id")
+        .eq("status", "ativo")
+        .not("auth_user_id", "is", null)
+        .order("nome_completo");
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: string; nome_completo: string; email: string | null; auth_user_id: string | null; is_admin: boolean; tipo_user_id: string | null }>;
+    },
+  });
+  const equipaMap = useMemo(() => new Map((equipa ?? []).map((p) => [p.id, p])), [equipa]);
 
   const { data: membros, isLoading: loadingMembros } = useQuery({
     queryKey: ["familias", "membros", membrosFamilia?.id],
@@ -369,7 +385,11 @@ function FamiliasPage() {
 
   const create = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("familias").insert({ nome, notas: notas || null });
+      const { error } = await supabase.from("familias").insert({
+        nome,
+        notas: notas || null,
+        contacto_meeru_id: contactoMeeru === "__none" ? null : contactoMeeru,
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -378,6 +398,7 @@ function FamiliasPage() {
       setAddOpen(false);
       setNome("");
       setNotas("");
+      setContactoMeeru("__none");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -387,7 +408,12 @@ function FamiliasPage() {
       if (!editing) return;
       const { error } = await supabase
         .from("familias")
-        .update({ nome: editing.nome, notas: editing.notas || null, status: editing.status })
+        .update({
+          nome: editing.nome,
+          notas: editing.notas || null,
+          status: editing.status,
+          contacto_meeru_id: editing.contacto_meeru_id,
+        } as any)
         .eq("id", editing.id);
       if (error) throw error;
     },
@@ -466,8 +492,9 @@ function FamiliasPage() {
     { id: "cidade", header: "Cidade", accessorFn: (f) => Array.from(agregados?.get(f.id)?.cidades ?? []).sort().join(", "), cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Cidade" } satisfies ColumnFilterMeta },
     { id: "religiao", header: "Religião", accessorFn: (f) => Array.from(agregados?.get(f.id)?.religioes ?? []).sort().join(", "), cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Religião" } satisfies ColumnFilterMeta },
     { id: "inscricoes", header: "Inscrições", accessorFn: (f) => Array.from(agregados?.get(f.id)?.inscricoes ?? []).sort().join(", "), cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Inscrições" } satisfies ColumnFilterMeta },
+    { id: "contacto_meeru", header: "Contacto MEERU", accessorFn: (f) => (f.contacto_meeru_id ? (equipaMap.get(f.contacto_meeru_id)?.nome_completo ?? "—") : ""), cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Contacto MEERU" } satisfies ColumnFilterMeta },
     { id: "notas", header: "Notas", accessorKey: "notas", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Notas" } satisfies ColumnFilterMeta },
-  ], [contagens, agregados]);
+  ], [contagens, agregados, equipaMap]);
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -680,6 +707,18 @@ function FamiliasPage() {
                 <div className="space-y-2">
                   <Label htmlFor="notas">Notas</Label>
                   <Textarea id="notas" value={notas} onChange={(e) => setNotas(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Pessoa de Contacto (Equipa MEERU)</Label>
+                  <Select value={contactoMeeru} onValueChange={setContactoMeeru}>
+                    <SelectTrigger><SelectValue placeholder="Sem contacto" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">Sem contacto</SelectItem>
+                      {(equipa ?? []).map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.nome_completo}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <DialogFooter>
@@ -945,6 +984,21 @@ function FamiliasPage() {
                   <div className="space-y-2">
                     <Label>Notas</Label>
                     <Textarea value={editing.notas ?? ""} onChange={(e) => setEditing({ ...editing, notas: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Pessoa de Contacto (Equipa MEERU)</Label>
+                    <Select
+                      value={editing.contacto_meeru_id ?? "__none"}
+                      onValueChange={(v) => setEditing({ ...editing, contacto_meeru_id: v === "__none" ? null : v })}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Sem contacto" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none">Sem contacto</SelectItem>
+                        {(equipa ?? []).map((p) => (
+                          <SelectItem key={p.id} value={p.id}>{p.nome_completo}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <DialogFooter>
                     <Button onClick={() => update.mutate()} disabled={!editing.nome.trim() || update.isPending}>
