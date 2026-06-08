@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SavedViews } from "@/components/saved-views";
 import {
   Dialog,
   DialogContent,
@@ -148,7 +148,6 @@ function ParticipantesPage() {
   const [deleteOne, setDeleteOne] = useState<Pessoa | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [inlineEdit, setInlineEdit] = useState(false);
-  const [tab, setTab] = useState<"todos" | "voluntarios" | "membros">("todos");
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["pessoas"],
@@ -196,21 +195,8 @@ function ParticipantesPage() {
     id ? familias?.find((f) => f.id === id)?.nome ?? "—" : "—";
 
   const debouncedQ = useDebounce(q, 300);
-  const tabFiltered = useMemo(() => {
-    if (!data) return [];
-    if (tab === "todos") return data;
-    const tipoNm = (id: string | null) =>
-      id ? (tipos?.find((t) => t.id === id)?.nome ?? "").toLowerCase() : "";
-    return data.filter((p) => {
-      const n = tipoNm(p.tipo_user_id);
-      if (tab === "voluntarios") return n.includes("volunt");
-      if (tab === "membros") return n.includes("membro");
-      return true;
-    });
-  }, [data, tab, tipos]);
-
   const searchFiltered = useMemo(() => {
-    if (!tabFiltered) return [];
+    const tabFiltered = data ?? [];
     const s = debouncedQ.trim().toLowerCase();
     if (!s) return tabFiltered;
     const famName = (id: string | null) =>
@@ -229,7 +215,7 @@ function ParticipantesPage() {
         .filter(Boolean)
         .some((v: any) => String(v).toLowerCase().includes(s)),
     );
-  }, [tabFiltered, debouncedQ, familias, tipos, projetos]);
+  }, [data, debouncedQ, familias, tipos, projetos]);
 
   const tableColumns = useMemo<ColumnDef<Pessoa>[]>(() => {
     const save = (id: string, field: keyof Pessoa) => async (v: any) => {
@@ -598,13 +584,12 @@ function ParticipantesPage() {
       )}
       {error && <p className="text-sm text-destructive">{(error as Error).message}</p>}
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
-        <TabsList>
-          <TabsTrigger value="todos">Participantes</TabsTrigger>
-          <TabsTrigger value="voluntarios">Voluntários</TabsTrigger>
-          <TabsTrigger value="membros">Membros</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <SavedViews
+        storageKey="views:participantes"
+        table={table}
+        search={q}
+        onSearchChange={setQ}
+      />
 
       {!isLoading && !error && (
         <div className="rounded-md border">

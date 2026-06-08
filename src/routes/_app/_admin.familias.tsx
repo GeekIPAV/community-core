@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SavedViews } from "@/components/saved-views";
 import { toast } from "sonner";
 import { LayoutGrid, List, Pencil, Plus, Search, Trash2, Upload, UserMinus, Users } from "lucide-react";
 import { formatDateBR } from "@/lib/utils";
@@ -90,7 +91,6 @@ function FamiliasPage() {
   const [view, setView] = useState<"tabela" | "galeria">("tabela");
   const [globalFilter, setGlobalFilter] = useState("");
   const [groupBy, setGroupBy] = useState<"none" | "status" | "projeto" | "cidade" | "religiao">("none");
-  const [statusTab, setStatusTab] = useState<"todas" | "fora" | "espera" | "ativas">("todas");
   const [addAcaoOpen, setAddAcaoOpen] = useState(false);
   const [novaAcao, setNovaAcao] = useState<{ pessoa_id: string; acao_id: string }>({ pessoa_id: "", acao_id: "" });
   const [detailTab, setDetailTab] = useState<"dados" | "membros" | "acoes" | "atividades">("membros");
@@ -453,14 +453,7 @@ function FamiliasPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const allRows = data ?? [];
-  const rows = useMemo(() => {
-    if (statusTab === "todas") return allRows;
-    if (statusTab === "fora") return allRows.filter((f) => f.status === "Fora do País");
-    if (statusTab === "espera") return allRows.filter((f) => f.status === "Em espera");
-    if (statusTab === "ativas") return allRows.filter((f) => f.status === "Concluído" || f.status === "No programa");
-    return allRows;
-  }, [allRows, statusTab]);
+  const rows = data ?? [];
 
   const columns = useMemo<ColumnDef<Familia>[]>(() => [
     { id: "nome", header: "Nome", accessorKey: "nome", cell: ({ getValue }) => <span className="font-medium">{getValue() as string}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nome" } satisfies ColumnFilterMeta },
@@ -699,14 +692,7 @@ function FamiliasPage() {
         </div>
       </div>
 
-      <Tabs value={statusTab} onValueChange={(v) => setStatusTab(v as typeof statusTab)}>
-        <TabsList>
-          <TabsTrigger value="todas">Famílias</TabsTrigger>
-          <TabsTrigger value="fora">Fora do País</TabsTrigger>
-          <TabsTrigger value="espera">Em espera</TabsTrigger>
-          <TabsTrigger value="ativas">Concluído / No programa</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <SavedViews storageKey="views:familias" table={table} />
 
       {isLoading ? (
         <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
