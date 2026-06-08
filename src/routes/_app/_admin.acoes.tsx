@@ -256,6 +256,142 @@ function validateAcaoForm(form: AcaoForm): boolean {
 
 const DEFAULT_STATUSES = ["ativa", "cancelada", "concluida"];
 
+type LocalizacaoLite = { id: string; nome: string; link_mapa: string | null };
+
+function useLocalizacoes() {
+  return useQuery({
+    queryKey: ["localizacoes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("localizacoes")
+        .select("id, nome, link_mapa")
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as LocalizacaoLite[];
+    },
+  });
+}
+
+async function upsertLocalizacao(nome: string, linkMapa: string | null) {
+  const nomeTrim = nome.trim();
+  if (!nomeTrim) return;
+  const { data: existing } = await supabase
+    .from("localizacoes")
+    .select("id, link_mapa")
+    .ilike("nome", nomeTrim)
+    .limit(1);
+  if (existing && existing.length > 0) {
+    // Preenche o link do mapa se ainda não tiver
+    if (linkMapa && !existing[0].link_mapa) {
+      await supabase
+        .from("localizacoes")
+        .update({ link_mapa: linkMapa })
+        .eq("id", existing[0].id);
+    }
+    return;
+  }
+  await supabase.from("localizacoes").insert({ nome: nomeTrim, link_mapa: linkMapa });
+}
+
+function LocalCombobox({
+  value,
+  onChange,
+  onPickExisting,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onPickExisting?: (loc: LocalizacaoLite) => void;
+}) {
+  const { data: locais } = useLocalizacoes();
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return locais ?? [];
+    return (locais ?? []).filter((l) => l.nome.toLowerCase().includes(q));
+  }, [locais, query]);
+
+  const exactMatch = (locais ?? []).some(
+    (l) => l.nome.toLowerCase() === query.trim().toLowerCase(),
+  );
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Input
+          value={value}
+          onChange={(e) => {
+            onChange(e.target.value);
+            setQuery(e.target.value);
+            if (!open) setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          placeholder="Procura ou escreve um novo local"
+        />
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[--radix-popover-trigger-width] p-0"
+        align="start"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder="Procurar localização…"
+            value={query}
+            onValueChange={(v) => {
+              setQuery(v);
+              onChange(v);
+            }}
+          />
+          <CommandList>
+            <CommandEmpty>Sem localizações guardadas.</CommandEmpty>
+            {filtered.length > 0 && (
+              <CommandGroup heading="Localizações da Meeru">
+                {filtered.map((l) => (
+                  <CommandItem
+                    key={l.id}
+                    value={l.nome}
+                    onSelect={() => {
+                      onChange(l.nome);
+                      onPickExisting?.(l);
+                      setQuery(l.nome);
+                      setOpen(false);
+                    }}
+                  >
+                    <div className="flex flex-col">
+                      <span>{l.nome}</span>
+                      {l.link_mapa && (
+                        <span className="text-xs text-muted-foreground truncate max-w-[280px]">
+                          {l.link_mapa}
+                        </span>
+                      )}
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+            {query.trim() && !exactMatch && (
+              <CommandGroup heading="Novo">
+                <CommandItem
+                  value={`__novo_${query}`}
+                  onSelect={() => {
+                    onChange(query.trim());
+                    setOpen(false);
+                  }}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Criar “{query.trim()}” — será guardado ao gravar
+                </CommandItem>
+              </CommandGroup>
+            )}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function StatusInput({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) {
   const all = Array.from(new Set([...DEFAULT_STATUSES, ...options].filter(Boolean)));
   return (
