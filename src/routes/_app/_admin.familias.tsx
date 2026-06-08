@@ -425,6 +425,23 @@ function FamiliasPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const deleteFamilia = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("familias").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Família eliminada");
+      invalidate();
+      qc.invalidateQueries({ queryKey: ["familias", "contagens"] });
+      qc.invalidateQueries({ queryKey: ["familias", "agregados"] });
+      qc.invalidateQueries({ queryKey: ["pessoas"] });
+      setMembrosFamilia(null);
+      setEditing(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const bulkCreate = useMutation({
     mutationFn: async () => {
       const rows = bulkText
