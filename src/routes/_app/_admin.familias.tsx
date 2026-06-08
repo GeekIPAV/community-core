@@ -285,7 +285,7 @@ function FamiliasPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, email, telefone, data_nascimento, status, genero, cidade_residencia, nacionalidade, religiao, nif, projeto_ids")
+        .select("id, nome_completo, email, telefone, data_nascimento, status, genero, cidade_residencia, nacionalidade, religiao, nif, projeto_ids, is_voluntario")
         .eq("familia_id", membrosFamilia!.id)
         .order("nome_completo");
       if (error) throw error;
@@ -293,7 +293,7 @@ function FamiliasPage() {
         id: string; nome_completo: string; email: string | null; telefone: string | null;
         data_nascimento: string | null; status: string; genero: string | null;
         cidade_residencia: string | null; nacionalidade: string | null; religiao: string | null;
-        nif: string | null; projeto_ids: string[] | null;
+        nif: string | null; projeto_ids: string[] | null; is_voluntario: boolean | null;
       }>;
     },
   });
