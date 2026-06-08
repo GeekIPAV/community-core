@@ -282,6 +282,21 @@ function ParticipantesPage() {
       { id: "profissao", header: "Profissão", accessorKey: "profissao", cell: text("profissao"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Profissão" } satisfies ColumnFilterMeta },
       { id: "familia_id", header: "Família", accessorFn: (p) => p.familia_id ? (familias?.find((f) => f.id === p.familia_id)?.nome ?? "") : "", cell: sel("familia_id", (familias ?? []).map((f) => ({ value: f.id, label: f.nome })), "sem família"), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (familias ?? []).map((f) => f.nome), label: "Família" } satisfies ColumnFilterMeta },
       {
+        id: "status_familia",
+        header: "Status Família",
+        accessorFn: (p) => (p.familia_id ? (familias?.find((f) => f.id === p.familia_id)?.status ?? "") : ""),
+        cell: ({ getValue }) => {
+          const v = (getValue() as string) || "";
+          return v ? <Badge variant="outline">{v}</Badge> : <span className="text-muted-foreground">—</span>;
+        },
+        filterFn: advancedFilterFn as any,
+        meta: {
+          filterVariant: "select",
+          filterOptions: Array.from(new Set((familias ?? []).map((f) => f.status ?? "").filter(Boolean))) as string[],
+          label: "Status Família",
+        } satisfies ColumnFilterMeta,
+      },
+      {
         id: "projeto_ids",
         header: "Projetos",
         accessorFn: (p) => (p.projeto_ids ?? []).map((id) => projetos?.find((x) => x.id === id)?.nome).filter(Boolean).join(", "),
@@ -582,6 +597,14 @@ function ParticipantesPage() {
         </div>
       )}
       {error && <p className="text-sm text-destructive">{(error as Error).message}</p>}
+
+      <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
+        <TabsList>
+          <TabsTrigger value="todos">Participantes</TabsTrigger>
+          <TabsTrigger value="voluntarios">Voluntários</TabsTrigger>
+          <TabsTrigger value="membros">Membros</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {!isLoading && !error && (
         <div className="rounded-md border">
