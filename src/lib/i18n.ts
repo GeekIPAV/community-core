@@ -14,8 +14,8 @@ const pt = {
   },
   nav: {
     community: "Comunidade",
-    participantsMgmt: "Gestão de Participantes",
-    actionsMgmt: "Gestão de Ações",
+    participantsMgmt: "Pessoas",
+    actionsMgmt: "Gestão",
     admin: "Administração",
     publicPortal: "Portal Público",
     results: "Resultados",
