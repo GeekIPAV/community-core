@@ -1858,7 +1858,24 @@ function AcoesPageInner() {
                 <ImageUpload value={editing.imagem_url} onChange={(url) => setEditing({ ...editing, imagem_url: url ?? "" })} />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2"><Label>Local</Label><Input value={editing.local} onChange={(e) => setEditing({ ...editing, local: e.target.value })} /></div>
+                <div className="space-y-2">
+                  <Label>Local</Label>
+                  <LocalCombobox
+                    value={editing.local}
+                    onChange={(v) => setEditing({ ...editing, local: v })}
+                    onPickExisting={(loc) =>
+                      setEditing((e) =>
+                        e
+                          ? {
+                              ...e,
+                              local: loc.nome,
+                              mapa_url: e.mapa_url || loc.link_mapa || "",
+                            }
+                          : e,
+                      )
+                    }
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label>Estado</Label>
                   <StatusInput
