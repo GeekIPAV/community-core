@@ -581,6 +581,18 @@ function FamiliasPage() {
     setDetailTab(tab);
   };
 
+  const goPrevFamilia = () => {
+    if (!membrosFamilia || !data) return;
+    const idx = data.findIndex((f) => f.id === membrosFamilia.id);
+    if (idx > 0) openDetail(data[idx - 1], detailTab);
+  };
+
+  const goNextFamilia = () => {
+    if (!membrosFamilia || !data) return;
+    const idx = data.findIndex((f) => f.id === membrosFamilia.id);
+    if (idx >= 0 && idx < data.length - 1) openDetail(data[idx + 1], detailTab);
+  };
+
   const renderGalleryCard = (row: typeof tableRows[number]) => {
     const f = row.original;
     const agg = agregados?.get(f.id);
