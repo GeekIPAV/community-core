@@ -90,6 +90,7 @@ function FamiliasPage() {
   const [view, setView] = useState<"tabela" | "galeria">("tabela");
   const [globalFilter, setGlobalFilter] = useState("");
   const [groupBy, setGroupBy] = useState<"none" | "status" | "projeto" | "cidade" | "religiao">("none");
+  const [statusTab, setStatusTab] = useState<"todas" | "fora" | "espera" | "ativas">("todas");
   const [addAcaoOpen, setAddAcaoOpen] = useState(false);
   const [novaAcao, setNovaAcao] = useState<{ pessoa_id: string; acao_id: string }>({ pessoa_id: "", acao_id: "" });
   const [detailTab, setDetailTab] = useState<"dados" | "membros" | "acoes" | "atividades">("membros");
@@ -452,7 +453,14 @@ function FamiliasPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const rows = data ?? [];
+  const allRows = data ?? [];
+  const rows = useMemo(() => {
+    if (statusTab === "todas") return allRows;
+    if (statusTab === "fora") return allRows.filter((f) => f.status === "Fora do País");
+    if (statusTab === "espera") return allRows.filter((f) => f.status === "Em espera");
+    if (statusTab === "ativas") return allRows.filter((f) => f.status === "Concluído" || f.status === "No programa");
+    return allRows;
+  }, [allRows, statusTab]);
 
   const columns = useMemo<ColumnDef<Familia>[]>(() => [
     { id: "nome", header: "Nome", accessorKey: "nome", cell: ({ getValue }) => <span className="font-medium">{getValue() as string}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nome" } satisfies ColumnFilterMeta },
@@ -690,6 +698,15 @@ function FamiliasPage() {
           </Dialog>
         </div>
       </div>
+
+      <Tabs value={statusTab} onValueChange={(v) => setStatusTab(v as typeof statusTab)}>
+        <TabsList>
+          <TabsTrigger value="todas">Famílias</TabsTrigger>
+          <TabsTrigger value="fora">Fora do País</TabsTrigger>
+          <TabsTrigger value="espera">Em espera</TabsTrigger>
+          <TabsTrigger value="ativas">Concluído / No programa</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {isLoading ? (
         <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
@@ -1383,24 +1400,42 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
             {!isLoading && (!rows || rows.length === 0) && (
               <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sem atividades registadas</TableCell></TableRow>
             )}
-            {rows?.map((r) => (
-              <TableRow key={r.id}>
-                <TableCell className="text-muted-foreground whitespace-nowrap">{r.data ? formatDateBR(r.data) : "—"}</TableCell>
-                <TableCell className="font-medium">{r.atividade?.nome ?? "—"}</TableCell>
-                <TableCell>{r.atividade?.categoria ? <Badge variant="secondary">{r.atividade.categoria}</Badge> : <span className="text-xs text-muted-foreground">—</span>}</TableCell>
-                <TableCell className="text-muted-foreground whitespace-pre-wrap">{r.descricao || "—"}</TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    title="Remover"
-                    onClick={() => { if (confirm("Remover esta atividade?")) remove.mutate(r.id); }}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+            {(() => {
+              if (!rows) return null;
+              const groups = new Map<string, typeof rows>();
+              for (const r of rows) {
+                const k = r.atividade?.categoria || "(Sem categoria)";
+                const list = groups.get(k) ?? [];
+                list.push(r);
+                groups.set(k, list);
+              }
+              const sorted = Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+              return sorted.flatMap(([cat, items]) => [
+                <TableRow key={`grp-${cat}`} className="bg-muted/50 hover:bg-muted/50">
+                  <TableCell colSpan={5} className="font-semibold">
+                    {cat} <span className="text-muted-foreground font-normal">({items.length})</span>
+                  </TableCell>
+                </TableRow>,
+                ...items.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="text-muted-foreground whitespace-nowrap">{r.data ? formatDateBR(r.data) : "—"}</TableCell>
+                    <TableCell className="font-medium">{r.atividade?.nome ?? "—"}</TableCell>
+                    <TableCell>{r.atividade?.categoria ? <Badge variant="secondary">{r.atividade.categoria}</Badge> : <span className="text-xs text-muted-foreground">—</span>}</TableCell>
+                    <TableCell className="text-muted-foreground whitespace-pre-wrap">{r.descricao || "—"}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        title="Remover"
+                        onClick={() => { if (confirm("Remover esta atividade?")) remove.mutate(r.id); }}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                )),
+              ]);
+            })()}
           </TableBody>
         </Table>
       </div>

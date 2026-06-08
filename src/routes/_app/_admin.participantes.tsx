@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -147,6 +148,7 @@ function ParticipantesPage() {
   const [deleteOne, setDeleteOne] = useState<Pessoa | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [inlineEdit, setInlineEdit] = useState(false);
+  const [tab, setTab] = useState<"todos" | "voluntarios" | "membros">("todos");
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["pessoas"],
@@ -163,9 +165,9 @@ function ParticipantesPage() {
   const { data: familias } = useQuery({
     queryKey: ["familias_lookup"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("familias").select("id, nome").order("nome");
+      const { data, error } = await supabase.from("familias").select("id, nome, status").order("nome");
       if (error) throw error;
-      return data as { id: string; nome: string }[];
+      return data as { id: string; nome: string; status: string | null }[];
     },
   });
 
@@ -194,17 +196,30 @@ function ParticipantesPage() {
     id ? familias?.find((f) => f.id === id)?.nome ?? "—" : "—";
 
   const debouncedQ = useDebounce(q, 300);
-  const searchFiltered = useMemo(() => {
+  const tabFiltered = useMemo(() => {
     if (!data) return [];
+    if (tab === "todos") return data;
+    const tipoNm = (id: string | null) =>
+      id ? (tipos?.find((t) => t.id === id)?.nome ?? "").toLowerCase() : "";
+    return data.filter((p) => {
+      const n = tipoNm(p.tipo_user_id);
+      if (tab === "voluntarios") return n.includes("volunt");
+      if (tab === "membros") return n.includes("membro");
+      return true;
+    });
+  }, [data, tab, tipos]);
+
+  const searchFiltered = useMemo(() => {
+    if (!tabFiltered) return [];
     const s = debouncedQ.trim().toLowerCase();
-    if (!s) return data;
+    if (!s) return tabFiltered;
     const famName = (id: string | null) =>
       id ? familias?.find((f) => f.id === id)?.nome ?? "" : "";
     const tipoNm = (id: string | null) =>
       id ? tipos?.find((t) => t.id === id)?.nome ?? "" : "";
     const projNames = (ids: string[]) =>
       (ids ?? []).map((id) => projetos?.find((x) => x.id === id)?.nome ?? "").join(" ");
-    return data.filter((p) =>
+    return tabFiltered.filter((p) =>
       [
         p.nome_completo, p.email, p.telefone, p.nif, p.cartao_cidadao,
         p.morada, p.data_nascimento, p.genero, p.nacionalidade,
@@ -214,7 +229,7 @@ function ParticipantesPage() {
         .filter(Boolean)
         .some((v: any) => String(v).toLowerCase().includes(s)),
     );
-  }, [data, debouncedQ, familias, tipos, projetos]);
+  }, [tabFiltered, debouncedQ, familias, tipos, projetos]);
 
   const tableColumns = useMemo<ColumnDef<Pessoa>[]>(() => {
     const save = (id: string, field: keyof Pessoa) => async (v: any) => {
@@ -266,6 +281,21 @@ function ParticipantesPage() {
       { id: "religiao", header: "Religião", accessorKey: "religiao", cell: text("religiao"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Religião" } satisfies ColumnFilterMeta },
       { id: "profissao", header: "Profissão", accessorKey: "profissao", cell: text("profissao"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Profissão" } satisfies ColumnFilterMeta },
       { id: "familia_id", header: "Família", accessorFn: (p) => p.familia_id ? (familias?.find((f) => f.id === p.familia_id)?.nome ?? "") : "", cell: sel("familia_id", (familias ?? []).map((f) => ({ value: f.id, label: f.nome })), "sem família"), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (familias ?? []).map((f) => f.nome), label: "Família" } satisfies ColumnFilterMeta },
+      {
+        id: "status_familia",
+        header: "Status Família",
+        accessorFn: (p) => (p.familia_id ? (familias?.find((f) => f.id === p.familia_id)?.status ?? "") : ""),
+        cell: ({ getValue }) => {
+          const v = (getValue() as string) || "";
+          return v ? <Badge variant="outline">{v}</Badge> : <span className="text-muted-foreground">—</span>;
+        },
+        filterFn: advancedFilterFn as any,
+        meta: {
+          filterVariant: "select",
+          filterOptions: Array.from(new Set((familias ?? []).map((f) => f.status ?? "").filter(Boolean))) as string[],
+          label: "Status Família",
+        } satisfies ColumnFilterMeta,
+      },
       {
         id: "projeto_ids",
         header: "Projetos",
@@ -567,6 +597,14 @@ function ParticipantesPage() {
         </div>
       )}
       {error && <p className="text-sm text-destructive">{(error as Error).message}</p>}
+
+      <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
+        <TabsList>
+          <TabsTrigger value="todos">Participantes</TabsTrigger>
+          <TabsTrigger value="voluntarios">Voluntários</TabsTrigger>
+          <TabsTrigger value="membros">Membros</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {!isLoading && !error && (
         <div className="rounded-md border">
