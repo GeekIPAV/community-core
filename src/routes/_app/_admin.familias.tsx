@@ -15,7 +15,7 @@ import { useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SavedViews } from "@/components/saved-views";
 import { toast } from "sonner";
-import { LayoutGrid, List, Pencil, Plus, Search, Trash2, Upload, UserMinus, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, LayoutGrid, List, Pencil, Plus, Search, Trash2, Upload, UserMinus, Users } from "lucide-react";
 import { formatDateBR } from "@/lib/utils";
 import {
   useReactTable,
@@ -575,10 +575,22 @@ function FamiliasPage() {
     setSelected(next);
   };
 
-  const openDetail = (f: Familia, tab: "dados" | "membros" | "acoes" = "membros") => {
+  const openDetail = (f: Familia, tab: "dados" | "membros" | "acoes" | "atividades" = "membros") => {
     setMembrosFamilia(f);
     setEditing({ ...f });
     setDetailTab(tab);
+  };
+
+  const goPrevFamilia = () => {
+    if (!membrosFamilia || !data) return;
+    const idx = data.findIndex((f) => f.id === membrosFamilia.id);
+    if (idx > 0) openDetail(data[idx - 1], detailTab);
+  };
+
+  const goNextFamilia = () => {
+    if (!membrosFamilia || !data) return;
+    const idx = data.findIndex((f) => f.id === membrosFamilia.id);
+    if (idx >= 0 && idx < data.length - 1) openDetail(data[idx + 1], detailTab);
   };
 
   const renderGalleryCard = (row: typeof tableRows[number]) => {
@@ -946,7 +958,29 @@ function FamiliasPage() {
         <DialogContent className="max-w-[min(1200px,95vw)] w-[95vw] sm:w-full p-0 overflow-hidden flex flex-col max-h-[90vh]">
           <div className="p-6 pb-0">
           <DialogHeader>
-            <DialogTitle>{membrosFamilia?.nome}</DialogTitle>
+            <div className="flex items-center justify-between gap-3">
+              <DialogTitle>{membrosFamilia?.nome}</DialogTitle>
+              <div className="flex items-center gap-1">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  title="Família anterior"
+                  onClick={goPrevFamilia}
+                  disabled={!data || data.findIndex((f) => f.id === membrosFamilia?.id) <= 0}
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  title="Família seguinte"
+                  onClick={goNextFamilia}
+                  disabled={!data || data.findIndex((f) => f.id === membrosFamilia?.id) >= data.length - 1}
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
             <DialogDescription>
               {loadingMembros ? "A carregar…" : `${membros?.length ?? 0} membro(s)`}
             </DialogDescription>
