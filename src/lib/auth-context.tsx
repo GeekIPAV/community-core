@@ -21,6 +21,12 @@ type AuthCtx = {
   permissions: string[];
   hasPage: (key: string) => boolean;
   refresh: () => Promise<void>;
+  // Impersonation (admin only)
+  realPessoa: PessoaCtx | null;
+  realIsAdmin: boolean;
+  impersonating: boolean;
+  startImpersonation: (pessoaId: string) => Promise<void>;
+  stopImpersonation: () => void;
 };
 
 const Ctx = createContext<AuthCtx>({
@@ -32,6 +38,11 @@ const Ctx = createContext<AuthCtx>({
   permissions: [],
   hasPage: () => false,
   refresh: async () => {},
+  realPessoa: null,
+  realIsAdmin: false,
+  impersonating: false,
+  startImpersonation: async () => {},
+  stopImpersonation: () => {},
 });
 
 async function loadPessoa(session: Session | null): Promise<PessoaCtx | null> {
@@ -66,20 +77,18 @@ async function loadPessoa(session: Session | null): Promise<PessoaCtx | null> {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [pessoa, setPessoa] = useState<PessoaCtx | null>(null);
+  const [realPessoa, setRealPessoa] = useState<PessoaCtx | null>(null);
+  const [impersonated, setImpersonated] = useState<PessoaCtx | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [tipoNome, setTipoNome] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const hydrate = async (s: Session | null) => {
-    setSession(s);
-    const p = await loadPessoa(s);
-    setPessoa(p);
-    if (p?.tipo_user_id) {
+  const loadTipo = async (tipoUserId: string | null) => {
+    if (tipoUserId) {
       const { data } = await supabase
         .from("tipos_user")
         .select("paginas, nome")
-        .eq("id", p.tipo_user_id)
+        .eq("id", tipoUserId)
         .maybeSingle();
       setPermissions((data?.paginas as string[]) ?? []);
       setTipoNome((data?.nome as string) ?? null);
@@ -87,6 +96,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setPermissions([]);
       setTipoNome(null);
     }
+  };
+
+  const loadPessoaById = async (id: string): Promise<PessoaCtx | null> => {
+    const cols = "id, nome_completo, email, familia_id, is_admin, auth_user_id, tipo_user_id";
+    const { data } = await supabase.from("pessoas").select(cols).eq("id", id).maybeSingle();
+    return (data as PessoaCtx) ?? null;
+  };
+
+  const hydrate = async (s: Session | null) => {
+    setSession(s);
+    const p = await loadPessoa(s);
+    setRealPessoa(p);
+
+    // Check stored impersonation (only honored if real user is admin)
+    let active: PessoaCtx | null = p;
+    if (typeof window !== "undefined" && p?.is_admin) {
+      const impId = window.localStorage.getItem("impersonate_pessoa_id");
+      if (impId && impId !== p.id) {
+        const imp = await loadPessoaById(impId);
+        if (imp) {
+          setImpersonated(imp);
+          active = imp;
+        } else {
+          window.localStorage.removeItem("impersonate_pessoa_id");
+          setImpersonated(null);
+        }
+      } else {
+        setImpersonated(null);
+      }
+    } else {
+      setImpersonated(null);
+    }
+
+    await loadTipo(active?.tipo_user_id ?? null);
     setLoading(false);
   };
 
@@ -106,19 +149,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const pessoa = impersonated ?? realPessoa;
   const isStaff = (tipoNome ?? "").trim().toLowerCase() === "equipa";
+  const effectiveIsAdmin = pessoa?.is_admin === true;
   const value: AuthCtx = {
     loading,
     session,
     pessoa,
-    isAdmin: pessoa?.is_admin === true,
+    isAdmin: effectiveIsAdmin,
     isStaff,
     permissions,
     hasPage: (key: string) =>
-      pessoa?.is_admin === true || (isStaff && key !== "tipos-user") || permissions.includes(key),
+      effectiveIsAdmin || (isStaff && key !== "tipos-user") || permissions.includes(key),
     refresh: async () => {
       const { data } = await supabase.auth.getSession();
       await hydrate(data.session);
+    },
+    realPessoa,
+    realIsAdmin: realPessoa?.is_admin === true,
+    impersonating: !!impersonated,
+    startImpersonation: async (pessoaId: string) => {
+      if (!realPessoa?.is_admin) return;
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("impersonate_pessoa_id", pessoaId);
+      }
+      const imp = await loadPessoaById(pessoaId);
+      setImpersonated(imp);
+      await loadTipo(imp?.tipo_user_id ?? null);
+    },
+    stopImpersonation: () => {
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem("impersonate_pessoa_id");
+      }
+      setImpersonated(null);
+      loadTipo(realPessoa?.tipo_user_id ?? null);
     },
   };
 
