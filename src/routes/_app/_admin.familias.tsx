@@ -264,6 +264,21 @@ function FamiliasPage() {
     },
   });
 
+  const { data: equipa } = useQuery({
+    queryKey: ["familias", "equipa-meeru"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pessoas")
+        .select("id, nome_completo, email, auth_user_id, is_admin, tipo_user_id")
+        .eq("status", "ativo")
+        .not("auth_user_id", "is", null)
+        .order("nome_completo");
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: string; nome_completo: string; email: string | null; auth_user_id: string | null; is_admin: boolean; tipo_user_id: string | null }>;
+    },
+  });
+  const equipaMap = useMemo(() => new Map((equipa ?? []).map((p) => [p.id, p])), [equipa]);
+
   const { data: membros, isLoading: loadingMembros } = useQuery({
     queryKey: ["familias", "membros", membrosFamilia?.id],
     enabled: !!membrosFamilia,
