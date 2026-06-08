@@ -425,6 +425,23 @@ function FamiliasPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const deleteFamilia = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("familias").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Família eliminada");
+      invalidate();
+      qc.invalidateQueries({ queryKey: ["familias", "contagens"] });
+      qc.invalidateQueries({ queryKey: ["familias", "agregados"] });
+      qc.invalidateQueries({ queryKey: ["pessoas"] });
+      setMembrosFamilia(null);
+      setEditing(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const bulkCreate = useMutation({
     mutationFn: async () => {
       const rows = bulkText
@@ -1034,7 +1051,19 @@ function FamiliasPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <DialogFooter>
+                  <DialogFooter className="flex justify-between gap-2">
+                    <Button
+                      variant="destructive"
+                      onClick={() => {
+                        if (confirm(`Eliminar a família "${editing.nome}"? Os membros ficarão sem família e as atividades associadas serão removidas. Esta ação não pode ser desfeita.`)) {
+                          deleteFamilia.mutate(editing.id);
+                        }
+                      }}
+                      disabled={deleteFamilia.isPending}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      {deleteFamilia.isPending ? "A eliminar…" : "Eliminar família"}
+                    </Button>
                     <Button onClick={() => update.mutate()} disabled={!editing.nome.trim() || update.isPending}>
                       {update.isPending ? "A guardar…" : "Guardar"}
                     </Button>
