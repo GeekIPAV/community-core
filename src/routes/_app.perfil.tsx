@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_app/perfil")({
   component: PerfilPage,
@@ -22,6 +23,20 @@ function PerfilPage() {
         .eq("familia_id", pessoa!.familia_id!);
       if (error) throw error;
       return data;
+    },
+  });
+
+  const { data: familiasResponsavel } = useQuery({
+    queryKey: ["perfil", "familias-responsavel", pessoa?.id],
+    enabled: !!pessoa?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("familias")
+        .select("id, nome, status, notas")
+        .eq("contacto_meeru_id", pessoa!.id)
+        .order("nome");
+      if (error) throw error;
+      return data as Array<{ id: string; nome: string; status: string; notas: string | null }>;
     },
   });
 
@@ -61,6 +76,28 @@ function PerfilPage() {
           )}
         </CardContent>
       </Card>
+
+      {familiasResponsavel && familiasResponsavel.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Famílias pelas quais és responsável</CardTitle>
+            <CardDescription>És a pessoa de contacto da Equipa MEERU para estas famílias.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="divide-y">
+              {familiasResponsavel.map((f) => (
+                <li key={f.id} className="py-2 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <Link to="/familias" className="font-medium hover:underline">{f.nome}</Link>
+                    {f.notas && <div className="text-xs text-muted-foreground line-clamp-1">{f.notas}</div>}
+                  </div>
+                  <Badge variant="outline">{f.status}</Badge>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
