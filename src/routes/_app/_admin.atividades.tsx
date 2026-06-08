@@ -144,6 +144,19 @@ function AtividadesPage() {
       )
     : linhas;
 
+  const grupos = useMemo(() => {
+    const map = new Map<string, Linha[]>();
+    for (const l of linhasFiltradas) {
+      const cat = l.atividade.categoria?.trim() || "Sem categoria";
+      const arr = map.get(cat) ?? [];
+      arr.push(l);
+      map.set(cat, arr);
+    }
+    const entries = Array.from(map.entries());
+    entries.sort((a, b) => a[0].localeCompare(b[0]));
+    return entries;
+  }, [linhasFiltradas]);
+
   const totalRegistos = registos?.length ?? 0;
   const totalAtividades = atividades?.length ?? 0;
   const totalUsadas = linhas.filter((l) => l.total > 0).length;
@@ -191,63 +204,67 @@ function AtividadesPage() {
       {loading ? (
         <div className="space-y-2">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
       ) : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-8" />
-                <TableHead>Atividade</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead className="text-right">Vezes</TableHead>
-                <TableHead className="text-right">Famílias</TableHead>
-                <TableHead className="w-24 text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {linhasFiltradas.map((l) => {
-                const open = !!expanded[l.atividade.id];
-                return (
-                  <Fragment key={l.atividade.id}>
-                    <TableRow className={l.total > 0 ? "cursor-pointer" : ""} onClick={() => l.total > 0 && setExpanded((s) => ({ ...s, [l.atividade.id]: !s[l.atividade.id] }))}>
-                      <TableCell>
-                        {l.total > 0 ? (open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />) : null}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {l.atividade.nome}
-                        {!l.atividade.ativo && <Badge variant="outline" className="ml-2">Inativa</Badge>}
-                      </TableCell>
-                      <TableCell>{l.atividade.categoria ? <Badge variant="secondary">{l.atividade.categoria}</Badge> : <span className="text-muted-foreground">—</span>}</TableCell>
-                      <TableCell className="text-right tabular-nums">{l.total}</TableCell>
-                      <TableCell className="text-right tabular-nums">{l.porFamilia.length}</TableCell>
-                      <TableCell className="text-right">
-                        <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); setEditing(l.atividade); }}><Pencil className="h-4 w-4" /></Button>
-                        <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); setDeleteId(l.atividade.id); }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                      </TableCell>
-                    </TableRow>
-                    {open && l.porFamilia.length > 0 && (
-                      <TableRow className="bg-muted/30">
-                        <TableCell />
-                        <TableCell colSpan={5}>
-                          <div className="flex flex-wrap gap-2 py-1">
-                            {l.porFamilia.map((f) => (
-                              <div key={f.familia_id} className="rounded-md border bg-background px-2 py-1 text-xs flex items-center gap-2">
-                                <span className="font-medium">{f.familia_nome}</span>
-                                <Badge variant="secondary" className="h-5">{f.count}×</Badge>
-                                {f.ultima && <span className="text-muted-foreground">última: {f.ultima}</span>}
+        <div className="space-y-4">
+          {grupos.map(([categoria, items]) => {
+            const catOpen = expanded[categoria] !== false;
+            return (
+              <Collapsible key={categoria} open={catOpen} onOpenChange={(o) => setExpanded((s) => ({ ...s, [categoria]: o }))}>
+                <div className="rounded-lg border bg-card">
+                  <CollapsibleTrigger asChild>
+                    <button className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-muted/50 rounded-t-lg">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-sm">{categoria}</Badge>
+                        <span className="text-sm text-muted-foreground">{items.length} atividade{items.length !== 1 ? "s" : ""}</span>
+                      </div>
+                      <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${catOpen ? "" : "-rotate-90"}`} />
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="px-4 pb-4 space-y-2">
+                      {items.map((l) => {
+                        const open = !!expanded[l.atividade.id];
+                        return (
+                          <div key={l.atividade.id} className="rounded-md border bg-background">
+                            <div className={`flex items-center justify-between gap-2 px-3 py-2 ${l.total > 0 ? "cursor-pointer" : ""}`} onClick={() => l.total > 0 && setExpanded((s) => ({ ...s, [l.atividade.id]: !s[l.atividade.id] }))}>
+                              <div className="flex items-center gap-2 min-w-0">
+                                {l.total > 0 ? (open ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />) : <span className="w-4 shrink-0" />}
+                                <span className="font-medium truncate">{l.atividade.nome}</span>
+                                {!l.atividade.ativo && <Badge variant="outline" className="shrink-0">Inativa</Badge>}
                               </div>
-                            ))}
+                              <div className="flex items-center gap-4 shrink-0">
+                                <span className="text-sm text-muted-foreground tabular-nums">{l.total} vez{l.total !== 1 ? "es" : ""}</span>
+                                <span className="text-sm text-muted-foreground tabular-nums">{l.porFamilia.length} família{l.porFamilia.length !== 1 ? "s" : ""}</span>
+                                <div className="flex items-center">
+                                  <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); setEditing(l.atividade); }}><Pencil className="h-4 w-4" /></Button>
+                                  <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); setDeleteId(l.atividade.id); }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                </div>
+                              </div>
+                            </div>
+                            {open && l.porFamilia.length > 0 && (
+                              <div className="border-t bg-muted/30 px-3 py-2">
+                                <div className="flex flex-wrap gap-2">
+                                  {l.porFamilia.map((f) => (
+                                    <div key={f.familia_id} className="rounded-md border bg-background px-2 py-1 text-xs flex items-center gap-2">
+                                      <span className="font-medium">{f.familia_nome}</span>
+                                      <Badge variant="secondary" className="h-5">{f.count}×</Badge>
+                                      {f.ultima && <span className="text-muted-foreground">última: {f.ultima}</span>}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </Fragment>
-                );
-              })}
-              {linhasFiltradas.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">Sem resultados.</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
+                        );
+                      })}
+                    </div>
+                  </CollapsibleContent>
+                </div>
+              </Collapsible>
+            );
+          })}
+          {grupos.length === 0 && (
+            <div className="text-center text-muted-foreground py-6">Sem resultados.</div>
+          )}
         </div>
       )}
 
