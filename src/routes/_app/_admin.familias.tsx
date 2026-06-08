@@ -575,7 +575,7 @@ function FamiliasPage() {
     setSelected(next);
   };
 
-  const openDetail = (f: Familia, tab: "dados" | "membros" | "acoes" = "membros") => {
+  const openDetail = (f: Familia, tab: "dados" | "membros" | "acoes" | "atividades" = "membros") => {
     setMembrosFamilia(f);
     setEditing({ ...f });
     setDetailTab(tab);
