@@ -173,52 +173,56 @@ export function SavedViews<T>({
         Todos
       </button>
       {views.map((v) => (
-        <div
+        <button
           key={v.id}
+          type="button"
+          onClick={() => activateView(v)}
           className={cn(
-            "inline-flex items-center rounded-md border h-8",
+            "h-8 rounded-md border px-3 text-sm",
             activeId === v.id
               ? "bg-background shadow-sm border-foreground/20"
               : "bg-muted/40 text-muted-foreground hover:bg-muted",
           )}
         >
-          <button
-            type="button"
-            onClick={() => activateView(v)}
-            className="px-3 text-sm"
+          {v.name}
+        </button>
+      ))}
+      {activeId !== ALL_KEY && (
+        <>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={updateActive}
+            title="Atualizar vista com filtros atuais"
           >
-            {v.name}
-          </button>
-          <button
-            type="button"
+            <Check className="h-4 w-4 mr-1" /> Atualizar
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => {
+              const v = views.find((x) => x.id === activeId);
+              if (!v) return;
               setRenaming(v);
               setNewName(v.name);
             }}
-            className="px-1 text-muted-foreground hover:text-foreground"
-            title="Renomear"
+            title="Renomear vista"
           >
-            <Pencil className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => remove(v)}
-            className="px-1.5 text-muted-foreground hover:text-destructive"
-            title="Apagar"
+            <Pencil className="h-4 w-4 mr-1" /> Renomear
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              const v = views.find((x) => x.id === activeId);
+              if (v) remove(v);
+            }}
+            title="Apagar vista"
+            className="text-destructive hover:text-destructive"
           >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      ))}
-      {activeId !== ALL_KEY && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={updateActive}
-          title="Atualizar vista com filtros atuais"
-        >
-          <Check className="h-4 w-4 mr-1" /> Atualizar
-        </Button>
+            <Trash2 className="h-4 w-4 mr-1" /> Apagar
+          </Button>
+        </>
       )}
       <Button
         variant="outline"
