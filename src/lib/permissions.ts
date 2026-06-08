@@ -6,6 +6,7 @@ export type PageKey =
   | "duplicados"
   | "projetos"
   | "bolsas-transporte"
+  | "localizacoes"
   | "tipos-user";
 
 export const AVAILABLE_PAGES: { key: PageKey; label: string; path: string }[] = [
@@ -16,6 +17,7 @@ export const AVAILABLE_PAGES: { key: PageKey; label: string; path: string }[] = 
   { key: "duplicados", label: "Duplicados", path: "/duplicados" },
   { key: "projetos", label: "Projetos", path: "/projetos" },
   { key: "bolsas-transporte", label: "Bolsa de Transporte", path: "/bolsas-transporte" },
+  { key: "localizacoes", label: "Localizações", path: "/localizacoes" },
   { key: "tipos-user", label: "Tipos de Utilizador (admin)", path: "/tipos-user" },
 ];
 
