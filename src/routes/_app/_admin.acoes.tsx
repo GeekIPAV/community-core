@@ -1673,7 +1673,20 @@ function AcoesPageInner() {
                 <ImageUpload value={form.imagem_url} onChange={(url) => setForm({ ...form, imagem_url: url ?? "" })} />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2"><Label>Local</Label><Input value={form.local} onChange={(e) => setForm({ ...form, local: e.target.value })} /></div>
+                <div className="space-y-2">
+                  <Label>Local</Label>
+                  <LocalCombobox
+                    value={form.local}
+                    onChange={(v) => setForm({ ...form, local: v })}
+                    onPickExisting={(loc) =>
+                      setForm((f) => ({
+                        ...f,
+                        local: loc.nome,
+                        mapa_url: f.mapa_url || loc.link_mapa || "",
+                      }))
+                    }
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label>Estado</Label>
                   <StatusInput
