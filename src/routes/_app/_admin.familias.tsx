@@ -1400,24 +1400,42 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
             {!isLoading && (!rows || rows.length === 0) && (
               <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sem atividades registadas</TableCell></TableRow>
             )}
-            {rows?.map((r) => (
-              <TableRow key={r.id}>
-                <TableCell className="text-muted-foreground whitespace-nowrap">{r.data ? formatDateBR(r.data) : "—"}</TableCell>
-                <TableCell className="font-medium">{r.atividade?.nome ?? "—"}</TableCell>
-                <TableCell>{r.atividade?.categoria ? <Badge variant="secondary">{r.atividade.categoria}</Badge> : <span className="text-xs text-muted-foreground">—</span>}</TableCell>
-                <TableCell className="text-muted-foreground whitespace-pre-wrap">{r.descricao || "—"}</TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    title="Remover"
-                    onClick={() => { if (confirm("Remover esta atividade?")) remove.mutate(r.id); }}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+            {(() => {
+              if (!rows) return null;
+              const groups = new Map<string, typeof rows>();
+              for (const r of rows) {
+                const k = r.atividade?.categoria || "(Sem categoria)";
+                const list = groups.get(k) ?? [];
+                list.push(r);
+                groups.set(k, list);
+              }
+              const sorted = Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+              return sorted.flatMap(([cat, items]) => [
+                <TableRow key={`grp-${cat}`} className="bg-muted/50 hover:bg-muted/50">
+                  <TableCell colSpan={5} className="font-semibold">
+                    {cat} <span className="text-muted-foreground font-normal">({items.length})</span>
+                  </TableCell>
+                </TableRow>,
+                ...items.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="text-muted-foreground whitespace-nowrap">{r.data ? formatDateBR(r.data) : "—"}</TableCell>
+                    <TableCell className="font-medium">{r.atividade?.nome ?? "—"}</TableCell>
+                    <TableCell>{r.atividade?.categoria ? <Badge variant="secondary">{r.atividade.categoria}</Badge> : <span className="text-xs text-muted-foreground">—</span>}</TableCell>
+                    <TableCell className="text-muted-foreground whitespace-pre-wrap">{r.descricao || "—"}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        title="Remover"
+                        onClick={() => { if (confirm("Remover esta atividade?")) remove.mutate(r.id); }}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                )),
+              ]);
+            })()}
           </TableBody>
         </Table>
       </div>
