@@ -196,17 +196,30 @@ function ParticipantesPage() {
     id ? familias?.find((f) => f.id === id)?.nome ?? "—" : "—";
 
   const debouncedQ = useDebounce(q, 300);
-  const searchFiltered = useMemo(() => {
+  const tabFiltered = useMemo(() => {
     if (!data) return [];
+    if (tab === "todos") return data;
+    const tipoNm = (id: string | null) =>
+      id ? (tipos?.find((t) => t.id === id)?.nome ?? "").toLowerCase() : "";
+    return data.filter((p) => {
+      const n = tipoNm(p.tipo_user_id);
+      if (tab === "voluntarios") return n.includes("volunt");
+      if (tab === "membros") return n.includes("membro");
+      return true;
+    });
+  }, [data, tab, tipos]);
+
+  const searchFiltered = useMemo(() => {
+    if (!tabFiltered) return [];
     const s = debouncedQ.trim().toLowerCase();
-    if (!s) return data;
+    if (!s) return tabFiltered;
     const famName = (id: string | null) =>
       id ? familias?.find((f) => f.id === id)?.nome ?? "" : "";
     const tipoNm = (id: string | null) =>
       id ? tipos?.find((t) => t.id === id)?.nome ?? "" : "";
     const projNames = (ids: string[]) =>
       (ids ?? []).map((id) => projetos?.find((x) => x.id === id)?.nome ?? "").join(" ");
-    return data.filter((p) =>
+    return tabFiltered.filter((p) =>
       [
         p.nome_completo, p.email, p.telefone, p.nif, p.cartao_cidadao,
         p.morada, p.data_nascimento, p.genero, p.nacionalidade,
@@ -216,7 +229,7 @@ function ParticipantesPage() {
         .filter(Boolean)
         .some((v: any) => String(v).toLowerCase().includes(s)),
     );
-  }, [data, debouncedQ, familias, tipos, projetos]);
+  }, [tabFiltered, debouncedQ, familias, tipos, projetos]);
 
   const tableColumns = useMemo<ColumnDef<Pessoa>[]>(() => {
     const save = (id: string, field: keyof Pessoa) => async (v: any) => {
