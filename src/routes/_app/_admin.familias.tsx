@@ -370,7 +370,11 @@ function FamiliasPage() {
 
   const create = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("familias").insert({ nome, notas: notas || null });
+      const { error } = await supabase.from("familias").insert({
+        nome,
+        notas: notas || null,
+        contacto_meeru_id: contactoMeeru === "__none" ? null : contactoMeeru,
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -379,6 +383,7 @@ function FamiliasPage() {
       setAddOpen(false);
       setNome("");
       setNotas("");
+      setContactoMeeru("__none");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -388,7 +393,12 @@ function FamiliasPage() {
       if (!editing) return;
       const { error } = await supabase
         .from("familias")
-        .update({ nome: editing.nome, notas: editing.notas || null, status: editing.status })
+        .update({
+          nome: editing.nome,
+          notas: editing.notas || null,
+          status: editing.status,
+          contacto_meeru_id: editing.contacto_meeru_id,
+        } as any)
         .eq("id", editing.id);
       if (error) throw error;
     },
