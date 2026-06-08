@@ -985,6 +985,21 @@ function FamiliasPage() {
                     <Label>Notas</Label>
                     <Textarea value={editing.notas ?? ""} onChange={(e) => setEditing({ ...editing, notas: e.target.value })} />
                   </div>
+                  <div className="space-y-2">
+                    <Label>Pessoa de Contacto (Equipa MEERU)</Label>
+                    <Select
+                      value={editing.contacto_meeru_id ?? "__none"}
+                      onValueChange={(v) => setEditing({ ...editing, contacto_meeru_id: v === "__none" ? null : v })}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Sem contacto" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none">Sem contacto</SelectItem>
+                        {(equipa ?? []).map((p) => (
+                          <SelectItem key={p.id} value={p.id}>{p.nome_completo}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <DialogFooter>
                     <Button onClick={() => update.mutate()} disabled={!editing.nome.trim() || update.isPending}>
                       {update.isPending ? "A guardar…" : "Guardar"}
