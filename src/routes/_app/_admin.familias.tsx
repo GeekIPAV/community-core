@@ -708,6 +708,18 @@ function FamiliasPage() {
                   <Label htmlFor="notas">Notas</Label>
                   <Textarea id="notas" value={notas} onChange={(e) => setNotas(e.target.value)} />
                 </div>
+                <div className="space-y-2">
+                  <Label>Pessoa de Contacto (Equipa MEERU)</Label>
+                  <Select value={contactoMeeru} onValueChange={setContactoMeeru}>
+                    <SelectTrigger><SelectValue placeholder="Sem contacto" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">Sem contacto</SelectItem>
+                      {(equipa ?? []).map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.nome_completo}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <DialogFooter>
                 <Button onClick={() => create.mutate()} disabled={!nome || create.isPending}>
