@@ -21,11 +21,20 @@ function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   useEffect(() => {
+    const consumeRedirect = () => {
+      if (typeof window === "undefined") return "/";
+      const target = sessionStorage.getItem("postLoginRedirect");
+      if (target) {
+        sessionStorage.removeItem("postLoginRedirect");
+        return target;
+      }
+      return "/";
+    };
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (session) navigate({ to: "/", replace: true });
+      if (session) navigate({ to: consumeRedirect(), replace: true });
     });
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/", replace: true });
+      if (data.session) navigate({ to: consumeRedirect(), replace: true });
     });
     return () => subscription.unsubscribe();
   }, [navigate]);
@@ -57,8 +66,11 @@ function LoginPage() {
   const handleGoogle = async () => {
     setGoogleLoading(true);
     try {
+      const redirectTarget = sessionStorage.getItem("postLoginRedirect");
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+        redirect_uri: redirectTarget
+          ? `${window.location.origin}${redirectTarget}`
+          : window.location.origin,
       });
       if (result.error) throw result.error;
       // If redirected, browser navigates away. Otherwise session is set.
