@@ -90,6 +90,7 @@ function FamiliasPage() {
   const [view, setView] = useState<"tabela" | "galeria">("tabela");
   const [globalFilter, setGlobalFilter] = useState("");
   const [groupBy, setGroupBy] = useState<"none" | "status" | "projeto" | "cidade" | "religiao">("none");
+  const [statusTab, setStatusTab] = useState<"todas" | "fora" | "espera" | "ativas">("todas");
   const [addAcaoOpen, setAddAcaoOpen] = useState(false);
   const [novaAcao, setNovaAcao] = useState<{ pessoa_id: string; acao_id: string }>({ pessoa_id: "", acao_id: "" });
   const [detailTab, setDetailTab] = useState<"dados" | "membros" | "acoes" | "atividades">("membros");
@@ -452,7 +453,14 @@ function FamiliasPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const rows = data ?? [];
+  const allRows = data ?? [];
+  const rows = useMemo(() => {
+    if (statusTab === "todas") return allRows;
+    if (statusTab === "fora") return allRows.filter((f) => f.status === "Fora do País");
+    if (statusTab === "espera") return allRows.filter((f) => f.status === "Em espera");
+    if (statusTab === "ativas") return allRows.filter((f) => f.status === "Concluído" || f.status === "No programa");
+    return allRows;
+  }, [allRows, statusTab]);
 
   const columns = useMemo<ColumnDef<Familia>[]>(() => [
     { id: "nome", header: "Nome", accessorKey: "nome", cell: ({ getValue }) => <span className="font-medium">{getValue() as string}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nome" } satisfies ColumnFilterMeta },
