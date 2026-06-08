@@ -9,9 +9,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Check, Pencil, Plus, Trash2 } from "lucide-react";
+import { Check, Pencil, Plus, Trash2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth-context";
 
 export type ViewSnapshot = {
   columnFilters?: any;
@@ -23,7 +25,13 @@ export type ViewSnapshot = {
   extra?: Record<string, any>;
 };
 
-type SavedView = { id: string; name: string; snapshot: ViewSnapshot };
+type SavedView = {
+  id: string;
+  name: string;
+  snapshot: ViewSnapshot;
+  created_by: string;
+  is_admin_view: boolean;
+};
 
 const ALL_KEY = "__all__";
 
@@ -42,32 +50,42 @@ export function SavedViews<T>({
   extra?: Record<string, any>;
   onExtraChange?: (e: Record<string, any>) => void;
 }) {
+  const { realIsAdmin } = useAuth();
   const [views, setViews] = useState<SavedView[]>([]);
   const [activeId, setActiveId] = useState<string>(ALL_KEY);
   const [saveOpen, setSaveOpen] = useState(false);
   const [renaming, setRenaming] = useState<SavedView | null>(null);
   const [newName, setNewName] = useState("");
+  const activeLocalKey = `${storageKey}:active`;
+
+  const loadViews = async () => {
+    const { data, error } = await supabase
+      .from("vistas_guardadas")
+      .select("id, name, snapshot, created_by, is_admin_view")
+      .eq("storage_key", storageKey)
+      .order("created_at", { ascending: true });
+    if (error) {
+      console.error(error);
+      return;
+    }
+    setViews((data ?? []) as SavedView[]);
+  };
 
   useEffect(() => {
+    loadViews();
     try {
-      const raw = localStorage.getItem(storageKey);
-      if (raw) {
-        const parsed = JSON.parse(raw) as { views?: SavedView[]; activeId?: string };
-        setViews(parsed.views ?? []);
-        if (parsed.activeId) setActiveId(parsed.activeId);
-      }
+      const saved = localStorage.getItem(activeLocalKey);
+      if (saved) setActiveId(saved);
     } catch {
       /* ignore */
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
 
-  const persist = (next: SavedView[], nextActive: string = activeId) => {
-    setViews(next);
+  const setActive = (id: string) => {
+    setActiveId(id);
     try {
-      localStorage.setItem(
-        storageKey,
-        JSON.stringify({ views: next, activeId: nextActive }),
-      );
+      localStorage.setItem(activeLocalKey, id);
     } catch {
       /* ignore */
     }
@@ -97,66 +115,105 @@ export function SavedViews<T>({
   };
 
   const activateAll = () => {
-    setActiveId(ALL_KEY);
-    persist(views, ALL_KEY);
+    setActive(ALL_KEY);
     table.setColumnFilters([]);
     onSearchChange?.("");
   };
 
   const activateView = (v: SavedView) => {
-    setActiveId(v.id);
-    persist(views, v.id);
+    setActive(v.id);
     applySnapshot(v.snapshot);
   };
 
-  const saveCurrent = () => {
+  const saveCurrent = async () => {
     const name = newName.trim();
     if (!name) {
       toast.error("Nome obrigatório");
       return;
     }
-    const v: SavedView = {
-      id: Math.random().toString(36).slice(2, 10),
-      name,
-      snapshot: captureSnapshot(),
-    };
-    const next = [...views, v];
-    persist(next, v.id);
-    setActiveId(v.id);
+    const { data: userData } = await supabase.auth.getUser();
+    const uid = userData.user?.id;
+    if (!uid) {
+      toast.error("Inicia sessão");
+      return;
+    }
+    const { data, error } = await supabase
+      .from("vistas_guardadas")
+      .insert({
+        storage_key: storageKey,
+        name,
+        snapshot: captureSnapshot() as any,
+        created_by: uid,
+      })
+      .select("id, name, snapshot, created_by, is_admin_view")
+      .single();
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setViews((prev) => [...prev, data as SavedView]);
+    setActive((data as SavedView).id);
     setSaveOpen(false);
     setNewName("");
     toast.success("Vista guardada");
   };
 
-  const updateActive = () => {
+  const updateActive = async () => {
     if (activeId === ALL_KEY) {
       setSaveOpen(true);
       return;
     }
-    const next = views.map((v) =>
-      v.id === activeId ? { ...v, snapshot: captureSnapshot() } : v,
+    const snap = captureSnapshot();
+    const { error } = await supabase
+      .from("vistas_guardadas")
+      .update({ snapshot: snap as any })
+      .eq("id", activeId);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setViews((prev) =>
+      prev.map((v) => (v.id === activeId ? { ...v, snapshot: snap } : v)),
     );
-    persist(next);
     toast.success("Vista atualizada");
   };
 
-  const rename = () => {
+  const rename = async () => {
     if (!renaming) return;
     const name = newName.trim();
     if (!name) return;
-    const next = views.map((v) => (v.id === renaming.id ? { ...v, name } : v));
-    persist(next);
+    const { error } = await supabase
+      .from("vistas_guardadas")
+      .update({ name })
+      .eq("id", renaming.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setViews((prev) =>
+      prev.map((v) => (v.id === renaming.id ? { ...v, name } : v)),
+    );
     setRenaming(null);
     setNewName("");
   };
 
-  const remove = (v: SavedView) => {
+  const remove = async (v: SavedView) => {
     if (!confirm(`Apagar vista "${v.name}"?`)) return;
-    const next = views.filter((x) => x.id !== v.id);
-    const nextActive = activeId === v.id ? ALL_KEY : activeId;
-    persist(next, nextActive);
-    if (activeId === v.id) setActiveId(ALL_KEY);
+    const { error } = await supabase
+      .from("vistas_guardadas")
+      .delete()
+      .eq("id", v.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setViews((prev) => prev.filter((x) => x.id !== v.id));
+    if (activeId === v.id) setActive(ALL_KEY);
   };
+
+  const activeView = views.find((v) => v.id === activeId) ?? null;
+  const canEditActive =
+    !!activeView && (realIsAdmin || activeView.is_admin_view === false);
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
@@ -178,16 +235,18 @@ export function SavedViews<T>({
           type="button"
           onClick={() => activateView(v)}
           className={cn(
-            "h-8 rounded-md border px-3 text-sm",
+            "h-8 rounded-md border px-3 text-sm inline-flex items-center gap-1",
             activeId === v.id
               ? "bg-background shadow-sm border-foreground/20"
               : "bg-muted/40 text-muted-foreground hover:bg-muted",
           )}
+          title={v.is_admin_view ? "Vista partilhada" : "Vista pessoal"}
         >
+          {v.is_admin_view && <Users className="h-3 w-3 opacity-60" />}
           {v.name}
         </button>
       ))}
-      {activeId !== ALL_KEY && (
+      {activeId !== ALL_KEY && canEditActive && (
         <>
           <Button
             variant="ghost"
