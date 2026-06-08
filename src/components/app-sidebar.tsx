@@ -15,10 +15,11 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { LANGUAGES, useDir } from "@/lib/i18n";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ImpersonationPicker } from "@/components/impersonation-picker";
 
 export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { isAdmin, isStaff, hasPage } = useAuth();
+  const { isAdmin, isStaff, hasPage, realIsAdmin } = useAuth();
   const { t, i18n } = useTranslation();
   const dir = useDir();
 
@@ -140,6 +141,11 @@ export function AppSidebar() {
         )}
       </SidebarContent>
       <SidebarFooter className="px-3 py-3 border-t">
+        {realIsAdmin && (
+          <div className="pb-2">
+            <ImpersonationPicker />
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <Languages className="h-4 w-4 text-muted-foreground shrink-0" />
           <Select value={i18n.language?.split("-")[0] ?? "pt"} onValueChange={(v) => i18n.changeLanguage(v)}>
