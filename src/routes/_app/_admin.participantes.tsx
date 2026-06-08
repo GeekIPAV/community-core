@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -147,6 +148,7 @@ function ParticipantesPage() {
   const [deleteOne, setDeleteOne] = useState<Pessoa | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [inlineEdit, setInlineEdit] = useState(false);
+  const [tab, setTab] = useState<"todos" | "voluntarios" | "membros">("todos");
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["pessoas"],
@@ -163,9 +165,9 @@ function ParticipantesPage() {
   const { data: familias } = useQuery({
     queryKey: ["familias_lookup"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("familias").select("id, nome").order("nome");
+      const { data, error } = await supabase.from("familias").select("id, nome, status").order("nome");
       if (error) throw error;
-      return data as { id: string; nome: string }[];
+      return data as { id: string; nome: string; status: string | null }[];
     },
   });
 
