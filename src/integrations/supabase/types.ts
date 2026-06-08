@@ -26,6 +26,7 @@ export type Database = {
           imagem_url: string | null
           inscricoes_abertas: boolean
           local: string | null
+          localizacao_id: string | null
           mapa_url: string | null
           nome: string
           status: string
@@ -43,6 +44,7 @@ export type Database = {
           imagem_url?: string | null
           inscricoes_abertas?: boolean
           local?: string | null
+          localizacao_id?: string | null
           mapa_url?: string | null
           nome: string
           status?: string
@@ -60,13 +62,22 @@ export type Database = {
           imagem_url?: string | null
           inscricoes_abertas?: boolean
           local?: string | null
+          localizacao_id?: string | null
           mapa_url?: string | null
           nome?: string
           status?: string
           tipo?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "acoes_localizacao_id_fkey"
+            columns: ["localizacao_id"]
+            isOneToOne: false
+            referencedRelation: "localizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       atividades_catalogo: {
         Row: {
@@ -293,6 +304,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      localizacoes: {
+        Row: {
+          created_at: string
+          id: string
+          link_mapa: string | null
+          nome: string
+          notas: string | null
+          proprietario: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          link_mapa?: string | null
+          nome: string
+          notas?: string | null
+          proprietario?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          link_mapa?: string | null
+          nome?: string
+          notas?: string | null
+          proprietario?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       pessoas: {
         Row: {

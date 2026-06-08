@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { User, Users, Users2, AlertTriangle, CalendarDays, Globe, UserCog, Briefcase, BarChart3, Languages, Bus, Activity } from "lucide-react";
+import { User, Users, Users2, AlertTriangle, CalendarDays, Globe, UserCog, Briefcase, BarChart3, Languages, Bus, Activity, MapPin } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   Sidebar,
@@ -122,6 +122,14 @@ export function AppSidebar() {
                     <Link to="/bolsas-transporte" className="flex items-center gap-2">
                       <Bus className="h-4 w-4" />
                       <span>Bolsa de Transporte</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive("/localizacoes")}>
+                    <Link to="/localizacoes" className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      <span>Localizações</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
