@@ -1552,7 +1552,11 @@ function AcoesPageInner() {
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2"><Label>Data de início</Label><Input type="datetime-local" value={form.data_inicio} onChange={(e) => setForm({ ...form, data_inicio: e.target.value })} /></div>
-                <div className="space-y-2"><Label>Data de fim</Label><Input type="datetime-local" value={form.data_fim} onChange={(e) => setForm({ ...form, data_fim: e.target.value })} /></div>
+                <div className="space-y-2">
+                  <Label>Data de fim <span className="text-xs text-muted-foreground font-normal">(opcional)</span></Label>
+                  <Input type="datetime-local" value={form.data_fim} onChange={(e) => setForm({ ...form, data_fim: e.target.value })} />
+                  <p className="text-xs text-muted-foreground">Deixa vazio se o evento for num único dia.</p>
+                </div>
               </div>
               <label className="flex items-center justify-between rounded-md border p-3">
                 <div>
@@ -1720,7 +1724,11 @@ function AcoesPageInner() {
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2"><Label>Data de início</Label><Input type="datetime-local" value={editing.data_inicio} onChange={(e) => setEditing({ ...editing, data_inicio: e.target.value })} /></div>
-                <div className="space-y-2"><Label>Data de fim</Label><Input type="datetime-local" value={editing.data_fim} onChange={(e) => setEditing({ ...editing, data_fim: e.target.value })} /></div>
+                <div className="space-y-2">
+                  <Label>Data de fim <span className="text-xs text-muted-foreground font-normal">(opcional)</span></Label>
+                  <Input type="datetime-local" value={editing.data_fim} onChange={(e) => setEditing({ ...editing, data_fim: e.target.value })} />
+                  <p className="text-xs text-muted-foreground">Deixa vazio se o evento for num único dia.</p>
+                </div>
               </div>
               <label className="flex items-center justify-between rounded-md border p-3">
                 <div>
