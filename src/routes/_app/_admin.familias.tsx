@@ -182,7 +182,7 @@ function FamiliasPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("familias")
-        .select("id, nome, notas, status")
+        .select("id, nome, notas, status, contacto_meeru_id")
         .order("nome");
       if (error) throw error;
       return data as Familia[];
