@@ -285,7 +285,7 @@ function FamiliasPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, email, telefone, data_nascimento, status, genero, cidade_residencia, nacionalidade, religiao, nif, projeto_ids")
+        .select("id, nome_completo, email, telefone, data_nascimento, status, genero, cidade_residencia, nacionalidade, religiao, nif, projeto_ids, is_voluntario")
         .eq("familia_id", membrosFamilia!.id)
         .order("nome_completo");
       if (error) throw error;
@@ -293,7 +293,7 @@ function FamiliasPage() {
         id: string; nome_completo: string; email: string | null; telefone: string | null;
         data_nascimento: string | null; status: string; genero: string | null;
         cidade_residencia: string | null; nacionalidade: string | null; religiao: string | null;
-        nif: string | null; projeto_ids: string[] | null;
+        nif: string | null; projeto_ids: string[] | null; is_voluntario: boolean | null;
       }>;
     },
   });
@@ -1073,13 +1073,11 @@ function FamiliasPage() {
             </TabsContent>
 
             <TabsContent value="membros" className="pt-4 flex-1 min-h-0 overflow-hidden">
-              <div className="flex flex-col h-full min-h-0 gap-3">
-                <div className="flex justify-end">
-                  <Button size="sm" onClick={() => setAddMembroOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" /> Adicionar membro
-                  </Button>
-                </div>
-                <div className="flex-1 min-h-0 max-h-[60vh] overflow-auto rounded-md border">
+              {(() => {
+                const membrosNormais = (membros ?? []).filter((m) => !m.is_voluntario);
+                const voluntarios = (membros ?? []).filter((m) => !!m.is_voluntario);
+                const renderTable = (lista: typeof membrosNormais, emptyLabel: string) => (
+                  <div className="flex-1 min-h-0 max-h-[55vh] overflow-auto rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -1098,10 +1096,10 @@ function FamiliasPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(!membros || membros.length === 0) && !loadingMembros && (
-                      <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground">Sem membros</TableCell></TableRow>
+                    {lista.length === 0 && !loadingMembros && (
+                      <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground">{emptyLabel}</TableCell></TableRow>
                     )}
-                     {membros?.map((m) => {
+                     {lista.map((m) => {
                        const PersonIco = personIcon(m.genero, m.data_nascimento);
                        return (
                          <TableRow key={m.id}>
@@ -1179,8 +1177,30 @@ function FamiliasPage() {
                      })}
                   </TableBody>
                 </Table>
-                </div>
-              </div>
+                  </div>
+                );
+                return (
+                  <div className="flex flex-col h-full min-h-0 gap-3">
+                    <div className="flex justify-end">
+                      <Button size="sm" onClick={() => setAddMembroOpen(true)}>
+                        <Plus className="mr-2 h-4 w-4" /> Adicionar membro
+                      </Button>
+                    </div>
+                    <Tabs defaultValue="membros" className="flex flex-col flex-1 min-h-0">
+                      <TabsList className="w-full">
+                        <TabsTrigger value="membros" className="flex-1">Membros ({membrosNormais.length})</TabsTrigger>
+                        <TabsTrigger value="voluntarios" className="flex-1">Voluntários ({voluntarios.length})</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="membros" className="pt-3 flex-1 min-h-0">
+                        {renderTable(membrosNormais, "Sem membros")}
+                      </TabsContent>
+                      <TabsContent value="voluntarios" className="pt-3 flex-1 min-h-0">
+                        {renderTable(voluntarios, "Sem voluntários")}
+                      </TabsContent>
+                    </Tabs>
+                  </div>
+                );
+              })()}
             </TabsContent>
 
             <TabsContent value="acoes" className="pt-4 flex-1 min-h-0 overflow-hidden">
