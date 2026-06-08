@@ -699,6 +699,15 @@ function FamiliasPage() {
         </div>
       </div>
 
+      <Tabs value={statusTab} onValueChange={(v) => setStatusTab(v as typeof statusTab)}>
+        <TabsList>
+          <TabsTrigger value="todas">Famílias</TabsTrigger>
+          <TabsTrigger value="fora">Fora do País</TabsTrigger>
+          <TabsTrigger value="espera">Em espera</TabsTrigger>
+          <TabsTrigger value="ativas">Concluído / No programa</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       {isLoading ? (
         <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
       ) : view === "galeria" ? (
