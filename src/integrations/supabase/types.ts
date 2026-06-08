@@ -437,6 +437,39 @@ export type Database = {
         }
         Relationships: []
       }
+      vistas_guardadas: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          is_admin_view: boolean
+          name: string
+          snapshot: Json
+          storage_key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          is_admin_view?: boolean
+          name: string
+          snapshot?: Json
+          storage_key: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_admin_view?: boolean
+          name?: string
+          snapshot?: Json
+          storage_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       pessoas_com_stats: {
