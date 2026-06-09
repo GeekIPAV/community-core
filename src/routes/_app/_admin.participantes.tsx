@@ -80,6 +80,7 @@ type Pessoa = {
   religiao: string | null;
   profissao: string | null;
   projeto_ids: string[];
+  updated_at: string | null;
 };
 
 const STATUS_OPTS = ["ativo", "suspeito_duplicado", "fundido", "arquivado"];
@@ -119,6 +120,7 @@ const emptyForm: Omit<Pessoa, "id" | "status"> & { status?: string } = {
   religiao: "",
   profissao: "",
   projeto_ids: [],
+  updated_at: null,
 };
 
 function ParticipantesPage() {
@@ -154,7 +156,7 @@ function ParticipantesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, email, telefone, nif, cartao_cidadao, morada, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao, profissao, projeto_ids")
+        .select("id, nome_completo, email, telefone, nif, cartao_cidadao, morada, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao, profissao, projeto_ids, updated_at")
         .order("nome_completo", { ascending: true });
       if (error) throw error;
       return (data ?? []).map((p: any) => ({ ...p, projeto_ids: p.projeto_ids ?? [] })) as Pessoa[];
@@ -306,6 +308,12 @@ function ParticipantesPage() {
             return <Badge variant={s === "ativo" ? "default" : s === "suspeito_duplicado" ? "destructive" : "outline"}>{s}</Badge>;
           },
         filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: STATUS_OPTS, label: "Estado" } satisfies ColumnFilterMeta },
+      { id: "updated_at", header: "Última edição", accessorKey: "updated_at",
+        cell: ({ getValue }) => {
+          const v = getValue() as string | null;
+          return <span className="text-muted-foreground">{v ? new Date(v).toLocaleString("pt-PT") : "—"}</span>;
+        },
+        filterFn: advancedFilterFn as any, meta: { filterVariant: "date", label: "Última edição" } satisfies ColumnFilterMeta },
     ];
   }, [familias, tipos, projetos, qc, inlineEdit]);
 
