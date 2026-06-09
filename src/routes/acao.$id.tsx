@@ -379,6 +379,10 @@ function LoggedInForm({ acao, pessoa, fields, onDone }: { acao: any; pessoa: any
   const [valoresPorPessoa, setValoresPorPessoa] = useState<Record<string, Record<string, any>>>({});
   const [confirmar, setConfirmar] = useState<{ existentes: Array<{ id: string; nome: string }>; novos: string[] } | null>(null);
 
+  const projetosRestritos: string[] = acao?.restrito_a_projetos ? (acao?.projeto_ids ?? []) : [];
+  const restrito = projetosRestritos.length > 0;
+  const isElegivel = (m: any) => !restrito || (m.projeto_ids ?? []).some((id: string) => projetosRestritos.includes(id));
+
   useEffect(() => {
     if (pessoa && selected[pessoa.id] === undefined) {
       setSelected((s) => ({ ...s, [pessoa.id]: true }));
@@ -389,6 +393,12 @@ function LoggedInForm({ acao, pessoa, fields, onDone }: { acao: any; pessoa: any
     mutationFn: async () => {
       const ids = Object.entries(selected).filter(([, v]) => v).map(([k]) => k);
       if (ids.length === 0) throw new Error("Seleciona pelo menos uma pessoa");
+      if (restrito) {
+        const naoElegiveis = (agregado ?? []).filter((m: any) => ids.includes(m.id) && !isElegivel(m));
+        if (naoElegiveis.length > 0) {
+          throw new Error("Algumas pessoas selecionadas não pertencem aos projetos desta ação.");
+        }
+      }
       const { data, error } = await supabase
         .from("inscricoes")
         .select("id, pessoa_id")
@@ -459,16 +469,30 @@ function LoggedInForm({ acao, pessoa, fields, onDone }: { acao: any; pessoa: any
     <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); checkSubmit.mutate(); }}>
       <div className="space-y-2">
         <Label>Quem queres inscrever?</Label>
+        {restrito && (
+          <p className="text-xs text-muted-foreground">
+            Esta ação está reservada a participantes dos projetos associados — apenas membros elegíveis podem ser inscritos.
+          </p>
+        )}
         <div className="space-y-2 rounded-md border p-3">
-          {(agregado ?? []).map((m: any) => (
+          {(agregado ?? []).length > 0 && (agregado ?? []).every((m: any) => !isElegivel(m)) && (
+            <p className="text-sm text-muted-foreground">Nenhum membro do agregado pertence aos projetos desta ação.</p>
+          )}
+          {(agregado ?? []).map((m: any) => {
+            const elegivel = isElegivel(m);
+            return (
             <div key={m.id} className="space-y-2">
               <div className="flex items-center gap-2">
                 <Checkbox
                   id={`p-${m.id}`}
                   checked={!!selected[m.id]}
+                  disabled={!elegivel}
                   onCheckedChange={(c) => setSelected({ ...selected, [m.id]: c === true })}
                 />
-                <Label htmlFor={`p-${m.id}`}>{m.nome_completo}{m.id === pessoa.id ? " (eu)" : ""}</Label>
+                <Label htmlFor={`p-${m.id}`} className={elegivel ? "" : "text-muted-foreground"}>
+                  {m.nome_completo}{m.id === pessoa.id ? " (eu)" : ""}
+                  {!elegivel && <span className="ml-2 text-xs italic">— não pertence aos projetos</span>}
+                </Label>
               </div>
               {selected[m.id] && fields.length > 0 && (
                 <div className="pl-6">
@@ -480,7 +504,8 @@ function LoggedInForm({ acao, pessoa, fields, onDone }: { acao: any; pessoa: any
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
       {acao?.bolsa_transporte && cidadesBolsa && (
