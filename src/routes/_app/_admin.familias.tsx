@@ -112,7 +112,6 @@ function FamiliasPage() {
   };
   const [novoMembro, setNovoMembro] = useState(emptyMembro);
 
-  const [bulkMembrosOpen, setBulkMembrosOpen] = useState(false);
   const [bulkMembrosText, setBulkMembrosText] = useState("");
   const [bulkMembrosVoluntario, setBulkMembrosVoluntario] = useState(false);
 
