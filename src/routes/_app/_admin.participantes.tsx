@@ -555,22 +555,23 @@ function ParticipantesPage() {
           >
             {inlineEdit ? <LockOpen className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
           </Button>
-          <Button variant="outline" onClick={() => setBulkAddOpen(true)}>
-            <Upload className="mr-2 h-4 w-4" /> Importar
-          </Button>
           <Button
             variant="outline"
+            size="icon"
             disabled={selected.size === 0}
             onClick={() => setBulkEditOpen(true)}
+            title={selected.size > 0 ? `Editar (${selected.size})` : "Editar"}
           >
-            <Pencil className="mr-2 h-4 w-4" /> Editar {selected.size > 0 ? `(${selected.size})` : ""}
+            <Pencil className="h-4 w-4" />
           </Button>
           <Button
             variant="destructive"
+            size="icon"
             disabled={selected.size === 0}
             onClick={() => setBulkDeleteOpen(true)}
+            title={selected.size > 0 ? `Apagar (${selected.size})` : "Apagar"}
           >
-            <Trash2 className="mr-2 h-4 w-4" /> Apagar {selected.size > 0 ? `(${selected.size})` : ""}
+            <Trash2 className="h-4 w-4" />
           </Button>
           <Button onClick={() => setAddOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Adicionar
