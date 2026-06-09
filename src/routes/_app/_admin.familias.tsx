@@ -1449,6 +1449,46 @@ function FamiliasPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk add membros */}
+      <Dialog open={bulkMembrosOpen} onOpenChange={setBulkMembrosOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Importar membros em massa</DialogTitle>
+            <DialogDescription>
+              {membrosFamilia ? `Família: ${membrosFamilia.nome}. ` : ""}
+              Cola uma linha por pessoa, com as colunas separadas por vírgula. A primeira linha (cabeçalho) é ignorada.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Textarea
+              rows={10}
+              className="font-mono text-xs"
+              placeholder={BULK_MEMBROS_PLACEHOLDER}
+              value={bulkMembrosText}
+              onChange={(e) => setBulkMembrosText(e.target.value)}
+            />
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={bulkMembrosVoluntario}
+                onCheckedChange={(v) => setBulkMembrosVoluntario(!!v)}
+              />
+              Adicionar como voluntários
+            </label>
+            <p className="text-xs text-muted-foreground">
+              Colunas: nome, email, telefone, data_nascimento (AAAA-MM-DD), genero, cidade, nacionalidade, religiao, nif. Só o nome é obrigatório — deixa as restantes em branco entre vírgulas.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => bulkAddMembros.mutate()}
+              disabled={!bulkMembrosText.trim() || bulkAddMembros.isPending}
+            >
+              {bulkAddMembros.isPending ? "A importar…" : "Importar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
