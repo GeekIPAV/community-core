@@ -308,6 +308,12 @@ function ParticipantesPage() {
             return <Badge variant={s === "ativo" ? "default" : s === "suspeito_duplicado" ? "destructive" : "outline"}>{s}</Badge>;
           },
         filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: STATUS_OPTS, label: "Estado" } satisfies ColumnFilterMeta },
+      { id: "updated_at", header: "Última edição", accessorKey: "updated_at",
+        cell: ({ getValue }) => {
+          const v = getValue() as string | null;
+          return <span className="text-muted-foreground">{v ? new Date(v).toLocaleString("pt-PT") : "—"}</span>;
+        },
+        filterFn: advancedFilterFn as any, meta: { filterVariant: "date", label: "Última edição" } satisfies ColumnFilterMeta },
     ];
   }, [familias, tipos, projetos, qc, inlineEdit]);
 
