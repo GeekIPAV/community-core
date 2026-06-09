@@ -112,6 +112,64 @@ function FamiliasPage() {
   };
   const [novoMembro, setNovoMembro] = useState(emptyMembro);
 
+  const [bulkMembrosOpen, setBulkMembrosOpen] = useState(false);
+  const [bulkMembrosText, setBulkMembrosText] = useState("");
+  const [bulkMembrosVoluntario, setBulkMembrosVoluntario] = useState(false);
+
+  const BULK_MEMBROS_PLACEHOLDER =
+    "nome, email, telefone, data_nascimento (AAAA-MM-DD), genero, cidade, nacionalidade, religiao, nif\n" +
+    "Maria Silva, maria@exemplo.pt, 912345678, 1985-03-12, Feminino, Lisboa, Portuguesa, Católica, 123456789\n" +
+    "João Costa, , 933221100, 1990-07-25, Masculino, Porto, Portuguesa, , ";
+
+  const bulkAddMembros = useMutation({
+    mutationFn: async () => {
+      if (!membrosFamilia) throw new Error("Família não selecionada");
+      const lines = bulkMembrosText
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean)
+        // ignora linha de cabeçalho se o utilizador deixou o exemplo
+        .filter((l) => !/^nome\s*,/i.test(l));
+      if (lines.length === 0) throw new Error("Nada para importar");
+      const rows = lines.map((line, idx) => {
+        const cols = line.split(",").map((c) => c.trim());
+        const [nome, email, telefone, data_nascimento, genero, cidade, nacionalidade, religiao, nif] = cols;
+        if (!nome) throw new Error(`Linha ${idx + 1}: nome é obrigatório`);
+        if (data_nascimento && !/^\d{4}-\d{2}-\d{2}$/.test(data_nascimento)) {
+          throw new Error(`Linha ${idx + 1}: data deve estar em AAAA-MM-DD`);
+        }
+        return {
+          nome_completo: nome,
+          email: email || null,
+          telefone: telefone || null,
+          data_nascimento: data_nascimento || null,
+          genero: genero || null,
+          cidade_residencia: cidade || null,
+          nacionalidade: nacionalidade || null,
+          religiao: religiao || null,
+          nif: nif || null,
+          status: "ativo",
+          is_voluntario: bulkMembrosVoluntario,
+          familia_id: membrosFamilia.id,
+        };
+      });
+      const { error } = await supabase.from("pessoas").insert(rows as any);
+      if (error) throw error;
+      return rows.length;
+    },
+    onSuccess: (n) => {
+      toast.success(`${n} ${bulkMembrosVoluntario ? "voluntário(s)" : "membro(s)"} adicionado(s)`);
+      qc.invalidateQueries({ queryKey: ["familias", "membros", membrosFamilia?.id] });
+      qc.invalidateQueries({ queryKey: ["familias", "contagens"] });
+      qc.invalidateQueries({ queryKey: ["familias", "agregados"] });
+      qc.invalidateQueries({ queryKey: ["pessoas"] });
+      setBulkMembrosOpen(false);
+      setBulkMembrosText("");
+      setBulkMembrosVoluntario(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const addMembro = useMutation({
     mutationFn: async () => {
       if (!membrosFamilia) throw new Error("Família não selecionada");
@@ -1182,7 +1240,10 @@ function FamiliasPage() {
                 return (
                   <div className="flex flex-col h-full min-h-0 gap-3">
                     <div className="flex justify-end">
-                      <Button size="sm" onClick={() => setAddMembroOpen(true)}>
+                      <Button size="sm" variant="outline" onClick={() => setBulkMembrosOpen(true)}>
+                        <Upload className="mr-2 h-4 w-4" /> Importar em massa
+                      </Button>
+                      <Button size="sm" className="ml-2" onClick={() => setAddMembroOpen(true)}>
                         <Plus className="mr-2 h-4 w-4" /> Adicionar membro
                       </Button>
                     </div>
@@ -1384,6 +1445,46 @@ function FamiliasPage() {
           <DialogFooter>
             <Button onClick={() => addMembro.mutate()} disabled={!novoMembro.nome_completo.trim() || addMembro.isPending}>
               {addMembro.isPending ? "A guardar…" : "Adicionar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk add membros */}
+      <Dialog open={bulkMembrosOpen} onOpenChange={setBulkMembrosOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Importar membros em massa</DialogTitle>
+            <DialogDescription>
+              {membrosFamilia ? `Família: ${membrosFamilia.nome}. ` : ""}
+              Cola uma linha por pessoa, com as colunas separadas por vírgula. A primeira linha (cabeçalho) é ignorada.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Textarea
+              rows={10}
+              className="font-mono text-xs"
+              placeholder={BULK_MEMBROS_PLACEHOLDER}
+              value={bulkMembrosText}
+              onChange={(e) => setBulkMembrosText(e.target.value)}
+            />
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={bulkMembrosVoluntario}
+                onCheckedChange={(v) => setBulkMembrosVoluntario(!!v)}
+              />
+              Adicionar como voluntários
+            </label>
+            <p className="text-xs text-muted-foreground">
+              Colunas: nome, email, telefone, data_nascimento (AAAA-MM-DD), genero, cidade, nacionalidade, religiao, nif. Só o nome é obrigatório — deixa as restantes em branco entre vírgulas.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => bulkAddMembros.mutate()}
+              disabled={!bulkMembrosText.trim() || bulkAddMembros.isPending}
+            >
+              {bulkAddMembros.isPending ? "A importar…" : "Importar"}
             </Button>
           </DialogFooter>
         </DialogContent>
