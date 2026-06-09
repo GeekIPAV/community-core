@@ -725,11 +725,15 @@ function ParticipantesPage() {
             <Field label="Religião"><Input value={form.religiao ?? ""} onChange={(e) => setForm({ ...form, religiao: e.target.value })} /></Field>
             <Field label="Profissão"><Input value={form.profissao ?? ""} onChange={(e) => setForm({ ...form, profissao: e.target.value })} /></Field>
             <Field label="Família" className="col-span-2">
-              <Select value={form.familia_id ?? "__null"} onValueChange={(v) => setForm({ ...form, familia_id: v === "__null" ? null : v })}>
+              <Select value={form.familia_id ?? "__null"} onValueChange={(v) => {
+                if (v === "__criar_nova_familia") { setNovaFamiliaTarget("form"); setNovaFamiliaOpen(true); return; }
+                setForm({ ...form, familia_id: v === "__null" ? null : v });
+              }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__null">— sem família —</SelectItem>
                   {familias?.map((f) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
+                  <SelectItem value="__criar_nova_familia" className="text-primary font-medium">+ Criar nova família…</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
