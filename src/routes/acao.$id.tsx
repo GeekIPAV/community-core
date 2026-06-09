@@ -99,6 +99,11 @@ function AcaoDetailPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {acao.descricao && <RichTextView html={acao.descricao} />}
+              {acao.restrito_a_projetos && (acao.projeto_ids?.length ?? 0) > 0 && (
+                <p className="text-xs rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-muted-foreground">
+                  Inscrição reservada a participantes dos projetos associados a esta ação.
+                </p>
+              )}
               <Button size="lg" onClick={() => setOpen(true)}>Inscrever</Button>
             </CardContent>
           </Card>
@@ -128,10 +133,34 @@ function InscreverDialog({ open, onOpenChange, acao }: { open: boolean; onOpenCh
         {session ? (
           <LoggedInForm acao={acao} pessoa={pessoa} fields={fields} onDone={() => onOpenChange(false)} />
         ) : (
-          <AnonForm acao={acao} fields={fields} onDone={() => onOpenChange(false)} />
+          acao?.restrito_a_projetos && (acao?.projeto_ids?.length ?? 0) > 0 ? (
+            <RestritoLoginPrompt />
+          ) : (
+            <AnonForm acao={acao} fields={fields} onDone={() => onOpenChange(false)} />
+          )
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function RestritoLoginPrompt() {
+  const navigate = useNavigate();
+  return (
+    <div className="space-y-3 rounded-md border bg-muted/40 p-4 text-sm">
+      <p>Esta ação está reservada a participantes dos projetos associados. Inicia sessão com a tua conta para te inscreveres.</p>
+      <Button
+        type="button"
+        onClick={() => {
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem("postLoginRedirect", window.location.pathname);
+          }
+          navigate({ to: "/login" });
+        }}
+      >
+        Iniciar sessão
+      </Button>
+    </div>
   );
 }
 
@@ -322,14 +351,14 @@ function LoggedInForm({ acao, pessoa, fields, onDone }: { acao: any; pessoa: any
     queryFn: async () => {
       if (!pessoa) return [];
       if (!pessoa.familia_id) {
-        return [{ id: pessoa.id, nome_completo: pessoa.nome_completo, cidade_residencia: pessoa.cidade_residencia }];
+        return [{ id: pessoa.id, nome_completo: pessoa.nome_completo, cidade_residencia: pessoa.cidade_residencia, projeto_ids: (pessoa as any).projeto_ids ?? [] }];
       }
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, cidade_residencia")
+        .select("id, nome_completo, cidade_residencia, projeto_ids")
         .eq("familia_id", pessoa.familia_id);
       if (error) throw error;
-      return data;
+      return (data ?? []).map((p: any) => ({ ...p, projeto_ids: p.projeto_ids ?? [] }));
     },
   });
 
@@ -350,6 +379,10 @@ function LoggedInForm({ acao, pessoa, fields, onDone }: { acao: any; pessoa: any
   const [valoresPorPessoa, setValoresPorPessoa] = useState<Record<string, Record<string, any>>>({});
   const [confirmar, setConfirmar] = useState<{ existentes: Array<{ id: string; nome: string }>; novos: string[] } | null>(null);
 
+  const projetosRestritos: string[] = acao?.restrito_a_projetos ? (acao?.projeto_ids ?? []) : [];
+  const restrito = projetosRestritos.length > 0;
+  const isElegivel = (m: any) => !restrito || (m.projeto_ids ?? []).some((id: string) => projetosRestritos.includes(id));
+
   useEffect(() => {
     if (pessoa && selected[pessoa.id] === undefined) {
       setSelected((s) => ({ ...s, [pessoa.id]: true }));
@@ -360,6 +393,12 @@ function LoggedInForm({ acao, pessoa, fields, onDone }: { acao: any; pessoa: any
     mutationFn: async () => {
       const ids = Object.entries(selected).filter(([, v]) => v).map(([k]) => k);
       if (ids.length === 0) throw new Error("Seleciona pelo menos uma pessoa");
+      if (restrito) {
+        const naoElegiveis = (agregado ?? []).filter((m: any) => ids.includes(m.id) && !isElegivel(m));
+        if (naoElegiveis.length > 0) {
+          throw new Error("Algumas pessoas selecionadas não pertencem aos projetos desta ação.");
+        }
+      }
       const { data, error } = await supabase
         .from("inscricoes")
         .select("id, pessoa_id")
@@ -430,16 +469,30 @@ function LoggedInForm({ acao, pessoa, fields, onDone }: { acao: any; pessoa: any
     <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); checkSubmit.mutate(); }}>
       <div className="space-y-2">
         <Label>Quem queres inscrever?</Label>
+        {restrito && (
+          <p className="text-xs text-muted-foreground">
+            Esta ação está reservada a participantes dos projetos associados — apenas membros elegíveis podem ser inscritos.
+          </p>
+        )}
         <div className="space-y-2 rounded-md border p-3">
-          {(agregado ?? []).map((m: any) => (
+          {(agregado ?? []).length > 0 && (agregado ?? []).every((m: any) => !isElegivel(m)) && (
+            <p className="text-sm text-muted-foreground">Nenhum membro do agregado pertence aos projetos desta ação.</p>
+          )}
+          {(agregado ?? []).map((m: any) => {
+            const elegivel = isElegivel(m);
+            return (
             <div key={m.id} className="space-y-2">
               <div className="flex items-center gap-2">
                 <Checkbox
                   id={`p-${m.id}`}
                   checked={!!selected[m.id]}
+                  disabled={!elegivel}
                   onCheckedChange={(c) => setSelected({ ...selected, [m.id]: c === true })}
                 />
-                <Label htmlFor={`p-${m.id}`}>{m.nome_completo}{m.id === pessoa.id ? " (eu)" : ""}</Label>
+                <Label htmlFor={`p-${m.id}`} className={elegivel ? "" : "text-muted-foreground"}>
+                  {m.nome_completo}{m.id === pessoa.id ? " (eu)" : ""}
+                  {!elegivel && <span className="ml-2 text-xs italic">— não pertence aos projetos</span>}
+                </Label>
               </div>
               {selected[m.id] && fields.length > 0 && (
                 <div className="pl-6">
@@ -451,7 +504,8 @@ function LoggedInForm({ acao, pessoa, fields, onDone }: { acao: any; pessoa: any
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
       {acao?.bolsa_transporte && cidadesBolsa && (

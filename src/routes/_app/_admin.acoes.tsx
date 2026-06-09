@@ -34,6 +34,7 @@ import { DataTableViewOptions } from "@/components/data-table-view-options";
 import { DraggableTableHeaders } from "@/components/draggable-table-headers";
 import { useMobileColumnVisibility } from "@/hooks/use-mobile-columns";
 import { matchCidade, formatEuro, type CidadeBolsa } from "@/lib/bolsa-transporte";
+import { ChevronDown } from "lucide-react";
 
 export const Route = createFileRoute("/_app/_admin/acoes")({
   component: AcoesPage,
@@ -217,10 +218,12 @@ type AcaoForm = {
   status: string;
   inscricoes_abertas: boolean;
   bolsa_transporte: boolean;
+  projeto_ids: string[];
+  restrito_a_projetos: boolean;
   fields: FieldDef[];
 };
 
-const EMPTY_FORM: AcaoForm = { nome: "", local: "", mapa_url: "", imagem_url: "", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, bolsa_transporte: false, fields: [] };
+const EMPTY_FORM: AcaoForm = { nome: "", local: "", mapa_url: "", imagem_url: "", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, bolsa_transporte: false, projeto_ids: [], restrito_a_projetos: false, fields: [] };
 
 const acaoFormSchema = z
   .object({
@@ -1533,10 +1536,19 @@ function AcoesPageInner() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("acoes")
-        .select("id, nome, local, mapa_url, imagem_url, data_inicio, data_fim, status, inscricoes_abertas, bolsa_transporte, config_campos")
+        .select("id, nome, local, mapa_url, imagem_url, data_inicio, data_fim, status, inscricoes_abertas, bolsa_transporte, projeto_ids, restrito_a_projetos, config_campos")
         .order("data_inicio", { ascending: false, nullsFirst: false });
       if (error) throw error;
       return data;
+    },
+  });
+
+  const { data: projetos } = useQuery({
+    queryKey: ["projetos_lookup"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("projetos").select("id, nome").order("nome");
+      if (error) throw error;
+      return data as { id: string; nome: string }[];
     },
   });
 
@@ -1584,6 +1596,8 @@ function AcoesPageInner() {
         status: form.status,
         inscricoes_abertas: form.inscricoes_abertas,
         bolsa_transporte: form.bolsa_transporte,
+        projeto_ids: form.projeto_ids ?? [],
+        restrito_a_projetos: form.restrito_a_projetos,
         config_campos: { fields: form.fields },
       } as any);
       if (error) throw error;
@@ -1618,6 +1632,8 @@ function AcoesPageInner() {
           status: editing.status,
           inscricoes_abertas: editing.inscricoes_abertas,
           bolsa_transporte: editing.bolsa_transporte,
+          projeto_ids: editing.projeto_ids ?? [],
+          restrito_a_projetos: editing.restrito_a_projetos,
           config_campos: { fields: editing.fields },
         } as any)
         .eq("id", editing.id);
@@ -1727,6 +1743,25 @@ function AcoesPageInner() {
                 </div>
                 <Switch checked={form.bolsa_transporte} onCheckedChange={(c) => setForm({ ...form, bolsa_transporte: c })} />
               </label>
+              <div className="space-y-2 rounded-md border p-3">
+                <Label>Projetos associados</Label>
+                <ProjetosMultiSelect
+                  values={form.projeto_ids}
+                  options={(projetos ?? []).map((p) => ({ value: p.id, label: p.nome }))}
+                  onChange={(v) => setForm({ ...form, projeto_ids: v })}
+                />
+                <label className="flex items-center justify-between gap-3 pt-1">
+                  <div>
+                    <p className="text-sm font-medium">Restringir a participantes destes projetos</p>
+                    <p className="text-xs text-muted-foreground">Quando ligado, apenas participantes inscritos em pelo menos um dos projetos podem inscrever-se. Sem projetos selecionados, qualquer pessoa pode inscrever-se.</p>
+                  </div>
+                  <Switch
+                    checked={form.restrito_a_projetos}
+                    disabled={form.projeto_ids.length === 0}
+                    onCheckedChange={(c) => setForm({ ...form, restrito_a_projetos: c })}
+                  />
+                </label>
+              </div>
               <div className="space-y-2">
                 <Label>Descrição</Label>
                 <RichTextEditor value={form.descricao} onChange={(v) => setForm({ ...form, descricao: v })} />
@@ -1774,6 +1809,8 @@ function AcoesPageInner() {
                     status: String((a as any).status ?? "ativa"),
                     inscricoes_abertas: inscricoesAbertas,
                     bolsa_transporte: !!(a as any).bolsa_transporte,
+                    projeto_ids: ((a as any).projeto_ids ?? []) as string[],
+                    restrito_a_projetos: !!(a as any).restrito_a_projetos,
                     fields,
                   });
                 }}
@@ -1916,6 +1953,25 @@ function AcoesPageInner() {
                 </div>
                 <Switch checked={editing.bolsa_transporte} onCheckedChange={(c) => setEditing({ ...editing, bolsa_transporte: c })} />
               </label>
+              <div className="space-y-2 rounded-md border p-3">
+                <Label>Projetos associados</Label>
+                <ProjetosMultiSelect
+                  values={editing.projeto_ids}
+                  options={(projetos ?? []).map((p) => ({ value: p.id, label: p.nome }))}
+                  onChange={(v) => setEditing({ ...editing, projeto_ids: v })}
+                />
+                <label className="flex items-center justify-between gap-3 pt-1">
+                  <div>
+                    <p className="text-sm font-medium">Restringir a participantes destes projetos</p>
+                    <p className="text-xs text-muted-foreground">Quando ligado, apenas participantes inscritos em pelo menos um dos projetos podem inscrever-se. Sem projetos selecionados, qualquer pessoa pode inscrever-se.</p>
+                  </div>
+                  <Switch
+                    checked={editing.restrito_a_projetos}
+                    disabled={editing.projeto_ids.length === 0}
+                    onCheckedChange={(c) => setEditing({ ...editing, restrito_a_projetos: c })}
+                  />
+                </label>
+              </div>
               <div className="space-y-2">
                 <Label>Descrição</Label>
                 <RichTextEditor value={editing.descricao} onChange={(v) => setEditing({ ...editing, descricao: v })} />
@@ -1961,5 +2017,55 @@ function AcoesPageInner() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+function ProjetosMultiSelect({
+  values,
+  options,
+  onChange,
+}: {
+  values: string[];
+  options: { value: string; label: string }[];
+  onChange: (next: string[]) => void;
+}) {
+  const labels = values.map((v) => options.find((o) => o.value === v)?.label).filter(Boolean) as string[];
+  const toggle = (v: string) => {
+    onChange(values.includes(v) ? values.filter((x) => x !== v) : [...values, v]);
+  };
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex min-h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-1.5 text-left text-sm shadow-sm hover:bg-muted/50"
+        >
+          <span className={labels.length ? "" : "text-muted-foreground"}>
+            {labels.length ? labels.join(", ") : "Sem projetos"}
+          </span>
+          <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-1">
+        <div className="max-h-64 overflow-auto">
+          {options.length === 0 && (
+            <div className="px-2 py-1.5 text-sm text-muted-foreground">Sem projetos disponíveis</div>
+          )}
+          {options.map((o) => {
+            const checked = values.includes(o.value);
+            return (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => toggle(o.value)}
+                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent"
+              >
+                <Checkbox checked={checked} />
+                <span>{o.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
