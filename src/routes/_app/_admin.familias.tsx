@@ -112,6 +112,64 @@ function FamiliasPage() {
   };
   const [novoMembro, setNovoMembro] = useState(emptyMembro);
 
+  const [bulkMembrosOpen, setBulkMembrosOpen] = useState(false);
+  const [bulkMembrosText, setBulkMembrosText] = useState("");
+  const [bulkMembrosVoluntario, setBulkMembrosVoluntario] = useState(false);
+
+  const BULK_MEMBROS_PLACEHOLDER =
+    "nome, email, telefone, data_nascimento (AAAA-MM-DD), genero, cidade, nacionalidade, religiao, nif\n" +
+    "Maria Silva, maria@exemplo.pt, 912345678, 1985-03-12, Feminino, Lisboa, Portuguesa, Católica, 123456789\n" +
+    "João Costa, , 933221100, 1990-07-25, Masculino, Porto, Portuguesa, , ";
+
+  const bulkAddMembros = useMutation({
+    mutationFn: async () => {
+      if (!membrosFamilia) throw new Error("Família não selecionada");
+      const lines = bulkMembrosText
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean)
+        // ignora linha de cabeçalho se o utilizador deixou o exemplo
+        .filter((l) => !/^nome\s*,/i.test(l));
+      if (lines.length === 0) throw new Error("Nada para importar");
+      const rows = lines.map((line, idx) => {
+        const cols = line.split(",").map((c) => c.trim());
+        const [nome, email, telefone, data_nascimento, genero, cidade, nacionalidade, religiao, nif] = cols;
+        if (!nome) throw new Error(`Linha ${idx + 1}: nome é obrigatório`);
+        if (data_nascimento && !/^\d{4}-\d{2}-\d{2}$/.test(data_nascimento)) {
+          throw new Error(`Linha ${idx + 1}: data deve estar em AAAA-MM-DD`);
+        }
+        return {
+          nome_completo: nome,
+          email: email || null,
+          telefone: telefone || null,
+          data_nascimento: data_nascimento || null,
+          genero: genero || null,
+          cidade_residencia: cidade || null,
+          nacionalidade: nacionalidade || null,
+          religiao: religiao || null,
+          nif: nif || null,
+          status: "ativo",
+          is_voluntario: bulkMembrosVoluntario,
+          familia_id: membrosFamilia.id,
+        };
+      });
+      const { error } = await supabase.from("pessoas").insert(rows as any);
+      if (error) throw error;
+      return rows.length;
+    },
+    onSuccess: (n) => {
+      toast.success(`${n} ${bulkMembrosVoluntario ? "voluntário(s)" : "membro(s)"} adicionado(s)`);
+      qc.invalidateQueries({ queryKey: ["familias", "membros", membrosFamilia?.id] });
+      qc.invalidateQueries({ queryKey: ["familias", "contagens"] });
+      qc.invalidateQueries({ queryKey: ["familias", "agregados"] });
+      qc.invalidateQueries({ queryKey: ["pessoas"] });
+      setBulkMembrosOpen(false);
+      setBulkMembrosText("");
+      setBulkMembrosVoluntario(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const addMembro = useMutation({
     mutationFn: async () => {
       if (!membrosFamilia) throw new Error("Família não selecionada");
