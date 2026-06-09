@@ -992,6 +992,26 @@ function ParticipantesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Nova família inline */}
+      <Dialog open={novaFamiliaOpen} onOpenChange={setNovaFamiliaOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Criar nova família</DialogTitle>
+            <DialogDescription>Introduz o nome da nova família.</DialogDescription>
+          </DialogHeader>
+          <Input
+            value={novaFamiliaNome}
+            onChange={(e) => setNovaFamiliaNome(e.target.value)}
+            placeholder="Nome da família"
+            onKeyDown={(e) => { if (e.key === "Enter" && novaFamiliaNome.trim()) criarFamilia.mutate(novaFamiliaNome); }}
+          />
+          <DialogFooter>
+            <Button onClick={() => criarFamilia.mutate(novaFamiliaNome)} disabled={!novaFamiliaNome.trim() || criarFamilia.isPending}>
+              {criarFamilia.isPending ? "A criar…" : "Criar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
