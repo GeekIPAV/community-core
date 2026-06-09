@@ -161,6 +161,7 @@ function ParticipantesPage() {
       const { data, error } = await supabase
         .from("pessoas")
         .select("id, nome_completo, email, telefone, nif, cartao_cidadao, morada, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao, profissao, projeto_ids, updated_at")
+        .is("deleted_at", null)
         .order("nome_completo", { ascending: true });
       if (error) throw error;
       return (data ?? []).map((p: any) => ({ ...p, projeto_ids: p.projeto_ids ?? [] })) as Pessoa[];
@@ -170,7 +171,7 @@ function ParticipantesPage() {
   const { data: familias } = useQuery({
     queryKey: ["familias_lookup"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("familias").select("id, nome, status").order("nome");
+      const { data, error } = await supabase.from("familias").select("id, nome, status").is("deleted_at", null).order("nome");
       if (error) throw error;
       return data as { id: string; nome: string; status: string | null }[];
     },
@@ -516,7 +517,7 @@ function ParticipantesPage() {
   const remove = useMutation({
     mutationFn: async (ids: string[]) => {
       if (ids.length === 0) throw new Error("Nada para apagar");
-      const { error } = await supabase.from("pessoas").delete().in("id", ids);
+      const { error } = await supabase.from("pessoas").update({ deleted_at: new Date().toISOString() } as any).in("id", ids);
       if (error) throw error;
       return ids.length;
     },

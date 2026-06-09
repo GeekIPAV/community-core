@@ -212,6 +212,7 @@ export type Database = {
         Row: {
           contacto_meeru_id: string | null
           created_at: string
+          deleted_at: string | null
           id: string
           nome: string
           notas: string | null
@@ -221,6 +222,7 @@ export type Database = {
         Insert: {
           contacto_meeru_id?: string | null
           created_at?: string
+          deleted_at?: string | null
           id?: string
           nome: string
           notas?: string | null
@@ -230,6 +232,7 @@ export type Database = {
         Update: {
           contacto_meeru_id?: string | null
           created_at?: string
+          deleted_at?: string | null
           id?: string
           nome?: string
           notas?: string | null
@@ -342,6 +345,7 @@ export type Database = {
           cidade_residencia: string | null
           created_at: string
           data_nascimento: string | null
+          deleted_at: string | null
           email: string | null
           familia_id: string | null
           fundido_em: string | null
@@ -369,6 +373,7 @@ export type Database = {
           cidade_residencia?: string | null
           created_at?: string
           data_nascimento?: string | null
+          deleted_at?: string | null
           email?: string | null
           familia_id?: string | null
           fundido_em?: string | null
@@ -396,6 +401,7 @@ export type Database = {
           cidade_residencia?: string | null
           created_at?: string
           data_nascimento?: string | null
+          deleted_at?: string | null
           email?: string | null
           familia_id?: string | null
           fundido_em?: string | null
