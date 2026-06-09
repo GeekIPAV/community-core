@@ -1377,73 +1377,110 @@ function FamiliasPage() {
               {membrosFamilia ? `Família: ${membrosFamilia.nome}` : ""}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="membro-nome">Nome completo</Label>
-              <Input id="membro-nome" value={novoMembro.nome_completo} onChange={(e) => setNovoMembro({ ...novoMembro, nome_completo: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="membro-email">Email</Label>
-              <Input id="membro-email" type="email" value={novoMembro.email} onChange={(e) => setNovoMembro({ ...novoMembro, email: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="membro-telefone">Telefone</Label>
-              <Input id="membro-telefone" value={novoMembro.telefone} onChange={(e) => setNovoMembro({ ...novoMembro, telefone: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="membro-data">Data de nascimento</Label>
-              <Input id="membro-data" type="date" value={novoMembro.data_nascimento} onChange={(e) => setNovoMembro({ ...novoMembro, data_nascimento: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label>Género</Label>
-              <Select value={novoMembro.genero || "__none"} onValueChange={(v) => setNovoMembro({ ...novoMembro, genero: v === "__none" ? "" : v })}>
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none">—</SelectItem>
-                  {GENERO_OPTS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="membro-cidade">Cidade</Label>
-              <Input id="membro-cidade" value={novoMembro.cidade_residencia} onChange={(e) => setNovoMembro({ ...novoMembro, cidade_residencia: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="membro-nacionalidade">Nacionalidade</Label>
-              <Input id="membro-nacionalidade" value={novoMembro.nacionalidade} onChange={(e) => setNovoMembro({ ...novoMembro, nacionalidade: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="membro-religiao">Religião</Label>
-              <Input id="membro-religiao" value={novoMembro.religiao} onChange={(e) => setNovoMembro({ ...novoMembro, religiao: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="membro-nif">NIF</Label>
-              <Input id="membro-nif" value={novoMembro.nif} onChange={(e) => setNovoMembro({ ...novoMembro, nif: e.target.value })} />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label>Projetos</Label>
-              <InlineMultiSelect
-                values={novoMembro.projeto_ids}
-                options={(projetosList ?? []).map((p) => ({ value: p.id, label: p.nome }))}
-                placeholder="sem projetos"
-                onSave={(v) => setNovoMembro({ ...novoMembro, projeto_ids: v })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={novoMembro.status} onValueChange={(v) => setNovoMembro({ ...novoMembro, status: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {PESSOA_STATUS_OPTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button onClick={() => addMembro.mutate()} disabled={!novoMembro.nome_completo.trim() || addMembro.isPending}>
-              {addMembro.isPending ? "A guardar…" : "Adicionar"}
-            </Button>
-          </DialogFooter>
+          <Tabs defaultValue="individual" className="flex flex-col gap-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="individual">Individual</TabsTrigger>
+              <TabsTrigger value="massa">Importar em massa</TabsTrigger>
+            </TabsList>
+            <TabsContent value="individual">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="membro-nome">Nome completo</Label>
+                  <Input id="membro-nome" value={novoMembro.nome_completo} onChange={(e) => setNovoMembro({ ...novoMembro, nome_completo: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="membro-email">Email</Label>
+                  <Input id="membro-email" type="email" value={novoMembro.email} onChange={(e) => setNovoMembro({ ...novoMembro, email: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="membro-telefone">Telefone</Label>
+                  <Input id="membro-telefone" value={novoMembro.telefone} onChange={(e) => setNovoMembro({ ...novoMembro, telefone: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="membro-data">Data de nascimento</Label>
+                  <Input id="membro-data" type="date" value={novoMembro.data_nascimento} onChange={(e) => setNovoMembro({ ...novoMembro, data_nascimento: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Género</Label>
+                  <Select value={novoMembro.genero || "__none"} onValueChange={(v) => setNovoMembro({ ...novoMembro, genero: v === "__none" ? "" : v })}>
+                    <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">—</SelectItem>
+                      {GENERO_OPTS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="membro-cidade">Cidade</Label>
+                  <Input id="membro-cidade" value={novoMembro.cidade_residencia} onChange={(e) => setNovoMembro({ ...novoMembro, cidade_residencia: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="membro-nacionalidade">Nacionalidade</Label>
+                  <Input id="membro-nacionalidade" value={novoMembro.nacionalidade} onChange={(e) => setNovoMembro({ ...novoMembro, nacionalidade: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="membro-religiao">Religião</Label>
+                  <Input id="membro-religiao" value={novoMembro.religiao} onChange={(e) => setNovoMembro({ ...novoMembro, religiao: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="membro-nif">NIF</Label>
+                  <Input id="membro-nif" value={novoMembro.nif} onChange={(e) => setNovoMembro({ ...novoMembro, nif: e.target.value })} />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label>Projetos</Label>
+                  <InlineMultiSelect
+                    values={novoMembro.projeto_ids}
+                    options={(projetosList ?? []).map((p) => ({ value: p.id, label: p.nome }))}
+                    placeholder="sem projetos"
+                    onSave={(v) => setNovoMembro({ ...novoMembro, projeto_ids: v })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select value={novoMembro.status} onValueChange={(v) => setNovoMembro({ ...novoMembro, status: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {PESSOA_STATUS_OPTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter className="mt-4">
+                <Button onClick={() => addMembro.mutate()} disabled={!novoMembro.nome_completo.trim() || addMembro.isPending}>
+                  {addMembro.isPending ? "A guardar…" : "Adicionar"}
+                </Button>
+              </DialogFooter>
+            </TabsContent>
+            <TabsContent value="massa">
+              <div className="space-y-3">
+                <Textarea
+                  rows={10}
+                  className="font-mono text-xs"
+                  placeholder={BULK_MEMBROS_PLACEHOLDER}
+                  value={bulkMembrosText}
+                  onChange={(e) => setBulkMembrosText(e.target.value)}
+                />
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={bulkMembrosVoluntario}
+                    onCheckedChange={(v) => setBulkMembrosVoluntario(!!v)}
+                  />
+                  Adicionar como voluntários
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  Colunas: nome, email, telefone, data_nascimento (AAAA-MM-DD), genero, cidade, nacionalidade, religiao, nif. Só o nome é obrigatório — deixa as restantes em branco entre vírgulas.
+                </p>
+              </div>
+              <DialogFooter className="mt-4">
+                <Button
+                  onClick={() => bulkAddMembros.mutate()}
+                  disabled={!bulkMembrosText.trim() || bulkAddMembros.isPending}
+                >
+                  {bulkAddMembros.isPending ? "A importar…" : "Importar"}
+                </Button>
+              </DialogFooter>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
 
