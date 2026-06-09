@@ -69,7 +69,7 @@ const STATUS_STYLES: Record<FamiliaStatus, string> = {
   "Fora do País": "bg-pink-100 text-pink-700 border-transparent dark:bg-pink-950 dark:text-pink-300",
 };
 
-type Familia = { id: string; nome: string; notas: string | null; status: FamiliaStatus; contacto_meeru_id: string | null };
+type Familia = { id: string; nome: string; notas: string | null; status: FamiliaStatus; contacto_meeru_id: string | null; updated_at: string | null };
 
 function FamiliasPage() {
   const qc = useQueryClient();
@@ -239,7 +239,7 @@ function FamiliasPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("familias")
-        .select("id, nome, notas, status, contacto_meeru_id")
+        .select("id, nome, notas, status, contacto_meeru_id, updated_at")
         .order("nome");
       if (error) throw error;
       return data as Familia[];
@@ -568,6 +568,12 @@ function FamiliasPage() {
     { id: "inscricoes", header: "Inscrições", accessorFn: (f) => Array.from(agregados?.get(f.id)?.inscricoes ?? []).sort().join(", "), cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Inscrições" } satisfies ColumnFilterMeta },
     { id: "contacto_meeru", header: "Contacto MEERU", accessorFn: (f) => (f.contacto_meeru_id ? (equipaMap.get(f.contacto_meeru_id)?.nome_completo ?? "—") : ""), cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Contacto MEERU" } satisfies ColumnFilterMeta },
     { id: "notas", header: "Notas", accessorKey: "notas", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Notas" } satisfies ColumnFilterMeta },
+    { id: "updated_at", header: "Última edição", accessorKey: "updated_at",
+      cell: ({ getValue }) => {
+        const v = getValue() as string | null;
+        return <span className="text-muted-foreground">{v ? new Date(v).toLocaleString("pt-PT") : "—"}</span>;
+      },
+      filterFn: advancedFilterFn as any, meta: { filterVariant: "date", label: "Última edição" } satisfies ColumnFilterMeta },
   ], [contagens, agregados, equipaMap]);
 
   const [sorting, setSorting] = useState<SortingState>([]);
