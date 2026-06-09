@@ -812,11 +812,15 @@ function ParticipantesPage() {
               <Field label="Religião"><Input value={editing.religiao ?? ""} onChange={(e) => setEditing({ ...editing, religiao: e.target.value })} /></Field>
               <Field label="Profissão"><Input value={editing.profissao ?? ""} onChange={(e) => setEditing({ ...editing, profissao: e.target.value })} /></Field>
               <Field label="Família" className="col-span-2">
-                <Select value={editing.familia_id ?? "__null"} onValueChange={(v) => setEditing({ ...editing, familia_id: v === "__null" ? null : v })}>
+                <Select value={editing.familia_id ?? "__null"} onValueChange={(v) => {
+                  if (v === "__criar_nova_familia") { setNovaFamiliaTarget("editing"); setNovaFamiliaOpen(true); return; }
+                  setEditing({ ...editing, familia_id: v === "__null" ? null : v });
+                }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__null">— sem família —</SelectItem>
                     {familias?.map((f) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
+                    <SelectItem value="__criar_nova_familia" className="text-primary font-medium">+ Criar nova família…</SelectItem>
                   </SelectContent>
                 </Select>
               </Field>
