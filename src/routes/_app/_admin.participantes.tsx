@@ -132,7 +132,6 @@ function ParticipantesPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [editing, setEditing] = useState<Pessoa | null>(null);
 
-  const [bulkAddOpen, setBulkAddOpen] = useState(false);
   const [bulkText, setBulkText] = useState("");
 
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
