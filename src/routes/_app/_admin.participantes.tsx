@@ -830,31 +830,6 @@ function ParticipantesPage() {
       </Dialog>
 
       {/* Bulk add */}
-      <Dialog open={bulkAddOpen} onOpenChange={setBulkAddOpen}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Importar pessoas em massa</DialogTitle>
-            <DialogDescription>
-              Uma pessoa por linha, valores separados por vírgula na ordem:{" "}
-              <code>{BULK_COLUMNS.join(", ")}</code>. Só o nome é obrigatório.
-              A <code>data_nascimento</code> usa o formato AAAA-MM-DD, o <code>genero</code> é Masculino ou Feminino e a <code>familia</code> deve corresponder ao nome exato de uma família existente.
-            </DialogDescription>
-          </DialogHeader>
-          <Textarea
-            rows={10}
-            className="font-mono text-xs whitespace-pre"
-            placeholder={"Ana Silva, ana@mail.com, 912345678, 123456789, 1990-04-12, Feminino, Portuguesa, Lisboa, Católica, Família Silva\nJoão Costa, , , , , Masculino, , Porto, , "}
-            value={bulkText}
-            onChange={(e) => setBulkText(e.target.value)}
-          />
-          <DialogFooter>
-            <Button onClick={() => bulkCreate.mutate()} disabled={!bulkText.trim() || bulkCreate.isPending}>
-              {bulkCreate.isPending ? "A importar…" : "Importar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Bulk edit */}
       <Dialog open={bulkEditOpen} onOpenChange={setBulkEditOpen}>
         <DialogContent>
