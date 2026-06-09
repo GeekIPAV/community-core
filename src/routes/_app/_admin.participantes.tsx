@@ -120,6 +120,7 @@ const emptyForm: Omit<Pessoa, "id" | "status"> & { status?: string } = {
   religiao: "",
   profissao: "",
   projeto_ids: [],
+  updated_at: null,
 };
 
 function ParticipantesPage() {
