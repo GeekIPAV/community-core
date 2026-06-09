@@ -219,8 +219,7 @@ function FamiliasPage() {
 
   const deletePessoa = useMutation({
     mutationFn: async (pessoaId: string) => {
-      await supabase.from("inscricoes").delete().eq("pessoa_id", pessoaId);
-      const { error } = await supabase.from("pessoas").delete().eq("id", pessoaId);
+      const { error } = await supabase.from("pessoas").update({ deleted_at: new Date().toISOString() } as any).eq("id", pessoaId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -240,6 +239,7 @@ function FamiliasPage() {
       const { data, error } = await supabase
         .from("familias")
         .select("id, nome, notas, status, contacto_meeru_id, updated_at")
+        .is("deleted_at", null)
         .order("nome");
       if (error) throw error;
       return data as Familia[];
@@ -484,7 +484,7 @@ function FamiliasPage() {
 
   const deleteFamilia = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("familias").delete().eq("id", id);
+      const { error } = await supabase.from("familias").update({ deleted_at: new Date().toISOString() } as any).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
