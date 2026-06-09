@@ -136,6 +136,10 @@ function ParticipantesPage() {
 
   const [bulkText, setBulkText] = useState("");
 
+  const [novaFamiliaOpen, setNovaFamiliaOpen] = useState(false);
+  const [novaFamiliaNome, setNovaFamiliaNome] = useState("");
+  const [novaFamiliaTarget, setNovaFamiliaTarget] = useState<"form" | "editing">("form");
+
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [bulkFamilia, setBulkFamilia] = useState<string>("__noop");
   const [bulkStatus, setBulkStatus] = useState<string>("__noop");
