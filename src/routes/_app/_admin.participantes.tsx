@@ -433,6 +433,23 @@ function ParticipantesPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const criarFamilia = useMutation({
+    mutationFn: async (nome: string) => {
+      const { data, error } = await supabase.from("familias").insert({ nome: nome.trim(), status: "Sem estado" }).select("id").single();
+      if (error) throw error;
+      return data.id as string;
+    },
+    onSuccess: (id) => {
+      toast.success("Família criada");
+      qc.invalidateQueries({ queryKey: ["familias_lookup"] });
+      if (novaFamiliaTarget === "form") setForm({ ...form, familia_id: id });
+      else if (novaFamiliaTarget === "editing" && editing) setEditing({ ...editing, familia_id: id });
+      setNovaFamiliaOpen(false);
+      setNovaFamiliaNome("");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const bulkCreate = useMutation({
     mutationFn: async () => {
       const rows = parseBulkCsv(bulkText, familias ?? [], projetos ?? []);
