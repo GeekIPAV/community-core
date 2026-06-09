@@ -136,6 +136,10 @@ function ParticipantesPage() {
 
   const [bulkText, setBulkText] = useState("");
 
+  const [novaFamiliaOpen, setNovaFamiliaOpen] = useState(false);
+  const [novaFamiliaNome, setNovaFamiliaNome] = useState("");
+  const [novaFamiliaTarget, setNovaFamiliaTarget] = useState<"form" | "editing">("form");
+
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [bulkFamilia, setBulkFamilia] = useState<string>("__noop");
   const [bulkStatus, setBulkStatus] = useState<string>("__noop");
@@ -429,6 +433,23 @@ function ParticipantesPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const criarFamilia = useMutation({
+    mutationFn: async (nome: string) => {
+      const { data, error } = await supabase.from("familias").insert({ nome: nome.trim(), status: "Sem estado" }).select("id").single();
+      if (error) throw error;
+      return data.id as string;
+    },
+    onSuccess: (id) => {
+      toast.success("Família criada");
+      qc.invalidateQueries({ queryKey: ["familias_lookup"] });
+      if (novaFamiliaTarget === "form") setForm({ ...form, familia_id: id });
+      else if (novaFamiliaTarget === "editing" && editing) setEditing({ ...editing, familia_id: id });
+      setNovaFamiliaOpen(false);
+      setNovaFamiliaNome("");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const bulkCreate = useMutation({
     mutationFn: async () => {
       const rows = parseBulkCsv(bulkText, familias ?? [], projetos ?? []);
@@ -704,11 +725,15 @@ function ParticipantesPage() {
             <Field label="Religião"><Input value={form.religiao ?? ""} onChange={(e) => setForm({ ...form, religiao: e.target.value })} /></Field>
             <Field label="Profissão"><Input value={form.profissao ?? ""} onChange={(e) => setForm({ ...form, profissao: e.target.value })} /></Field>
             <Field label="Família" className="col-span-2">
-              <Select value={form.familia_id ?? "__null"} onValueChange={(v) => setForm({ ...form, familia_id: v === "__null" ? null : v })}>
+              <Select value={form.familia_id ?? "__null"} onValueChange={(v) => {
+                if (v === "__criar_nova_familia") { setNovaFamiliaTarget("form"); setNovaFamiliaOpen(true); return; }
+                setForm({ ...form, familia_id: v === "__null" ? null : v });
+              }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__null">— sem família —</SelectItem>
                   {familias?.map((f) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
+                  <SelectItem value="__criar_nova_familia" className="text-primary font-medium">+ Criar nova família…</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
@@ -787,11 +812,15 @@ function ParticipantesPage() {
               <Field label="Religião"><Input value={editing.religiao ?? ""} onChange={(e) => setEditing({ ...editing, religiao: e.target.value })} /></Field>
               <Field label="Profissão"><Input value={editing.profissao ?? ""} onChange={(e) => setEditing({ ...editing, profissao: e.target.value })} /></Field>
               <Field label="Família" className="col-span-2">
-                <Select value={editing.familia_id ?? "__null"} onValueChange={(v) => setEditing({ ...editing, familia_id: v === "__null" ? null : v })}>
+                <Select value={editing.familia_id ?? "__null"} onValueChange={(v) => {
+                  if (v === "__criar_nova_familia") { setNovaFamiliaTarget("editing"); setNovaFamiliaOpen(true); return; }
+                  setEditing({ ...editing, familia_id: v === "__null" ? null : v });
+                }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__null">— sem família —</SelectItem>
                     {familias?.map((f) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
+                    <SelectItem value="__criar_nova_familia" className="text-primary font-medium">+ Criar nova família…</SelectItem>
                   </SelectContent>
                 </Select>
               </Field>
@@ -963,6 +992,26 @@ function ParticipantesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Nova família inline */}
+      <Dialog open={novaFamiliaOpen} onOpenChange={setNovaFamiliaOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Criar nova família</DialogTitle>
+            <DialogDescription>Introduz o nome da nova família.</DialogDescription>
+          </DialogHeader>
+          <Input
+            value={novaFamiliaNome}
+            onChange={(e) => setNovaFamiliaNome(e.target.value)}
+            placeholder="Nome da família"
+            onKeyDown={(e) => { if (e.key === "Enter" && novaFamiliaNome.trim()) criarFamilia.mutate(novaFamiliaNome); }}
+          />
+          <DialogFooter>
+            <Button onClick={() => criarFamilia.mutate(novaFamiliaNome)} disabled={!novaFamiliaNome.trim() || criarFamilia.isPending}>
+              {criarFamilia.isPending ? "A criar…" : "Criar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
