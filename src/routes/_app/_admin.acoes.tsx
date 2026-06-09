@@ -1742,6 +1742,25 @@ function AcoesPageInner() {
                 </div>
                 <Switch checked={form.bolsa_transporte} onCheckedChange={(c) => setForm({ ...form, bolsa_transporte: c })} />
               </label>
+              <div className="space-y-2 rounded-md border p-3">
+                <Label>Projetos associados</Label>
+                <ProjetosMultiSelect
+                  values={form.projeto_ids}
+                  options={(projetos ?? []).map((p) => ({ value: p.id, label: p.nome }))}
+                  onChange={(v) => setForm({ ...form, projeto_ids: v })}
+                />
+                <label className="flex items-center justify-between gap-3 pt-1">
+                  <div>
+                    <p className="text-sm font-medium">Restringir a participantes destes projetos</p>
+                    <p className="text-xs text-muted-foreground">Quando ligado, apenas participantes inscritos em pelo menos um dos projetos podem inscrever-se. Sem projetos selecionados, qualquer pessoa pode inscrever-se.</p>
+                  </div>
+                  <Switch
+                    checked={form.restrito_a_projetos}
+                    disabled={form.projeto_ids.length === 0}
+                    onCheckedChange={(c) => setForm({ ...form, restrito_a_projetos: c })}
+                  />
+                </label>
+              </div>
               <div className="space-y-2">
                 <Label>Descrição</Label>
                 <RichTextEditor value={form.descricao} onChange={(v) => setForm({ ...form, descricao: v })} />
