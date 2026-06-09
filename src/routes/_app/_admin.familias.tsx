@@ -1240,7 +1240,10 @@ function FamiliasPage() {
                 return (
                   <div className="flex flex-col h-full min-h-0 gap-3">
                     <div className="flex justify-end">
-                      <Button size="sm" onClick={() => setAddMembroOpen(true)}>
+                      <Button size="sm" variant="outline" onClick={() => setBulkMembrosOpen(true)}>
+                        <Upload className="mr-2 h-4 w-4" /> Importar em massa
+                      </Button>
+                      <Button size="sm" className="ml-2" onClick={() => setAddMembroOpen(true)}>
                         <Plus className="mr-2 h-4 w-4" /> Adicionar membro
                       </Button>
                     </div>
