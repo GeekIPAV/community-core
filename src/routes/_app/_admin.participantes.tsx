@@ -25,7 +25,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, Lock, LockOpen, Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { ChevronDown, ChevronRight, Lock, LockOpen, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   useReactTable,
   getCoreRowModel,
