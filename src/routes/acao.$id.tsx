@@ -322,14 +322,14 @@ function LoggedInForm({ acao, pessoa, fields, onDone }: { acao: any; pessoa: any
     queryFn: async () => {
       if (!pessoa) return [];
       if (!pessoa.familia_id) {
-        return [{ id: pessoa.id, nome_completo: pessoa.nome_completo, cidade_residencia: pessoa.cidade_residencia }];
+        return [{ id: pessoa.id, nome_completo: pessoa.nome_completo, cidade_residencia: pessoa.cidade_residencia, projeto_ids: (pessoa as any).projeto_ids ?? [] }];
       }
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, cidade_residencia")
+        .select("id, nome_completo, cidade_residencia, projeto_ids")
         .eq("familia_id", pessoa.familia_id);
       if (error) throw error;
-      return data;
+      return (data ?? []).map((p: any) => ({ ...p, projeto_ids: p.projeto_ids ?? [] }));
     },
   });
 
