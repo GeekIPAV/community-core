@@ -217,10 +217,12 @@ type AcaoForm = {
   status: string;
   inscricoes_abertas: boolean;
   bolsa_transporte: boolean;
+  projeto_ids: string[];
+  restrito_a_projetos: boolean;
   fields: FieldDef[];
 };
 
-const EMPTY_FORM: AcaoForm = { nome: "", local: "", mapa_url: "", imagem_url: "", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, bolsa_transporte: false, fields: [] };
+const EMPTY_FORM: AcaoForm = { nome: "", local: "", mapa_url: "", imagem_url: "", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, bolsa_transporte: false, projeto_ids: [], restrito_a_projetos: false, fields: [] };
 
 const acaoFormSchema = z
   .object({
