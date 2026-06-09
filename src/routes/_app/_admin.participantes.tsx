@@ -432,7 +432,7 @@ function ParticipantesPage() {
     onSuccess: (n) => {
       toast.success(`${n} pessoas importadas`);
       invalidate();
-      setBulkAddOpen(false);
+      setAddOpen(false);
       setBulkText("");
     },
     onError: (e: Error) => toast.error(e.message),
