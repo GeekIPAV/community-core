@@ -133,10 +133,34 @@ function InscreverDialog({ open, onOpenChange, acao }: { open: boolean; onOpenCh
         {session ? (
           <LoggedInForm acao={acao} pessoa={pessoa} fields={fields} onDone={() => onOpenChange(false)} />
         ) : (
-          <AnonForm acao={acao} fields={fields} onDone={() => onOpenChange(false)} />
+          acao?.restrito_a_projetos && (acao?.projeto_ids?.length ?? 0) > 0 ? (
+            <RestritoLoginPrompt />
+          ) : (
+            <AnonForm acao={acao} fields={fields} onDone={() => onOpenChange(false)} />
+          )
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function RestritoLoginPrompt() {
+  const navigate = useNavigate();
+  return (
+    <div className="space-y-3 rounded-md border bg-muted/40 p-4 text-sm">
+      <p>Esta ação está reservada a participantes dos projetos associados. Inicia sessão com a tua conta para te inscreveres.</p>
+      <Button
+        type="button"
+        onClick={() => {
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem("postLoginRedirect", window.location.pathname);
+          }
+          navigate({ to: "/login" });
+        }}
+      >
+        Iniciar sessão
+      </Button>
+    </div>
   );
 }
 
