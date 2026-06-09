@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SavedViews } from "@/components/saved-views";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -24,7 +25,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, Lock, LockOpen, Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { ChevronDown, ChevronRight, Lock, LockOpen, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -131,7 +132,6 @@ function ParticipantesPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [editing, setEditing] = useState<Pessoa | null>(null);
 
-  const [bulkAddOpen, setBulkAddOpen] = useState(false);
   const [bulkText, setBulkText] = useState("");
 
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
@@ -432,7 +432,7 @@ function ParticipantesPage() {
     onSuccess: (n) => {
       toast.success(`${n} pessoas importadas`);
       invalidate();
-      setBulkAddOpen(false);
+      setAddOpen(false);
       setBulkText("");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -554,22 +554,23 @@ function ParticipantesPage() {
           >
             {inlineEdit ? <LockOpen className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
           </Button>
-          <Button variant="outline" onClick={() => setBulkAddOpen(true)}>
-            <Upload className="mr-2 h-4 w-4" /> Importar
-          </Button>
           <Button
             variant="outline"
+            size="icon"
             disabled={selected.size === 0}
             onClick={() => setBulkEditOpen(true)}
+            title={selected.size > 0 ? `Editar (${selected.size})` : "Editar"}
           >
-            <Pencil className="mr-2 h-4 w-4" /> Editar {selected.size > 0 ? `(${selected.size})` : ""}
+            <Pencil className="h-4 w-4" />
           </Button>
           <Button
             variant="destructive"
+            size="icon"
             disabled={selected.size === 0}
             onClick={() => setBulkDeleteOpen(true)}
+            title={selected.size > 0 ? `Apagar (${selected.size})` : "Apagar"}
           >
-            <Trash2 className="mr-2 h-4 w-4" /> Apagar {selected.size > 0 ? `(${selected.size})` : ""}
+            <Trash2 className="h-4 w-4" />
           </Button>
           <Button onClick={() => setAddOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Adicionar
@@ -665,7 +666,13 @@ function ParticipantesPage() {
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Nova pessoa</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3">
+          <Tabs defaultValue="individual">
+            <TabsList>
+              <TabsTrigger value="individual">Individual</TabsTrigger>
+              <TabsTrigger value="bulk">Importar em massa</TabsTrigger>
+            </TabsList>
+            <TabsContent value="individual">
+              <div className="grid grid-cols-2 gap-3">
             <Field label="Nome *" className="col-span-2">
               <Input value={form.nome_completo} onChange={(e) => setForm({ ...form, nome_completo: e.target.value })} />
             </Field>
@@ -715,12 +722,33 @@ function ParticipantesPage() {
               </Select>
             </Field>
             <Field label="Notas" className="col-span-2"><Textarea value={form.notas ?? ""} onChange={(e) => setForm({ ...form, notas: e.target.value })} /></Field>
-          </div>
-          <DialogFooter>
+              </div>
+              <DialogFooter className="mt-4">
             <Button onClick={() => create.mutate()} disabled={!form.nome_completo.trim() || create.isPending}>
               {create.isPending ? "A guardar…" : "Guardar"}
             </Button>
-          </DialogFooter>
+              </DialogFooter>
+            </TabsContent>
+            <TabsContent value="bulk">
+              <p className="text-sm text-muted-foreground mb-2">
+                Uma pessoa por linha, valores separados por vírgula na ordem:{" "}
+                <code>{BULK_COLUMNS.join(", ")}</code>. Só o nome é obrigatório.
+                A <code>data_nascimento</code> usa o formato AAAA-MM-DD, o <code>genero</code> é Masculino ou Feminino e a <code>familia</code> deve corresponder ao nome exato de uma família existente.
+              </p>
+              <Textarea
+                rows={10}
+                className="font-mono text-xs whitespace-pre"
+                placeholder={"Ana Silva, ana@mail.com, 912345678, 123456789, 1990-04-12, Feminino, Portuguesa, Lisboa, Católica, Família Silva\nJoão Costa, , , , , Masculino, , Porto, , "}
+                value={bulkText}
+                onChange={(e) => setBulkText(e.target.value)}
+              />
+              <DialogFooter className="mt-4">
+                <Button onClick={() => bulkCreate.mutate()} disabled={!bulkText.trim() || bulkCreate.isPending}>
+                  {bulkCreate.isPending ? "A importar…" : "Importar"}
+                </Button>
+              </DialogFooter>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
 
@@ -801,31 +829,6 @@ function ParticipantesPage() {
       </Dialog>
 
       {/* Bulk add */}
-      <Dialog open={bulkAddOpen} onOpenChange={setBulkAddOpen}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Importar pessoas em massa</DialogTitle>
-            <DialogDescription>
-              Uma pessoa por linha, valores separados por vírgula na ordem:{" "}
-              <code>{BULK_COLUMNS.join(", ")}</code>. Só o nome é obrigatório.
-              A <code>data_nascimento</code> usa o formato AAAA-MM-DD, o <code>genero</code> é Masculino ou Feminino e a <code>familia</code> deve corresponder ao nome exato de uma família existente.
-            </DialogDescription>
-          </DialogHeader>
-          <Textarea
-            rows={10}
-            className="font-mono text-xs whitespace-pre"
-            placeholder={"Ana Silva, ana@mail.com, 912345678, 123456789, 1990-04-12, Feminino, Portuguesa, Lisboa, Católica, Família Silva\nJoão Costa, , , , , Masculino, , Porto, , "}
-            value={bulkText}
-            onChange={(e) => setBulkText(e.target.value)}
-          />
-          <DialogFooter>
-            <Button onClick={() => bulkCreate.mutate()} disabled={!bulkText.trim() || bulkCreate.isPending}>
-              {bulkCreate.isPending ? "A importar…" : "Importar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Bulk edit */}
       <Dialog open={bulkEditOpen} onOpenChange={setBulkEditOpen}>
         <DialogContent>
