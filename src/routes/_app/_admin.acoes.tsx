@@ -1535,10 +1535,19 @@ function AcoesPageInner() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("acoes")
-        .select("id, nome, local, mapa_url, imagem_url, data_inicio, data_fim, status, inscricoes_abertas, bolsa_transporte, config_campos")
+        .select("id, nome, local, mapa_url, imagem_url, data_inicio, data_fim, status, inscricoes_abertas, bolsa_transporte, projeto_ids, restrito_a_projetos, config_campos")
         .order("data_inicio", { ascending: false, nullsFirst: false });
       if (error) throw error;
       return data;
+    },
+  });
+
+  const { data: projetos } = useQuery({
+    queryKey: ["projetos_lookup"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("projetos").select("id, nome").order("nome");
+      if (error) throw error;
+      return data as { id: string; nome: string }[];
     },
   });
 
@@ -1586,6 +1595,8 @@ function AcoesPageInner() {
         status: form.status,
         inscricoes_abertas: form.inscricoes_abertas,
         bolsa_transporte: form.bolsa_transporte,
+        projeto_ids: form.projeto_ids ?? [],
+        restrito_a_projetos: form.restrito_a_projetos,
         config_campos: { fields: form.fields },
       } as any);
       if (error) throw error;
@@ -1620,6 +1631,8 @@ function AcoesPageInner() {
           status: editing.status,
           inscricoes_abertas: editing.inscricoes_abertas,
           bolsa_transporte: editing.bolsa_transporte,
+          projeto_ids: editing.projeto_ids ?? [],
+          restrito_a_projetos: editing.restrito_a_projetos,
           config_campos: { fields: editing.fields },
         } as any)
         .eq("id", editing.id);
@@ -1776,6 +1789,8 @@ function AcoesPageInner() {
                     status: String((a as any).status ?? "ativa"),
                     inscricoes_abertas: inscricoesAbertas,
                     bolsa_transporte: !!(a as any).bolsa_transporte,
+                    projeto_ids: ((a as any).projeto_ids ?? []) as string[],
+                    restrito_a_projetos: !!(a as any).restrito_a_projetos,
                     fields,
                   });
                 }}
