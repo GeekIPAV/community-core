@@ -162,7 +162,7 @@ function FamiliasPage() {
       qc.invalidateQueries({ queryKey: ["familias", "contagens"] });
       qc.invalidateQueries({ queryKey: ["familias", "agregados"] });
       qc.invalidateQueries({ queryKey: ["pessoas"] });
-      setBulkMembrosOpen(false);
+      setAddMembroOpen(false);
       setBulkMembrosText("");
       setBulkMembrosVoluntario(false);
     },
