@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { User, Users, Users2, AlertTriangle, CalendarDays, Globe, UserCog, Briefcase, BarChart3, Languages, Bus, Activity, MapPin } from "lucide-react";
+import { User, Users, Users2, AlertTriangle, CalendarDays, Globe, UserCog, Briefcase, BarChart3, Languages, Bus, Activity, MapPin, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   Sidebar,
@@ -139,6 +139,16 @@ export function AppSidebar() {
                     <Link to="/tipos-user" className="flex items-center gap-2">
                       <UserCog className="h-4 w-4" />
                       <span>{t("nav.userTypes")}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                )}
+                {isAdmin && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive("/eliminados")}>
+                    <Link to="/eliminados" className="flex items-center gap-2">
+                      <Trash2 className="h-4 w-4" />
+                      <span>Eliminados</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
