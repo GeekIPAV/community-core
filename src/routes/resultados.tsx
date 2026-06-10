@@ -678,6 +678,8 @@ function AtividadesSection({ data }: { data: Estatisticas }) {
   const top = data.atividades_top ?? [];
   if (total === 0 && porCat.length === 0 && top.length === 0) return null;
 
+  const totalCat = porCat.reduce((acc, d) => acc + (d.count ?? 0), 0);
+
   return (
     <div className="space-y-3">
       <h2 className="text-lg font-semibold">Atividades & Acompanhamento</h2>
@@ -694,9 +696,12 @@ function AtividadesSection({ data }: { data: Estatisticas }) {
               <div className="h-64" dir="ltr">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={porCat} dataKey="count" nameKey="nome" outerRadius={90} label>
+                    <Pie data={porCat} dataKey="count" nameKey="nome" innerRadius={60} outerRadius={90} label>
                       {porCat.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                     </Pie>
+                    <text x="50%" y="50%" textAnchor="middle" dominantBaseline="central" className="fill-foreground">
+                      <tspan fontSize="24" fontWeight="600">{totalCat}</tspan>
+                    </text>
                     <Tooltip />
                     <Legend />
                   </PieChart>
