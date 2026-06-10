@@ -850,13 +850,17 @@ function ChartRenderer({ type, data }: { type: ChartType; data: { name: string; 
             nameKey="name"
             cx="50%"
             cy="50%"
-            outerRadius={90}
+            innerRadius={70}
+            outerRadius={110}
             label={(e: { name: string; value: number }) => `${e.name}: ${e.value} (${pct(e.value)}%)`}
           >
             {data.map((_, i) => (
               <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
             ))}
           </Pie>
+          <text x="50%" y="50%" textAnchor="middle" dominantBaseline="central" className="fill-foreground">
+            <tspan fontSize="28" fontWeight="700">{total}</tspan>
+          </text>
           <Tooltip
             formatter={fmtTooltip}
             contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
