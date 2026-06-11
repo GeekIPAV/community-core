@@ -49,7 +49,7 @@ export function AcoesPlaneamento({ acoes, projetos }: { acoes: Acao[]; projetos:
         </div>
       </div>
       {mode === "gantt" ? (
-        <GanttView acoes={acoes} year={year} projMap={projMap} />
+        <GanttView acoes={acoes} year={year} projMap={projMap} projetos={projetos} />
       ) : (
         <CalendarioView acoes={acoes} year={year} projMap={projMap} />
       )}
@@ -69,7 +69,7 @@ function useUpdateDates() {
   });
 }
 
-function GanttView({ acoes, year, projMap }: { acoes: Acao[]; year: number; projMap: Map<string, Projeto> }) {
+function GanttView({ acoes, year, projMap, projetos }: { acoes: Acao[]; year: number; projMap: Map<string, Projeto>; projetos: Projeto[] }) {
   const yearStart = new Date(year, 0, 1);
   const yearEnd = new Date(year + 1, 0, 1);
   const totalDays = daysBetween(yearStart, yearEnd);
