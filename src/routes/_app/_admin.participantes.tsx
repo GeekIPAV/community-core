@@ -909,6 +909,9 @@ function ParticipantesPage() {
               <TabsContent value="acoes" className="mt-4">
                 <PessoaInscricoes pessoaId={editing.id} />
               </TabsContent>
+              <TabsContent value="etiquetas" className="mt-4">
+                <EtiquetasPicker pessoaId={editing.id} />
+              </TabsContent>
             </Tabs>
           )}
           <DialogFooter className="sm:justify-between">
