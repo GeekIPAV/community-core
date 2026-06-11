@@ -825,6 +825,7 @@ function ParticipantesPage() {
                 <TabsTrigger value="perfil">Perfil</TabsTrigger>
                 <TabsTrigger value="dados">Dados</TabsTrigger>
                 <TabsTrigger value="acoes">Ações / Eventos</TabsTrigger>
+                <TabsTrigger value="etiquetas">Etiquetas</TabsTrigger>
               </TabsList>
               <TabsContent value="perfil" className="mt-4">
                 <PessoaPerfil
