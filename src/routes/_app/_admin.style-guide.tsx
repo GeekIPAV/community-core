@@ -74,7 +74,7 @@ function StyleGuidePage() {
       }
       const { error } = await supabase
         .from("design_tokens" as never)
-        .update({ tokens: cleaned })
+        .update({ tokens: cleaned } as never)
         .eq("id", true);
       if (error) throw error;
     },
