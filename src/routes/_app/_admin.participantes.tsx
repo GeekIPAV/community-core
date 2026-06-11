@@ -608,6 +608,32 @@ function ParticipantesPage() {
           <Button onClick={() => setAddOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Adicionar
           </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            title="Exportar CSV (linhas visíveis)"
+            onClick={() => {
+              const visibleCols = table.getVisibleLeafColumns().filter((c) => c.id !== "select");
+              const cols = visibleCols.map((c) => c.id);
+              const headers = visibleCols.map((c) => {
+                const h = c.columnDef.header;
+                return typeof h === "string" ? h : c.id;
+              });
+              const rowsCsv = table.getFilteredRowModel().rows.map((row) => {
+                const r: Record<string, unknown> = {};
+                visibleCols.forEach((c, i) => {
+                  const v = row.getValue(c.id);
+                  r[c.id] = v == null ? "" : String(v);
+                });
+                return r;
+              });
+              const csvBody = toCSV(rowsCsv, cols);
+              const csv = `${headers.map((h) => `"${String(h).replace(/"/g, '""')}"`).join(",")}\n${csvBody.split("\n").slice(1).join("\n")}`;
+              downloadCSV(`participantes-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+            }}
+          >
+            <Download className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
