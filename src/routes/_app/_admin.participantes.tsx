@@ -788,14 +788,23 @@ function ParticipantesPage() {
 
       {/* Edit dialog */}
       <Dialog open={editOpen} onOpenChange={(o) => { setEditOpen(o); if (!o) setEditing(null); }}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Editar pessoa</DialogTitle></DialogHeader>
           {editing && (
-            <Tabs defaultValue="dados" className="w-full">
+            <Tabs defaultValue="perfil" className="w-full">
               <TabsList>
+                <TabsTrigger value="perfil">Perfil</TabsTrigger>
                 <TabsTrigger value="dados">Dados</TabsTrigger>
                 <TabsTrigger value="acoes">Ações / Eventos</TabsTrigger>
               </TabsList>
+              <TabsContent value="perfil" className="mt-4">
+                <PessoaPerfil
+                  pessoa={editing}
+                  tipos={tipos ?? []}
+                  projetos={projetos ?? []}
+                  familias={familias ?? []}
+                />
+              </TabsContent>
               <TabsContent value="dados" className="mt-4">
               <div className="grid grid-cols-2 gap-3">
               <Field label="Nome *" className="col-span-2"><Input value={editing.nome_completo} onChange={(e) => setEditing({ ...editing, nome_completo: e.target.value })} /></Field>
