@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 
 type Acao = {
   id: string;
@@ -11,6 +12,13 @@ type Acao = {
   data_inicio: string | null;
   data_fim: string | null;
   projeto_ids?: string[] | null;
+  local?: string | null;
+  status?: string | null;
+  tipo?: string | null;
+  descricao?: string | null;
+  inscricoes_abertas?: boolean | null;
+  bolsa_transporte?: boolean | null;
+  restrito_a_projetos?: boolean | null;
 };
 type Projeto = { id: string; nome: string };
 
@@ -29,31 +37,73 @@ function startOfDay(d: Date) { const x = new Date(d); x.setHours(0, 0, 0, 0); re
 function addDays(d: Date, n: number) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
 function daysBetween(a: Date, b: Date) { return Math.round((startOfDay(b).getTime() - startOfDay(a).getTime()) / 86400000); }
 
+function fmtDateRange(ini: string | null | undefined, fim: string | null | undefined): string {
+  if (!ini) return "Sem data";
+  const dIni = new Date(ini);
+  const dFim = fim ? new Date(fim) : null;
+  const fmt = (d: Date) =>
+    d.toLocaleString("pt-PT", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  if (!dFim || dIni.getTime() === dFim.getTime()) return fmt(dIni);
+  return `${fmt(dIni)} → ${fmt(dFim)}`;
+}
+
+function AcaoTooltip({ acao, projMap, children }: { acao: Acao; projMap: Map<string, Projeto>; children: React.ReactNode }) {
+  const projetos = (acao.projeto_ids ?? []).map((id) => projMap.get(id)).filter(Boolean) as Projeto[];
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side="top" align="start" className="max-w-xs space-y-1.5 text-xs">
+        <div className="font-semibold text-sm leading-tight">{acao.nome}</div>
+        {acao.local && <div className="text-muted-foreground leading-tight">{acao.local}</div>}
+        <div className="leading-tight">{fmtDateRange(acao.data_inicio, acao.data_fim)}</div>
+        {projetos.length > 0 && (
+          <div className="flex flex-wrap gap-1 pt-0.5">
+            {projetos.map((p) => (
+              <span key={p.id} className="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                {p.nome}
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="flex flex-wrap gap-x-3 gap-y-0.5 pt-0.5 text-muted-foreground">
+          {acao.status && <span>Estado: {acao.status}</span>}
+          {acao.inscricoes_abertas !== undefined && (
+            <span>Inscrições: {acao.inscricoes_abertas ? "Abertas" : "Fechadas"}</span>
+          )}
+          {acao.bolsa_transporte && <span>Bolsa transporte</span>}
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 export function AcoesPlaneamento({ acoes, projetos }: { acoes: Acao[]; projetos: Projeto[] }) {
   const [mode, setMode] = useState<"gantt" | "calendario">("gantt");
   const [year, setYear] = useState(new Date().getFullYear());
   const projMap = useMemo(() => new Map(projetos.map((p) => [p.id, p])), [projetos]);
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => setYear((y) => y - 1)}><ChevronLeft className="h-4 w-4" /></Button>
-          <div className="min-w-20 text-center text-lg font-semibold">{year}</div>
-          <Button variant="outline" size="icon" onClick={() => setYear((y) => y + 1)}><ChevronRight className="h-4 w-4" /></Button>
-          <Button variant="ghost" size="sm" onClick={() => setYear(new Date().getFullYear())}>Hoje</Button>
+    <TooltipProvider delayDuration={150}>
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={() => setYear((y) => y - 1)}><ChevronLeft className="h-4 w-4" /></Button>
+            <div className="min-w-20 text-center text-lg font-semibold">{year}</div>
+            <Button variant="outline" size="icon" onClick={() => setYear((y) => y + 1)}><ChevronRight className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="sm" onClick={() => setYear(new Date().getFullYear())}>Hoje</Button>
+          </div>
+          <div className="inline-flex rounded-md border p-0.5">
+            <Button size="sm" variant={mode === "gantt" ? "default" : "ghost"} onClick={() => setMode("gantt")}>Gantt</Button>
+            <Button size="sm" variant={mode === "calendario" ? "default" : "ghost"} onClick={() => setMode("calendario")}>Calendário</Button>
+          </div>
         </div>
-        <div className="inline-flex rounded-md border p-0.5">
-          <Button size="sm" variant={mode === "gantt" ? "default" : "ghost"} onClick={() => setMode("gantt")}>Gantt</Button>
-          <Button size="sm" variant={mode === "calendario" ? "default" : "ghost"} onClick={() => setMode("calendario")}>Calendário</Button>
-        </div>
+        {mode === "gantt" ? (
+          <GanttView acoes={acoes} year={year} projMap={projMap} projetos={projetos} />
+        ) : (
+          <CalendarioView acoes={acoes} year={year} projMap={projMap} />
+        )}
       </div>
-      {mode === "gantt" ? (
-        <GanttView acoes={acoes} year={year} projMap={projMap} projetos={projetos} />
-      ) : (
-        <CalendarioView acoes={acoes} year={year} projMap={projMap} />
-      )}
-    </div>
+    </TooltipProvider>
   );
 }
 
@@ -177,17 +227,18 @@ function GanttView({ acoes, year, projMap, projetos }: { acoes: Acao[]; year: nu
                   {todayDay >= 0 && (
                     <div className="absolute top-0 bottom-0 w-px bg-primary/70" style={{ left: `${(todayDay / totalDays) * 100}%` }} />
                   )}
-                  <div
-                    role="button"
-                    onPointerDown={(e) => onPointerDown(e, item, "move")}
-                    className="absolute top-1.5 flex h-8 cursor-grab items-center rounded-md text-[11px] text-white shadow-sm active:cursor-grabbing select-none"
-                    style={{ left: `${leftPct}%`, width: `${widthPct}%`, background: color }}
-                    title={`${item.acao.nome}${projName ? " — " + projName : ""}`}
-                  >
-                    <div onPointerDown={(e) => onPointerDown(e, item, "resize-l")} className="h-full w-1.5 cursor-ew-resize rounded-l-md bg-black/20" />
-                    <span className="flex-1 truncate px-2">{item.acao.nome}</span>
-                    <div onPointerDown={(e) => onPointerDown(e, item, "resize-r")} className="h-full w-1.5 cursor-ew-resize rounded-r-md bg-black/20" />
-                  </div>
+                  <AcaoTooltip acao={item.acao} projMap={projMap}>
+                    <div
+                      role="button"
+                      onPointerDown={(e) => onPointerDown(e, item, "move")}
+                      className="absolute top-1.5 flex h-8 cursor-grab items-center rounded-md text-[11px] text-white shadow-sm active:cursor-grabbing select-none"
+                      style={{ left: `${leftPct}%`, width: `${widthPct}%`, background: color }}
+                    >
+                      <div onPointerDown={(e) => onPointerDown(e, item, "resize-l")} className="h-full w-1.5 cursor-ew-resize rounded-l-md bg-black/20" />
+                      <span className="flex-1 truncate px-2">{item.acao.nome}</span>
+                      <div onPointerDown={(e) => onPointerDown(e, item, "resize-r")} className="h-full w-1.5 cursor-ew-resize rounded-r-md bg-black/20" />
+                    </div>
+                  </AcaoTooltip>
                 </div>
               </div>
             );
@@ -259,14 +310,14 @@ function CalendarioView({ acoes, year, projMap }: { acoes: Acao[]; year: number;
                       {items.slice(0, 3).map((a) => {
                         const proj = (a.projeto_ids ?? [])[0];
                         return (
-                          <div
-                            key={a.id}
-                            className="truncate rounded px-1 py-0.5 text-[10px] text-white"
-                            style={{ background: projColor(proj) }}
-                            title={`${a.nome}${proj ? " — " + (projMap.get(proj)?.nome ?? "") : ""}`}
-                          >
-                            {a.nome}
-                          </div>
+                          <AcaoTooltip key={a.id} acao={a} projMap={projMap}>
+                            <div
+                              className="truncate rounded px-1 py-0.5 text-[10px] text-white cursor-pointer"
+                              style={{ background: projColor(proj) }}
+                            >
+                              {a.nome}
+                            </div>
+                          </AcaoTooltip>
                         );
                       })}
                       {items.length > 3 && <div className="text-[10px] text-muted-foreground">+{items.length - 3}</div>}
