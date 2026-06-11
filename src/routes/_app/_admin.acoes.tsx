@@ -1669,12 +1669,14 @@ function AcoesPageInner() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Ações</h1>
-          <p className="text-sm text-muted-foreground">Eventos da comunidade</p>
-        </div>
-        <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) setForm(EMPTY_FORM); }}>
+       <div className="flex items-center justify-between">
+         <div>
+           <h1 className="text-2xl font-semibold">Ações</h1>
+           <p className="text-sm text-muted-foreground">Eventos da comunidade</p>
+         </div>
+         <div className="flex items-center gap-2">
+         <BulkImportAcoesDialog onDone={invalidate} />
+         <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) setForm(EMPTY_FORM); }}>
           <DialogTrigger asChild>
             <Button><Plus className="mr-2 h-4 w-4" /> Nova ação</Button>
           </DialogTrigger>
