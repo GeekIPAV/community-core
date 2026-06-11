@@ -1766,7 +1766,7 @@ function AcoesPageInner() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("acoes")
-        .select("id, nome, local, mapa_url, imagem_url, data_inicio, data_fim, status, inscricoes_abertas, bolsa_transporte, projeto_ids, restrito_a_projetos, config_campos")
+        .select("id, nome, local, mapa_url, imagem_url, data_inicio, data_fim, status, inscricoes_abertas, bolsa_transporte, projeto_ids, restrito_a_projetos, publico, config_campos")
         .order("data_inicio", { ascending: false, nullsFirst: false });
       if (error) throw error;
       return data;
@@ -1804,6 +1804,15 @@ function AcoesPageInner() {
   const toggleInscricoesAbertas = useMutation({
     mutationFn: async ({ id, value }: { id: string; value: boolean }) => {
       const { error } = await supabase.from("acoes").update({ inscricoes_abertas: value } as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["acoes"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const togglePublico = useMutation({
+    mutationFn: async ({ id, value }: { id: string; value: boolean }) => {
+      const { error } = await supabase.from("acoes").update({ publico: value } as any).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["acoes"] }),
@@ -2094,6 +2103,17 @@ function AcoesPageInner() {
                       checked={inscricoesAbertas}
                       disabled={toggleInscricoesAbertas.isPending}
                       onCheckedChange={(c) => toggleInscricoesAbertas.mutate({ id: a.id, value: c })}
+                    />
+                  </label>
+                  <label
+                    className="flex items-center justify-between rounded-md border p-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <span className="text-xs font-medium">Evento público</span>
+                    <Switch
+                      checked={(a as any).publico ?? true}
+                      disabled={togglePublico.isPending}
+                      onCheckedChange={(c) => togglePublico.mutate({ id: a.id, value: c })}
                     />
                   </label>
                   <div className="flex items-center justify-between text-xs">
