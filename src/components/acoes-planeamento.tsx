@@ -83,25 +83,27 @@ export function AcoesPlaneamento({ acoes, projetos }: { acoes: Acao[]; projetos:
   const projMap = useMemo(() => new Map(projetos.map((p) => [p.id, p])), [projetos]);
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => setYear((y) => y - 1)}><ChevronLeft className="h-4 w-4" /></Button>
-          <div className="min-w-20 text-center text-lg font-semibold">{year}</div>
-          <Button variant="outline" size="icon" onClick={() => setYear((y) => y + 1)}><ChevronRight className="h-4 w-4" /></Button>
-          <Button variant="ghost" size="sm" onClick={() => setYear(new Date().getFullYear())}>Hoje</Button>
+    <TooltipProvider delayDuration={150}>
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={() => setYear((y) => y - 1)}><ChevronLeft className="h-4 w-4" /></Button>
+            <div className="min-w-20 text-center text-lg font-semibold">{year}</div>
+            <Button variant="outline" size="icon" onClick={() => setYear((y) => y + 1)}><ChevronRight className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="sm" onClick={() => setYear(new Date().getFullYear())}>Hoje</Button>
+          </div>
+          <div className="inline-flex rounded-md border p-0.5">
+            <Button size="sm" variant={mode === "gantt" ? "default" : "ghost"} onClick={() => setMode("gantt")}>Gantt</Button>
+            <Button size="sm" variant={mode === "calendario" ? "default" : "ghost"} onClick={() => setMode("calendario")}>Calendário</Button>
+          </div>
         </div>
-        <div className="inline-flex rounded-md border p-0.5">
-          <Button size="sm" variant={mode === "gantt" ? "default" : "ghost"} onClick={() => setMode("gantt")}>Gantt</Button>
-          <Button size="sm" variant={mode === "calendario" ? "default" : "ghost"} onClick={() => setMode("calendario")}>Calendário</Button>
-        </div>
+        {mode === "gantt" ? (
+          <GanttView acoes={acoes} year={year} projMap={projMap} projetos={projetos} />
+        ) : (
+          <CalendarioView acoes={acoes} year={year} projMap={projMap} />
+        )}
       </div>
-      {mode === "gantt" ? (
-        <GanttView acoes={acoes} year={year} projMap={projMap} projetos={projetos} />
-      ) : (
-        <CalendarioView acoes={acoes} year={year} projMap={projMap} />
-      )}
-    </div>
+    </TooltipProvider>
   );
 }
 
