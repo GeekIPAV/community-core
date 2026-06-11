@@ -614,7 +614,6 @@ function ParticipantesPage() {
             title="Exportar CSV (linhas visíveis)"
             onClick={() => {
               const visibleCols = table.getVisibleLeafColumns().filter((c) => c.id !== "select");
-              const cols = visibleCols.map((c) => c.id);
               const headers = visibleCols.map((c) => {
                 const h = c.columnDef.header;
                 return typeof h === "string" ? h : c.id;
@@ -623,12 +622,11 @@ function ParticipantesPage() {
                 const r: Record<string, unknown> = {};
                 visibleCols.forEach((c, i) => {
                   const v = row.getValue(c.id);
-                  r[c.id] = v == null ? "" : String(v);
+                  r[headers[i]] = v == null ? "" : String(v);
                 });
                 return r;
               });
-              const csvBody = toCSV(rowsCsv, cols);
-              const csv = `${headers.map((h) => `"${String(h).replace(/"/g, '""')}"`).join(",")}\n${csvBody.split("\n").slice(1).join("\n")}`;
+              const csv = toCSV(rowsCsv, headers);
               downloadCSV(`participantes-${new Date().toISOString().slice(0, 10)}.csv`, csv);
             }}
           >
