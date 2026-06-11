@@ -35,6 +35,7 @@ import { DraggableTableHeaders } from "@/components/draggable-table-headers";
 import { useMobileColumnVisibility } from "@/hooks/use-mobile-columns";
 import { matchCidade, formatEuro, type CidadeBolsa } from "@/lib/bolsa-transporte";
 import { ChevronDown } from "lucide-react";
+import { AcoesPlaneamento } from "@/components/acoes-planeamento";
 
 export const Route = createFileRoute("/_app/_admin/acoes")({
   component: AcoesPage,
