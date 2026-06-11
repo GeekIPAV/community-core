@@ -220,7 +220,7 @@ function DadosSection({ pessoa, onSaved }: { pessoa: PessoaFull; onSaved: () => 
         patch[k] = typeof v === "string" ? (v.trim() === "" ? null : v) : v;
       }
       if (!patch.nome_completo) throw new Error("Nome obrigatório");
-      const { error } = await supabase.from("pessoas").update(patch).eq("id", pessoa.id);
+      const { error } = await supabase.from("pessoas").update(patch as any).eq("id", pessoa.id);
       if (error) throw error;
     },
     onSuccess: async () => {
