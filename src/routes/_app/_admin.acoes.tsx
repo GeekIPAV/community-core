@@ -2027,6 +2027,7 @@ function AcoesPageInner() {
       <Tabs defaultValue="lista">
         <TabsList>
           <TabsTrigger value="lista">Lista</TabsTrigger>
+          <TabsTrigger value="tabela">Tabela</TabsTrigger>
           <TabsTrigger value="planeamento">Planeamento</TabsTrigger>
         </TabsList>
         <TabsContent value="lista" className="mt-4">
@@ -2111,6 +2112,14 @@ function AcoesPageInner() {
           })}
         </div>
       )}
+        </TabsContent>
+        <TabsContent value="tabela" className="mt-4">
+          <AcoesBulkTable
+            acoes={(data ?? []) as any[]}
+            isLoading={isLoading}
+            onChanged={invalidate}
+            fireGoogleSync={fireGoogleSync}
+          />
         </TabsContent>
         <TabsContent value="planeamento" className="mt-4">
           <AcoesPlaneamento
@@ -2410,5 +2419,261 @@ function GoogleCalendarSyncCard() {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function AcoesBulkTable({
+  acoes,
+  isLoading,
+  onChanged,
+  fireGoogleSync,
+}: {
+  acoes: any[];
+  isLoading: boolean;
+  onChanged: () => void;
+  fireGoogleSync: (id: string, op: "upsert" | "delete") => void;
+}) {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [editStatus, setEditStatus] = useState<string>("__keep__");
+  const [editPublico, setEditPublico] = useState<string>("__keep__");
+  const [editInscricoes, setEditInscricoes] = useState<string>("__keep__");
+  const [submitting, setSubmitting] = useState(false);
+
+  const allIds = useMemo(() => acoes.map((a) => a.id as string), [acoes]);
+  const allSelected = allIds.length > 0 && selected.size === allIds.length;
+  const someSelected = selected.size > 0 && !allSelected;
+
+  const toggleAll = (checked: boolean) => {
+    setSelected(checked ? new Set(allIds) : new Set());
+  };
+  const toggleOne = (id: string, checked: boolean) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const resetBulkEdit = () => {
+    setEditStatus("__keep__");
+    setEditPublico("__keep__");
+    setEditInscricoes("__keep__");
+  };
+
+  const applyBulkEdit = async () => {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    const patch: Record<string, any> = {};
+    if (editStatus !== "__keep__") patch.status = editStatus;
+    if (editPublico !== "__keep__") patch.publico = editPublico === "true";
+    if (editInscricoes !== "__keep__") patch.inscricoes_abertas = editInscricoes === "true";
+    if (Object.keys(patch).length === 0) {
+      toast.info("Sem alterações para aplicar");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.from("acoes").update(patch as any).in("id", ids);
+      if (error) throw error;
+      ids.forEach((id) => fireGoogleSync(id, "upsert"));
+      toast.success(`${ids.length} ${ids.length === 1 ? "ação atualizada" : "ações atualizadas"}`);
+      setBulkEditOpen(false);
+      resetBulkEdit();
+      setSelected(new Set());
+      onChanged();
+    } catch (e: any) {
+      toast.error(e.message ?? "Falhou ao atualizar");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const applyBulkDelete = async () => {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.from("acoes").delete().in("id", ids);
+      if (error) throw error;
+      ids.forEach((id) => fireGoogleSync(id, "delete"));
+      toast.success(`${ids.length} ${ids.length === 1 ? "ação apagada" : "ações apagadas"}`);
+      setBulkDeleteOpen(false);
+      setSelected(new Set());
+      onChanged();
+    } catch (e: any) {
+      toast.error(e.message ?? "Falhou ao apagar");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (isLoading) {
+    return <Skeleton className="h-64 w-full" />;
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">
+          {selected.size > 0
+            ? `${selected.size} ${selected.size === 1 ? "selecionada" : "selecionadas"}`
+            : `${acoes.length} ${acoes.length === 1 ? "ação" : "ações"}`}
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={selected.size === 0}
+            onClick={() => setBulkEditOpen(true)}
+          >
+            <Pencil className="mr-2 h-4 w-4" /> Editar selecionadas
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            disabled={selected.size === 0}
+            onClick={() => setBulkDeleteOpen(true)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" /> Apagar selecionadas
+          </Button>
+        </div>
+      </div>
+
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-10">
+                <Checkbox
+                  checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                  onCheckedChange={(c) => toggleAll(!!c)}
+                  aria-label="Selecionar tudo"
+                />
+              </TableHead>
+              <TableHead>Nome</TableHead>
+              <TableHead className="w-[220px]">Data</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {acoes.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={3} className="text-center text-sm text-muted-foreground py-8">
+                  Sem ações.
+                </TableCell>
+              </TableRow>
+            )}
+            {acoes.map((a) => {
+              const isSel = selected.has(a.id);
+              return (
+                <TableRow
+                  key={a.id}
+                  data-state={isSel ? "selected" : undefined}
+                  className="cursor-pointer"
+                  onClick={() => toggleOne(a.id, !isSel)}
+                >
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={isSel}
+                      onCheckedChange={(c) => toggleOne(a.id, !!c)}
+                      aria-label={`Selecionar ${a.nome}`}
+                    />
+                  </TableCell>
+                  <TableCell className="font-medium">{a.nome}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {a.data_inicio
+                      ? new Date(a.data_inicio).toLocaleString("pt-PT", {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        })
+                      : "—"}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Bulk edit dialog */}
+      <Dialog
+        open={bulkEditOpen}
+        onOpenChange={(o) => {
+          setBulkEditOpen(o);
+          if (!o) resetBulkEdit();
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar {selected.size} {selected.size === 1 ? "ação" : "ações"}</DialogTitle>
+            <DialogDescription>
+              Deixa um campo em "manter" para não alterar esse valor nas ações selecionadas.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Estado</Label>
+              <Select value={editStatus} onValueChange={setEditStatus}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__keep__">— manter —</SelectItem>
+                  {DEFAULT_STATUSES.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Evento público</Label>
+              <Select value={editPublico} onValueChange={setEditPublico}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__keep__">— manter —</SelectItem>
+                  <SelectItem value="true">Público</SelectItem>
+                  <SelectItem value="false">Privado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Inscrições abertas</Label>
+              <Select value={editInscricoes} onValueChange={setEditInscricoes}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__keep__">— manter —</SelectItem>
+                  <SelectItem value="true">Abertas</SelectItem>
+                  <SelectItem value="false">Fechadas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkEditOpen(false)}>Cancelar</Button>
+            <Button onClick={applyBulkEdit} disabled={submitting}>
+              {submitting ? "A guardar…" : "Aplicar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk delete confirm */}
+      <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Apagar {selected.size} {selected.size === 1 ? "ação" : "ações"}?</DialogTitle>
+            <DialogDescription>
+              Esta operação é permanente. As inscrições associadas podem deixar de funcionar.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkDeleteOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" onClick={applyBulkDelete} disabled={submitting}>
+              {submitting ? "A apagar…" : "Apagar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
