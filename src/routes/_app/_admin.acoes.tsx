@@ -1810,6 +1810,15 @@ function AcoesPageInner() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const togglePublico = useMutation({
+    mutationFn: async ({ id, value }: { id: string; value: boolean }) => {
+      const { error } = await supabase.from("acoes").update({ publico: value } as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["acoes"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const invalidate = () => qc.invalidateQueries({ queryKey: ["acoes"] });
 
   const create = useMutation({
