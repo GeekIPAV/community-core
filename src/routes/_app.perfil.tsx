@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -314,6 +315,7 @@ function DadosSection({ pessoa, onSaved }: { pessoa: PessoaFull; onSaved: () => 
 }
 
 function FamiliaSection({ pessoa }: { pessoa: PessoaFull }) {
+  const [openMemberId, setOpenMemberId] = useState<string | null>(null);
   const { data: familia } = useQuery({
     enabled: !!pessoa.familia_id,
     queryKey: ["meu-perfil-familia", pessoa.familia_id],
@@ -393,7 +395,12 @@ function FamiliaSection({ pessoa }: { pessoa: PessoaFull }) {
             {outros.map((m) => {
               const idadeM = calcIdade(m.data_nascimento);
               return (
-                <div key={m.id} className="rounded-md border p-3 bg-card hover:bg-muted/30 transition-colors">
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setOpenMemberId(m.id)}
+                  className="text-left rounded-md border p-3 bg-card hover:bg-muted/40 hover:border-primary/40 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
                   <div className="flex items-center gap-2.5">
                     <div className="h-9 w-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold shrink-0">
                       {initials(m.nome_completo)}
@@ -411,7 +418,7 @@ function FamiliaSection({ pessoa }: { pessoa: PessoaFull }) {
                     {m.telefone && <div className="flex items-center gap-1.5"><Phone className="h-3 w-3" />{m.telefone}</div>}
                     {m.email && <div className="flex items-center gap-1.5 truncate"><Mail className="h-3 w-3 shrink-0" /><span className="truncate">{m.email}</span></div>}
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -447,7 +454,50 @@ function FamiliaSection({ pessoa }: { pessoa: PessoaFull }) {
           </ul>
         </div>
       )}
+
+      <MembroDialog memberId={openMemberId} onClose={() => setOpenMemberId(null)} />
     </div>
+  );
+}
+
+function MembroDialog({ memberId, onClose }: { memberId: string | null; onClose: () => void }) {
+  const qc = useQueryClient();
+  const { data: membro, isLoading } = useQuery({
+    enabled: !!memberId,
+    queryKey: ["meu-perfil-membro-detalhe", memberId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pessoas")
+        .select("id, nome_completo, email, telefone, nif, cartao_cidadao, morada, data_nascimento, genero, nacionalidade, cidade_residencia, religiao, profissao, notas, familia_id, status, is_admin, is_voluntario, tipo_user_id")
+        .eq("id", memberId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data as PessoaFull | null;
+    },
+  });
+
+  return (
+    <Dialog open={!!memberId} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{membro?.nome_completo ?? "Detalhes do membro"}</DialogTitle>
+        </DialogHeader>
+        {isLoading || !membro ? (
+          <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+        ) : (
+          <DadosSection
+            pessoa={membro}
+            onSaved={async () => {
+              await qc.invalidateQueries({ queryKey: ["meu-perfil-membro-detalhe", membro.id] });
+              await qc.invalidateQueries({ queryKey: ["meu-perfil-membros"] });
+            }}
+          />
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Fechar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
