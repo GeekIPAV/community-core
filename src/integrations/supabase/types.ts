@@ -172,6 +172,30 @@ export type Database = {
         }
         Relationships: []
       }
+      etiquetas: {
+        Row: {
+          cor: string
+          created_at: string
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          cor?: string
+          created_at?: string
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          cor?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       familia_atividades: {
         Row: {
           atividade_id: string
@@ -349,6 +373,46 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      pessoa_etiquetas: {
+        Row: {
+          created_at: string
+          etiqueta_id: string
+          pessoa_id: string
+        }
+        Insert: {
+          created_at?: string
+          etiqueta_id: string
+          pessoa_id: string
+        }
+        Update: {
+          created_at?: string
+          etiqueta_id?: string
+          pessoa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pessoa_etiquetas_etiqueta_id_fkey"
+            columns: ["etiqueta_id"]
+            isOneToOne: false
+            referencedRelation: "etiquetas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoa_etiquetas_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoa_etiquetas_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pessoas: {
         Row: {
