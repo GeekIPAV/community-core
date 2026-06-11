@@ -229,10 +229,11 @@ type AcaoForm = {
   bolsa_transporte: boolean;
   projeto_ids: string[];
   restrito_a_projetos: boolean;
+  publico: boolean;
   fields: FieldDef[];
 };
 
-const EMPTY_FORM: AcaoForm = { nome: "", local: "", mapa_url: "", imagem_url: "", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, bolsa_transporte: false, projeto_ids: [], restrito_a_projetos: false, fields: [] };
+const EMPTY_FORM: AcaoForm = { nome: "", local: "", mapa_url: "", imagem_url: "", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, bolsa_transporte: false, projeto_ids: [], restrito_a_projetos: false, publico: true, fields: [] };
 
 const acaoFormSchema = z
   .object({
@@ -251,6 +252,7 @@ const acaoFormSchema = z
     status: z.string().trim().min(1, "Estado é obrigatório").max(50),
     inscricoes_abertas: z.boolean(),
     bolsa_transporte: z.boolean().optional(),
+    publico: z.boolean(),
   })
   .refine((v) => !v.data_inicio || !v.data_fim || new Date(v.data_fim) >= new Date(v.data_inicio), {
     message: "Data de fim deve ser igual ou posterior à data de início",
