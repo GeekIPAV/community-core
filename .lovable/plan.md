@@ -1,86 +1,33 @@
 ## Objetivo
+Tornar a sincronização com o Google Calendar **unidirecional**: apenas o que é criado/editado/eliminado nas Ações é refletido no Google Calendar. Eventos criados ou alterados diretamente no Google Calendar **não** entram na app.
 
-Ligar o calendário Google da conta Meeru à app, de forma que:
-- Criar/editar/apagar uma ação na app → reflete-se imediatamente no Google Calendar.
-- Criar/editar/apagar um evento no Google Calendar da Meeru → reflete-se imediatamente como ação na app.
-- Mapeamento: **nome, data início/fim, local, link para a página da ação**.
+## Alterações
 
-## Pré-requisitos (passo manual do utilizador)
+### 1. UI — `src/routes/_app/_admin.acoes.tsx`
+- Simplificar o `GoogleCalendarSyncCard`: remover botão "Ativar sincronização" e estado de canal/expiração.
+- Manter apenas indicador "Sincronização ativa (app → Google Calendar)" e, opcionalmente, um botão "Re-sincronizar tudo" que faz push em massa das ações existentes.
+- Manter `fireGoogleSync` nos mutations de create/update/delete (push para Google).
 
-1. Ligar o **conector Google Calendar do Lovable** com a conta Google da Meeru (o conector usa OAuth dessa conta — todas as chamadas vão para o calendário "primary" dessa conta).
-2. Confirmar que é mesmo o calendário principal dessa conta (ou indicar o ID se for outro).
+### 2. Server functions — `src/lib/google-calendar.functions.ts`
+- Remover `pullGoogleChanges` e `setupGoogleWatch` (e qualquer função relacionada com watch/sync token).
+- Manter apenas as funções de push: criar/atualizar/eliminar evento no Google.
+- Adicionar (opcional) `resyncAllAcoes` para reenviar todas as ações públicas/privadas para o Google.
 
-## O que vou construir
+### 3. Server helpers — `src/lib/google-calendar.server.ts`
+- Manter `pushAcaoToGoogle` (upsert + delete).
+- Remover `pullGoogleChanges`, `setupGoogleWatch` e lógica de `syncToken`/canais.
 
-### 1. Base de dados (migração)
+### 4. Webhook — `src/routes/api/public/webhooks/google-calendar.ts`
+- Eliminar o ficheiro. Já não é necessário receber notificações do Google.
 
-- Adicionar a `acoes`:
-  - `google_event_id text` — ID do evento no Google Calendar (para conseguir editar/apagar do outro lado).
-  - `google_sync_origin text` — marca a última origem do save (`app` ou `google`) para evitar loops.
-- Nova tabela `google_calendar_sync_state` com um único registo: `sync_token text`, `channel_id text`, `channel_resource_id text`, `channel_expires_at timestamptz`. Guarda o estado da sincronização incremental e do canal de push notifications.
+### 5. Base de dados — nova migração
+- Remover a coluna `google_sync_origin` da tabela `acoes` (já não precisamos da proteção anti-loop, pois não há pull).
+- Manter `google_event_id` em `acoes` (necessário para update/delete no Google).
+- Eliminar a tabela `google_calendar_sync_state` (já não é usada).
 
-### 2. App → Google (push para o calendário)
+### 6. Limpeza
+- Remover imports não usados e referências a `google_sync_origin`, `sync_token`, `channel_*` em todo o código.
 
-- Server function `syncAcaoToGoogle({ acaoId, op: 'upsert' | 'delete' })`:
-  - Lê a ação, chama a API do Google Calendar via gateway do conector:
-    - `POST /calendars/primary/events` (criar) ou `PATCH /calendars/primary/events/{id}` (editar) ou `DELETE` (apagar).
-  - Mapeia: `summary = nome`, `start/end = data_inicio/data_fim`, `location = local`, `description` inclui o link `https://<app>/acao/<id>`.
-  - Guarda o `google_event_id` devolvido e marca `google_sync_origin='app'`.
-- Disparada **automaticamente** ao guardar/apagar ações nas páginas de admin (`/acoes`, importação em massa, edição inline) e ao alterar via detalhe da ação.
-- Se a sincronização falhar, a operação local não é revertida; mostra-se toast "Guardado, mas falhou sincronizar com Google Calendar" com botão "Tentar novamente".
-
-### 3. Google → App (puxar do calendário) em tempo real
-
-Tempo real no Google Calendar funciona por **push notifications**: registamos um canal (`events.watch`) que aponta para um webhook nosso; quando algo muda, a Google faz um POST a esse webhook (sem o conteúdo da mudança), e nós chamamos `events.list` com `syncToken` para obter o delta.
-
-- Rota pública `POST /api/public/webhooks/google-calendar`:
-  - Valida o header `X-Goog-Channel-Token` (segredo partilhado guardado em secret).
-  - Chama uma server function interna que faz `events.list?syncToken=...` ao calendário, percorre o delta:
-    - Para cada evento: se tem `google_event_id` correspondente em `acoes` → atualiza; senão → cria nova ação (`status='rascunho'`, `google_sync_origin='google'`).
-    - `status='cancelled'` no Google → apaga (ou marca como cancelada) a ação correspondente.
-  - Atualiza o `sync_token`.
-- Server function `ensureGoogleCalendarWatch()` que (re)regista o canal de push se não existir ou se estiver perto de expirar (canais Google duram no máximo ~7 dias). Chamada:
-  - Manualmente via botão "Ativar sincronização" na página de administração (primeira vez).
-  - Por um `pg_cron` diário que renova canais a < 24 h da expiração.
-
-### 4. Anti-loop
-
-Quando o webhook do Google traz uma alteração, gravamos com `google_sync_origin='google'`. O hook de "App → Google" ignora saves cuja origem é `google`. Mesma lógica no sentido inverso: alterações vindas da app não voltam a ser empurradas para o Google a partir do delta (porque já têm o mesmo `google_event_id` e os mesmos campos — fazemos diff antes de chamar a API).
-
-### 5. UI
-
-- Em `/acoes`, novo card "Google Calendar" com:
-  - Estado: "Ligado / Não ligado / Canal expira em X dias".
-  - Botão "Ativar sincronização" (chama `ensureGoogleCalendarWatch`).
-  - Botão "Sincronizar agora" (força um `events.list` manual — útil para o primeiro carregamento e debug).
-- Em cada ação, badge discreto "↻ Google" quando tem `google_event_id`.
-
-## Detalhes técnicos
-
-- **Conector**: `google_calendar` via `connector-gateway.lovable.dev/google_calendar/calendar/v3/...`. Todas as chamadas autenticadas com `Authorization: Bearer ${LOVABLE_API_KEY}` + `X-Connection-Api-Key: ${GOOGLE_CALENDAR_API_KEY}` dentro de server functions (nunca no browser).
-- **Webhook URL** registado na Google: `https://project--<id>.lovable.app/api/public/webhooks/google-calendar` (URL estável, não muda em renomeações).
-- **Segredos**:
-  - `GOOGLE_CALENDAR_API_KEY` (vem automático ao ligar o conector).
-  - `GOOGLE_CALENDAR_WEBHOOK_TOKEN` (gero e peço para guardares — usado como `X-Goog-Channel-Token`).
-- **Renovação do canal**: job `pg_cron` que chama um endpoint `/api/public/cron/renew-google-watch` autenticado pelo `apikey` do Supabase.
-
-## Limitações conhecidas (que aceitas implicitamente ao escolher bidirecional)
-
-- Eventos recorrentes da Google são tratados como uma única ação "mestre" (não criamos uma ação por ocorrência); editar uma ocorrência individual no Google só atualiza a master.
-- Conflitos resolvidos por last-write-wins (quem guardou mais tarde ganha).
-- Eventos criados pelo Google sem data de fim assumem 1h de duração.
-- Convidados/lembretes do Google não são importados (não há campo correspondente em `acoes`).
-
-## Ordem de implementação
-
-```text
-1. Ligar conector Google Calendar (passo manual teu)
-2. Migração: colunas em acoes + tabela google_calendar_sync_state
-3. Server fns: syncAcaoToGoogle (upsert/delete) + integrar nos saves
-4. Webhook /api/public/webhooks/google-calendar + processador de delta
-5. ensureGoogleCalendarWatch + UI (card em /acoes)
-6. Cron diário de renovação do canal
-7. Backfill inicial: importar eventos existentes do Google (botão "Importar tudo agora")
-```
-
-Confirma o passo 1 (ligar o conector com a conta Google da Meeru) e eu avanço com tudo o resto.
+## Resultado
+- Criar/editar/apagar uma ação na app → cria/atualiza/apaga o evento correspondente no Google Calendar do MEERU.
+- Alterações feitas diretamente no Google Calendar são ignoradas pela app.
