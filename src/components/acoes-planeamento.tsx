@@ -125,6 +125,8 @@ function GanttView({ acoes, year, projMap, projetos }: { acoes: Acao[]; year: nu
   const yearEnd = new Date(year + 1, 0, 1);
   const totalDays = daysBetween(yearStart, yearEnd);
   const update = useUpdateDates();
+  const navigate = useNavigate({ from: "/acoes" });
+  const dragMovedRef = useRef(false);
 
   const items = useMemo(() => {
     return acoes
@@ -145,6 +147,7 @@ function GanttView({ acoes, year, projMap, projetos }: { acoes: Acao[]; year: nu
   const onPointerDown = (e: React.PointerEvent, item: typeof items[number], mode: "move" | "resize-l" | "resize-r") => {
     e.stopPropagation();
     e.preventDefault();
+    dragMovedRef.current = false;
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
     const iniDay = Math.max(0, daysBetween(yearStart, item.ini));
     const fimDay = Math.min(totalDays, daysBetween(yearStart, item.fim));
@@ -153,6 +156,7 @@ function GanttView({ acoes, year, projMap, projetos }: { acoes: Acao[]; year: nu
 
   const onPointerMove = (e: React.PointerEvent) => {
     if (!drag || !trackRef.current) return;
+    if (Math.abs(e.clientX - drag.startX) > 2) dragMovedRef.current = true;
     const width = trackRef.current.clientWidth;
     const pxPerDay = width / totalDays;
     const deltaDays = Math.round((e.clientX - drag.startX) / pxPerDay);
