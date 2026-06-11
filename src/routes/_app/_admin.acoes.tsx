@@ -1778,6 +1778,12 @@ function AcoesPageInner() {
         </Dialog>
       </div>
 
+      <Tabs defaultValue="lista">
+        <TabsList>
+          <TabsTrigger value="lista">Lista</TabsTrigger>
+          <TabsTrigger value="planeamento">Planeamento</TabsTrigger>
+        </TabsList>
+        <TabsContent value="lista" className="mt-4">
       {isLoading ? (
         <div className="grid gap-3 md:grid-cols-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}</div>
       ) : (
@@ -1858,6 +1864,11 @@ function AcoesPageInner() {
           })}
         </div>
       )}
+        </TabsContent>
+        <TabsContent value="planeamento" className="mt-4">
+          <AcoesPlaneamento acoes={(data ?? []) as any} projetos={projetos ?? []} />
+        </TabsContent>
+      </Tabs>
 
       {/* Edit dialog */}
       <Dialog open={!!editing} onOpenChange={(o) => { if (!o) { setEditing(null); setEditFullscreen(false); } }}>
