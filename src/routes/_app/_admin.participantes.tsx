@@ -26,6 +26,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
 import { ChevronDown, ChevronRight, Lock, LockOpen, Pencil, Plus, Trash2, Mail, Phone, MapPin, Cake, Briefcase, Globe, HeartHandshake, Users, IdCard, ShieldCheck, Heart } from "lucide-react";
+import { Download } from "lucide-react";
+import { EtiquetasPicker } from "@/components/etiquetas-picker";
+import { downloadCSV, toCSV } from "@/lib/csv";
 import {
   useReactTable,
   getCoreRowModel,
@@ -605,6 +608,30 @@ function ParticipantesPage() {
           <Button onClick={() => setAddOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Adicionar
           </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            title="Exportar CSV (linhas visíveis)"
+            onClick={() => {
+              const visibleCols = table.getVisibleLeafColumns().filter((c) => c.id !== "select");
+              const headers = visibleCols.map((c) => {
+                const h = c.columnDef.header;
+                return typeof h === "string" ? h : c.id;
+              });
+              const rowsCsv = table.getFilteredRowModel().rows.map((row) => {
+                const r: Record<string, unknown> = {};
+                visibleCols.forEach((c, i) => {
+                  const v = row.getValue(c.id);
+                  r[headers[i]] = v == null ? "" : String(v);
+                });
+                return r;
+              });
+              const csv = toCSV(rowsCsv, headers);
+              downloadCSV(`participantes-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+            }}
+          >
+            <Download className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -796,6 +823,7 @@ function ParticipantesPage() {
                 <TabsTrigger value="perfil">Perfil</TabsTrigger>
                 <TabsTrigger value="dados">Dados</TabsTrigger>
                 <TabsTrigger value="acoes">Ações / Eventos</TabsTrigger>
+                <TabsTrigger value="etiquetas">Etiquetas</TabsTrigger>
               </TabsList>
               <TabsContent value="perfil" className="mt-4">
                 <PessoaPerfil
@@ -878,6 +906,9 @@ function ParticipantesPage() {
               </TabsContent>
               <TabsContent value="acoes" className="mt-4">
                 <PessoaInscricoes pessoaId={editing.id} />
+              </TabsContent>
+              <TabsContent value="etiquetas" className="mt-4">
+                <EtiquetasPicker pessoaId={editing.id} />
               </TabsContent>
             </Tabs>
           )}
