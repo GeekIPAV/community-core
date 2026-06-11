@@ -43,7 +43,7 @@ function AcaoDetailPage() {
   const { data: acao, isLoading } = useQuery({
     queryKey: ["acao", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("acoes").select("*").eq("id", id).single();
+      const { data, error } = await supabase.from("acoes").select("*").eq("id", id).eq("publico", true).single();
       if (error) throw error;
       return data;
     },

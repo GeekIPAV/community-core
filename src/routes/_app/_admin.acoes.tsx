@@ -2233,6 +2233,13 @@ function AcoesPageInner() {
               </div>
               <label className="flex items-center justify-between rounded-md border p-3">
                 <div>
+                  <p className="text-sm font-medium">Evento público</p>
+                  <p className="text-xs text-muted-foreground">Quando desligado, o evento não aparece no portal público.</p>
+                </div>
+                <Switch checked={editing.publico} onCheckedChange={(c) => setEditing({ ...editing, publico: c })} />
+              </label>
+              <label className="flex items-center justify-between rounded-md border p-3">
+                <div>
                   <p className="text-sm font-medium">Inscrições abertas</p>
                   <p className="text-xs text-muted-foreground">Quando desligado, a ação não mostra o botão "Inscrever" no portal público.</p>
                 </div>
