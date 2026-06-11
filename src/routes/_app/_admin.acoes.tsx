@@ -2027,6 +2027,7 @@ function AcoesPageInner() {
       <Tabs defaultValue="lista">
         <TabsList>
           <TabsTrigger value="lista">Lista</TabsTrigger>
+          <TabsTrigger value="tabela">Tabela</TabsTrigger>
           <TabsTrigger value="planeamento">Planeamento</TabsTrigger>
         </TabsList>
         <TabsContent value="lista" className="mt-4">
@@ -2111,6 +2112,14 @@ function AcoesPageInner() {
           })}
         </div>
       )}
+        </TabsContent>
+        <TabsContent value="tabela" className="mt-4">
+          <AcoesBulkTable
+            acoes={(data ?? []) as any[]}
+            isLoading={isLoading}
+            onChanged={invalidate}
+            fireGoogleSync={fireGoogleSync}
+          />
         </TabsContent>
         <TabsContent value="planeamento" className="mt-4">
           <AcoesPlaneamento
