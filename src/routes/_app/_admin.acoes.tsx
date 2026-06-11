@@ -1815,7 +1815,7 @@ function AcoesPageInner() {
   const create = useMutation({
     mutationFn: async () => {
       if (!validateAcaoForm(form)) throw new Error("Validação falhou");
-      const { error } = await supabase.from("acoes").insert({
+      const { data: created, error } = await supabase.from("acoes").insert({
         nome: form.nome,
         local: form.local || null,
         mapa_url: form.mapa_url || null,
@@ -1829,9 +1829,10 @@ function AcoesPageInner() {
         projeto_ids: form.projeto_ids ?? [],
         restrito_a_projetos: form.restrito_a_projetos,
         config_campos: { fields: form.fields },
-      } as any);
+      } as any).select("id").single();
       if (error) throw error;
       await upsertLocalizacao(form.local, form.mapa_url || null);
+      if (created?.id) fireGoogleSync(created.id, "upsert");
     },
     onSuccess: () => {
       toast.success("Ação criada");
@@ -1869,6 +1870,7 @@ function AcoesPageInner() {
         .eq("id", editing.id);
       if (error) throw error;
       await upsertLocalizacao(editing.local, editing.mapa_url || null);
+      fireGoogleSync(editing.id, "upsert");
     },
     onSuccess: () => {
       toast.success("Ação atualizada");
@@ -1884,8 +1886,10 @@ function AcoesPageInner() {
   const remove = useMutation({
     mutationFn: async () => {
       if (!deleteId) return;
+      const idToRemove = deleteId;
       const { error } = await supabase.from("acoes").delete().eq("id", deleteId);
       if (error) throw error;
+      fireGoogleSync(idToRemove, "delete");
     },
     onSuccess: () => {
       toast.success("Ação apagada");
