@@ -12,8 +12,9 @@ function AdminGuard() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const pageKey = pageKeyFromPath(pathname);
+  const isDashboard = pathname === "/dashboard";
   // Tipos de utilizador é só para admins; restantes seguem permissões.
-  const allowed = isAdmin || (pageKey !== null && pageKey !== "tipos-user" && hasPage(pageKey));
+  const allowed = isAdmin || isDashboard || (pageKey !== null && pageKey !== "tipos-user" && hasPage(pageKey));
 
   useEffect(() => {
     if (!loading && !allowed) {

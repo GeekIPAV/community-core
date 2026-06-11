@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResultadosRouteImport } from './routes/resultados'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
@@ -23,10 +24,16 @@ import { Route as AppAdminLocalizacoesRouteImport } from './routes/_app/_admin.l
 import { Route as AppAdminFamiliasRouteImport } from './routes/_app/_admin.familias'
 import { Route as AppAdminEliminadosRouteImport } from './routes/_app/_admin.eliminados'
 import { Route as AppAdminDuplicadosRouteImport } from './routes/_app/_admin.duplicados'
+import { Route as AppAdminDashboardRouteImport } from './routes/_app/_admin.dashboard'
 import { Route as AppAdminBolsasTransporteRouteImport } from './routes/_app/_admin.bolsas-transporte'
 import { Route as AppAdminAtividadesRouteImport } from './routes/_app/_admin.atividades'
 import { Route as AppAdminAcoesRouteImport } from './routes/_app/_admin.acoes'
 
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResultadosRoute = ResultadosRouteImport.update({
   id: '/resultados',
   path: '/resultados',
@@ -95,6 +102,11 @@ const AppAdminDuplicadosRoute = AppAdminDuplicadosRouteImport.update({
   path: '/duplicados',
   getParentRoute: () => AppAdminRoute,
 } as any)
+const AppAdminDashboardRoute = AppAdminDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppAdminRoute,
+} as any)
 const AppAdminBolsasTransporteRoute =
   AppAdminBolsasTransporteRouteImport.update({
     id: '/bolsas-transporte',
@@ -116,11 +128,13 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/resultados': typeof ResultadosRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/perfil': typeof AppPerfilRoute
   '/acao/$id': typeof AcaoIdRoute
   '/acoes': typeof AppAdminAcoesRoute
   '/atividades': typeof AppAdminAtividadesRoute
   '/bolsas-transporte': typeof AppAdminBolsasTransporteRoute
+  '/dashboard': typeof AppAdminDashboardRoute
   '/duplicados': typeof AppAdminDuplicadosRoute
   '/eliminados': typeof AppAdminEliminadosRoute
   '/familias': typeof AppAdminFamiliasRoute
@@ -133,11 +147,13 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/resultados': typeof ResultadosRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/perfil': typeof AppPerfilRoute
   '/acao/$id': typeof AcaoIdRoute
   '/acoes': typeof AppAdminAcoesRoute
   '/atividades': typeof AppAdminAtividadesRoute
   '/bolsas-transporte': typeof AppAdminBolsasTransporteRoute
+  '/dashboard': typeof AppAdminDashboardRoute
   '/duplicados': typeof AppAdminDuplicadosRoute
   '/eliminados': typeof AppAdminEliminadosRoute
   '/familias': typeof AppAdminFamiliasRoute
@@ -152,12 +168,14 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/resultados': typeof ResultadosRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_app/_admin': typeof AppAdminRouteWithChildren
   '/_app/perfil': typeof AppPerfilRoute
   '/acao/$id': typeof AcaoIdRoute
   '/_app/_admin/acoes': typeof AppAdminAcoesRoute
   '/_app/_admin/atividades': typeof AppAdminAtividadesRoute
   '/_app/_admin/bolsas-transporte': typeof AppAdminBolsasTransporteRoute
+  '/_app/_admin/dashboard': typeof AppAdminDashboardRoute
   '/_app/_admin/duplicados': typeof AppAdminDuplicadosRoute
   '/_app/_admin/eliminados': typeof AppAdminEliminadosRoute
   '/_app/_admin/familias': typeof AppAdminFamiliasRoute
@@ -172,11 +190,13 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/resultados'
+    | '/sitemap.xml'
     | '/perfil'
     | '/acao/$id'
     | '/acoes'
     | '/atividades'
     | '/bolsas-transporte'
+    | '/dashboard'
     | '/duplicados'
     | '/eliminados'
     | '/familias'
@@ -189,11 +209,13 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/resultados'
+    | '/sitemap.xml'
     | '/perfil'
     | '/acao/$id'
     | '/acoes'
     | '/atividades'
     | '/bolsas-transporte'
+    | '/dashboard'
     | '/duplicados'
     | '/eliminados'
     | '/familias'
@@ -207,12 +229,14 @@ export interface FileRouteTypes {
     | '/_app'
     | '/login'
     | '/resultados'
+    | '/sitemap.xml'
     | '/_app/_admin'
     | '/_app/perfil'
     | '/acao/$id'
     | '/_app/_admin/acoes'
     | '/_app/_admin/atividades'
     | '/_app/_admin/bolsas-transporte'
+    | '/_app/_admin/dashboard'
     | '/_app/_admin/duplicados'
     | '/_app/_admin/eliminados'
     | '/_app/_admin/familias'
@@ -227,11 +251,19 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
   ResultadosRoute: typeof ResultadosRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   AcaoIdRoute: typeof AcaoIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/resultados': {
       id: '/resultados'
       path: '/resultados'
@@ -330,6 +362,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminDuplicadosRouteImport
       parentRoute: typeof AppAdminRoute
     }
+    '/_app/_admin/dashboard': {
+      id: '/_app/_admin/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppAdminDashboardRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
     '/_app/_admin/bolsas-transporte': {
       id: '/_app/_admin/bolsas-transporte'
       path: '/bolsas-transporte'
@@ -358,6 +397,7 @@ interface AppAdminRouteChildren {
   AppAdminAcoesRoute: typeof AppAdminAcoesRoute
   AppAdminAtividadesRoute: typeof AppAdminAtividadesRoute
   AppAdminBolsasTransporteRoute: typeof AppAdminBolsasTransporteRoute
+  AppAdminDashboardRoute: typeof AppAdminDashboardRoute
   AppAdminDuplicadosRoute: typeof AppAdminDuplicadosRoute
   AppAdminEliminadosRoute: typeof AppAdminEliminadosRoute
   AppAdminFamiliasRoute: typeof AppAdminFamiliasRoute
@@ -371,6 +411,7 @@ const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminAcoesRoute: AppAdminAcoesRoute,
   AppAdminAtividadesRoute: AppAdminAtividadesRoute,
   AppAdminBolsasTransporteRoute: AppAdminBolsasTransporteRoute,
+  AppAdminDashboardRoute: AppAdminDashboardRoute,
   AppAdminDuplicadosRoute: AppAdminDuplicadosRoute,
   AppAdminEliminadosRoute: AppAdminEliminadosRoute,
   AppAdminFamiliasRoute: AppAdminFamiliasRoute,
@@ -401,6 +442,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
   ResultadosRoute: ResultadosRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   AcaoIdRoute: AcaoIdRoute,
 }
 export const routeTree = rootRouteImport
