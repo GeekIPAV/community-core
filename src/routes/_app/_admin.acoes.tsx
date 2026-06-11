@@ -1778,6 +1778,7 @@ function AcoesPageInner() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Tabs defaultValue="lista">
