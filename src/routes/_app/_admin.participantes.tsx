@@ -791,7 +791,13 @@ function ParticipantesPage() {
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Editar pessoa</DialogTitle></DialogHeader>
           {editing && (
-            <div className="grid grid-cols-2 gap-3">
+            <Tabs defaultValue="dados" className="w-full">
+              <TabsList>
+                <TabsTrigger value="dados">Dados</TabsTrigger>
+                <TabsTrigger value="acoes">Ações / Eventos</TabsTrigger>
+              </TabsList>
+              <TabsContent value="dados" className="mt-4">
+              <div className="grid grid-cols-2 gap-3">
               <Field label="Nome *" className="col-span-2"><Input value={editing.nome_completo} onChange={(e) => setEditing({ ...editing, nome_completo: e.target.value })} /></Field>
               <Field label="Email"><Input value={editing.email ?? ""} onChange={(e) => setEditing({ ...editing, email: e.target.value })} /></Field>
               <Field label="Telefone"><Input value={editing.telefone ?? ""} onChange={(e) => setEditing({ ...editing, telefone: e.target.value })} /></Field>
@@ -849,7 +855,12 @@ function ParticipantesPage() {
                 </Select>
               </Field>
               <Field label="Notas" className="col-span-2"><Textarea value={editing.notas ?? ""} onChange={(e) => setEditing({ ...editing, notas: e.target.value })} /></Field>
-            </div>
+              </div>
+              </TabsContent>
+              <TabsContent value="acoes" className="mt-4">
+                <PessoaInscricoes pessoaId={editing.id} />
+              </TabsContent>
+            </Tabs>
           )}
           <DialogFooter className="sm:justify-between">
             <Button
@@ -1263,4 +1274,55 @@ function parseBulkCsv(text: string, familias: { id: string; nome: string }[], pr
         projeto_ids,
       };
     });
+}
+
+function PessoaInscricoes({ pessoaId }: { pessoaId: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["pessoa-inscricoes", pessoaId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("inscricoes")
+        .select("id, status, created_at, acao:acoes(id, nome, tipo, data_inicio, status)")
+        .eq("pessoa_id", pessoaId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as Array<{
+        id: string;
+        status: string;
+        created_at: string;
+        acao: { id: string; nome: string; tipo: string | null; data_inicio: string | null; status: string | null } | null;
+      }>;
+    },
+  });
+
+  if (isLoading) return <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>;
+  const rows = data ?? [];
+  if (rows.length === 0) return <p className="text-sm text-muted-foreground">Sem inscrições em ações ou eventos.</p>;
+
+  const fmt = (d: string | null) => d ? new Date(d).toLocaleDateString("pt-PT", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+
+  return (
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Ação / Evento</TableHead>
+            <TableHead>Tipo</TableHead>
+            <TableHead>Data</TableHead>
+            <TableHead>Estado</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((r) => (
+            <TableRow key={r.id}>
+              <TableCell className="font-medium">{r.acao?.nome ?? "—"}</TableCell>
+              <TableCell><Badge variant="outline">{r.acao?.tipo ?? "—"}</Badge></TableCell>
+              <TableCell>{fmt(r.acao?.data_inicio ?? null)}</TableCell>
+              <TableCell><Badge variant={r.status === "cancelada" ? "secondary" : "default"}>{r.status}</Badge></TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
 }
