@@ -1879,28 +1879,28 @@ function AcoesPageInner() {
               : "max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden"
           }
         >
-          <DialogHeader className="sticky top-0 z-10 -mx-6 -mt-6 border-b bg-background px-6 py-4">
-            <div className="flex items-center justify-between gap-2 pr-8">
-              <DialogTitle>{editing?.nome || "Editar ação"}</DialogTitle>
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                onClick={() => setEditFullscreen((v) => !v)}
-                title={editFullscreen ? "Sair do ecrã inteiro" : "Ecrã inteiro"}
-              >
-                {editFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-              </Button>
-            </div>
-          </DialogHeader>
           {editing && (
             <Tabs defaultValue="detalhes" className="min-w-0">
-              <TabsList>
-                <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
-                <TabsTrigger value="inscricoes">Inscrições</TabsTrigger>
-                {editing.bolsa_transporte && <TabsTrigger value="bolsa">Bolsa</TabsTrigger>}
-              </TabsList>
-              <TabsContent value="detalhes" className="space-y-4 min-w-0">
+              <DialogHeader className="sticky top-0 z-10 -mx-6 -mt-6 border-b bg-background px-6 pt-4 pb-2">
+                <div className="flex items-center justify-between gap-2 pr-8">
+                  <DialogTitle className="truncate">{editing?.nome || "Editar ação"}</DialogTitle>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => setEditFullscreen((v) => !v)}
+                    title={editFullscreen ? "Sair do ecrã inteiro" : "Ecrã inteiro"}
+                  >
+                    {editFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <TabsList className="mt-3 self-start">
+                  <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
+                  <TabsTrigger value="inscricoes">Inscrições</TabsTrigger>
+                  {editing.bolsa_transporte && <TabsTrigger value="bolsa">Bolsa</TabsTrigger>}
+                </TabsList>
+              </DialogHeader>
+              <TabsContent value="detalhes" className="mt-4 space-y-4 min-w-0">
               <div className="space-y-2"><Label>Nome</Label><Input value={editing.nome} onChange={(e) => setEditing({ ...editing, nome: e.target.value })} /></div>
               <div className="space-y-2">
                 <Label>Imagem do evento</Label>
@@ -1990,11 +1990,11 @@ function AcoesPageInner() {
               </div>
               <FieldsEditor fields={editing.fields} setFields={(fields) => setEditing({ ...editing, fields })} />
               </TabsContent>
-              <TabsContent value="inscricoes" className="min-w-0">
+              <TabsContent value="inscricoes" className="mt-4 min-w-0">
                 <InscricoesTab acaoId={editing.id} fields={editing.fields} />
               </TabsContent>
               {editing.bolsa_transporte && (
-                <TabsContent value="bolsa" className="min-w-0">
+                <TabsContent value="bolsa" className="mt-4 min-w-0">
                   <BolsaTab acaoId={editing.id} />
                 </TabsContent>
               )}
