@@ -791,7 +791,13 @@ function ParticipantesPage() {
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Editar pessoa</DialogTitle></DialogHeader>
           {editing && (
-            <div className="grid grid-cols-2 gap-3">
+            <Tabs defaultValue="dados" className="w-full">
+              <TabsList>
+                <TabsTrigger value="dados">Dados</TabsTrigger>
+                <TabsTrigger value="acoes">Ações / Eventos</TabsTrigger>
+              </TabsList>
+              <TabsContent value="dados" className="mt-4">
+              <div className="grid grid-cols-2 gap-3">
               <Field label="Nome *" className="col-span-2"><Input value={editing.nome_completo} onChange={(e) => setEditing({ ...editing, nome_completo: e.target.value })} /></Field>
               <Field label="Email"><Input value={editing.email ?? ""} onChange={(e) => setEditing({ ...editing, email: e.target.value })} /></Field>
               <Field label="Telefone"><Input value={editing.telefone ?? ""} onChange={(e) => setEditing({ ...editing, telefone: e.target.value })} /></Field>
@@ -849,7 +855,12 @@ function ParticipantesPage() {
                 </Select>
               </Field>
               <Field label="Notas" className="col-span-2"><Textarea value={editing.notas ?? ""} onChange={(e) => setEditing({ ...editing, notas: e.target.value })} /></Field>
-            </div>
+              </div>
+              </TabsContent>
+              <TabsContent value="acoes" className="mt-4">
+                <PessoaInscricoes pessoaId={editing.id} />
+              </TabsContent>
+            </Tabs>
           )}
           <DialogFooter className="sm:justify-between">
             <Button
