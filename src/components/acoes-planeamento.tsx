@@ -276,6 +276,7 @@ function GanttView({ acoes, year, projMap, projetos }: { acoes: Acao[]; year: nu
 
 function CalendarioView({ acoes, year, projMap }: { acoes: Acao[]; year: number; projMap: Map<string, Projeto> }) {
   const months = Array.from({ length: 12 }, (_, m) => m);
+  const navigate = useNavigate({ from: "/acoes" });
 
   const byDay = useMemo(() => {
     const map = new Map<string, Acao[]>();
@@ -322,6 +323,7 @@ function CalendarioView({ acoes, year, projMap }: { acoes: Acao[]; year: number;
                         return (
                           <AcaoTooltip key={a.id} acao={a} projMap={projMap}>
                             <div
+                              onClick={() => navigate({ to: "/acao/$id", params: { id: a.id } })}
                               className="truncate rounded px-1 py-0.5 text-[10px] text-white cursor-pointer"
                               style={{ background: projColor(proj) }}
                             >
