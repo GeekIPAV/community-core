@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -78,7 +77,7 @@ function AcaoTooltip({ acao, projMap, children }: { acao: Acao; projMap: Map<str
   );
 }
 
-export function AcoesPlaneamento({ acoes, projetos }: { acoes: Acao[]; projetos: Projeto[] }) {
+export function AcoesPlaneamento({ acoes, projetos, onEdit }: { acoes: Acao[]; projetos: Projeto[]; onEdit?: (id: string) => void }) {
   const [mode, setMode] = useState<"gantt" | "calendario">("gantt");
   const [year, setYear] = useState(new Date().getFullYear());
   const projMap = useMemo(() => new Map(projetos.map((p) => [p.id, p])), [projetos]);
@@ -99,9 +98,9 @@ export function AcoesPlaneamento({ acoes, projetos }: { acoes: Acao[]; projetos:
           </div>
         </div>
         {mode === "gantt" ? (
-          <GanttView acoes={acoes} year={year} projMap={projMap} projetos={projetos} />
+          <GanttView acoes={acoes} year={year} projMap={projMap} projetos={projetos} onEdit={onEdit} />
         ) : (
-          <CalendarioView acoes={acoes} year={year} projMap={projMap} />
+          <CalendarioView acoes={acoes} year={year} projMap={projMap} onEdit={onEdit} />
         )}
       </div>
     </TooltipProvider>
@@ -120,12 +119,11 @@ function useUpdateDates() {
   });
 }
 
-function GanttView({ acoes, year, projMap, projetos }: { acoes: Acao[]; year: number; projMap: Map<string, Projeto>; projetos: Projeto[] }) {
+function GanttView({ acoes, year, projMap, projetos, onEdit }: { acoes: Acao[]; year: number; projMap: Map<string, Projeto>; projetos: Projeto[]; onEdit?: (id: string) => void }) {
   const yearStart = new Date(year, 0, 1);
   const yearEnd = new Date(year + 1, 0, 1);
   const totalDays = daysBetween(yearStart, yearEnd);
   const update = useUpdateDates();
-  const navigate = useNavigate({ from: "/acoes" });
   const dragMovedRef = useRef(false);
 
   const items = useMemo(() => {
@@ -237,9 +235,7 @@ function GanttView({ acoes, year, projMap, projetos }: { acoes: Acao[]; year: nu
                       role="button"
                       onPointerDown={(e) => onPointerDown(e, item, "move")}
                       onClick={() => {
-                        if (!dragMovedRef.current) {
-                          navigate({ to: "/acao/$id", params: { id: item.acao.id } });
-                        }
+                        if (!dragMovedRef.current) onEdit?.(item.acao.id);
                       }}
                       className="absolute top-1.5 flex h-8 cursor-grab items-center rounded-md text-[11px] text-white shadow-sm active:cursor-grabbing select-none"
                       style={{ left: `${leftPct}%`, width: `${widthPct}%`, background: color }}
@@ -274,9 +270,8 @@ function GanttView({ acoes, year, projMap, projetos }: { acoes: Acao[]; year: nu
   );
 }
 
-function CalendarioView({ acoes, year, projMap }: { acoes: Acao[]; year: number; projMap: Map<string, Projeto> }) {
+function CalendarioView({ acoes, year, projMap, onEdit }: { acoes: Acao[]; year: number; projMap: Map<string, Projeto>; onEdit?: (id: string) => void }) {
   const months = Array.from({ length: 12 }, (_, m) => m);
-  const navigate = useNavigate({ from: "/acoes" });
 
   const byDay = useMemo(() => {
     const map = new Map<string, Acao[]>();
@@ -323,7 +318,7 @@ function CalendarioView({ acoes, year, projMap }: { acoes: Acao[]; year: number;
                         return (
                           <AcaoTooltip key={a.id} acao={a} projMap={projMap}>
                             <div
-                              onClick={() => navigate({ to: "/acao/$id", params: { id: a.id } })}
+                              onClick={() => onEdit?.(a.id)}
                               className="truncate rounded px-1 py-0.5 text-[10px] text-white cursor-pointer"
                               style={{ background: projColor(proj) }}
                             >
