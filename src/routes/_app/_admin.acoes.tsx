@@ -1754,6 +1754,13 @@ function AcoesPageInner() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editFullscreen, setEditFullscreen] = useState(false);
 
+  const pushToGoogle = useServerFn(syncAcaoToGoogle);
+  const fireGoogleSync = (acaoId: string, op: "upsert" | "delete") => {
+    pushToGoogle({ data: { acaoId, op } }).catch((e) => {
+      console.error("[google-calendar] sync falhou", e);
+    });
+  };
+
   const { data, isLoading } = useQuery({
     queryKey: ["acoes"],
     queryFn: async () => {
