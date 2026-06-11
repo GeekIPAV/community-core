@@ -1826,10 +1826,11 @@ function AcoesPageInner() {
         data_inicio: fromDtLocal(form.data_inicio),
         data_fim: fromDtLocal(form.data_fim),
         status: form.status,
-        inscricoes_abertas: form.inscricoes_abertas,
+      inscricoes_abertas: form.inscricoes_abertas,
         bolsa_transporte: form.bolsa_transporte,
         projeto_ids: form.projeto_ids ?? [],
         restrito_a_projetos: form.restrito_a_projetos,
+        publico: form.publico,
         config_campos: { fields: form.fields },
       } as any).select("id").single();
       if (error) throw error;
@@ -1867,6 +1868,7 @@ function AcoesPageInner() {
           bolsa_transporte: editing.bolsa_transporte,
           projeto_ids: editing.projeto_ids ?? [],
           restrito_a_projetos: editing.restrito_a_projetos,
+          publico: editing.publico,
           config_campos: { fields: editing.fields },
         } as any)
         .eq("id", editing.id);
@@ -1968,6 +1970,13 @@ function AcoesPageInner() {
                   <p className="text-xs text-muted-foreground">Deixa vazio se o evento for num único dia.</p>
                 </div>
               </div>
+              <label className="flex items-center justify-between rounded-md border p-3">
+                <div>
+                  <p className="text-sm font-medium">Evento público</p>
+                  <p className="text-xs text-muted-foreground">Quando desligado, o evento não aparece no portal público.</p>
+                </div>
+                <Switch checked={form.publico} onCheckedChange={(c) => setForm({ ...form, publico: c })} />
+              </label>
               <label className="flex items-center justify-between rounded-md border p-3">
                 <div>
                   <p className="text-sm font-medium">Inscrições abertas</p>
