@@ -172,6 +172,24 @@ export type Database = {
         }
         Relationships: []
       }
+      design_tokens: {
+        Row: {
+          id: boolean
+          tokens: Json
+          updated_at: string
+        }
+        Insert: {
+          id?: boolean
+          tokens?: Json
+          updated_at?: string
+        }
+        Update: {
+          id?: boolean
+          tokens?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_templates: {
         Row: {
           assunto: string
