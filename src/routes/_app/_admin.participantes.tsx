@@ -1497,11 +1497,13 @@ function PessoaPerfil({
   tipos,
   projetos,
   familias,
+  onOpenMember,
 }: {
   pessoa: Pessoa & { is_voluntario?: boolean; is_admin?: boolean };
   tipos: PerfilOpt[];
   projetos: PerfilOpt[];
   familias: PerfilOpt[];
+  onOpenMember?: (id: string) => void | Promise<void>;
 }) {
   const tipoNome = tipos.find((t) => t.id === pessoa.tipo_user_id)?.nome ?? null;
   const familiaNome = familias.find((f) => f.id === pessoa.familia_id)?.nome ?? null;
@@ -1634,7 +1636,12 @@ function PessoaPerfil({
                 const idadeM = calcIdade(m.data_nascimento);
                 const tipoM = tipos.find((t) => t.id === m.tipo_user_id)?.nome;
                 return (
-                  <div key={m.id} className="rounded-md border p-3 bg-card hover:bg-muted/30 transition-colors">
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => onOpenMember?.(m.id)}
+                    className="text-left rounded-md border p-3 bg-card hover:bg-muted/40 hover:border-primary/40 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
                     <div className="flex items-center gap-2.5">
                       <div className="h-9 w-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold shrink-0">
                         {initials(m.nome_completo)}
@@ -1652,7 +1659,7 @@ function PessoaPerfil({
                       {m.telefone && <div className="flex items-center gap-1.5"><Phone className="h-3 w-3" />{m.telefone}</div>}
                       {m.email && <div className="flex items-center gap-1.5 truncate"><Mail className="h-3 w-3 shrink-0" /><span className="truncate">{m.email}</span></div>}
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
