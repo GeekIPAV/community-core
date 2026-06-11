@@ -32,12 +32,38 @@ function Home() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("acoes")
-        .select("id, nome, descricao, local, mapa_url, imagem_url, data_inicio, data_fim, inscricoes_abertas")
+        .select("id, nome, descricao, local, mapa_url, imagem_url, data_inicio, data_fim, inscricoes_abertas, projeto_ids, restrito_a_projetos")
         .order("data_inicio", { ascending: true, nullsFirst: false });
       if (error) throw error;
       return data;
     },
   });
+
+  const { data: meusProjetos } = useQuery({
+    queryKey: ["meus_projetos", pessoa?.id],
+    enabled: !!pessoa?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pessoas")
+        .select("projeto_ids")
+        .eq("id", pessoa!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return (data?.projeto_ids as string[] | null) ?? [];
+    },
+  });
+
+  const acoesVisiveis = useMemo(() => {
+    const meus = new Set(meusProjetos ?? []);
+    const isAdminUser = isAdmin;
+    return (data ?? []).filter((a) => {
+      if (!a.restrito_a_projetos) return true;
+      if (isAdminUser) return true;
+      const restritos = (a.projeto_ids as string[] | null) ?? [];
+      if (restritos.length === 0) return true;
+      return restritos.some((p) => meus.has(p));
+    });
+  }, [data, meusProjetos, isAdmin]);
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
 
@@ -45,7 +71,7 @@ function Home() {
     const now = Date.now();
     const prox: typeof data = [];
     const pas: typeof data = [];
-    for (const a of data ?? []) {
+    for (const a of acoesVisiveis) {
       const fim = a.data_fim ? new Date(a.data_fim).getTime() : a.data_inicio ? new Date(a.data_inicio).getTime() : now;
       if (fim >= now - 24 * 60 * 60 * 1000) {
         prox.push(a);
@@ -54,7 +80,7 @@ function Home() {
       }
     }
     return { proximos: prox, passados: pas };
-  }, [data]);
+  }, [acoesVisiveis]);
 
   const todasAcoes = useMemo(() => [...proximos, ...passados], [proximos, passados]);
 
