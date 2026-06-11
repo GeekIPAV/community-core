@@ -803,6 +803,16 @@ function ParticipantesPage() {
                   tipos={tipos ?? []}
                   projetos={projetos ?? []}
                   familias={familias ?? []}
+                  onOpenMember={async (id) => {
+                    const found = data?.find((p) => p.id === id);
+                    if (found) { setEditing({ ...found }); return; }
+                    const { data: p } = await supabase
+                      .from("pessoas")
+                      .select("id, nome_completo, email, telefone, nif, cartao_cidadao, morada, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao, profissao, projeto_ids, updated_at")
+                      .eq("id", id)
+                      .maybeSingle();
+                    if (p) setEditing({ ...(p as any), projeto_ids: (p as any).projeto_ids ?? [] });
+                  }}
                 />
               </TabsContent>
               <TabsContent value="dados" className="mt-4">
