@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AuthProvider } from "@/lib/auth-context";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { CommandPalette } from "@/components/command-palette";
+import { ThemeProvider } from "@/lib/theme-provider";
 import "@/lib/i18n";
 
 function NotFoundComponent() {
@@ -148,13 +149,15 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <div className="pb-[68px] md:pb-0">
-          <Outlet />
-        </div>
-        <MobileBottomNav />
-        <CommandPalette />
-        <Toaster />
+        <ThemeProvider>
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <div className="pb-[68px] md:pb-0">
+            <Outlet />
+          </div>
+          <MobileBottomNav />
+          <CommandPalette />
+          <Toaster />
+        </ThemeProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
