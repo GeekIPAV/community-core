@@ -18,6 +18,7 @@ import { Route as AcaoIdRouteImport } from './routes/acao.$id'
 import { Route as AppPerfilRouteImport } from './routes/_app.perfil'
 import { Route as AppAdminRouteImport } from './routes/_app/_admin'
 import { Route as AppAdminTiposUserRouteImport } from './routes/_app/_admin.tipos-user'
+import { Route as AppAdminStyleGuideRouteImport } from './routes/_app/_admin.style-guide'
 import { Route as AppAdminProjetosRouteImport } from './routes/_app/_admin.projetos'
 import { Route as AppAdminParticipantesRouteImport } from './routes/_app/_admin.participantes'
 import { Route as AppAdminLocalizacoesRouteImport } from './routes/_app/_admin.localizacoes'
@@ -71,6 +72,11 @@ const AppAdminRoute = AppAdminRouteImport.update({
 const AppAdminTiposUserRoute = AppAdminTiposUserRouteImport.update({
   id: '/tipos-user',
   path: '/tipos-user',
+  getParentRoute: () => AppAdminRoute,
+} as any)
+const AppAdminStyleGuideRoute = AppAdminStyleGuideRouteImport.update({
+  id: '/style-guide',
+  path: '/style-guide',
   getParentRoute: () => AppAdminRoute,
 } as any)
 const AppAdminProjetosRoute = AppAdminProjetosRouteImport.update({
@@ -148,6 +154,7 @@ export interface FileRoutesByFullPath {
   '/localizacoes': typeof AppAdminLocalizacoesRoute
   '/participantes': typeof AppAdminParticipantesRoute
   '/projetos': typeof AppAdminProjetosRoute
+  '/style-guide': typeof AppAdminStyleGuideRoute
   '/tipos-user': typeof AppAdminTiposUserRoute
 }
 export interface FileRoutesByTo {
@@ -168,6 +175,7 @@ export interface FileRoutesByTo {
   '/localizacoes': typeof AppAdminLocalizacoesRoute
   '/participantes': typeof AppAdminParticipantesRoute
   '/projetos': typeof AppAdminProjetosRoute
+  '/style-guide': typeof AppAdminStyleGuideRoute
   '/tipos-user': typeof AppAdminTiposUserRoute
 }
 export interface FileRoutesById {
@@ -191,6 +199,7 @@ export interface FileRoutesById {
   '/_app/_admin/localizacoes': typeof AppAdminLocalizacoesRoute
   '/_app/_admin/participantes': typeof AppAdminParticipantesRoute
   '/_app/_admin/projetos': typeof AppAdminProjetosRoute
+  '/_app/_admin/style-guide': typeof AppAdminStyleGuideRoute
   '/_app/_admin/tipos-user': typeof AppAdminTiposUserRoute
 }
 export interface FileRouteTypes {
@@ -213,6 +222,7 @@ export interface FileRouteTypes {
     | '/localizacoes'
     | '/participantes'
     | '/projetos'
+    | '/style-guide'
     | '/tipos-user'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -233,6 +243,7 @@ export interface FileRouteTypes {
     | '/localizacoes'
     | '/participantes'
     | '/projetos'
+    | '/style-guide'
     | '/tipos-user'
   id:
     | '__root__'
@@ -255,6 +266,7 @@ export interface FileRouteTypes {
     | '/_app/_admin/localizacoes'
     | '/_app/_admin/participantes'
     | '/_app/_admin/projetos'
+    | '/_app/_admin/style-guide'
     | '/_app/_admin/tipos-user'
   fileRoutesById: FileRoutesById
 }
@@ -330,6 +342,13 @@ declare module '@tanstack/react-router' {
       path: '/tipos-user'
       fullPath: '/tipos-user'
       preLoaderRoute: typeof AppAdminTiposUserRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
+    '/_app/_admin/style-guide': {
+      id: '/_app/_admin/style-guide'
+      path: '/style-guide'
+      fullPath: '/style-guide'
+      preLoaderRoute: typeof AppAdminStyleGuideRouteImport
       parentRoute: typeof AppAdminRoute
     }
     '/_app/_admin/projetos': {
@@ -424,6 +443,7 @@ interface AppAdminRouteChildren {
   AppAdminLocalizacoesRoute: typeof AppAdminLocalizacoesRoute
   AppAdminParticipantesRoute: typeof AppAdminParticipantesRoute
   AppAdminProjetosRoute: typeof AppAdminProjetosRoute
+  AppAdminStyleGuideRoute: typeof AppAdminStyleGuideRoute
   AppAdminTiposUserRoute: typeof AppAdminTiposUserRoute
 }
 
@@ -439,6 +459,7 @@ const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminLocalizacoesRoute: AppAdminLocalizacoesRoute,
   AppAdminParticipantesRoute: AppAdminParticipantesRoute,
   AppAdminProjetosRoute: AppAdminProjetosRoute,
+  AppAdminStyleGuideRoute: AppAdminStyleGuideRoute,
   AppAdminTiposUserRoute: AppAdminTiposUserRoute,
 }
 
@@ -469,3 +490,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
