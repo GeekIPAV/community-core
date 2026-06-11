@@ -1,33 +1,70 @@
-## Objetivo
-Tornar a sincronização com o Google Calendar **unidirecional**: apenas o que é criado/editado/eliminado nas Ações é refletido no Google Calendar. Eventos criados ou alterados diretamente no Google Calendar **não** entram na app.
+## Plano de melhorias
 
-## Alterações
+Vou organizar as melhorias em fases para entregar valor cedo. Cada fase é independente — podes pedir para implementar só algumas.
 
-### 1. UI — `src/routes/_app/_admin.acoes.tsx`
-- Simplificar o `GoogleCalendarSyncCard`: remover botão "Ativar sincronização" e estado de canal/expiração.
-- Manter apenas indicador "Sincronização ativa (app → Google Calendar)" e, opcionalmente, um botão "Re-sincronizar tudo" que faz push em massa das ações existentes.
-- Manter `fireGoogleSync` nos mutations de create/update/delete (push para Google).
+---
 
-### 2. Server functions — `src/lib/google-calendar.functions.ts`
-- Remover `pullGoogleChanges` e `setupGoogleWatch` (e qualquer função relacionada com watch/sync token).
-- Manter apenas as funções de push: criar/atualizar/eliminar evento no Google.
-- Adicionar (opcional) `resyncAllAcoes` para reenviar todas as ações públicas/privadas para o Google.
+### Fase 1 — UX & Performance (rápido, alto impacto)
 
-### 3. Server helpers — `src/lib/google-calendar.server.ts`
-- Manter `pushAcaoToGoogle` (upsert + delete).
-- Remover `pullGoogleChanges`, `setupGoogleWatch` e lógica de `syncToken`/canais.
+- **Pesquisa global** no topo (Cmd/Ctrl+K): salta para participantes, ações, famílias.
+- **Filtros guardados** nas listas (ações, participantes): guardar combinações de filtros como "vistas" reutilizáveis (já existe a tabela `vistas_guardadas` — vou ligá-la à UI).
+- **Paginação/virtualização** das tabelas grandes (participantes, ações) para evitar lentidão com muitos registos.
+- **Loading skeletons** consistentes em vez de spinners.
+- **Atalhos de teclado** nas tabelas: setas para navegar, espaço para selecionar, `e` para editar.
 
-### 4. Webhook — `src/routes/api/public/webhooks/google-calendar.ts`
-- Eliminar o ficheiro. Já não é necessário receber notificações do Google.
+### Fase 2 — Portal Público & SEO
 
-### 5. Base de dados — nova migração
-- Remover a coluna `google_sync_origin` da tabela `acoes` (já não precisamos da proteção anti-loop, pois não há pull).
-- Manter `google_event_id` em `acoes` (necessário para update/delete no Google).
-- Eliminar a tabela `google_calendar_sync_state` (já não é usada).
+- **Página individual de cada evento** (`/evento/:slug`) partilhável, com metadados Open Graph dinâmicos (título, descrição, imagem do evento).
+- **Inscrição online** a partir do portal público com confirmação por email (usa Fase 4).
+- **Sitemap dinâmico** que inclui todos os eventos públicos.
+- **JSON-LD `Event`** para aparecer melhor no Google (data, local, organizador).
+- **Imagem de capa** opcional por evento (já há suporte? verifico e adiciono se faltar).
 
-### 6. Limpeza
-- Remover imports não usados e referências a `google_sync_origin`, `sync_token`, `channel_*` em todo o código.
+### Fase 3 — Gestão de Participantes & Relatórios
 
-## Resultado
-- Criar/editar/apagar uma ação na app → cria/atualiza/apaga o evento correspondente no Google Calendar do MEERU.
-- Alterações feitas diretamente no Google Calendar são ignoradas pela app.
+- **Importação CSV** em massa com mapeamento de colunas e pré-visualização antes de gravar.
+- **Exportação** das listas filtradas para CSV/Excel.
+- **Histórico de presenças** por participante na ficha individual (cronologia das ações em que esteve).
+- **Etiquetas/tags** livres em participantes (ex: "voluntário", "novo", "vulnerável") com filtro.
+- **Dashboard com KPIs**: participantes ativos, ações por mês, taxa de presença, top atividades — com gráficos.
+- **Exportação PDF/Excel** de relatórios (lista de presenças por ação, resumo mensal).
+
+### Fase 4 — Emails automáticos
+
+Usar o sistema de emails da plataforma (templates React Email, domínio próprio):
+
+- **Confirmação de inscrição** enviada ao participante.
+- **Lembrete 24h antes** da ação (cron job que corre de manhã).
+- **Follow-up pós-evento** (opcional, 1 dia depois).
+- Templates editáveis com cores/branding do Meeru.
+
+> Vou precisar de configurar um domínio de envio (ex: `notify.appmeeru.lovable.app` ou subdomínio teu). Pergunto no momento de implementar.
+
+### Fase 5 — QR Code de presenças
+
+- Cada ação gera um **QR code único** que o coordenador mostra (ou imprime).
+- Página `/checkin/:token` onde o participante (autenticado) faz check-in com 1 toque.
+- Alternativa: app do coordenador faz scan do cartão do participante.
+- Marca presença automática em `inscricoes`/presenças.
+
+---
+
+### Detalhes técnicos
+
+- **Tabelas novas/alteradas**: `etiquetas`, `pessoa_etiquetas`, `acao_checkin_tokens`; colunas `acoes.slug`, `acoes.imagem_capa`, `acoes.descricao_publica`.
+- **Server functions novas**: `importParticipantesCSV`, `exportRelatorio`, `enviarLembretes` (cron), `criarTokenCheckin`, `registarPresencaViaQR`.
+- **Rotas novas**: `/evento/$slug` (público), `/_app/_admin.dashboard`, `/checkin/$token`, `/_app/_admin.importar`.
+- **Cron**: pg_cron diário às 09:00 chama `/api/public/hooks/lembretes-eventos`.
+- **Componentes**: `CommandPalette`, `DataTablePro` (virtualizada), `KpiCard`, `EventCard` (público), `QrCodeDisplay`.
+
+---
+
+### Sugestão de ordem
+
+1. **Fase 2** (Portal público + página individual de evento) — entrega visível imediata.
+2. **Fase 4** (Emails) — depende do domínio mas alto valor.
+3. **Fase 3** (Importação/exportação + dashboard).
+4. **Fase 5** (QR check-in).
+5. **Fase 1** (UX/performance) — polish contínuo.
+
+Diz-me por **qual fase queres começar** (ex: "Fase 2", ou "Fases 2 e 4"), ou se queres reordenar/cortar algo.
