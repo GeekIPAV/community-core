@@ -53,13 +53,6 @@ function acaoToEventBody(acao: any) {
   };
 }
 
-function parseGoogleDate(g: any): string | null {
-  if (!g) return null;
-  if (g.dateTime) return new Date(g.dateTime).toISOString();
-  if (g.date) return new Date(`${g.date}T00:00:00Z`).toISOString();
-  return null;
-}
-
 export async function pushAcaoToGoogle(
   acaoId: string,
   op: "upsert" | "delete",
@@ -89,11 +82,6 @@ export async function pushAcaoToGoogle(
   if (!acao) throw new Error("Ação não encontrada");
   if (!(acao as any).data_inicio) return { ok: false, skipped: "sem-data" };
 
-  // anti-loop: if last write came from google, don't push back
-  if ((acao as any).google_sync_origin === "google") {
-    return { ok: false, skipped: "origem-google" };
-  }
-
   const body = acaoToEventBody(acao);
   let eventId: string | null = (acao as any).google_event_id ?? null;
   if (eventId) {
@@ -119,160 +107,33 @@ export async function pushAcaoToGoogle(
   }
   await admin
     .from("acoes")
-    .update({ google_event_id: eventId, google_sync_origin: "app" } as any)
+    .update({ google_event_id: eventId } as any)
     .eq("id", acaoId);
   return { ok: true, eventId };
 }
 
-export async function pullGoogleChanges(): Promise<{
-  imported: number;
-  updated: number;
-  deleted: number;
+export async function resyncAllAcoesToGoogle(): Promise<{
+  total: number;
+  ok: number;
+  failed: number;
 }> {
   const admin = getAdminClient();
-  const { data: state } = await admin
-    .from("google_calendar_sync_state")
-    .select("*")
-    .eq("id", "primary")
-    .maybeSingle();
-  const syncToken = (state as any)?.sync_token ?? null;
-
-  const fetchPage = async (pageToken?: string) => {
-    const params = new URLSearchParams();
-    if (syncToken && !pageToken) {
-      params.set("syncToken", syncToken);
-    } else if (!syncToken) {
-      params.set("timeMin", new Date().toISOString());
-      params.set("singleEvents", "true");
-    }
-    if (pageToken) params.set("pageToken", pageToken);
-    params.set("maxResults", "250");
-    return gFetch(`/calendars/${CALENDAR_ID}/events?${params.toString()}`);
-  };
-
-  let imported = 0;
-  let updated = 0;
-  let deleted = 0;
-  let pageToken: string | undefined;
-  let nextSyncToken: string | undefined;
-
-  try {
-    do {
-      const page: any = await fetchPage(pageToken);
-      for (const ev of (page?.items ?? []) as any[]) {
-        if (ev.status === "cancelled") {
-          const { data: existing } = await admin
-            .from("acoes")
-            .select("id")
-            .eq("google_event_id", ev.id)
-            .maybeSingle();
-          if (existing) {
-            await admin.from("acoes").delete().eq("id", (existing as any).id);
-            deleted++;
-          }
-          continue;
-        }
-        const start = parseGoogleDate(ev.start);
-        const end = parseGoogleDate(ev.end);
-        if (!start) continue;
-        const payload: any = {
-          nome: ev.summary || "(sem título)",
-          local: ev.location || null,
-          data_inicio: start,
-          data_fim: end,
-          google_event_id: ev.id,
-          google_sync_origin: "google",
-        };
-        const { data: existing } = await admin
-          .from("acoes")
-          .select("id")
-          .eq("google_event_id", ev.id)
-          .maybeSingle();
-        if (existing) {
-          await admin.from("acoes").update(payload).eq("id", (existing as any).id);
-          updated++;
-        } else {
-          await admin.from("acoes").insert({
-            ...payload,
-            status: "rascunho",
-            inscricoes_abertas: false,
-            bolsa_transporte: false,
-            projeto_ids: [],
-            restrito_a_projetos: false,
-            config_campos: { fields: [] },
-          });
-          imported++;
-        }
-      }
-      pageToken = page?.nextPageToken;
-      nextSyncToken = page?.nextSyncToken ?? nextSyncToken;
-    } while (pageToken);
-  } catch (e) {
-    if (/ 410/.test(String(e))) {
-      await admin
-        .from("google_calendar_sync_state")
-        .upsert({ id: "primary", sync_token: null });
-      throw new Error("Token de sincronização expirou. Clica em 'Sincronizar agora' novamente.");
-    }
-    throw e;
-  }
-
-  await admin.from("google_calendar_sync_state").upsert({
-    id: "primary",
-    sync_token: nextSyncToken ?? syncToken,
-    last_synced_at: new Date().toISOString(),
-    channel_id: (state as any)?.channel_id ?? null,
-    channel_resource_id: (state as any)?.channel_resource_id ?? null,
-    channel_expires_at: (state as any)?.channel_expires_at ?? null,
-  });
-
-  return { imported, updated, deleted };
-}
-
-export async function setupGoogleWatch(): Promise<{
-  channelId: string;
-  expiresAt: string | null;
-}> {
-  const admin = getAdminClient();
-
-  // stop previous channel if any
-  const { data: prev } = await admin
-    .from("google_calendar_sync_state")
-    .select("*")
-    .eq("id", "primary")
-    .maybeSingle();
-  if ((prev as any)?.channel_id && (prev as any)?.channel_resource_id) {
+  const { data, error } = await admin
+    .from("acoes")
+    .select("id")
+    .not("data_inicio", "is", null);
+  if (error) throw error;
+  const rows = (data ?? []) as { id: string }[];
+  let ok = 0;
+  let failed = 0;
+  for (const r of rows) {
     try {
-      await gFetch(`/channels/stop`, {
-        method: "POST",
-        body: JSON.stringify({
-          id: (prev as any).channel_id,
-          resourceId: (prev as any).channel_resource_id,
-        }),
-      });
-    } catch {
-      /* ignore */
+      await pushAcaoToGoogle(r.id, "upsert");
+      ok++;
+    } catch (e) {
+      console.error("[google-calendar] resync falhou", r.id, e);
+      failed++;
     }
   }
-
-  // do an initial pull first so we have a syncToken
-  await pullGoogleChanges();
-
-  const channelId = crypto.randomUUID();
-  const token = process.env.GOOGLE_CALENDAR_WEBHOOK_TOKEN!;
-  const address = `${publicAppUrl()}/api/public/webhooks/google-calendar`;
-  const res: any = await gFetch(`/calendars/${CALENDAR_ID}/events/watch`, {
-    method: "POST",
-    body: JSON.stringify({ id: channelId, type: "web_hook", address, token }),
-  });
-  const expiresAt = res?.expiration
-    ? new Date(Number(res.expiration)).toISOString()
-    : null;
-  await admin.from("google_calendar_sync_state").upsert({
-    id: "primary",
-    channel_id: res?.id ?? channelId,
-    channel_resource_id: res?.resourceId ?? null,
-    channel_expires_at: expiresAt,
-  });
-  return { channelId: res?.id ?? channelId, expiresAt };
+  return { total: rows.length, ok, failed };
 }

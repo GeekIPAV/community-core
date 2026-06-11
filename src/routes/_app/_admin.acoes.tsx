@@ -39,9 +39,7 @@ import { AcoesPlaneamento } from "@/components/acoes-planeamento";
 import { useServerFn } from "@tanstack/react-start";
 import {
   syncAcaoToGoogle,
-  pullGoogleCalendarNow,
-  setupGoogleCalendarSync,
-  getGoogleSyncStatus,
+  resyncAllToGoogle,
 } from "@/lib/google-calendar.functions";
 import { RefreshCw, Calendar as CalendarIcon } from "lucide-react";
 
@@ -2370,42 +2368,17 @@ function ProjetosMultiSelect({
 }
 
 function GoogleCalendarSyncCard() {
-  const qc = useQueryClient();
-  const getStatus = useServerFn(getGoogleSyncStatus);
-  const setup = useServerFn(setupGoogleCalendarSync);
-  const pull = useServerFn(pullGoogleCalendarNow);
+  const resync = useServerFn(resyncAllToGoogle);
 
-  const { data: status, isLoading } = useQuery({
-    queryKey: ["google_calendar_sync_state"],
-    queryFn: () => getStatus(),
-  });
-
-  const setupMutation = useMutation({
-    mutationFn: () => setup(),
-    onSuccess: () => {
-      toast.success("Sincronização com Google Calendar ativada");
-      qc.invalidateQueries({ queryKey: ["google_calendar_sync_state"] });
-      qc.invalidateQueries({ queryKey: ["acoes"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const pullMutation = useMutation({
-    mutationFn: () => pull(),
+  const resyncMutation = useMutation({
+    mutationFn: () => resync(),
     onSuccess: (r: any) => {
       toast.success(
-        `Sincronizado: ${r?.imported ?? 0} novas · ${r?.updated ?? 0} atualizadas · ${r?.deleted ?? 0} apagadas`,
+        `Reenviado para o Google: ${r?.ok ?? 0}/${r?.total ?? 0}${r?.failed ? ` · ${r.failed} falharam` : ""}`,
       );
-      qc.invalidateQueries({ queryKey: ["google_calendar_sync_state"] });
-      qc.invalidateQueries({ queryKey: ["acoes"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
-
-  const channelActive =
-    !!(status as any)?.channel_id &&
-    (!(status as any)?.channel_expires_at ||
-      new Date((status as any).channel_expires_at).getTime() > Date.now());
 
   return (
     <Card>
@@ -2415,51 +2388,26 @@ function GoogleCalendarSyncCard() {
             <CalendarIcon className="h-4 w-4" /> Google Calendar
           </CardTitle>
           <CardDescription>
-            Sincronização bidirecional em tempo real com o calendário principal da conta Google ligada.
+            As ações criadas, editadas ou apagadas aqui são automaticamente sincronizadas para o Google Calendar. Alterações feitas no Google Calendar não são importadas.
           </CardDescription>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
             size="sm"
-            disabled={pullMutation.isPending || !channelActive}
-            onClick={() => pullMutation.mutate()}
+            disabled={resyncMutation.isPending}
+            onClick={() => resyncMutation.mutate()}
           >
-            <RefreshCw className={`mr-2 h-4 w-4 ${pullMutation.isPending ? "animate-spin" : ""}`} />
-            Sincronizar agora
-          </Button>
-          <Button
-            size="sm"
-            disabled={setupMutation.isPending}
-            onClick={() => setupMutation.mutate()}
-          >
-            {channelActive ? "Renovar ligação" : "Ativar sincronização"}
+            <RefreshCw className={`mr-2 h-4 w-4 ${resyncMutation.isPending ? "animate-spin" : ""}`} />
+            Re-sincronizar tudo
           </Button>
         </div>
       </CardHeader>
       <CardContent className="text-xs text-muted-foreground">
-        {isLoading ? (
-          <Skeleton className="h-4 w-48" />
-        ) : channelActive ? (
-          <div className="flex flex-wrap items-center gap-3">
-            <Badge variant="secondary">Ativa</Badge>
-            {(status as any)?.channel_expires_at && (
-              <span>
-                Expira: {new Date((status as any).channel_expires_at).toLocaleString("pt-PT")}
-              </span>
-            )}
-            {(status as any)?.last_synced_at && (
-              <span>
-                Última sincronização: {new Date((status as any).last_synced_at).toLocaleString("pt-PT")}
-              </span>
-            )}
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <Badge variant="outline">Inativa</Badge>
-            <span>Clica em "Ativar sincronização" para começar.</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary">Ativa</Badge>
+          <span>Sincronização unidirecional: app → Google Calendar.</span>
+        </div>
       </CardContent>
     </Card>
   );
