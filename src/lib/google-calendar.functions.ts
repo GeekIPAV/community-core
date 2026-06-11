@@ -16,29 +16,10 @@ export const syncAcaoToGoogle = createServerFn({ method: "POST" })
     return await pushAcaoToGoogle(data.acaoId, data.op);
   });
 
-export const pullGoogleCalendarNow = createServerFn({ method: "POST" })
+export const resyncAllToGoogle = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context);
-    const { pullGoogleChanges } = await import("./google-calendar.server");
-    return await pullGoogleChanges();
-  });
-
-export const setupGoogleCalendarSync = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    await assertAdmin(context);
-    const { setupGoogleWatch } = await import("./google-calendar.server");
-    return await setupGoogleWatch();
-  });
-
-export const getGoogleSyncStatus = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data } = await context.supabase
-      .from("google_calendar_sync_state")
-      .select("*")
-      .eq("id", "primary")
-      .maybeSingle();
-    return data;
+    const { resyncAllAcoesToGoogle } = await import("./google-calendar.server");
+    return await resyncAllAcoesToGoogle();
   });
