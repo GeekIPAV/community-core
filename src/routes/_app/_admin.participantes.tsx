@@ -1277,6 +1277,9 @@ function parseBulkCsv(text: string, familias: { id: string; nome: string }[], pr
 }
 
 function PessoaInscricoes({ pessoaId }: { pessoaId: string }) {
+  const qc = useQueryClient();
+  const [addAcaoId, setAddAcaoId] = useState<string>("");
+
   const { data, isLoading } = useQuery({
     queryKey: ["pessoa-inscricoes", pessoaId],
     queryFn: async () => {
@@ -1295,21 +1298,99 @@ function PessoaInscricoes({ pessoaId }: { pessoaId: string }) {
     },
   });
 
-  if (isLoading) return <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>;
-  const rows = data ?? [];
-  if (rows.length === 0) return <p className="text-sm text-muted-foreground">Sem inscrições em ações ou eventos.</p>;
+  const { data: acoes } = useQuery({
+    queryKey: ["acoes-min-for-inscricao"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("acoes")
+        .select("id, nome, tipo, data_inicio")
+        .order("data_inicio", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: string; nome: string; tipo: string | null; data_inicio: string | null }>;
+    },
+  });
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["pessoa-inscricoes", pessoaId] });
+    qc.invalidateQueries({ queryKey: ["acoes"] });
+    qc.invalidateQueries({ queryKey: ["inscricoes"] });
+  };
+
+  const updateStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { error } = await supabase.from("inscricoes").update({ status: status as any }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Estado atualizado"); invalidate(); },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao atualizar"),
+  });
+
+  const removeInscricao = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("inscricoes").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Inscrição removida"); invalidate(); },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao remover"),
+  });
+
+  const addInscricao = useMutation({
+    mutationFn: async (acaoId: string) => {
+      const { error } = await supabase
+        .from("inscricoes")
+        .insert({ pessoa_id: pessoaId, acao_id: acaoId, status: "confirmada" as any });
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Pessoa inscrita na ação"); setAddAcaoId(""); invalidate(); },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao inscrever"),
+  });
 
   const fmt = (d: string | null) => d ? new Date(d).toLocaleDateString("pt-PT", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+  const rows = data ?? [];
+  const inscritasIds = new Set(rows.filter(r => r.status !== "cancelada").map(r => r.acao?.id).filter(Boolean) as string[]);
+  const acoesDisponiveis = (acoes ?? []).filter(a => !inscritasIds.has(a.id));
 
   return (
-    <div className="rounded-md border">
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Select value={addAcaoId} onValueChange={setAddAcaoId}>
+          <SelectTrigger className="flex-1">
+            <SelectValue placeholder="Selecionar ação / evento para inscrever..." />
+          </SelectTrigger>
+          <SelectContent>
+            {acoesDisponiveis.length === 0 ? (
+              <div className="px-2 py-1.5 text-sm text-muted-foreground">Sem ações disponíveis</div>
+            ) : acoesDisponiveis.map(a => (
+              <SelectItem key={a.id} value={a.id}>
+                {a.nome} {a.tipo ? `(${a.tipo})` : ""} {a.data_inicio ? `— ${fmt(a.data_inicio)}` : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          type="button"
+          size="sm"
+          disabled={!addAcaoId || addInscricao.isPending}
+          onClick={() => addAcaoId && addInscricao.mutate(addAcaoId)}
+        >
+          <Plus className="h-4 w-4" /> Inscrever
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
+      ) : rows.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Sem inscrições em ações ou eventos.</p>
+      ) : (
+      <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Ação / Evento</TableHead>
             <TableHead>Tipo</TableHead>
             <TableHead>Data</TableHead>
-            <TableHead>Estado</TableHead>
+            <TableHead className="w-[160px]">Estado</TableHead>
+            <TableHead className="w-[60px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -1318,11 +1399,39 @@ function PessoaInscricoes({ pessoaId }: { pessoaId: string }) {
               <TableCell className="font-medium">{r.acao?.nome ?? "—"}</TableCell>
               <TableCell><Badge variant="outline">{r.acao?.tipo ?? "—"}</Badge></TableCell>
               <TableCell>{fmt(r.acao?.data_inicio ?? null)}</TableCell>
-              <TableCell><Badge variant={r.status === "cancelada" ? "secondary" : "default"}>{r.status}</Badge></TableCell>
+              <TableCell>
+                <Select
+                  value={r.status}
+                  onValueChange={(v) => updateStatus.mutate({ id: r.id, status: v })}
+                  disabled={updateStatus.isPending}
+                >
+                  <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="confirmada">Confirmada</SelectItem>
+                    <SelectItem value="presente">Presente</SelectItem>
+                    <SelectItem value="ausente">Ausente</SelectItem>
+                    <SelectItem value="cancelada">Cancelada</SelectItem>
+                  </SelectContent>
+                </Select>
+              </TableCell>
+              <TableCell>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  title="Remover inscrição"
+                  onClick={() => { if (confirm("Remover esta inscrição?")) removeInscricao.mutate(r.id); }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
+      </div>
+      )}
     </div>
   );
 }
