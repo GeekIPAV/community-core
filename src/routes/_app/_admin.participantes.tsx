@@ -26,6 +26,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
 import { ChevronDown, ChevronRight, Lock, LockOpen, Pencil, Plus, Trash2, Mail, Phone, MapPin, Cake, Briefcase, Globe, HeartHandshake, Users, IdCard, ShieldCheck, Heart } from "lucide-react";
+import { Download } from "lucide-react";
+import { EtiquetasPicker } from "@/components/etiquetas-picker";
+import { downloadCSV, toCSV } from "@/lib/csv";
 import {
   useReactTable,
   getCoreRowModel,
