@@ -2057,6 +2057,7 @@ function AcoesPageInner() {
                     bolsa_transporte: !!(a as any).bolsa_transporte,
                     projeto_ids: ((a as any).projeto_ids ?? []) as string[],
                     restrito_a_projetos: !!(a as any).restrito_a_projetos,
+                    publico: (a as any).publico ?? true,
                     fields,
                   });
                 }}
@@ -2132,6 +2133,7 @@ function AcoesPageInner() {
                 bolsa_transporte: !!a.bolsa_transporte,
                 projeto_ids: (a.projeto_ids ?? []) as string[],
                 restrito_a_projetos: !!a.restrito_a_projetos,
+                publico: a.publico ?? true,
                 fields,
               });
             }}
