@@ -310,14 +310,14 @@ function CalendarioView({ acoes, year, projMap }: { acoes: Acao[]; year: number;
                       {items.slice(0, 3).map((a) => {
                         const proj = (a.projeto_ids ?? [])[0];
                         return (
-                          <div
-                            key={a.id}
-                            className="truncate rounded px-1 py-0.5 text-[10px] text-white"
-                            style={{ background: projColor(proj) }}
-                            title={`${a.nome}${proj ? " — " + (projMap.get(proj)?.nome ?? "") : ""}`}
-                          >
-                            {a.nome}
-                          </div>
+                          <AcaoTooltip key={a.id} acao={a} projMap={projMap}>
+                            <div
+                              className="truncate rounded px-1 py-0.5 text-[10px] text-white cursor-pointer"
+                              style={{ background: projColor(proj) }}
+                            >
+                              {a.nome}
+                            </div>
+                          </AcaoTooltip>
                         );
                       })}
                       {items.length > 3 && <div className="text-[10px] text-muted-foreground">+{items.length - 3}</div>}
