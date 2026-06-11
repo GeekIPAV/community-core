@@ -36,6 +36,14 @@ import { useMobileColumnVisibility } from "@/hooks/use-mobile-columns";
 import { matchCidade, formatEuro, type CidadeBolsa } from "@/lib/bolsa-transporte";
 import { ChevronDown } from "lucide-react";
 import { AcoesPlaneamento } from "@/components/acoes-planeamento";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  syncAcaoToGoogle,
+  pullGoogleCalendarNow,
+  setupGoogleCalendarSync,
+  getGoogleSyncStatus,
+} from "@/lib/google-calendar.functions";
+import { RefreshCw, Calendar as CalendarIcon } from "lucide-react";
 
 export const Route = createFileRoute("/_app/_admin/acoes")({
   component: AcoesPage,
@@ -1746,6 +1754,13 @@ function AcoesPageInner() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editFullscreen, setEditFullscreen] = useState(false);
 
+  const pushToGoogle = useServerFn(syncAcaoToGoogle);
+  const fireGoogleSync = (acaoId: string, op: "upsert" | "delete") => {
+    pushToGoogle({ data: { acaoId, op } }).catch((e) => {
+      console.error("[google-calendar] sync falhou", e);
+    });
+  };
+
   const { data, isLoading } = useQuery({
     queryKey: ["acoes"],
     queryFn: async () => {
@@ -1800,7 +1815,7 @@ function AcoesPageInner() {
   const create = useMutation({
     mutationFn: async () => {
       if (!validateAcaoForm(form)) throw new Error("Validação falhou");
-      const { error } = await supabase.from("acoes").insert({
+      const { data: created, error } = await supabase.from("acoes").insert({
         nome: form.nome,
         local: form.local || null,
         mapa_url: form.mapa_url || null,
@@ -1814,9 +1829,10 @@ function AcoesPageInner() {
         projeto_ids: form.projeto_ids ?? [],
         restrito_a_projetos: form.restrito_a_projetos,
         config_campos: { fields: form.fields },
-      } as any);
+      } as any).select("id").single();
       if (error) throw error;
       await upsertLocalizacao(form.local, form.mapa_url || null);
+      if (created?.id) fireGoogleSync(created.id, "upsert");
     },
     onSuccess: () => {
       toast.success("Ação criada");
@@ -1854,6 +1870,7 @@ function AcoesPageInner() {
         .eq("id", editing.id);
       if (error) throw error;
       await upsertLocalizacao(editing.local, editing.mapa_url || null);
+      fireGoogleSync(editing.id, "upsert");
     },
     onSuccess: () => {
       toast.success("Ação atualizada");
@@ -1869,8 +1886,10 @@ function AcoesPageInner() {
   const remove = useMutation({
     mutationFn: async () => {
       if (!deleteId) return;
+      const idToRemove = deleteId;
       const { error } = await supabase.from("acoes").delete().eq("id", deleteId);
       if (error) throw error;
+      fireGoogleSync(idToRemove, "delete");
     },
     onSuccess: () => {
       toast.success("Ação apagada");
@@ -1883,6 +1902,7 @@ function AcoesPageInner() {
 
   return (
     <div className="space-y-6">
+       <GoogleCalendarSyncCard />
        <div className="flex items-center justify-between">
          <div>
            <h1 className="text-2xl font-semibold">Ações</h1>
@@ -2326,5 +2346,101 @@ function ProjetosMultiSelect({
         </div>
       </PopoverContent>
     </Popover>
+  );
+}
+
+function GoogleCalendarSyncCard() {
+  const qc = useQueryClient();
+  const getStatus = useServerFn(getGoogleSyncStatus);
+  const setup = useServerFn(setupGoogleCalendarSync);
+  const pull = useServerFn(pullGoogleCalendarNow);
+
+  const { data: status, isLoading } = useQuery({
+    queryKey: ["google_calendar_sync_state"],
+    queryFn: () => getStatus(),
+  });
+
+  const setupMutation = useMutation({
+    mutationFn: () => setup(),
+    onSuccess: () => {
+      toast.success("Sincronização com Google Calendar ativada");
+      qc.invalidateQueries({ queryKey: ["google_calendar_sync_state"] });
+      qc.invalidateQueries({ queryKey: ["acoes"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const pullMutation = useMutation({
+    mutationFn: () => pull(),
+    onSuccess: (r: any) => {
+      toast.success(
+        `Sincronizado: ${r?.imported ?? 0} novas · ${r?.updated ?? 0} atualizadas · ${r?.deleted ?? 0} apagadas`,
+      );
+      qc.invalidateQueries({ queryKey: ["google_calendar_sync_state"] });
+      qc.invalidateQueries({ queryKey: ["acoes"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const channelActive =
+    !!(status as any)?.channel_id &&
+    (!(status as any)?.channel_expires_at ||
+      new Date((status as any).channel_expires_at).getTime() > Date.now());
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+        <div className="space-y-1">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <CalendarIcon className="h-4 w-4" /> Google Calendar
+          </CardTitle>
+          <CardDescription>
+            Sincronização bidirecional em tempo real com o calendário principal da conta Google ligada.
+          </CardDescription>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={pullMutation.isPending || !channelActive}
+            onClick={() => pullMutation.mutate()}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${pullMutation.isPending ? "animate-spin" : ""}`} />
+            Sincronizar agora
+          </Button>
+          <Button
+            size="sm"
+            disabled={setupMutation.isPending}
+            onClick={() => setupMutation.mutate()}
+          >
+            {channelActive ? "Renovar ligação" : "Ativar sincronização"}
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="text-xs text-muted-foreground">
+        {isLoading ? (
+          <Skeleton className="h-4 w-48" />
+        ) : channelActive ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge variant="secondary">Ativa</Badge>
+            {(status as any)?.channel_expires_at && (
+              <span>
+                Expira: {new Date((status as any).channel_expires_at).toLocaleString("pt-PT")}
+              </span>
+            )}
+            {(status as any)?.last_synced_at && (
+              <span>
+                Última sincronização: {new Date((status as any).last_synced_at).toLocaleString("pt-PT")}
+              </span>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">Inativa</Badge>
+            <span>Clica em "Ativar sincronização" para começar.</span>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

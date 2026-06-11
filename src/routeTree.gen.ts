@@ -26,6 +26,7 @@ import { Route as AppAdminDuplicadosRouteImport } from './routes/_app/_admin.dup
 import { Route as AppAdminBolsasTransporteRouteImport } from './routes/_app/_admin.bolsas-transporte'
 import { Route as AppAdminAtividadesRouteImport } from './routes/_app/_admin.atividades'
 import { Route as AppAdminAcoesRouteImport } from './routes/_app/_admin.acoes'
+import { Route as ApiPublicWebhooksGoogleCalendarRouteImport } from './routes/api/public/webhooks/google-calendar'
 
 const ResultadosRoute = ResultadosRouteImport.update({
   id: '/resultados',
@@ -111,6 +112,12 @@ const AppAdminAcoesRoute = AppAdminAcoesRouteImport.update({
   path: '/acoes',
   getParentRoute: () => AppAdminRoute,
 } as any)
+const ApiPublicWebhooksGoogleCalendarRoute =
+  ApiPublicWebhooksGoogleCalendarRouteImport.update({
+    id: '/api/public/webhooks/google-calendar',
+    path: '/api/public/webhooks/google-calendar',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -128,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/participantes': typeof AppAdminParticipantesRoute
   '/projetos': typeof AppAdminProjetosRoute
   '/tipos-user': typeof AppAdminTiposUserRoute
+  '/api/public/webhooks/google-calendar': typeof ApiPublicWebhooksGoogleCalendarRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -145,6 +153,7 @@ export interface FileRoutesByTo {
   '/participantes': typeof AppAdminParticipantesRoute
   '/projetos': typeof AppAdminProjetosRoute
   '/tipos-user': typeof AppAdminTiposUserRoute
+  '/api/public/webhooks/google-calendar': typeof ApiPublicWebhooksGoogleCalendarRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -165,6 +174,7 @@ export interface FileRoutesById {
   '/_app/_admin/participantes': typeof AppAdminParticipantesRoute
   '/_app/_admin/projetos': typeof AppAdminProjetosRoute
   '/_app/_admin/tipos-user': typeof AppAdminTiposUserRoute
+  '/api/public/webhooks/google-calendar': typeof ApiPublicWebhooksGoogleCalendarRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -184,6 +194,7 @@ export interface FileRouteTypes {
     | '/participantes'
     | '/projetos'
     | '/tipos-user'
+    | '/api/public/webhooks/google-calendar'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -201,6 +212,7 @@ export interface FileRouteTypes {
     | '/participantes'
     | '/projetos'
     | '/tipos-user'
+    | '/api/public/webhooks/google-calendar'
   id:
     | '__root__'
     | '/'
@@ -220,6 +232,7 @@ export interface FileRouteTypes {
     | '/_app/_admin/participantes'
     | '/_app/_admin/projetos'
     | '/_app/_admin/tipos-user'
+    | '/api/public/webhooks/google-calendar'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -228,6 +241,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResultadosRoute: typeof ResultadosRoute
   AcaoIdRoute: typeof AcaoIdRoute
+  ApiPublicWebhooksGoogleCalendarRoute: typeof ApiPublicWebhooksGoogleCalendarRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -351,6 +365,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminAcoesRouteImport
       parentRoute: typeof AppAdminRoute
     }
+    '/api/public/webhooks/google-calendar': {
+      id: '/api/public/webhooks/google-calendar'
+      path: '/api/public/webhooks/google-calendar'
+      fullPath: '/api/public/webhooks/google-calendar'
+      preLoaderRoute: typeof ApiPublicWebhooksGoogleCalendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -402,6 +423,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResultadosRoute: ResultadosRoute,
   AcaoIdRoute: AcaoIdRoute,
+  ApiPublicWebhooksGoogleCalendarRoute: ApiPublicWebhooksGoogleCalendarRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
