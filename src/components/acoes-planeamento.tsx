@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 
 type Acao = {
   id: string;
@@ -11,6 +12,13 @@ type Acao = {
   data_inicio: string | null;
   data_fim: string | null;
   projeto_ids?: string[] | null;
+  local?: string | null;
+  status?: string | null;
+  tipo?: string | null;
+  descricao?: string | null;
+  inscricoes_abertas?: boolean | null;
+  bolsa_transporte?: boolean | null;
+  restrito_a_projetos?: boolean | null;
 };
 type Projeto = { id: string; nome: string };
 
