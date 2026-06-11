@@ -32,6 +32,7 @@ export type Database = {
           mapa_url: string | null
           nome: string
           projeto_ids: string[]
+          publico: boolean
           restrito_a_projetos: boolean
           status: string
           tipo: string
@@ -54,6 +55,7 @@ export type Database = {
           mapa_url?: string | null
           nome: string
           projeto_ids?: string[]
+          publico?: boolean
           restrito_a_projetos?: boolean
           status?: string
           tipo?: string
@@ -76,6 +78,7 @@ export type Database = {
           mapa_url?: string | null
           nome?: string
           projeto_ids?: string[]
+          publico?: boolean
           restrito_a_projetos?: boolean
           status?: string
           tipo?: string

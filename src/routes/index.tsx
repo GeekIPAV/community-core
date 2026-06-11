@@ -32,7 +32,8 @@ function Home() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("acoes")
-        .select("id, nome, descricao, local, mapa_url, imagem_url, data_inicio, data_fim, inscricoes_abertas, projeto_ids, restrito_a_projetos")
+        .select("id, nome, descricao, local, mapa_url, imagem_url, data_inicio, data_fim, inscricoes_abertas, projeto_ids, restrito_a_projetos, publico")
+        .eq("publico", true)
         .order("data_inicio", { ascending: true, nullsFirst: false });
       if (error) throw error;
       return data;

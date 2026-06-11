@@ -229,10 +229,11 @@ type AcaoForm = {
   bolsa_transporte: boolean;
   projeto_ids: string[];
   restrito_a_projetos: boolean;
+  publico: boolean;
   fields: FieldDef[];
 };
 
-const EMPTY_FORM: AcaoForm = { nome: "", local: "", mapa_url: "", imagem_url: "", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, bolsa_transporte: false, projeto_ids: [], restrito_a_projetos: false, fields: [] };
+const EMPTY_FORM: AcaoForm = { nome: "", local: "", mapa_url: "", imagem_url: "", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, bolsa_transporte: false, projeto_ids: [], restrito_a_projetos: false, publico: true, fields: [] };
 
 const acaoFormSchema = z
   .object({
@@ -251,6 +252,7 @@ const acaoFormSchema = z
     status: z.string().trim().min(1, "Estado é obrigatório").max(50),
     inscricoes_abertas: z.boolean(),
     bolsa_transporte: z.boolean().optional(),
+    publico: z.boolean(),
   })
   .refine((v) => !v.data_inicio || !v.data_fim || new Date(v.data_fim) >= new Date(v.data_inicio), {
     message: "Data de fim deve ser igual ou posterior à data de início",
@@ -1824,10 +1826,11 @@ function AcoesPageInner() {
         data_inicio: fromDtLocal(form.data_inicio),
         data_fim: fromDtLocal(form.data_fim),
         status: form.status,
-        inscricoes_abertas: form.inscricoes_abertas,
+      inscricoes_abertas: form.inscricoes_abertas,
         bolsa_transporte: form.bolsa_transporte,
         projeto_ids: form.projeto_ids ?? [],
         restrito_a_projetos: form.restrito_a_projetos,
+        publico: form.publico,
         config_campos: { fields: form.fields },
       } as any).select("id").single();
       if (error) throw error;
@@ -1865,6 +1868,7 @@ function AcoesPageInner() {
           bolsa_transporte: editing.bolsa_transporte,
           projeto_ids: editing.projeto_ids ?? [],
           restrito_a_projetos: editing.restrito_a_projetos,
+          publico: editing.publico,
           config_campos: { fields: editing.fields },
         } as any)
         .eq("id", editing.id);
@@ -1968,6 +1972,13 @@ function AcoesPageInner() {
               </div>
               <label className="flex items-center justify-between rounded-md border p-3">
                 <div>
+                  <p className="text-sm font-medium">Evento público</p>
+                  <p className="text-xs text-muted-foreground">Quando desligado, o evento não aparece no portal público.</p>
+                </div>
+                <Switch checked={form.publico} onCheckedChange={(c) => setForm({ ...form, publico: c })} />
+              </label>
+              <label className="flex items-center justify-between rounded-md border p-3">
+                <div>
                   <p className="text-sm font-medium">Inscrições abertas</p>
                   <p className="text-xs text-muted-foreground">Quando desligado, a ação não mostra o botão "Inscrever" no portal público.</p>
                 </div>
@@ -2055,6 +2066,7 @@ function AcoesPageInner() {
                     bolsa_transporte: !!(a as any).bolsa_transporte,
                     projeto_ids: ((a as any).projeto_ids ?? []) as string[],
                     restrito_a_projetos: !!(a as any).restrito_a_projetos,
+                    publico: (a as any).publico ?? true,
                     fields,
                   });
                 }}
@@ -2130,6 +2142,7 @@ function AcoesPageInner() {
                 bolsa_transporte: !!a.bolsa_transporte,
                 projeto_ids: (a.projeto_ids ?? []) as string[],
                 restrito_a_projetos: !!a.restrito_a_projetos,
+                publico: a.publico ?? true,
                 fields,
               });
             }}
@@ -2218,6 +2231,13 @@ function AcoesPageInner() {
                   <p className="text-xs text-muted-foreground">Deixa vazio se o evento for num único dia.</p>
                 </div>
               </div>
+              <label className="flex items-center justify-between rounded-md border p-3">
+                <div>
+                  <p className="text-sm font-medium">Evento público</p>
+                  <p className="text-xs text-muted-foreground">Quando desligado, o evento não aparece no portal público.</p>
+                </div>
+                <Switch checked={editing.publico} onCheckedChange={(c) => setEditing({ ...editing, publico: c })} />
+              </label>
               <label className="flex items-center justify-between rounded-md border p-3">
                 <div>
                   <p className="text-sm font-medium">Inscrições abertas</p>
