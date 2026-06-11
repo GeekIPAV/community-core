@@ -22,6 +22,8 @@ export type Database = {
           data_fim: string | null
           data_inicio: string | null
           descricao: string | null
+          google_event_id: string | null
+          google_sync_origin: string | null
           id: string
           imagem_url: string | null
           inscricoes_abertas: boolean
@@ -42,6 +44,8 @@ export type Database = {
           data_fim?: string | null
           data_inicio?: string | null
           descricao?: string | null
+          google_event_id?: string | null
+          google_sync_origin?: string | null
           id?: string
           imagem_url?: string | null
           inscricoes_abertas?: boolean
@@ -62,6 +66,8 @@ export type Database = {
           data_fim?: string | null
           data_inicio?: string | null
           descricao?: string | null
+          google_event_id?: string | null
+          google_sync_origin?: string | null
           id?: string
           imagem_url?: string | null
           inscricoes_abertas?: boolean
@@ -261,6 +267,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      google_calendar_sync_state: {
+        Row: {
+          channel_expires_at: string | null
+          channel_id: string | null
+          channel_resource_id: string | null
+          id: string
+          last_synced_at: string | null
+          sync_token: string | null
+          updated_at: string
+        }
+        Insert: {
+          channel_expires_at?: string | null
+          channel_id?: string | null
+          channel_resource_id?: string | null
+          id: string
+          last_synced_at?: string | null
+          sync_token?: string | null
+          updated_at?: string
+        }
+        Update: {
+          channel_expires_at?: string | null
+          channel_id?: string | null
+          channel_resource_id?: string | null
+          id?: string
+          last_synced_at?: string | null
+          sync_token?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       inscricoes: {
         Row: {
