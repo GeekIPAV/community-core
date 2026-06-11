@@ -227,17 +227,18 @@ function GanttView({ acoes, year, projMap, projetos }: { acoes: Acao[]; year: nu
                   {todayDay >= 0 && (
                     <div className="absolute top-0 bottom-0 w-px bg-primary/70" style={{ left: `${(todayDay / totalDays) * 100}%` }} />
                   )}
-                  <div
-                    role="button"
-                    onPointerDown={(e) => onPointerDown(e, item, "move")}
-                    className="absolute top-1.5 flex h-8 cursor-grab items-center rounded-md text-[11px] text-white shadow-sm active:cursor-grabbing select-none"
-                    style={{ left: `${leftPct}%`, width: `${widthPct}%`, background: color }}
-                    title={`${item.acao.nome}${projName ? " — " + projName : ""}`}
-                  >
-                    <div onPointerDown={(e) => onPointerDown(e, item, "resize-l")} className="h-full w-1.5 cursor-ew-resize rounded-l-md bg-black/20" />
-                    <span className="flex-1 truncate px-2">{item.acao.nome}</span>
-                    <div onPointerDown={(e) => onPointerDown(e, item, "resize-r")} className="h-full w-1.5 cursor-ew-resize rounded-r-md bg-black/20" />
-                  </div>
+                  <AcaoTooltip acao={item.acao} projMap={projMap}>
+                    <div
+                      role="button"
+                      onPointerDown={(e) => onPointerDown(e, item, "move")}
+                      className="absolute top-1.5 flex h-8 cursor-grab items-center rounded-md text-[11px] text-white shadow-sm active:cursor-grabbing select-none"
+                      style={{ left: `${leftPct}%`, width: `${widthPct}%`, background: color }}
+                    >
+                      <div onPointerDown={(e) => onPointerDown(e, item, "resize-l")} className="h-full w-1.5 cursor-ew-resize rounded-l-md bg-black/20" />
+                      <span className="flex-1 truncate px-2">{item.acao.nome}</span>
+                      <div onPointerDown={(e) => onPointerDown(e, item, "resize-r")} className="h-full w-1.5 cursor-ew-resize rounded-r-md bg-black/20" />
+                    </div>
+                  </AcaoTooltip>
                 </div>
               </div>
             );
