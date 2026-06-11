@@ -465,7 +465,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
     queryFn: async () => {
       const { data, error } = await supabase
         .from("inscricoes")
-        .select("id, status, valores_dinamicos, created_at, pessoa:pessoas(id, nome_completo, email, telefone, data_nascimento, nif, cidade_residencia, genero, nacionalidade, familia_id, familia:familias(id, nome))")
+        .select("id, status, valores_dinamicos, created_at, pessoa:pessoas(id, nome_completo, email, telefone, data_nascimento, nif, cidade_residencia, genero, nacionalidade, familia_id, familia:familias!pessoas_familia_id_fkey(id, nome))")
         .eq("acao_id", acaoId)
         .order("created_at", { ascending: true });
       if (error) throw error;
@@ -1420,7 +1420,7 @@ function BolsaTab({ acaoId }: { acaoId: string }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("inscricoes")
-        .select("id, status, pessoa:pessoas(id, nome_completo, cidade_residencia, familia:familias(id, nome))")
+        .select("id, status, pessoa:pessoas(id, nome_completo, cidade_residencia, familia:familias!pessoas_familia_id_fkey(id, nome))")
         .eq("acao_id", acaoId)
         .neq("status", "cancelada");
       if (error) throw error;
