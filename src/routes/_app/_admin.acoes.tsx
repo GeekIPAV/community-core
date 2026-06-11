@@ -18,7 +18,7 @@ import { useState, useMemo, Fragment } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, Maximize2, Minimize2, ArrowUpDown, UserPlus, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, Maximize2, Minimize2, ArrowUpDown, UserPlus, Search, Upload, CheckCircle2, AlertCircle } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -1523,6 +1523,220 @@ function BolsaTab({ acaoId }: { acaoId: string }) {
   );
 }
 
+type BulkRow = {
+  nome: string;
+  data_inicio: string; // ISO or ""
+  data_fim: string;    // ISO or ""
+  local: string;
+  mapa_url: string;
+  error?: string;
+};
+
+function parseBulkDate(raw: string): string | null {
+  const s = (raw ?? "").trim();
+  if (!s) return null;
+  // DD/MM/YYYY[ HH:MM] or DD-MM-YYYY[ HH:MM]
+  const m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})(?:[ T](\d{1,2}):(\d{2}))?$/);
+  if (m) {
+    const dd = Number(m[1]); const mm = Number(m[2]);
+    let yy = Number(m[3]); if (yy < 100) yy += 2000;
+    const hh = Number(m[4] ?? "0"); const mi = Number(m[5] ?? "0");
+    const d = new Date(yy, mm - 1, dd, hh, mi);
+    return isNaN(d.getTime()) ? null : d.toISOString();
+  }
+  // ISO-ish YYYY-MM-DD[ HH:MM]
+  const m2 = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2}))?$/);
+  if (m2) {
+    const d = new Date(Number(m2[1]), Number(m2[2]) - 1, Number(m2[3]), Number(m2[4] ?? "0"), Number(m2[5] ?? "0"));
+    return isNaN(d.getTime()) ? null : d.toISOString();
+  }
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+function parseBulkText(text: string): BulkRow[] {
+  const lines = text.split(/\r?\n/).map((l) => l).filter((l) => l.trim().length > 0);
+  if (lines.length === 0) return [];
+  // detect delimiter: tab > ; > ,
+  const sample = lines[0];
+  const delim = sample.includes("\t") ? "\t" : sample.includes(";") ? ";" : ",";
+  // header row?
+  const headerCells = lines[0].split(delim).map((c) => c.trim().toLowerCase());
+  const headerLikely = headerCells.some((c) => ["nome", "data", "data_inicio", "início", "inicio", "local", "data_fim", "fim", "mapa", "mapa_url"].includes(c));
+  let cols: { nome: number; ini: number; fim: number; local: number; mapa: number } = { nome: 0, ini: 1, fim: -1, local: 2, mapa: 3 };
+  let start = 0;
+  if (headerLikely) {
+    const find = (...keys: string[]) => headerCells.findIndex((c) => keys.includes(c));
+    cols = {
+      nome: Math.max(0, find("nome", "ação", "acao", "evento", "título", "titulo")),
+      ini: Math.max(0, find("data", "data_inicio", "início", "inicio", "data início", "data inicio")),
+      fim: find("data_fim", "fim", "data fim"),
+      local: find("local", "localização", "localizacao"),
+      mapa: find("mapa", "mapa_url", "link", "link_mapa"),
+    };
+    start = 1;
+  }
+  const rows: BulkRow[] = [];
+  for (let i = start; i < lines.length; i++) {
+    const parts = lines[i].split(delim).map((p) => p.trim());
+    const nome = parts[cols.nome] ?? "";
+    const iniRaw = parts[cols.ini] ?? "";
+    const fimRaw = cols.fim >= 0 ? (parts[cols.fim] ?? "") : "";
+    const local = (cols.local >= 0 ? (parts[cols.local] ?? "") : "");
+    const mapa = (cols.mapa >= 0 ? (parts[cols.mapa] ?? "") : "");
+    const ini = parseBulkDate(iniRaw);
+    const fim = parseBulkDate(fimRaw);
+    let error: string | undefined;
+    if (!nome) error = "Nome em falta";
+    else if (iniRaw && !ini) error = "Data de início inválida";
+    else if (fimRaw && !fim) error = "Data de fim inválida";
+    rows.push({
+      nome,
+      data_inicio: ini ?? "",
+      data_fim: fim ?? "",
+      local,
+      mapa_url: mapa,
+      error,
+    });
+  }
+  return rows;
+}
+
+function BulkImportAcoesDialog({ onDone }: { onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const rows = useMemo(() => parseBulkText(text), [text]);
+  const validRows = rows.filter((r) => !r.error);
+
+  const reset = () => { setText(""); setSubmitting(false); };
+
+  const handleImport = async () => {
+    if (validRows.length === 0) return;
+    setSubmitting(true);
+    let ok = 0; let fail = 0;
+    for (const r of validRows) {
+      const { error } = await supabase.from("acoes").insert({
+        nome: r.nome,
+        local: r.local || null,
+        mapa_url: r.mapa_url || null,
+        data_inicio: r.data_inicio || null,
+        data_fim: r.data_fim || null,
+        status: "rascunho",
+        inscricoes_abertas: false,
+        bolsa_transporte: false,
+        projeto_ids: [],
+        restrito_a_projetos: false,
+        config_campos: { fields: [] },
+      } as any);
+      if (error) { fail++; continue; }
+      if (r.local) await upsertLocalizacao(r.local, r.mapa_url || null);
+      ok++;
+    }
+    setSubmitting(false);
+    if (ok > 0) toast.success(`${ok} ${ok === 1 ? "ação criada" : "ações criadas"}`);
+    if (fail > 0) toast.error(`${fail} ${fail === 1 ? "ação falhou" : "ações falharam"}`);
+    onDone();
+    setOpen(false);
+    reset();
+  };
+
+  const example = `Nome\tData início\tData fim\tLocal\tLink do mapa\nReunião de Acolhimento\t15/01/2026 18:30\t15/01/2026 20:00\tCentro Comunitário Lisboa\thttps://maps.google.com/...\nVoluntariado Banco Alimentar\t22/02/2026 09:00\t22/02/2026 13:00\tArmazém Loures\t`;
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
+      <DialogTrigger asChild>
+        <Button variant="outline"><Upload className="mr-2 h-4 w-4" /> Importar em massa</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Importar ações em massa</DialogTitle>
+          <DialogDescription>
+            Cola dados de uma folha de cálculo (Excel, Google Sheets) ou texto separado por tabulações, vírgulas ou ponto e vírgula.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="rounded-md border bg-muted/30 p-3 text-sm">
+            <p className="font-medium mb-1">Formato esperado (colunas, por esta ordem):</p>
+            <p className="text-muted-foreground mb-2">
+              <code className="text-xs">Nome</code> · <code className="text-xs">Data início</code> · <code className="text-xs">Data fim</code> (opcional) · <code className="text-xs">Local</code> (opcional) · <code className="text-xs">Link do mapa</code> (opcional)
+            </p>
+            <p className="text-muted-foreground text-xs mb-2">
+              Datas aceites: <code>DD/MM/AAAA HH:MM</code>, <code>DD-MM-AAAA</code>, <code>AAAA-MM-DD HH:MM</code>. A primeira linha pode ser cabeçalho (será detectada automaticamente).
+            </p>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setText(example)}>
+              Inserir exemplo
+            </Button>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Cola aqui os dados</Label>
+            <Textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              rows={8}
+              placeholder={"Nome\tData início\tData fim\tLocal\nReunião\t15/01/2026 18:30\t15/01/2026 20:00\tLisboa"}
+              className="font-mono text-xs"
+            />
+          </div>
+
+          {rows.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium">Pré-visualização ({rows.length} {rows.length === 1 ? "linha" : "linhas"})</span>
+                <span className="text-muted-foreground">
+                  {validRows.length} válidas · {rows.length - validRows.length} com erro
+                </span>
+              </div>
+              <div className="rounded-md border max-h-64 overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-8"></TableHead>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Início</TableHead>
+                      <TableHead>Fim</TableHead>
+                      <TableHead>Local</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((r, i) => (
+                      <TableRow key={i} className={r.error ? "bg-destructive/5" : ""}>
+                        <TableCell>
+                          {r.error
+                            ? <AlertCircle className="h-4 w-4 text-destructive" aria-label={r.error} />
+                            : <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                        </TableCell>
+                        <TableCell className="font-medium">{r.nome || <span className="text-destructive text-xs">— em falta —</span>}</TableCell>
+                        <TableCell className="text-xs">{r.data_inicio ? new Date(r.data_inicio).toLocaleString("pt-PT") : "—"}</TableCell>
+                        <TableCell className="text-xs">{r.data_fim ? new Date(r.data_fim).toLocaleString("pt-PT") : "—"}</TableCell>
+                        <TableCell className="text-xs">{r.local || "—"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              {rows.some((r) => r.error) && (
+                <p className="text-xs text-destructive">
+                  As linhas com erro serão ignoradas. Corrige-as e cola novamente se quiseres incluí-las.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => { setOpen(false); reset(); }}>Cancelar</Button>
+          <Button onClick={handleImport} disabled={validRows.length === 0 || submitting}>
+            {submitting ? "A importar…" : `Criar ${validRows.length} ${validRows.length === 1 ? "ação" : "ações"}`}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function AcoesPageInner() {
   const qc = useQueryClient();
   const [addOpen, setAddOpen] = useState(false);
@@ -1669,12 +1883,14 @@ function AcoesPageInner() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Ações</h1>
-          <p className="text-sm text-muted-foreground">Eventos da comunidade</p>
-        </div>
-        <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) setForm(EMPTY_FORM); }}>
+       <div className="flex items-center justify-between">
+         <div>
+           <h1 className="text-2xl font-semibold">Ações</h1>
+           <p className="text-sm text-muted-foreground">Eventos da comunidade</p>
+         </div>
+         <div className="flex items-center gap-2">
+         <BulkImportAcoesDialog onDone={invalidate} />
+         <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) setForm(EMPTY_FORM); }}>
           <DialogTrigger asChild>
             <Button><Plus className="mr-2 h-4 w-4" /> Nova ação</Button>
           </DialogTrigger>
@@ -1776,6 +1992,7 @@ function AcoesPageInner() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Tabs defaultValue="lista">
