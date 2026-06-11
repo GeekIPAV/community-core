@@ -1444,3 +1444,226 @@ function PessoaInscricoes({ pessoaId }: { pessoaId: string }) {
     </div>
   );
 }
+
+type PerfilOpt = { id: string; nome: string };
+
+function calcIdade(dob: string | null): number | null {
+  if (!dob) return null;
+  const d = new Date(dob);
+  if (isNaN(d.getTime())) return null;
+  const t = new Date();
+  let age = t.getFullYear() - d.getFullYear();
+  const m = t.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && t.getDate() < d.getDate())) age--;
+  return age;
+}
+
+function fmtData(d: string | null) {
+  if (!d) return "—";
+  const dt = new Date(d);
+  if (isNaN(dt.getTime())) return "—";
+  return dt.toLocaleDateString("pt-PT", { day: "2-digit", month: "long", year: "numeric" });
+}
+
+function initials(nome: string) {
+  const parts = nome.trim().split(/\s+/);
+  return ((parts[0]?.[0] ?? "") + (parts[parts.length - 1]?.[0] ?? "")).toUpperCase() || "?";
+}
+
+function InfoRow({ icon: Icon, label, value }: { icon: any; label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-2 text-sm">
+      <Icon className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+      <div className="min-w-0 flex-1">
+        <div className="text-xs text-muted-foreground">{label}</div>
+        <div className="font-medium break-words">{value ?? "—"}</div>
+      </div>
+    </div>
+  );
+}
+
+function PessoaPerfil({
+  pessoa,
+  tipos,
+  projetos,
+  familias,
+}: {
+  pessoa: Pessoa & { is_voluntario?: boolean; is_admin?: boolean };
+  tipos: PerfilOpt[];
+  projetos: PerfilOpt[];
+  familias: PerfilOpt[];
+}) {
+  const tipoNome = tipos.find((t) => t.id === pessoa.tipo_user_id)?.nome ?? null;
+  const familiaNome = familias.find((f) => f.id === pessoa.familia_id)?.nome ?? null;
+  const projetoNomes = (pessoa.projeto_ids ?? [])
+    .map((id) => projetos.find((p) => p.id === id)?.nome)
+    .filter(Boolean) as string[];
+  const idade = calcIdade(pessoa.data_nascimento);
+
+  const { data: pessoaExtra } = useQuery({
+    queryKey: ["pessoa-extra", pessoa.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pessoas")
+        .select("is_voluntario, is_admin")
+        .eq("id", pessoa.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { is_voluntario: boolean; is_admin: boolean } | null;
+    },
+  });
+  const isVoluntario = pessoaExtra?.is_voluntario ?? pessoa.is_voluntario ?? false;
+  const isAdmin = pessoaExtra?.is_admin ?? pessoa.is_admin ?? false;
+
+  const { data: agregado, isLoading: loadingAgregado } = useQuery({
+    enabled: !!pessoa.familia_id,
+    queryKey: ["pessoa-agregado", pessoa.familia_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pessoas")
+        .select("id, nome_completo, data_nascimento, genero, telefone, email, profissao, is_voluntario, tipo_user_id")
+        .eq("familia_id", pessoa.familia_id!)
+        .eq("status", "ativo")
+        .order("data_nascimento", { ascending: true, nullsFirst: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const membros = (agregado ?? []) as Array<{
+    id: string; nome_completo: string; data_nascimento: string | null; genero: string | null;
+    telefone: string | null; email: string | null; profissao: string | null; is_voluntario: boolean;
+    tipo_user_id: string | null;
+  }>;
+  const voluntarios = membros.filter((m) => m.is_voluntario);
+  const outrosMembros = membros.filter((m) => m.id !== pessoa.id);
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="rounded-lg border bg-gradient-to-br from-muted/50 to-background p-5">
+        <div className="flex items-start gap-4">
+          <div className="h-16 w-16 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xl font-semibold shrink-0">
+            {initials(pessoa.nome_completo)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-xl font-semibold leading-tight">{pessoa.nome_completo}</h2>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              {idade !== null && <span>{idade} anos</span>}
+              {pessoa.genero && <><span>·</span><span>{pessoa.genero}</span></>}
+              {tipoNome && <><span>·</span><span>{tipoNome}</span></>}
+              {pessoa.profissao && <><span>·</span><span>{pessoa.profissao}</span></>}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <Badge variant={pessoa.status === "ativo" ? "default" : "secondary"}>{pessoa.status}</Badge>
+              {isVoluntario && <Badge className="bg-rose-500/15 text-rose-700 hover:bg-rose-500/20"><Heart className="h-3 w-3 mr-1" />Voluntário</Badge>}
+              {isAdmin && <Badge className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/20"><ShieldCheck className="h-3 w-3 mr-1" />Admin</Badge>}
+              {familiaNome && <Badge variant="outline"><Users className="h-3 w-3 mr-1" />{familiaNome}</Badge>}
+              {projetoNomes.map((p) => <Badge key={p} variant="outline">{p}</Badge>)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Grid de info */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="rounded-lg border p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Contactos</h3>
+          <InfoRow icon={Mail} label="Email" value={pessoa.email || "—"} />
+          <InfoRow icon={Phone} label="Telefone" value={pessoa.telefone || "—"} />
+          <InfoRow icon={MapPin} label="Morada" value={pessoa.morada || "—"} />
+          <InfoRow icon={MapPin} label="Cidade" value={pessoa.cidade_residencia || "—"} />
+        </div>
+
+        <div className="rounded-lg border p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Dados pessoais</h3>
+          <InfoRow icon={Cake} label="Data de nascimento" value={`${fmtData(pessoa.data_nascimento)}${idade !== null ? ` · ${idade} anos` : ""}`} />
+          <InfoRow icon={Globe} label="Nacionalidade" value={pessoa.nacionalidade || "—"} />
+          <InfoRow icon={HeartHandshake} label="Religião" value={pessoa.religiao || "—"} />
+          <InfoRow icon={Briefcase} label="Profissão" value={pessoa.profissao || "—"} />
+        </div>
+
+        <div className="rounded-lg border p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Identificação</h3>
+          <InfoRow icon={IdCard} label="NIF" value={pessoa.nif || "—"} />
+          <InfoRow icon={IdCard} label="Cartão de Cidadão" value={pessoa.cartao_cidadao || "—"} />
+        </div>
+
+        <div className="rounded-lg border p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Envolvimento</h3>
+          <InfoRow icon={Users} label="Tipo de utilizador" value={tipoNome || "—"} />
+          <InfoRow icon={Users} label="Projetos" value={projetoNomes.length ? projetoNomes.join(", ") : "—"} />
+        </div>
+      </div>
+
+      {pessoa.notas && (
+        <div className="rounded-lg border p-4">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Notas</h3>
+          <p className="text-sm whitespace-pre-wrap">{pessoa.notas}</p>
+        </div>
+      )}
+
+      {/* Agregado familiar */}
+      {pessoa.familia_id && (
+        <div className="rounded-lg border p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+              <Users className="h-4 w-4" /> Agregado familiar — {familiaNome}
+            </h3>
+            <Badge variant="outline">{membros.length} membro{membros.length === 1 ? "" : "s"}</Badge>
+          </div>
+          {loadingAgregado ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
+            </div>
+          ) : outrosMembros.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Sem outros membros registados.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {outrosMembros.map((m) => {
+                const idadeM = calcIdade(m.data_nascimento);
+                const tipoM = tipos.find((t) => t.id === m.tipo_user_id)?.nome;
+                return (
+                  <div key={m.id} className="rounded-md border p-3 bg-card hover:bg-muted/30 transition-colors">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-9 w-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold shrink-0">
+                        {initials(m.nome_completo)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-sm truncate">{m.nome_completo}</div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {[idadeM !== null ? `${idadeM} anos` : null, m.genero, tipoM].filter(Boolean).join(" · ") || "—"}
+                        </div>
+                      </div>
+                      {m.is_voluntario && <Heart className="h-3.5 w-3.5 text-rose-500 shrink-0" />}
+                    </div>
+                    <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                      {m.profissao && <div className="flex items-center gap-1.5"><Briefcase className="h-3 w-3" />{m.profissao}</div>}
+                      {m.telefone && <div className="flex items-center gap-1.5"><Phone className="h-3 w-3" />{m.telefone}</div>}
+                      {m.email && <div className="flex items-center gap-1.5 truncate"><Mail className="h-3 w-3 shrink-0" /><span className="truncate">{m.email}</span></div>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {voluntarios.length > 0 && (
+            <div className="mt-4 pt-4 border-t">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <Heart className="h-3.5 w-3.5 text-rose-500" /> Voluntários no agregado ({voluntarios.length})
+              </h4>
+              <div className="flex flex-wrap gap-1.5">
+                {voluntarios.map((v) => (
+                  <Badge key={v.id} variant="outline" className="bg-rose-500/5 border-rose-500/30">
+                    {v.nome_completo}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
