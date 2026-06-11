@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { User, Users, Users2, AlertTriangle, CalendarDays, Globe, UserCog, Briefcase, BarChart3, Languages, Bus, Activity, MapPin, Trash2 } from "lucide-react";
+import { User, Users, Users2, AlertTriangle, CalendarDays, Globe, UserCog, Briefcase, BarChart3, Languages, Bus, Activity, MapPin, Trash2, LayoutDashboard } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   Sidebar,
@@ -42,6 +42,7 @@ export function AppSidebar() {
   const isActive = (url: string) => pathname === url;
   const visibleParticipantes = participantesItems.filter((i) => hasPage(i.page));
   const visibleAcoes = acoesItems.filter((i) => hasPage(i.page));
+  const canSeeDashboard = isAdmin || isStaff;
 
   return (
     <Sidebar collapsible="icon" side={dir === "rtl" ? "right" : "left"}>
@@ -117,6 +118,16 @@ export function AppSidebar() {
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
+                {canSeeDashboard && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive("/dashboard")}>
+                    <Link to="/dashboard" className="flex items-center gap-2">
+                      <LayoutDashboard className="h-4 w-4" />
+                      <span>Dashboard</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                )}
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={isActive("/bolsas-transporte")}>
                     <Link to="/bolsas-transporte" className="flex items-center gap-2">

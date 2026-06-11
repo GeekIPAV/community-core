@@ -17,6 +17,63 @@ import { RichTextView } from "@/components/rich-text-view";
 import { matchCidade, formatEuro, type CidadeBolsa } from "@/lib/bolsa-transporte";
 
 export const Route = createFileRoute("/acao/$id")({
+  loader: async ({ params }) => {
+    const { data } = await supabase
+      .from("acoes")
+      .select("id, nome, descricao, local, imagem_url, data_inicio, data_fim, publico")
+      .eq("id", params.id)
+      .eq("publico", true)
+      .maybeSingle();
+    return { acao: data };
+  },
+  head: ({ params, loaderData }) => {
+    const a = loaderData?.acao;
+    const url = `https://appmeeru.lovable.app/acao/${params.id}`;
+    if (!a) {
+      return {
+        meta: [
+          { title: "Ação — Meeru" },
+          { name: "description", content: "Detalhes da ação na comunidade Meeru." },
+        ],
+      };
+    }
+    const plainDesc = (a.descricao ?? "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 155);
+    const desc = plainDesc || `Inscreve-te em ${a.nome} na comunidade Meeru.`;
+    return {
+      meta: [
+        { title: `${a.nome} — Meeru` },
+        { name: "description", content: desc },
+        { property: "og:title", content: a.nome },
+        { property: "og:description", content: desc },
+        { property: "og:type", content: "event" },
+        { property: "og:url", content: url },
+        ...(a.imagem_url ? [
+          { property: "og:image", content: a.imagem_url },
+          { name: "twitter:image", content: a.imagem_url },
+        ] : []),
+      ],
+      links: [{ rel: "canonical", href: url }],
+      scripts: [{
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Event",
+          name: a.nome,
+          description: desc,
+          startDate: a.data_inicio ?? undefined,
+          endDate: a.data_fim ?? undefined,
+          location: a.local ? { "@type": "Place", name: a.local } : undefined,
+          image: a.imagem_url ?? undefined,
+          organizer: { "@type": "Organization", name: "Meeru" },
+          url,
+        }),
+      }],
+    };
+  },
   component: AcaoDetailPage,
 });
 

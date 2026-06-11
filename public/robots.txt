@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+Disallow: /participantes
+Disallow: /familias
+Disallow: /projetos
+Disallow: /atividades
+Disallow: /duplicados
+Disallow: /eliminados
+Disallow: /bolsas-transporte
+Disallow: /localizacoes
+Disallow: /tipos-user
+Disallow: /dashboard
+Disallow: /perfil
+Disallow: /api/
+
+Sitemap: https://appmeeru.lovable.app/sitemap.xml
