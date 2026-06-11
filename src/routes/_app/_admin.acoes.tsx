@@ -1866,7 +1866,37 @@ function AcoesPageInner() {
       )}
         </TabsContent>
         <TabsContent value="planeamento" className="mt-4">
-          <AcoesPlaneamento acoes={(data ?? []) as any} projetos={projetos ?? []} />
+          <AcoesPlaneamento
+            acoes={(data ?? []) as any}
+            projetos={projetos ?? []}
+            onEdit={async (id) => {
+              const a = (data ?? []).find((x: any) => x.id === id) as any;
+              if (!a) return;
+              const fields = parseFields(a.config_campos);
+              const inscricoesAbertas = a.inscricoes_abertas ?? true;
+              const { data: full } = await supabase
+                .from("acoes")
+                .select("descricao")
+                .eq("id", a.id)
+                .maybeSingle();
+              setEditing({
+                id: a.id,
+                nome: a.nome ?? "",
+                local: a.local ?? "",
+                mapa_url: a.mapa_url ?? "",
+                imagem_url: a.imagem_url ?? "",
+                descricao: full?.descricao ?? "",
+                data_inicio: toDtLocal(a.data_inicio),
+                data_fim: toDtLocal(a.data_fim),
+                status: String(a.status ?? "ativa"),
+                inscricoes_abertas: inscricoesAbertas,
+                bolsa_transporte: !!a.bolsa_transporte,
+                projeto_ids: (a.projeto_ids ?? []) as string[],
+                restrito_a_projetos: !!a.restrito_a_projetos,
+                fields,
+              });
+            }}
+          />
         </TabsContent>
       </Tabs>
 
