@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -124,6 +125,8 @@ function GanttView({ acoes, year, projMap, projetos }: { acoes: Acao[]; year: nu
   const yearEnd = new Date(year + 1, 0, 1);
   const totalDays = daysBetween(yearStart, yearEnd);
   const update = useUpdateDates();
+  const navigate = useNavigate({ from: "/acoes" });
+  const dragMovedRef = useRef(false);
 
   const items = useMemo(() => {
     return acoes
@@ -144,6 +147,7 @@ function GanttView({ acoes, year, projMap, projetos }: { acoes: Acao[]; year: nu
   const onPointerDown = (e: React.PointerEvent, item: typeof items[number], mode: "move" | "resize-l" | "resize-r") => {
     e.stopPropagation();
     e.preventDefault();
+    dragMovedRef.current = false;
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
     const iniDay = Math.max(0, daysBetween(yearStart, item.ini));
     const fimDay = Math.min(totalDays, daysBetween(yearStart, item.fim));
@@ -152,6 +156,7 @@ function GanttView({ acoes, year, projMap, projetos }: { acoes: Acao[]; year: nu
 
   const onPointerMove = (e: React.PointerEvent) => {
     if (!drag || !trackRef.current) return;
+    if (Math.abs(e.clientX - drag.startX) > 2) dragMovedRef.current = true;
     const width = trackRef.current.clientWidth;
     const pxPerDay = width / totalDays;
     const deltaDays = Math.round((e.clientX - drag.startX) / pxPerDay);
@@ -231,6 +236,11 @@ function GanttView({ acoes, year, projMap, projetos }: { acoes: Acao[]; year: nu
                     <div
                       role="button"
                       onPointerDown={(e) => onPointerDown(e, item, "move")}
+                      onClick={() => {
+                        if (!dragMovedRef.current) {
+                          navigate({ to: "/acao/$id", params: { id: item.acao.id } });
+                        }
+                      }}
                       className="absolute top-1.5 flex h-8 cursor-grab items-center rounded-md text-[11px] text-white shadow-sm active:cursor-grabbing select-none"
                       style={{ left: `${leftPct}%`, width: `${widthPct}%`, background: color }}
                     >
@@ -266,6 +276,7 @@ function GanttView({ acoes, year, projMap, projetos }: { acoes: Acao[]; year: nu
 
 function CalendarioView({ acoes, year, projMap }: { acoes: Acao[]; year: number; projMap: Map<string, Projeto> }) {
   const months = Array.from({ length: 12 }, (_, m) => m);
+  const navigate = useNavigate({ from: "/acoes" });
 
   const byDay = useMemo(() => {
     const map = new Map<string, Acao[]>();
@@ -312,6 +323,7 @@ function CalendarioView({ acoes, year, projMap }: { acoes: Acao[]; year: number;
                         return (
                           <AcaoTooltip key={a.id} acao={a} projMap={projMap}>
                             <div
+                              onClick={() => navigate({ to: "/acao/$id", params: { id: a.id } })}
                               className="truncate rounded px-1 py-0.5 text-[10px] text-white cursor-pointer"
                               style={{ background: projColor(proj) }}
                             >
