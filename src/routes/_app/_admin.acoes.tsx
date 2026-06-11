@@ -2105,6 +2105,17 @@ function AcoesPageInner() {
                       onCheckedChange={(c) => toggleInscricoesAbertas.mutate({ id: a.id, value: c })}
                     />
                   </label>
+                  <label
+                    className="flex items-center justify-between rounded-md border p-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <span className="text-xs font-medium">Evento público</span>
+                    <Switch
+                      checked={(a as any).publico ?? true}
+                      disabled={togglePublico.isPending}
+                      onCheckedChange={(c) => togglePublico.mutate({ id: a.id, value: c })}
+                    />
+                  </label>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Inscritos</span>
                     <span className="text-sm font-semibold text-foreground">{counts.total}</span>
