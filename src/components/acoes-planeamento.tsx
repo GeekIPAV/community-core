@@ -37,6 +37,46 @@ function startOfDay(d: Date) { const x = new Date(d); x.setHours(0, 0, 0, 0); re
 function addDays(d: Date, n: number) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
 function daysBetween(a: Date, b: Date) { return Math.round((startOfDay(b).getTime() - startOfDay(a).getTime()) / 86400000); }
 
+function fmtDateRange(ini: string | null | undefined, fim: string | null | undefined): string {
+  if (!ini) return "Sem data";
+  const dIni = new Date(ini);
+  const dFim = fim ? new Date(fim) : null;
+  const fmt = (d: Date) =>
+    d.toLocaleString("pt-PT", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  if (!dFim || dIni.getTime() === dFim.getTime()) return fmt(dIni);
+  return `${fmt(dIni)} → ${fmt(dFim)}`;
+}
+
+function AcaoTooltip({ acao, projMap, children }: { acao: Acao; projMap: Map<string, Projeto>; children: React.ReactNode }) {
+  const projetos = (acao.projeto_ids ?? []).map((id) => projMap.get(id)).filter(Boolean) as Projeto[];
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side="top" align="start" className="max-w-xs space-y-1.5 text-xs">
+        <div className="font-semibold text-sm leading-tight">{acao.nome}</div>
+        {acao.local && <div className="text-muted-foreground leading-tight">{acao.local}</div>}
+        <div className="leading-tight">{fmtDateRange(acao.data_inicio, acao.data_fim)}</div>
+        {projetos.length > 0 && (
+          <div className="flex flex-wrap gap-1 pt-0.5">
+            {projetos.map((p) => (
+              <span key={p.id} className="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                {p.nome}
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="flex flex-wrap gap-x-3 gap-y-0.5 pt-0.5 text-muted-foreground">
+          {acao.status && <span>Estado: {acao.status}</span>}
+          {acao.inscricoes_abertas !== undefined && (
+            <span>Inscrições: {acao.inscricoes_abertas ? "Abertas" : "Fechadas"}</span>
+          )}
+          {acao.bolsa_transporte && <span>Bolsa transporte</span>}
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 export function AcoesPlaneamento({ acoes, projetos }: { acoes: Acao[]; projetos: Projeto[] }) {
   const [mode, setMode] = useState<"gantt" | "calendario">("gantt");
   const [year, setYear] = useState(new Date().getFullYear());
