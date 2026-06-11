@@ -236,6 +236,11 @@ function GanttView({ acoes, year, projMap, projetos }: { acoes: Acao[]; year: nu
                     <div
                       role="button"
                       onPointerDown={(e) => onPointerDown(e, item, "move")}
+                      onClick={() => {
+                        if (!dragMovedRef.current) {
+                          navigate({ to: "/acao/$id", params: { id: item.acao.id } });
+                        }
+                      }}
                       className="absolute top-1.5 flex h-8 cursor-grab items-center rounded-md text-[11px] text-white shadow-sm active:cursor-grabbing select-none"
                       style={{ left: `${leftPct}%`, width: `${widthPct}%`, background: color }}
                     >
