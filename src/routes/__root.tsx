@@ -14,6 +14,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthProvider } from "@/lib/auth-context";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
+import { CommandPalette } from "@/components/command-palette";
 import "@/lib/i18n";
 
 function NotFoundComponent() {
@@ -78,18 +79,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Community Core manages community participants, families, and events with flexible, dynamic data handling." },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Community Core manages community participants, families, and events with flexible, dynamic data handling." },
+      { title: "Meeru — Comunidade" },
+      { name: "description", content: "Portal da comunidade Meeru: ações, projetos e participação." },
+      { property: "og:title", content: "Meeru — Comunidade" },
+      { property: "og:description", content: "Portal da comunidade Meeru: ações, projetos e participação." },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "Meeru" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
-      { name: "twitter:title", content: "Lovable App" },
-      { name: "twitter:description", content: "Community Core manages community participants, families, and events with flexible, dynamic data handling." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/7a7764a7-333c-43eb-959f-41afa0817914/id-preview-ae7444f3--bb896c6c-730f-4f20-a117-10e66d9b0dff.lovable.app-1779894757480.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/7a7764a7-333c-43eb-959f-41afa0817914/id-preview-ae7444f3--bb896c6c-730f-4f20-a117-10e66d9b0dff.lovable.app-1779894757480.png" },
+      { name: "twitter:title", content: "Meeru — Comunidade" },
+      { name: "twitter:description", content: "Portal da comunidade Meeru: ações, projetos e participação." },
     ],
     links: [
       {
@@ -101,6 +99,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap",
+      },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "Meeru",
+          url: "https://appmeeru.lovable.app",
+        }),
       },
     ],
   }),
@@ -144,6 +153,7 @@ function RootComponent() {
           <Outlet />
         </div>
         <MobileBottomNav />
+        <CommandPalette />
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>
