@@ -1275,3 +1275,54 @@ function parseBulkCsv(text: string, familias: { id: string; nome: string }[], pr
       };
     });
 }
+
+function PessoaInscricoes({ pessoaId }: { pessoaId: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["pessoa-inscricoes", pessoaId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("inscricoes")
+        .select("id, status, created_at, acao:acoes(id, nome, tipo, data_inicio, status)")
+        .eq("pessoa_id", pessoaId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as Array<{
+        id: string;
+        status: string;
+        created_at: string;
+        acao: { id: string; nome: string; tipo: string | null; data_inicio: string | null; status: string | null } | null;
+      }>;
+    },
+  });
+
+  if (isLoading) return <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>;
+  const rows = data ?? [];
+  if (rows.length === 0) return <p className="text-sm text-muted-foreground">Sem inscrições em ações ou eventos.</p>;
+
+  const fmt = (d: string | null) => d ? new Date(d).toLocaleDateString("pt-PT", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+
+  return (
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Ação / Evento</TableHead>
+            <TableHead>Tipo</TableHead>
+            <TableHead>Data</TableHead>
+            <TableHead>Estado</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((r) => (
+            <TableRow key={r.id}>
+              <TableCell className="font-medium">{r.acao?.nome ?? "—"}</TableCell>
+              <TableCell><Badge variant="outline">{r.acao?.tipo ?? "—"}</Badge></TableCell>
+              <TableCell>{fmt(r.acao?.data_inicio ?? null)}</TableCell>
+              <TableCell><Badge variant={r.status === "cancelada" ? "secondary" : "default"}>{r.status}</Badge></TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
