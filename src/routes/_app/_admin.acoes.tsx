@@ -36,6 +36,14 @@ import { useMobileColumnVisibility } from "@/hooks/use-mobile-columns";
 import { matchCidade, formatEuro, type CidadeBolsa } from "@/lib/bolsa-transporte";
 import { ChevronDown } from "lucide-react";
 import { AcoesPlaneamento } from "@/components/acoes-planeamento";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  syncAcaoToGoogle,
+  pullGoogleCalendarNow,
+  setupGoogleCalendarSync,
+  getGoogleSyncStatus,
+} from "@/lib/google-calendar.functions";
+import { RefreshCw, Calendar as CalendarIcon } from "lucide-react";
 
 export const Route = createFileRoute("/_app/_admin/acoes")({
   component: AcoesPage,
