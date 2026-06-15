@@ -9,6 +9,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { useAuth } from "@/lib/auth-context";
 import { CalendarDays, LayoutGrid, LogIn, MapPin, ExternalLink } from "lucide-react";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
 import { RichTextView } from "@/components/rich-text-view";
 
 export const Route = createFileRoute("/")({
@@ -107,10 +109,16 @@ function Home() {
   }, [todasAcoes]);
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full bg-background">
+        <div className="hidden md:block">
+          <AppSidebar />
+        </div>
+        <div className="flex flex-1 flex-col">
       <header className="border-b">
         <div className="flex h-14 items-center justify-between px-4">
           <div className="flex items-center gap-2">
+            <SidebarTrigger className="hidden md:inline-flex" />
             <span className="text-sm font-semibold">Meeru</span>
           </div>
           <div className="flex items-center gap-2">
@@ -131,23 +139,8 @@ function Home() {
       </header>
 
       <main className="mx-auto w-full max-w-6xl space-y-8 px-4 py-6 md:py-8">
-        <section className="rounded-lg border bg-card/50 p-6 md:p-10">
-          <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Bem-vindo à Meeru</h1>
-          <p className="mt-3 max-w-2xl text-sm text-muted-foreground md:text-base">
-            A Meeru é uma comunidade que organiza encontros, atividades e projetos para aproximar pessoas e famílias.
-            Explora as próximas ações abaixo e inscreve-te naquelas que fizerem sentido para ti.
-          </p>
-          {!session && (
-            <div className="mt-5 flex flex-wrap gap-2">
-              <Button size="sm" onClick={() => navigate({ to: "/login" })}>
-                <LogIn className="mr-2 h-4 w-4" /> Entrar / Registar
-              </Button>
-            </div>
-          )}
-        </section>
-
         <div>
-          <h2 className="text-2xl font-semibold md:text-3xl">Ações da comunidade</h2>
+          <h1 className="text-2xl font-semibold md:text-3xl">Ações da comunidade</h1>
           <p className="text-sm text-muted-foreground">Próximas e passadas.</p>
         </div>
 
@@ -262,7 +255,9 @@ function Home() {
           </TabsContent>
         </Tabs>
       </main>
-    </div>
+        </div>
+      </div>
+    </SidebarProvider>
   );
 }
 
