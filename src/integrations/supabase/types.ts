@@ -611,6 +611,101 @@ export type Database = {
         }
         Relationships: []
       }
+      security_finding_events: {
+        Row: {
+          actor_id: string | null
+          actor_name: string | null
+          created_at: string
+          event_type: string
+          finding_id: string
+          from_status: string | null
+          id: string
+          note: string | null
+          to_status: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_name?: string | null
+          created_at?: string
+          event_type: string
+          finding_id: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          to_status?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          actor_name?: string | null
+          created_at?: string
+          event_type?: string
+          finding_id?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_finding_events_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "security_findings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      security_findings: {
+        Row: {
+          connector: string
+          created_at: string
+          description: string | null
+          external_id: string | null
+          first_seen_at: string
+          id: string
+          last_seen_at: string
+          metadata: Json
+          resource: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          connector: string
+          created_at?: string
+          description?: string | null
+          external_id?: string | null
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          metadata?: Json
+          resource?: string | null
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          connector?: string
+          created_at?: string
+          description?: string | null
+          external_id?: string | null
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          metadata?: Json
+          resource?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
       tipos_user: {
         Row: {
           created_at: string
