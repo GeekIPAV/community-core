@@ -850,7 +850,7 @@ function FamiliasPage() {
           </ToggleGroup>
           <Dialog open={addOpen} onOpenChange={setAddOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" className="h-9 ml-auto"><Plus className="mr-2 h-4 w-4" /> Nova família</Button>
+              <Button size="sm" className="h-9"><Plus className="mr-2 h-4 w-4" /> Nova família</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Nova família</DialogTitle></DialogHeader>

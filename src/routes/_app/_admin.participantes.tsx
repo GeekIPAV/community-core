@@ -592,7 +592,7 @@ function ParticipantesPage() {
           </Select>
           <AdvancedTableFilters table={table} />
           <DataTableViewOptions table={table} />
-          <Button size="sm" className="h-9 ml-auto" onClick={() => setAddOpen(true)}>
+          <Button size="sm" className="h-9" onClick={() => setAddOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Adicionar
           </Button>
         </div>
