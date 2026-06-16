@@ -25,7 +25,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, Lock, LockOpen, Pencil, Plus, Trash2, Mail, Phone, MapPin, Cake, Briefcase, Globe, HeartHandshake, Users, IdCard, ShieldCheck, Heart } from "lucide-react";
+import { ChevronDown, ChevronRight, Lock, LockOpen, Pencil, Plus, Trash2, Mail, Phone, MapPin, Cake, Briefcase, Globe, HeartHandshake, Users, IdCard, ShieldCheck, Heart, Search } from "lucide-react";
 import { Download } from "lucide-react";
 import { EtiquetasPicker } from "@/components/etiquetas-picker";
 import { CurriculoSection } from "@/components/curriculo-section";
@@ -556,20 +556,26 @@ function ParticipantesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="space-y-4">
         <div>
           <h1 className="text-2xl font-semibold">Participantes</h1>
           <p className="text-sm text-muted-foreground">{data?.length ?? 0} pessoas</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Input placeholder="Pesquisar…" className="w-56" value={q} onChange={(e) => setQ(e.target.value)} />
-          <AdvancedTableFilters table={table} />
-          <DataTableViewOptions table={table} />
+          <div className="relative flex-1 min-w-[200px] sm:flex-none sm:w-64">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Pesquisar…"
+              className="pl-8 h-9"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+          </div>
           <Select
             value={grouping[0] ?? "__none"}
             onValueChange={(v) => setGrouping(v === "__none" ? [] : [v])}
           >
-            <SelectTrigger className="w-[170px]">
+            <SelectTrigger className="h-9 w-40">
               <SelectValue placeholder="Agrupar por…" />
             </SelectTrigger>
             <SelectContent>
@@ -584,39 +590,39 @@ function ParticipantesPage() {
               <SelectItem value="tipo_user_id">Tipo</SelectItem>
             </SelectContent>
           </Select>
+          <AdvancedTableFilters table={table} />
+          <DataTableViewOptions table={table} />
           <Button
             variant={inlineEdit ? "default" : "outline"}
-            size="icon"
-            title={inlineEdit ? "Bloquear edição na tabela" : "Desbloquear edição na tabela"}
+            size="sm"
+            className="h-9"
             onClick={() => setInlineEdit((v) => !v)}
           >
-            {inlineEdit ? <LockOpen className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+            {inlineEdit ? <LockOpen className="mr-2 h-4 w-4" /> : <Lock className="mr-2 h-4 w-4" />}
+            {inlineEdit ? "A editar na tabela" : "Editar na tabela"}
           </Button>
           <Button
             variant="outline"
-            size="icon"
+            size="sm"
+            className="h-9"
             disabled={selected.size === 0}
             onClick={() => setBulkEditOpen(true)}
-            title={selected.size > 0 ? `Editar (${selected.size})` : "Editar"}
           >
-            <Pencil className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="destructive"
-            size="icon"
-            disabled={selected.size === 0}
-            onClick={() => setBulkDeleteOpen(true)}
-            title={selected.size > 0 ? `Apagar (${selected.size})` : "Apagar"}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-          <Button onClick={() => setAddOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Adicionar
+            <Pencil className="mr-2 h-4 w-4" /> Editar {selected.size > 0 ? `(${selected.size})` : ""}
           </Button>
           <Button
             variant="outline"
-            size="icon"
-            title="Exportar CSV (linhas visíveis)"
+            size="sm"
+            className="h-9 text-destructive hover:text-destructive"
+            disabled={selected.size === 0}
+            onClick={() => setBulkDeleteOpen(true)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" /> Apagar {selected.size > 0 ? `(${selected.size})` : ""}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9"
             onClick={() => {
               const visibleCols = table.getVisibleLeafColumns().filter((c) => c.id !== "select");
               const headers = visibleCols.map((c) => {
@@ -635,7 +641,10 @@ function ParticipantesPage() {
               downloadCSV(`participantes-${new Date().toISOString().slice(0, 10)}.csv`, csv);
             }}
           >
-            <Download className="h-4 w-4" />
+            <Download className="mr-2 h-4 w-4" /> Exportar
+          </Button>
+          <Button size="sm" className="h-9 ml-auto" onClick={() => setAddOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Adicionar
           </Button>
         </div>
       </div>
