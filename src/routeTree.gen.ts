@@ -28,6 +28,7 @@ import { Route as AppAdminEmailsRouteImport } from './routes/_app/_admin.emails'
 import { Route as AppAdminEliminadosRouteImport } from './routes/_app/_admin.eliminados'
 import { Route as AppAdminDuplicadosRouteImport } from './routes/_app/_admin.duplicados'
 import { Route as AppAdminDashboardRouteImport } from './routes/_app/_admin.dashboard'
+import { Route as AppAdminCurriculosRouteImport } from './routes/_app/_admin.curriculos'
 import { Route as AppAdminBolsasTransporteRouteImport } from './routes/_app/_admin.bolsas-transporte'
 import { Route as AppAdminAtividadesRouteImport } from './routes/_app/_admin.atividades'
 import { Route as AppAdminAcoesRouteImport } from './routes/_app/_admin.acoes'
@@ -125,6 +126,11 @@ const AppAdminDashboardRoute = AppAdminDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppAdminRoute,
 } as any)
+const AppAdminCurriculosRoute = AppAdminCurriculosRouteImport.update({
+  id: '/curriculos',
+  path: '/curriculos',
+  getParentRoute: () => AppAdminRoute,
+} as any)
 const AppAdminBolsasTransporteRoute =
   AppAdminBolsasTransporteRouteImport.update({
     id: '/bolsas-transporte',
@@ -152,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/acoes': typeof AppAdminAcoesRoute
   '/atividades': typeof AppAdminAtividadesRoute
   '/bolsas-transporte': typeof AppAdminBolsasTransporteRoute
+  '/curriculos': typeof AppAdminCurriculosRoute
   '/dashboard': typeof AppAdminDashboardRoute
   '/duplicados': typeof AppAdminDuplicadosRoute
   '/eliminados': typeof AppAdminEliminadosRoute
@@ -174,6 +181,7 @@ export interface FileRoutesByTo {
   '/acoes': typeof AppAdminAcoesRoute
   '/atividades': typeof AppAdminAtividadesRoute
   '/bolsas-transporte': typeof AppAdminBolsasTransporteRoute
+  '/curriculos': typeof AppAdminCurriculosRoute
   '/dashboard': typeof AppAdminDashboardRoute
   '/duplicados': typeof AppAdminDuplicadosRoute
   '/eliminados': typeof AppAdminEliminadosRoute
@@ -199,6 +207,7 @@ export interface FileRoutesById {
   '/_app/_admin/acoes': typeof AppAdminAcoesRoute
   '/_app/_admin/atividades': typeof AppAdminAtividadesRoute
   '/_app/_admin/bolsas-transporte': typeof AppAdminBolsasTransporteRoute
+  '/_app/_admin/curriculos': typeof AppAdminCurriculosRoute
   '/_app/_admin/dashboard': typeof AppAdminDashboardRoute
   '/_app/_admin/duplicados': typeof AppAdminDuplicadosRoute
   '/_app/_admin/eliminados': typeof AppAdminEliminadosRoute
@@ -223,6 +232,7 @@ export interface FileRouteTypes {
     | '/acoes'
     | '/atividades'
     | '/bolsas-transporte'
+    | '/curriculos'
     | '/dashboard'
     | '/duplicados'
     | '/eliminados'
@@ -245,6 +255,7 @@ export interface FileRouteTypes {
     | '/acoes'
     | '/atividades'
     | '/bolsas-transporte'
+    | '/curriculos'
     | '/dashboard'
     | '/duplicados'
     | '/eliminados'
@@ -269,6 +280,7 @@ export interface FileRouteTypes {
     | '/_app/_admin/acoes'
     | '/_app/_admin/atividades'
     | '/_app/_admin/bolsas-transporte'
+    | '/_app/_admin/curriculos'
     | '/_app/_admin/dashboard'
     | '/_app/_admin/duplicados'
     | '/_app/_admin/eliminados'
@@ -426,6 +438,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminDashboardRouteImport
       parentRoute: typeof AppAdminRoute
     }
+    '/_app/_admin/curriculos': {
+      id: '/_app/_admin/curriculos'
+      path: '/curriculos'
+      fullPath: '/curriculos'
+      preLoaderRoute: typeof AppAdminCurriculosRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
     '/_app/_admin/bolsas-transporte': {
       id: '/_app/_admin/bolsas-transporte'
       path: '/bolsas-transporte'
@@ -454,6 +473,7 @@ interface AppAdminRouteChildren {
   AppAdminAcoesRoute: typeof AppAdminAcoesRoute
   AppAdminAtividadesRoute: typeof AppAdminAtividadesRoute
   AppAdminBolsasTransporteRoute: typeof AppAdminBolsasTransporteRoute
+  AppAdminCurriculosRoute: typeof AppAdminCurriculosRoute
   AppAdminDashboardRoute: typeof AppAdminDashboardRoute
   AppAdminDuplicadosRoute: typeof AppAdminDuplicadosRoute
   AppAdminEliminadosRoute: typeof AppAdminEliminadosRoute
@@ -471,6 +491,7 @@ const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminAcoesRoute: AppAdminAcoesRoute,
   AppAdminAtividadesRoute: AppAdminAtividadesRoute,
   AppAdminBolsasTransporteRoute: AppAdminBolsasTransporteRoute,
+  AppAdminCurriculosRoute: AppAdminCurriculosRoute,
   AppAdminDashboardRoute: AppAdminDashboardRoute,
   AppAdminDuplicadosRoute: AppAdminDuplicadosRoute,
   AppAdminEliminadosRoute: AppAdminEliminadosRoute,
