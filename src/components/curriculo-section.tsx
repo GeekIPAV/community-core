@@ -157,6 +157,26 @@ export function CurriculoSection({ pessoaId, onDeleted }: { pessoaId: string; on
     onError: (e: any) => toast.error(e.message ?? "Erro"),
   });
 
+  const deleteCurriculo = useMutation({
+    mutationFn: async () => {
+      if (!curriculo) return;
+      const paths = [curriculo.cv_url, curriculo.carta_motivacao_url].filter(Boolean) as string[];
+      if (paths.length > 0) {
+        const { error: storageError } = await supabase.storage.from("curriculos").remove(paths);
+        if (storageError) throw storageError;
+      }
+      const { error } = await (supabase.from("curriculos") as any).delete().eq("id", curriculo.id);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      toast.success("Currículo apagado");
+      await qc.invalidateQueries({ queryKey: ["curriculo", pessoaId] });
+      await qc.invalidateQueries({ queryKey: ["admin-curriculos"] });
+      onDeleted?.();
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao apagar currículo"),
+  });
+
   if (isLoading) {
     return (
       <div className="space-y-3">
