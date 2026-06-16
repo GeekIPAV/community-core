@@ -265,7 +265,7 @@ function ParticipantesPage() {
       { id: "cartao_cidadao", header: "Cartão de Cidadão", accessorKey: "cartao_cidadao", cell: text("cartao_cidadao"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Cartão de Cidadão" } satisfies ColumnFilterMeta },
       { id: "morada", header: "Morada", accessorKey: "morada", cell: text("morada"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Morada" } satisfies ColumnFilterMeta },
       { id: "data_nascimento", header: "Data nascimento", accessorKey: "data_nascimento", cell: text("data_nascimento", "date"), filterFn: advancedFilterFn as any, meta: { filterVariant: "date", label: "Data nascimento" } satisfies ColumnFilterMeta },
-      { id: "idade", header: "Idade", accessorFn: (p) => calcularIdade(p.data_nascimento), cell: ({ getValue }) => {
+      { id: "idade", header: "Idade", accessorFn: (p) => calcIdade(p.data_nascimento), cell: ({ getValue }) => {
         const idade = getValue() as number | null;
         return idade !== null ? <span className="text-muted-foreground">{idade} anos</span> : <span className="text-muted-foreground">—</span>;
       }, filterFn: advancedFilterFn as any, meta: { filterVariant: "number", label: "Idade" } satisfies ColumnFilterMeta },
