@@ -562,6 +562,9 @@ function ParticipantesPage() {
           <p className="text-sm text-muted-foreground">{data?.length ?? 0} pessoas</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" className="h-9" onClick={() => setAddOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Adicionar
+          </Button>
           <div className="relative flex-1 min-w-[200px] sm:flex-none sm:w-64">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -592,9 +595,6 @@ function ParticipantesPage() {
           </Select>
           <AdvancedTableFilters table={table} />
           <DataTableViewOptions table={table} />
-          <Button size="sm" className="h-9" onClick={() => setAddOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Adicionar
-          </Button>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button
