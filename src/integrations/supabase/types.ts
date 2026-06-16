@@ -91,6 +91,30 @@ export type Database = {
           },
         ]
       }
+      areas_interesse_catalogo: {
+        Row: {
+          ativo: boolean
+          categoria: string | null
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string | null
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string | null
+          created_at?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
       atividades_catalogo: {
         Row: {
           ativo: boolean
@@ -144,6 +168,69 @@ export type Database = {
           valor_sentido?: number
         }
         Relationships: []
+      }
+      curriculos: {
+        Row: {
+          areas_interesse: string[]
+          carta_motivacao_nome_ficheiro: string | null
+          carta_motivacao_texto: string | null
+          carta_motivacao_url: string | null
+          competencias: string[]
+          created_at: string
+          cv_nome_ficheiro: string | null
+          cv_url: string | null
+          disponibilidade: string | null
+          id: string
+          notas: string | null
+          pessoa_id: string
+          updated_at: string
+        }
+        Insert: {
+          areas_interesse?: string[]
+          carta_motivacao_nome_ficheiro?: string | null
+          carta_motivacao_texto?: string | null
+          carta_motivacao_url?: string | null
+          competencias?: string[]
+          created_at?: string
+          cv_nome_ficheiro?: string | null
+          cv_url?: string | null
+          disponibilidade?: string | null
+          id?: string
+          notas?: string | null
+          pessoa_id: string
+          updated_at?: string
+        }
+        Update: {
+          areas_interesse?: string[]
+          carta_motivacao_nome_ficheiro?: string | null
+          carta_motivacao_texto?: string | null
+          carta_motivacao_url?: string | null
+          competencias?: string[]
+          created_at?: string
+          cv_nome_ficheiro?: string | null
+          cv_url?: string | null
+          disponibilidade?: string | null
+          id?: string
+          notas?: string | null
+          pessoa_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculos_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: true
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculos_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: true
+            referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       dashboard_config: {
         Row: {
