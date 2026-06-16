@@ -95,7 +95,8 @@ function FamiliasPage() {
   const [groupBy, setGroupBy] = useState<"none" | "status" | "projeto" | "cidade" | "religiao">("none");
   const [addAcaoOpen, setAddAcaoOpen] = useState(false);
   const [novaAcao, setNovaAcao] = useState<{ pessoa_id: string; acao_id: string }>({ pessoa_id: "", acao_id: "" });
-  const [detailTab, setDetailTab] = useState<"dados" | "membros" | "acoes" | "atividades">("membros");
+  const [detailTab, setDetailTab] = useState<"dados" | "membros" | "projetos" | "acoes" | "atividades">("membros");
+  const [bulkProjetoId, setBulkProjetoId] = useState<string>("");
 
   const [addMembroOpen, setAddMembroOpen] = useState(false);
   const emptyMembro = {
