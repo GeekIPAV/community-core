@@ -203,7 +203,7 @@ export function AdvancedTableFilters<T>({ table }: { table: Table<T> }) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="outline" size="sm" className="h-9 gap-2">
           <Filter className="h-4 w-4" />
           Filtros avançados
           {activeCount > 0 && (
