@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FileText, Upload, Loader2, X, Save, Plus, Download } from "lucide-react";
+import { FileText, Upload, Loader2, X, Save, Plus, Download, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 type Curriculo = {
