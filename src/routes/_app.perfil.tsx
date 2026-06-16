@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { CurriculoSection } from "@/components/curriculo-section";
 import {
   Mail, Phone, MapPin, Cake, Briefcase, Globe, HeartHandshake, Users, IdCard,
   ShieldCheck, Heart, Pencil, Save, X, Calendar,
@@ -137,6 +138,9 @@ function PerfilPage() {
           <TabsTrigger value="dados">Dados</TabsTrigger>
           <TabsTrigger value="familia">Agregado familiar</TabsTrigger>
           <TabsTrigger value="atividades">Ações e Atividades</TabsTrigger>
+          {(calcIdade(pessoa.data_nascimento) ?? 0) >= 18 && (
+            <TabsTrigger value="curriculo">Currículo</TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="dados" className="mt-4">
@@ -153,6 +157,11 @@ function PerfilPage() {
         <TabsContent value="atividades" className="mt-4">
           <AtividadesSection pessoaId={pessoa.id} />
         </TabsContent>
+        {(calcIdade(pessoa.data_nascimento) ?? 0) >= 18 && (
+          <TabsContent value="curriculo" className="mt-4">
+            <CurriculoSection pessoaId={pessoa.id} />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
