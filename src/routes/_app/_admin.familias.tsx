@@ -1109,10 +1109,11 @@ function FamiliasPage() {
             </DialogDescription>
           </DialogHeader>
           </div>
-          <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as "dados" | "membros" | "acoes" | "atividades")} className="flex flex-col flex-1 min-h-0 px-6 pb-6">
+          <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as "dados" | "membros" | "projetos" | "acoes" | "atividades")} className="flex flex-col flex-1 min-h-0 px-6 pb-6">
             <TabsList className="w-full">
               <TabsTrigger value="dados" className="flex-1">Dados</TabsTrigger>
               <TabsTrigger value="membros" className="flex-1">Membros</TabsTrigger>
+              <TabsTrigger value="projetos" className="flex-1">Projetos</TabsTrigger>
               <TabsTrigger value="acoes" className="flex-1">Ações</TabsTrigger>
               <TabsTrigger value="atividades" className="flex-1">Atividades</TabsTrigger>
             </TabsList>
