@@ -303,7 +303,20 @@ export function CurriculoSection({ pessoaId, onDeleted }: { pessoaId: string; on
         </div>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        {curriculo && (
+          <Button
+            variant="destructive"
+            onClick={() => {
+              if (confirm("Tens a certeza que queres apagar este currículo? Esta ação não pode ser desfeita.")) {
+                deleteCurriculo.mutate();
+              }
+            }}
+            disabled={deleteCurriculo.isPending}
+          >
+            <Trash2 className="h-4 w-4" /> {deleteCurriculo.isPending ? "A apagar…" : "Apagar currículo"}
+          </Button>
+        )}
         <Button onClick={() => saveMeta.mutate()} disabled={saveMeta.isPending}>
           <Save className="h-4 w-4" /> {saveMeta.isPending ? "A guardar…" : "Guardar"}
         </Button>
