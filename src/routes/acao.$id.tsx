@@ -12,8 +12,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { ArrowLeft, MapPin, CalendarDays, ExternalLink } from "lucide-react";
+import { ArrowLeft, MapPin, CalendarDays, ExternalLink, Pencil, UserPlus, Users } from "lucide-react";
 import { RichTextView } from "@/components/rich-text-view";
+import { RichTextEditor } from "@/components/rich-text-editor";
+import { ImageUpload } from "@/components/image-upload";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { matchCidade, formatEuro, type CidadeBolsa } from "@/lib/bolsa-transporte";
 
 export const Route = createFileRoute("/acao/$id")({
@@ -95,12 +101,18 @@ function parseFields(config: any): FieldDef[] {
 
 function AcaoDetailPage() {
   const { id } = Route.useParams();
+  const { isAdmin } = useAuth();
   const [open, setOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [adminPessoaOpen, setAdminPessoaOpen] = useState(false);
+  const [adminFamiliaOpen, setAdminFamiliaOpen] = useState(false);
 
   const { data: acao, isLoading } = useQuery({
     queryKey: ["acao", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("acoes").select("*").eq("id", id).eq("publico", true).single();
+      let q = supabase.from("acoes").select("*").eq("id", id);
+      if (!isAdmin) q = q.eq("publico", true);
+      const { data, error } = await q.single();
       if (error) throw error;
       return data;
     },
@@ -123,6 +135,13 @@ function AcaoDetailPage() {
           <p className="text-sm text-muted-foreground">Ação não encontrada.</p>
         ) : (
           <Card className="overflow-hidden">
+            {isAdmin && (
+              <div className="absolute right-4 top-16 z-10">
+                <Button size="icon" variant="secondary" onClick={() => setEditOpen(true)} title="Editar ação">
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
             {acao.imagem_url && (
               <img
                 src={acao.imagem_url}
@@ -162,12 +181,38 @@ function AcaoDetailPage() {
                 </p>
               )}
               <Button size="lg" onClick={() => setOpen(true)}>Inscrever</Button>
+              {isAdmin && (
+                <div className="space-y-2 rounded-md border border-dashed border-primary/40 bg-primary/5 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Gestão (admin)</p>
+                  {!acao.publico && (
+                    <p className="text-xs text-amber-600">Esta ação não está pública — só admins a vêem.</p>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+                      <Pencil className="h-4 w-4" /> Editar
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setAdminPessoaOpen(true)}>
+                      <UserPlus className="h-4 w-4" /> Inscrever pessoa
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setAdminFamiliaOpen(true)}>
+                      <Users className="h-4 w-4" /> Inscrever família
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
 
         {acao && (
           <InscreverDialog open={open} onOpenChange={setOpen} acao={acao} />
+        )}
+        {acao && isAdmin && (
+          <>
+            <EditarAcaoDialog open={editOpen} onOpenChange={setEditOpen} acao={acao} />
+            <AdminInscreverPessoaDialog open={adminPessoaOpen} onOpenChange={setAdminPessoaOpen} acao={acao} />
+            <AdminInscreverFamiliaDialog open={adminFamiliaOpen} onOpenChange={setAdminFamiliaOpen} acao={acao} />
+          </>
         )}
       </main>
     </div>
