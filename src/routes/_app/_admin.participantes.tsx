@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { ChevronDown, ChevronRight, Lock, LockOpen, Pencil, Plus, Trash2, Mail, Phone, MapPin, Cake, Briefcase, Globe, HeartHandshake, Users, IdCard, ShieldCheck, Heart } from "lucide-react";
 import { Download } from "lucide-react";
 import { EtiquetasPicker } from "@/components/etiquetas-picker";
+import { CurriculoSection } from "@/components/curriculo-section";
 import { downloadCSV, toCSV } from "@/lib/csv";
 import {
   useReactTable,
@@ -828,6 +829,9 @@ function ParticipantesPage() {
                 <TabsTrigger value="dados">Dados</TabsTrigger>
                 <TabsTrigger value="acoes">Ações / Eventos</TabsTrigger>
                 <TabsTrigger value="etiquetas">Etiquetas</TabsTrigger>
+                {(calcIdade(editing.data_nascimento) ?? 0) >= 18 && (
+                  <TabsTrigger value="curriculo">Currículo</TabsTrigger>
+                )}
               </TabsList>
               <TabsContent value="perfil" className="mt-4">
                 <PessoaPerfil
@@ -914,6 +918,11 @@ function ParticipantesPage() {
               <TabsContent value="etiquetas" className="mt-4">
                 <EtiquetasPicker pessoaId={editing.id} />
               </TabsContent>
+              {(calcIdade(editing.data_nascimento) ?? 0) >= 18 && (
+                <TabsContent value="curriculo" className="mt-4">
+                  <CurriculoSection pessoaId={editing.id} />
+                </TabsContent>
+              )}
             </Tabs>
           )}
           <DialogFooter className="sm:justify-between">
