@@ -849,6 +849,40 @@ function FamiliasPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          <div className="relative flex-1 min-w-[200px] sm:flex-none sm:w-64">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={globalFilter}
+              onChange={(e) => setGlobalFilter(e.target.value)}
+              placeholder="Pesquisar famílias…"
+              className="pl-8 h-9"
+            />
+          </div>
+          <Select value={groupBy} onValueChange={(v) => setGroupBy(v as typeof groupBy)}>
+            <SelectTrigger className="h-9 w-40">
+              <SelectValue placeholder="Agrupar por" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Sem agrupar</SelectItem>
+              <SelectItem value="status">Status</SelectItem>
+              <SelectItem value="projeto">Projeto</SelectItem>
+              <SelectItem value="cidade">Cidade</SelectItem>
+              <SelectItem value="religiao">Religião</SelectItem>
+            </SelectContent>
+          </Select>
+          <AdvancedTableFilters table={table} />
+          <DataTableViewOptions table={table} />
+          <ToggleGroup
+            type="single"
+            value={view}
+            onValueChange={(v) => v && setView(v as "tabela" | "galeria")}
+            variant="outline"
+            size="sm"
+            className="h-9"
+          >
+            <ToggleGroupItem value="tabela" aria-label="Tabela" className="h-9 px-2.5"><List className="h-4 w-4" /></ToggleGroupItem>
+            <ToggleGroupItem value="galeria" aria-label="Galeria" className="h-9 px-2.5"><LayoutGrid className="h-4 w-4" /></ToggleGroupItem>
+          </ToggleGroup>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button
