@@ -808,19 +808,19 @@ function FamiliasPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="space-y-4">
         <div>
           <h1 className="text-2xl font-semibold">Famílias</h1>
           <p className="text-sm text-muted-foreground">{rows.length} famílias</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-[200px] sm:flex-none sm:w-64">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               value={globalFilter}
               onChange={(e) => setGlobalFilter(e.target.value)}
               placeholder="Pesquisar famílias…"
-              className="pl-8 h-9 w-56"
+              className="pl-8 h-9"
             />
           </div>
           <Select value={groupBy} onValueChange={(v) => setGroupBy(v as typeof groupBy)}>
@@ -828,35 +828,43 @@ function FamiliasPage() {
               <SelectValue placeholder="Agrupar por" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="none">Sem agrupamento</SelectItem>
-              <SelectItem value="status">Agrupar: Status</SelectItem>
-              <SelectItem value="projeto">Agrupar: Projeto</SelectItem>
-              <SelectItem value="cidade">Agrupar: Cidade</SelectItem>
-              <SelectItem value="religiao">Agrupar: Religião</SelectItem>
+              <SelectItem value="none">Sem agrupar</SelectItem>
+              <SelectItem value="status">Status</SelectItem>
+              <SelectItem value="projeto">Projeto</SelectItem>
+              <SelectItem value="cidade">Cidade</SelectItem>
+              <SelectItem value="religiao">Religião</SelectItem>
             </SelectContent>
           </Select>
           <AdvancedTableFilters table={table} />
           <DataTableViewOptions table={table} />
-          <ToggleGroup type="single" value={view} onValueChange={(v) => v && setView(v as "tabela" | "galeria")} variant="outline" size="sm">
-            <ToggleGroupItem value="tabela" aria-label="Tabela"><List className="h-4 w-4" /></ToggleGroupItem>
-            <ToggleGroupItem value="galeria" aria-label="Galeria"><LayoutGrid className="h-4 w-4" /></ToggleGroupItem>
+          <ToggleGroup
+            type="single"
+            value={view}
+            onValueChange={(v) => v && setView(v as "tabela" | "galeria")}
+            variant="outline"
+            size="sm"
+            className="h-9"
+          >
+            <ToggleGroupItem value="tabela" aria-label="Tabela" className="h-9 px-2.5"><List className="h-4 w-4" /></ToggleGroupItem>
+            <ToggleGroupItem value="galeria" aria-label="Galeria" className="h-9 px-2.5"><LayoutGrid className="h-4 w-4" /></ToggleGroupItem>
           </ToggleGroup>
-          <Button variant="outline" onClick={() => setBulkAddOpen(true)}>
+          <Button variant="outline" size="sm" className="h-9" onClick={() => setBulkAddOpen(true)}>
             <Upload className="mr-2 h-4 w-4" /> Importar
           </Button>
           <Button
             variant={inlineEdit ? "default" : "outline"}
+            size="sm"
+            className="h-9"
             onClick={() => setInlineEdit((v) => !v)}
-            title="Editar diretamente na tabela"
           >
             <Pencil className="mr-2 h-4 w-4" /> {inlineEdit ? "A editar na tabela" : "Editar na tabela"}
           </Button>
-          <Button variant="outline" disabled={selected.size === 0} onClick={() => setBulkEditOpen(true)}>
+          <Button variant="outline" size="sm" className="h-9" disabled={selected.size === 0} onClick={() => setBulkEditOpen(true)}>
             <Pencil className="mr-2 h-4 w-4" /> Editar {selected.size > 0 ? `(${selected.size})` : ""}
           </Button>
           <Dialog open={addOpen} onOpenChange={setAddOpen}>
             <DialogTrigger asChild>
-              <Button><Plus className="mr-2 h-4 w-4" /> Nova família</Button>
+              <Button size="sm" className="h-9 ml-auto"><Plus className="mr-2 h-4 w-4" /> Nova família</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Nova família</DialogTitle></DialogHeader>
