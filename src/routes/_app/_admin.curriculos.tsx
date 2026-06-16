@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { FileText, Search, ExternalLink } from "lucide-react";
+import { FileText, Search, ExternalLink, Plus } from "lucide-react";
 import { CurriculoSection } from "@/components/curriculo-section";
 
 export const Route = createFileRoute("/_app/_admin/curriculos")({
@@ -37,6 +37,8 @@ function CurriculosAdminPage() {
   const [q, setQ] = useState("");
   const [areaFilter, setAreaFilter] = useState<string | null>(null);
   const [openPessoa, setOpenPessoa] = useState<{ id: string; nome: string } | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerQ, setPickerQ] = useState("");
 
   const { data: rows, isLoading } = useQuery({
     queryKey: ["admin-curriculos"],
@@ -50,6 +52,42 @@ function CurriculosAdminPage() {
       return (data as Row[]) ?? [];
     },
   });
+
+  const { data: adultos } = useQuery({
+    queryKey: ["pessoas-adultas"],
+    enabled: pickerOpen,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pessoas")
+        .select("id, nome_completo, email, data_nascimento")
+        .eq("status", "ativo")
+        .not("data_nascimento", "is", null)
+        .order("nome_completo");
+      if (error) throw error;
+      const hoje = new Date();
+      return (data ?? []).filter((p: any) => {
+        if (!p.data_nascimento) return false;
+        const d = new Date(p.data_nascimento);
+        if (isNaN(d.getTime())) return false;
+        let age = hoje.getFullYear() - d.getFullYear();
+        const m = hoje.getMonth() - d.getMonth();
+        if (m < 0 || (m === 0 && hoje.getDate() < d.getDate())) age--;
+        return age >= 18;
+      });
+    },
+  });
+
+  const filteredAdultos = useMemo(() => {
+    const term = pickerQ.trim().toLowerCase();
+    const list = (adultos ?? []) as Array<{ id: string; nome_completo: string; email: string | null }>;
+    if (!term) return list.slice(0, 50);
+    return list
+      .filter((p) =>
+        (p.nome_completo ?? "").toLowerCase().includes(term) ||
+        (p.email ?? "").toLowerCase().includes(term)
+      )
+      .slice(0, 50);
+  }, [adultos, pickerQ]);
 
   const areasUnicas = useMemo(() => {
     const set = new Set<string>();
@@ -89,6 +127,9 @@ function CurriculosAdminPage() {
             className="pl-8"
           />
         </div>
+        <Button onClick={() => { setPickerQ(""); setPickerOpen(true); }}>
+          <Plus className="h-4 w-4" /> Adicionar / atribuir CV
+        </Button>
       </div>
 
       {areasUnicas.length > 0 && (
@@ -182,6 +223,46 @@ function CurriculosAdminPage() {
             <DialogTitle>Currículo · {openPessoa?.nome}</DialogTitle>
           </DialogHeader>
           {openPessoa && <CurriculoSection pessoaId={openPessoa.id} />}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Escolher membro (≥ 18 anos)</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                autoFocus
+                value={pickerQ}
+                onChange={(e) => setPickerQ(e.target.value)}
+                placeholder="Pesquisar por nome ou email…"
+                className="pl-8"
+              />
+            </div>
+            <div className="max-h-[50vh] overflow-y-auto rounded-md border divide-y">
+              {filteredAdultos.length === 0 ? (
+                <div className="p-4 text-sm text-muted-foreground text-center">Sem resultados.</div>
+              ) : (
+                filteredAdultos.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => {
+                      setPickerOpen(false);
+                      setOpenPessoa({ id: p.id, nome: p.nome_completo });
+                    }}
+                    className="w-full text-left px-3 py-2 hover:bg-accent transition"
+                  >
+                    <div className="text-sm font-medium">{p.nome_completo}</div>
+                    {p.email && <div className="text-xs text-muted-foreground">{p.email}</div>}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
