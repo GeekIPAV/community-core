@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FileText, Upload, Loader2, X, Save, Plus, Download } from "lucide-react";
+import { FileText, Upload, Loader2, X, Save, Plus, Download, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 type Curriculo = {
@@ -37,7 +37,7 @@ function isAllowed(file: File) {
   return ALLOWED.includes(file.type) || /\.(pdf|docx?|DOCX?)$/.test(file.name);
 }
 
-export function CurriculoSection({ pessoaId }: { pessoaId: string }) {
+export function CurriculoSection({ pessoaId, onDeleted }: { pessoaId: string; onDeleted?: () => void }) {
   const qc = useQueryClient();
 
   const { data: curriculo, isLoading } = useQuery({
@@ -155,6 +155,26 @@ export function CurriculoSection({ pessoaId }: { pessoaId: string }) {
       await qc.invalidateQueries({ queryKey: ["curriculo", pessoaId] });
     },
     onError: (e: any) => toast.error(e.message ?? "Erro"),
+  });
+
+  const deleteCurriculo = useMutation({
+    mutationFn: async () => {
+      if (!curriculo) return;
+      const paths = [curriculo.cv_url, curriculo.carta_motivacao_url].filter(Boolean) as string[];
+      if (paths.length > 0) {
+        const { error: storageError } = await supabase.storage.from("curriculos").remove(paths);
+        if (storageError) throw storageError;
+      }
+      const { error } = await (supabase.from("curriculos") as any).delete().eq("id", curriculo.id);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      toast.success("Currículo apagado");
+      await qc.invalidateQueries({ queryKey: ["curriculo", pessoaId] });
+      await qc.invalidateQueries({ queryKey: ["admin-curriculos"] });
+      onDeleted?.();
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao apagar currículo"),
   });
 
   if (isLoading) {
@@ -283,7 +303,20 @@ export function CurriculoSection({ pessoaId }: { pessoaId: string }) {
         </div>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        {curriculo && (
+          <Button
+            variant="destructive"
+            onClick={() => {
+              if (confirm("Tens a certeza que queres apagar este currículo? Esta ação não pode ser desfeita.")) {
+                deleteCurriculo.mutate();
+              }
+            }}
+            disabled={deleteCurriculo.isPending}
+          >
+            <Trash2 className="h-4 w-4" /> {deleteCurriculo.isPending ? "A apagar…" : "Apagar currículo"}
+          </Button>
+        )}
         <Button onClick={() => saveMeta.mutate()} disabled={saveMeta.isPending}>
           <Save className="h-4 w-4" /> {saveMeta.isPending ? "A guardar…" : "Guardar"}
         </Button>

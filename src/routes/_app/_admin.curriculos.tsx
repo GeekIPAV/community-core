@@ -222,7 +222,7 @@ function CurriculosAdminPage() {
           <DialogHeader>
             <DialogTitle>Currículo · {openPessoa?.nome}</DialogTitle>
           </DialogHeader>
-          {openPessoa && <CurriculoSection pessoaId={openPessoa.id} />}
+          {openPessoa && <CurriculoSection pessoaId={openPessoa.id} onDeleted={() => setOpenPessoa(null)} />}
         </DialogContent>
       </Dialog>
 
