@@ -235,6 +235,32 @@ function FamiliasPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const bulkAssignProjeto = useMutation({
+    mutationFn: async ({ projetoId, action }: { projetoId: string; action: "add" | "remove" }) => {
+      if (!membros || membros.length === 0) throw new Error("Sem membros");
+      const updates = membros.map(async (m) => {
+        const atuais = new Set<string>(m.projeto_ids ?? []);
+        if (action === "add") atuais.add(projetoId);
+        else atuais.delete(projetoId);
+        const novos = Array.from(atuais);
+        const { error } = await supabase
+          .from("pessoas")
+          .update({ projeto_ids: novos } as any)
+          .eq("id", m.id);
+        if (error) throw error;
+      });
+      await Promise.all(updates);
+    },
+    onSuccess: (_d, vars) => {
+      toast.success(vars.action === "add" ? "Projeto atribuído a todos os membros" : "Projeto removido de todos os membros");
+      qc.invalidateQueries({ queryKey: ["familias", "membros", membrosFamilia?.id] });
+      qc.invalidateQueries({ queryKey: ["familias", "agregados"] });
+      qc.invalidateQueries({ queryKey: ["pessoas"] });
+      setBulkProjetoId("");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const { data, isLoading } = useQuery({
     queryKey: ["familias"],
     queryFn: async () => {
