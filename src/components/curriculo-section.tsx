@@ -37,7 +37,7 @@ function isAllowed(file: File) {
   return ALLOWED.includes(file.type) || /\.(pdf|docx?|DOCX?)$/.test(file.name);
 }
 
-export function CurriculoSection({ pessoaId }: { pessoaId: string }) {
+export function CurriculoSection({ pessoaId, onDeleted }: { pessoaId: string; onDeleted?: () => void }) {
   const qc = useQueryClient();
 
   const { data: curriculo, isLoading } = useQuery({
