@@ -755,7 +755,8 @@ function FamiliasPage() {
   const renderTableRow = (row: typeof tableRows[number]) => {
     const f = row.original;
     return (
-      <TableRow key={row.id} className="cursor-pointer" onClick={(e) => {
+      <TableRow key={row.id} className={inlineEdit ? "" : "cursor-pointer"} onClick={(e) => {
+        if (inlineEdit) return;
         const target = e.target as HTMLElement;
         if (target.closest("button, [role=checkbox], input")) return;
         openDetail(f, "membros");
