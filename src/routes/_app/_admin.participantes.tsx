@@ -592,6 +592,11 @@ function ParticipantesPage() {
           </Select>
           <AdvancedTableFilters table={table} />
           <DataTableViewOptions table={table} />
+          <Button size="sm" className="h-9 ml-auto" onClick={() => setAddOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Adicionar
+          </Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             variant={inlineEdit ? "default" : "outline"}
             size="sm"
@@ -642,9 +647,6 @@ function ParticipantesPage() {
             }}
           >
             <Download className="mr-2 h-4 w-4" /> Exportar
-          </Button>
-          <Button size="sm" className="h-9 ml-auto" onClick={() => setAddOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Adicionar
           </Button>
         </div>
       </div>
