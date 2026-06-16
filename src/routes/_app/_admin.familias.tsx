@@ -884,6 +884,22 @@ function FamiliasPage() {
             </DialogContent>
           </Dialog>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant={inlineEdit ? "default" : "outline"}
+            size="sm"
+            className="h-9"
+            onClick={() => setInlineEdit((v) => !v)}
+          >
+            <Pencil className="mr-2 h-4 w-4" /> {inlineEdit ? "A editar na tabela" : "Editar na tabela"}
+          </Button>
+          <Button variant="outline" size="sm" className="h-9" disabled={selected.size === 0} onClick={() => setBulkEditOpen(true)}>
+            <Pencil className="mr-2 h-4 w-4" /> Editar {selected.size > 0 ? `(${selected.size})` : ""}
+          </Button>
+          <Button variant="outline" size="sm" className="h-9" onClick={() => setBulkAddOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" /> Importar
+          </Button>
+        </div>
       </div>
 
       <SavedViews storageKey="views:familias" table={table} />
