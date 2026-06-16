@@ -848,20 +848,6 @@ function FamiliasPage() {
             <ToggleGroupItem value="tabela" aria-label="Tabela" className="h-9 px-2.5"><List className="h-4 w-4" /></ToggleGroupItem>
             <ToggleGroupItem value="galeria" aria-label="Galeria" className="h-9 px-2.5"><LayoutGrid className="h-4 w-4" /></ToggleGroupItem>
           </ToggleGroup>
-          <Button variant="outline" size="sm" className="h-9" onClick={() => setBulkAddOpen(true)}>
-            <Upload className="mr-2 h-4 w-4" /> Importar
-          </Button>
-          <Button
-            variant={inlineEdit ? "default" : "outline"}
-            size="sm"
-            className="h-9"
-            onClick={() => setInlineEdit((v) => !v)}
-          >
-            <Pencil className="mr-2 h-4 w-4" /> {inlineEdit ? "A editar na tabela" : "Editar na tabela"}
-          </Button>
-          <Button variant="outline" size="sm" className="h-9" disabled={selected.size === 0} onClick={() => setBulkEditOpen(true)}>
-            <Pencil className="mr-2 h-4 w-4" /> Editar {selected.size > 0 ? `(${selected.size})` : ""}
-          </Button>
           <Dialog open={addOpen} onOpenChange={setAddOpen}>
             <DialogTrigger asChild>
               <Button size="sm" className="h-9 ml-auto"><Plus className="mr-2 h-4 w-4" /> Nova família</Button>
