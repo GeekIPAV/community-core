@@ -95,7 +95,8 @@ function FamiliasPage() {
   const [groupBy, setGroupBy] = useState<"none" | "status" | "projeto" | "cidade" | "religiao">("none");
   const [addAcaoOpen, setAddAcaoOpen] = useState(false);
   const [novaAcao, setNovaAcao] = useState<{ pessoa_id: string; acao_id: string }>({ pessoa_id: "", acao_id: "" });
-  const [detailTab, setDetailTab] = useState<"dados" | "membros" | "acoes" | "atividades">("membros");
+  const [detailTab, setDetailTab] = useState<"dados" | "membros" | "projetos" | "acoes" | "atividades">("membros");
+  const [bulkProjetoId, setBulkProjetoId] = useState<string>("");
 
   const [addMembroOpen, setAddMembroOpen] = useState(false);
   const emptyMembro = {
@@ -230,6 +231,32 @@ function FamiliasPage() {
       qc.invalidateQueries({ queryKey: ["familias", "agregados"] });
       qc.invalidateQueries({ queryKey: ["familias", "acoes", membrosFamilia?.id] });
       qc.invalidateQueries({ queryKey: ["pessoas"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const bulkAssignProjeto = useMutation({
+    mutationFn: async ({ projetoId, action }: { projetoId: string; action: "add" | "remove" }) => {
+      if (!membros || membros.length === 0) throw new Error("Sem membros");
+      const updates = membros.map(async (m) => {
+        const atuais = new Set<string>(m.projeto_ids ?? []);
+        if (action === "add") atuais.add(projetoId);
+        else atuais.delete(projetoId);
+        const novos = Array.from(atuais);
+        const { error } = await supabase
+          .from("pessoas")
+          .update({ projeto_ids: novos } as any)
+          .eq("id", m.id);
+        if (error) throw error;
+      });
+      await Promise.all(updates);
+    },
+    onSuccess: (_d, vars) => {
+      toast.success(vars.action === "add" ? "Projeto atribuído a todos os membros" : "Projeto removido de todos os membros");
+      qc.invalidateQueries({ queryKey: ["familias", "membros", membrosFamilia?.id] });
+      qc.invalidateQueries({ queryKey: ["familias", "agregados"] });
+      qc.invalidateQueries({ queryKey: ["pessoas"] });
+      setBulkProjetoId("");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -689,7 +716,7 @@ function FamiliasPage() {
     setSelected(next);
   };
 
-  const openDetail = (f: Familia, tab: "dados" | "membros" | "acoes" | "atividades" = "membros") => {
+  const openDetail = (f: Familia, tab: "dados" | "membros" | "projetos" | "acoes" | "atividades" = "membros") => {
     setMembrosFamilia(f);
     setEditing({ ...f });
     setDetailTab(tab);
@@ -1108,10 +1135,11 @@ function FamiliasPage() {
             </DialogDescription>
           </DialogHeader>
           </div>
-          <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as "dados" | "membros" | "acoes" | "atividades")} className="flex flex-col flex-1 min-h-0 px-6 pb-6">
+          <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as "dados" | "membros" | "projetos" | "acoes" | "atividades")} className="flex flex-col flex-1 min-h-0 px-6 pb-6">
             <TabsList className="w-full">
               <TabsTrigger value="dados" className="flex-1">Dados</TabsTrigger>
               <TabsTrigger value="membros" className="flex-1">Membros</TabsTrigger>
+              <TabsTrigger value="projetos" className="flex-1">Projetos</TabsTrigger>
               <TabsTrigger value="acoes" className="flex-1">Ações</TabsTrigger>
               <TabsTrigger value="atividades" className="flex-1">Atividades</TabsTrigger>
             </TabsList>
@@ -1303,6 +1331,92 @@ function FamiliasPage() {
                         {renderTable(voluntarios, "Sem voluntários")}
                       </TabsContent>
                     </Tabs>
+                  </div>
+                );
+              })()}
+            </TabsContent>
+
+            <TabsContent value="projetos" className="pt-4 flex-1 min-h-0 overflow-auto">
+              {(() => {
+                const lista = membros ?? [];
+                const porProjeto = new Map<string, { nome: string; membros: { id: string; nome: string }[] }>();
+                for (const m of lista) {
+                  for (const pid of (m.projeto_ids ?? [])) {
+                    const nome = projetosMap.get(pid) ?? "(projeto removido)";
+                    const entry = porProjeto.get(pid) ?? { nome, membros: [] };
+                    entry.membros.push({ id: m.id, nome: m.nome_completo });
+                    porProjeto.set(pid, entry);
+                  }
+                }
+                const resumo = Array.from(porProjeto.entries()).sort((a, b) => a[1].nome.localeCompare(b[1].nome));
+                const todosTemProjeto = (pid: string) => lista.length > 0 && lista.every((m) => (m.projeto_ids ?? []).includes(pid));
+                return (
+                  <div className="space-y-5">
+                    <div className="rounded-md border p-4 space-y-3">
+                      <div className="text-sm font-medium">Atribuir projeto a todos os membros</div>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Select value={bulkProjetoId} onValueChange={setBulkProjetoId}>
+                          <SelectTrigger className="sm:w-72"><SelectValue placeholder="Escolher projeto…" /></SelectTrigger>
+                          <SelectContent>
+                            {(projetosList ?? []).map((p) => (
+                              <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          onClick={() => bulkAssignProjeto.mutate({ projetoId: bulkProjetoId, action: "add" })}
+                          disabled={!bulkProjetoId || lista.length === 0 || bulkAssignProjeto.isPending}
+                        >
+                          <Plus className="h-4 w-4 mr-1" /> Atribuir a todos ({lista.length})
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Adiciona o projeto escolhido a todos os membros desta família. Membros que já estejam no projeto mantêm-se.
+                      </p>
+                    </div>
+
+                    <div>
+                      <div className="text-sm font-medium mb-2">Resumo dos projetos</div>
+                      {resumo.length === 0 ? (
+                        <div className="rounded-md border p-6 text-center text-sm text-muted-foreground">
+                          Nenhum membro está atribuído a projetos.
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {resumo.map(([pid, info]) => (
+                            <div key={pid} className="rounded-md border p-3 flex flex-col gap-2">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <div className="font-medium truncate">{info.nome}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {info.membros.length} de {lista.length} membro(s)
+                                    {todosTemProjeto(pid) && " · todos"}
+                                  </div>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => {
+                                    if (confirm(`Remover o projeto "${info.nome}" de todos os membros desta família?`)) {
+                                      bulkAssignProjeto.mutate({ projetoId: pid, action: "remove" });
+                                    }
+                                  }}
+                                  disabled={bulkAssignProjeto.isPending}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" /> Remover de todos
+                                </Button>
+                              </div>
+                              <div className="flex flex-wrap gap-1">
+                                {info.membros.map((m) => (
+                                  <Badge key={m.id} variant="secondary" className="text-[11px]">{m.nome}</Badge>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })()}
