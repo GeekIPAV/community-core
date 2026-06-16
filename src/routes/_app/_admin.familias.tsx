@@ -91,6 +91,7 @@ function FamiliasPage() {
   const [membrosFamilia, setMembrosFamilia] = useState<Familia | null>(null);
   const [view, setView] = useState<"tabela" | "galeria">("tabela");
   const [globalFilter, setGlobalFilter] = useState("");
+  const [inlineEdit, setInlineEdit] = useState(false);
   const [groupBy, setGroupBy] = useState<"none" | "status" | "projeto" | "cidade" | "religiao">("none");
   const [addAcaoOpen, setAddAcaoOpen] = useState(false);
   const [novaAcao, setNovaAcao] = useState<{ pessoa_id: string; acao_id: string }>({ pessoa_id: "", acao_id: "" });
@@ -372,6 +373,12 @@ function FamiliasPage() {
     qc.invalidateQueries({ queryKey: ["familias", "contagens"] });
     qc.invalidateQueries({ queryKey: ["familias", "agregados"] });
     qc.invalidateQueries({ queryKey: ["pessoas"] });
+  };
+
+  const saveFamilia = (id: string, field: string) => async (v: any) => {
+    const { error } = await supabase.from("familias").update({ [field]: v } as any).eq("id", id);
+    if (error) { toast.error(error.message); throw error; }
+    qc.invalidateQueries({ queryKey: ["familias"] });
   };
 
   const { data: acoesFamilia, isLoading: loadingAcoesFamilia } = useQuery({
