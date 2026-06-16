@@ -1,70 +1,57 @@
-## Plano de melhorias
+## Objetivo
 
-Vou organizar as melhorias em fases para entregar valor cedo. Cada fase é independente — podes pedir para implementar só algumas.
+Na página pública `/acao/$id`, quando o utilizador autenticado é admin, mostrar controlos extra:
 
----
+1. **Lápis de edição** sobre o cartão do evento → abre diálogo para editar a informação principal da ação.
+2. **Painel "Ações de admin"** → permite inscrever pessoas individuais e famílias inteiras (incluindo membros) na ação, sem sair da página.
 
-### Fase 1 — UX & Performance (rápido, alto impacto)
+A página continua pública para todos os outros visitantes — nada muda visualmente para não-admins.
 
-- **Pesquisa global** no topo (Cmd/Ctrl+K): salta para participantes, ações, famílias.
-- **Filtros guardados** nas listas (ações, participantes): guardar combinações de filtros como "vistas" reutilizáveis (já existe a tabela `vistas_guardadas` — vou ligá-la à UI).
-- **Paginação/virtualização** das tabelas grandes (participantes, ações) para evitar lentidão com muitos registos.
-- **Loading skeletons** consistentes em vez de spinners.
-- **Atalhos de teclado** nas tabelas: setas para navegar, espaço para selecionar, `e` para editar.
+## Alterações
 
-### Fase 2 — Portal Público & SEO
+### `src/routes/acao.$id.tsx`
 
-- **Página individual de cada evento** (`/evento/:slug`) partilhável, com metadados Open Graph dinâmicos (título, descrição, imagem do evento).
-- **Inscrição online** a partir do portal público com confirmação por email (usa Fase 4).
-- **Sitemap dinâmico** que inclui todos os eventos públicos.
-- **JSON-LD `Event`** para aparecer melhor no Google (data, local, organizador).
-- **Imagem de capa** opcional por evento (já há suporte? verifico e adiciono se faltar).
+- Ler `isAdmin` de `useAuth()`.
+- No `Card` do evento, se `isAdmin`:
+  - Botão flutuante com ícone `Pencil` (top-right do cartão / sobreposto à imagem) → abre `EditarAcaoDialog`.
+  - Secção "Gestão (admin)" abaixo do botão "Inscrever" com dois botões: **Inscrever pessoa** e **Inscrever família**.
+- Após edição/inscrição com sucesso → `queryClient.invalidateQueries({ queryKey: ["acao", id] })` e toast.
 
-### Fase 3 — Gestão de Participantes & Relatórios
+### Novo: `EditarAcaoDialog` (mesmo ficheiro)
 
-- **Importação CSV** em massa com mapeamento de colunas e pré-visualização antes de gravar.
-- **Exportação** das listas filtradas para CSV/Excel.
-- **Histórico de presenças** por participante na ficha individual (cronologia das ações em que esteve).
-- **Etiquetas/tags** livres em participantes (ex: "voluntário", "novo", "vulnerável") com filtro.
-- **Dashboard com KPIs**: participantes ativos, ações por mês, taxa de presença, top atividades — com gráficos.
-- **Exportação PDF/Excel** de relatórios (lista de presenças por ação, resumo mensal).
+Diálogo com formulário para os campos principais:
 
-### Fase 4 — Emails automáticos
+- `nome` (texto, obrigatório)
+- `descricao` (RichTextEditor reutilizado de `@/components/rich-text-editor`)
+- `local`, `mapa_url`
+- `data_inicio`, `data_fim` (datetime-local)
+- `imagem_url` via `ImageUpload` (`@/components/image-upload`, bucket `acoes-imagens`)
+- `publico` (switch), `inscricoes_abertas` (switch)
+- `restrito_a_projetos` (switch) + multiselect de projetos quando ligado
 
-Usar o sistema de emails da plataforma (templates React Email, domínio próprio):
+Submit faz `supabase.from('acoes').update(...).eq('id', id)`. RLS já permite admins editarem.
 
-- **Confirmação de inscrição** enviada ao participante.
-- **Lembrete 24h antes** da ação (cron job que corre de manhã).
-- **Follow-up pós-evento** (opcional, 1 dia depois).
-- Templates editáveis com cores/branding do Meeru.
+### Novo: `AdminInscreverPessoaDialog`
 
-> Vou precisar de configurar um domínio de envio (ex: `notify.appmeeru.lovable.app` ou subdomínio teu). Pergunto no momento de implementar.
+- Combobox/autocomplete (Command) que pesquisa `pessoas` por `nome_completo`/`email` (limite 20, debounced).
+- Mostra campos dinâmicos da ação (`parseFields(config_campos)`).
+- Submit cria/atualiza row em `inscricoes` (idempotente: verifica `pessoa_id + acao_id` com status ≠ 'cancelada').
 
-### Fase 5 — QR Code de presenças
+### Novo: `AdminInscreverFamiliaDialog`
 
-- Cada ação gera um **QR code único** que o coordenador mostra (ou imprime).
-- Página `/checkin/:token` onde o participante (autenticado) faz check-in com 1 toque.
-- Alternativa: app do coordenador faz scan do cartão do participante.
-- Marca presença automática em `inscricoes`/presenças.
+- Combobox que pesquisa `familias` por nome.
+- Após escolher família → lista membros (`pessoas` onde `familia_id = X`), com checkbox por membro (todos marcados por defeito).
+- Campos dinâmicos partilhados (mesmos valores aplicam a todos).
+- Submit em batch: insere uma `inscricao` por pessoa selecionada, evitando duplicados.
 
----
+## Notas técnicas
 
-### Detalhes técnicos
+- Tudo client-side via cliente Supabase autenticado — sem nova migration, sem server functions. As policies actuais em `acoes` e `inscricoes` já permitem ações de admin.
+- A página continua a usar a query `acoes ... .eq('publico', true)`. Para admins, removo o filtro `publico` na fetch (ou faço fallback) para que admins possam abrir e editar ações privadas também — útil para alternar `publico` ON/OFF.
+- Reutilizo `RichTextEditor`, `ImageUpload`, `Command`, `Dialog`, `Switch`, `Button`, `Input` já existentes.
+- Sem alterações ao layout/UX para visitantes anónimos.
 
-- **Tabelas novas/alteradas**: `etiquetas`, `pessoa_etiquetas`, `acao_checkin_tokens`; colunas `acoes.slug`, `acoes.imagem_capa`, `acoes.descricao_publica`.
-- **Server functions novas**: `importParticipantesCSV`, `exportRelatorio`, `enviarLembretes` (cron), `criarTokenCheckin`, `registarPresencaViaQR`.
-- **Rotas novas**: `/evento/$slug` (público), `/_app/_admin.dashboard`, `/checkin/$token`, `/_app/_admin.importar`.
-- **Cron**: pg_cron diário às 09:00 chama `/api/public/hooks/lembretes-eventos`.
-- **Componentes**: `CommandPalette`, `DataTablePro` (virtualizada), `KpiCard`, `EventCard` (público), `QrCodeDisplay`.
+## Fora de âmbito
 
----
-
-### Sugestão de ordem
-
-1. **Fase 2** (Portal público + página individual de evento) — entrega visível imediata.
-2. **Fase 4** (Emails) — depende do domínio mas alto valor.
-3. **Fase 3** (Importação/exportação + dashboard).
-4. **Fase 5** (QR check-in).
-5. **Fase 1** (UX/performance) — polish contínuo.
-
-Diz-me por **qual fase queres começar** (ex: "Fase 2", ou "Fases 2 e 4"), ou se queres reordenar/cortar algo.
+- Edição de `config_campos` (campos dinâmicos de inscrição) — já é gerida em `/acoes`. Adiciono apenas link "Editar campos dinâmicos" que abre `/acoes?edit=<id>` (ou mantém-se só na página admin, conforme preferires).
+- Remover/cancelar inscrições existentes — continua em `/participantes`.
