@@ -91,6 +91,7 @@ function FamiliasPage() {
   const [membrosFamilia, setMembrosFamilia] = useState<Familia | null>(null);
   const [view, setView] = useState<"tabela" | "galeria">("tabela");
   const [globalFilter, setGlobalFilter] = useState("");
+  const [inlineEdit, setInlineEdit] = useState(false);
   const [groupBy, setGroupBy] = useState<"none" | "status" | "projeto" | "cidade" | "religiao">("none");
   const [addAcaoOpen, setAddAcaoOpen] = useState(false);
   const [novaAcao, setNovaAcao] = useState<{ pessoa_id: string; acao_id: string }>({ pessoa_id: "", acao_id: "" });
@@ -374,6 +375,12 @@ function FamiliasPage() {
     qc.invalidateQueries({ queryKey: ["pessoas"] });
   };
 
+  const saveFamilia = (id: string, field: string) => async (v: any) => {
+    const { error } = await supabase.from("familias").update({ [field]: v } as any).eq("id", id);
+    if (error) { toast.error(error.message); throw error; }
+    qc.invalidateQueries({ queryKey: ["familias"] });
+  };
+
   const { data: acoesFamilia, isLoading: loadingAcoesFamilia } = useQuery({
     queryKey: ["familias", "acoes", membrosFamilia?.id],
     enabled: !!membrosFamilia && !!membros,
@@ -556,9 +563,23 @@ function FamiliasPage() {
   const rows = data ?? [];
 
   const columns = useMemo<ColumnDef<Familia>[]>(() => [
-    { id: "nome", header: "Nome", accessorKey: "nome", cell: ({ getValue }) => <span className="font-medium">{getValue() as string}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nome" } satisfies ColumnFilterMeta },
-    { id: "status", header: "Status", accessorKey: "status", cell: ({ getValue }) => {
+    { id: "nome", header: "Nome", accessorKey: "nome", cell: ({ getValue, row }) => (
+      inlineEdit
+        ? <InlineText value={(getValue() as string) ?? ""} onSave={(v) => saveFamilia(row.original.id, "nome")(v ?? "")} />
+        : <span className="font-medium">{getValue() as string}</span>
+    ), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nome" } satisfies ColumnFilterMeta },
+    { id: "status", header: "Status", accessorKey: "status", cell: ({ getValue, row }) => {
       const s = (getValue() as FamiliaStatus) ?? "Sem estado";
+      if (inlineEdit) {
+        return (
+          <InlineSelect
+            value={s}
+            options={STATUS_OPTS.map((o) => ({ value: o, label: o }))}
+            onSave={(v) => saveFamilia(row.original.id, "status")(v ?? "Sem estado")}
+            allowClear={false}
+          />
+        );
+      }
       return <Badge className={STATUS_STYLES[s] ?? ""} variant="outline">{s}</Badge>;
     }, filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: [...STATUS_OPTS], label: "Status" } satisfies ColumnFilterMeta },
     { id: "membros", header: "Membros", accessorFn: (f) => contagens?.get(f.id) ?? 0, cell: ({ getValue }) => <span className="text-muted-foreground">{getValue() as number}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "number", label: "Membros" } satisfies ColumnFilterMeta },
@@ -566,15 +587,28 @@ function FamiliasPage() {
     { id: "cidade", header: "Cidade", accessorFn: (f) => Array.from(agregados?.get(f.id)?.cidades ?? []).sort().join(", "), cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Cidade" } satisfies ColumnFilterMeta },
     { id: "religiao", header: "Religião", accessorFn: (f) => Array.from(agregados?.get(f.id)?.religioes ?? []).sort().join(", "), cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Religião" } satisfies ColumnFilterMeta },
     { id: "inscricoes", header: "Inscrições", accessorFn: (f) => Array.from(agregados?.get(f.id)?.inscricoes ?? []).sort().join(", "), cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Inscrições" } satisfies ColumnFilterMeta },
-    { id: "contacto_meeru", header: "Contacto MEERU", accessorFn: (f) => (f.contacto_meeru_id ? (equipaMap.get(f.contacto_meeru_id)?.nome_completo ?? "—") : ""), cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Contacto MEERU" } satisfies ColumnFilterMeta },
-    { id: "notas", header: "Notas", accessorKey: "notas", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Notas" } satisfies ColumnFilterMeta },
+    { id: "contacto_meeru", header: "Contacto MEERU", accessorFn: (f) => (f.contacto_meeru_id ? (equipaMap.get(f.contacto_meeru_id)?.nome_completo ?? "—") : ""), cell: ({ getValue, row }) => (
+      inlineEdit
+        ? <InlineSelect
+            value={row.original.contacto_meeru_id}
+            options={(equipa ?? []).map((p) => ({ value: p.id, label: p.nome_completo }))}
+            onSave={(v) => saveFamilia(row.original.id, "contacto_meeru_id")(v)}
+            placeholder="Sem contacto"
+          />
+        : <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>
+    ), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Contacto MEERU" } satisfies ColumnFilterMeta },
+    { id: "notas", header: "Notas", accessorKey: "notas", cell: ({ getValue, row }) => (
+      inlineEdit
+        ? <InlineText value={(getValue() as string) ?? null} onSave={(v) => saveFamilia(row.original.id, "notas")(v)} />
+        : <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>
+    ), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Notas" } satisfies ColumnFilterMeta },
     { id: "updated_at", header: "Última edição", accessorKey: "updated_at",
       cell: ({ getValue }) => {
         const v = getValue() as string | null;
         return <span className="text-muted-foreground">{v ? new Date(v).toLocaleString("pt-PT") : "—"}</span>;
       },
       filterFn: advancedFilterFn as any, meta: { filterVariant: "date", label: "Última edição" } satisfies ColumnFilterMeta },
-  ], [contagens, agregados, equipaMap]);
+  ], [contagens, agregados, equipaMap, equipa, inlineEdit]);
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -721,7 +755,8 @@ function FamiliasPage() {
   const renderTableRow = (row: typeof tableRows[number]) => {
     const f = row.original;
     return (
-      <TableRow key={row.id} className="cursor-pointer" onClick={(e) => {
+      <TableRow key={row.id} className={inlineEdit ? "" : "cursor-pointer"} onClick={(e) => {
+        if (inlineEdit) return;
         const target = e.target as HTMLElement;
         if (target.closest("button, [role=checkbox], input")) return;
         openDetail(f, "membros");
@@ -781,6 +816,13 @@ function FamiliasPage() {
           </ToggleGroup>
           <Button variant="outline" onClick={() => setBulkAddOpen(true)}>
             <Upload className="mr-2 h-4 w-4" /> Importar
+          </Button>
+          <Button
+            variant={inlineEdit ? "default" : "outline"}
+            onClick={() => setInlineEdit((v) => !v)}
+            title="Editar diretamente na tabela"
+          >
+            <Pencil className="mr-2 h-4 w-4" /> {inlineEdit ? "A editar na tabela" : "Editar na tabela"}
           </Button>
           <Button variant="outline" disabled={selected.size === 0} onClick={() => setBulkEditOpen(true)}>
             <Pencil className="mr-2 h-4 w-4" /> Editar {selected.size > 0 ? `(${selected.size})` : ""}
