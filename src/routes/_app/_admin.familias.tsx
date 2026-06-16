@@ -817,6 +817,13 @@ function FamiliasPage() {
           <Button variant="outline" onClick={() => setBulkAddOpen(true)}>
             <Upload className="mr-2 h-4 w-4" /> Importar
           </Button>
+          <Button
+            variant={inlineEdit ? "default" : "outline"}
+            onClick={() => setInlineEdit((v) => !v)}
+            title="Editar diretamente na tabela"
+          >
+            <Pencil className="mr-2 h-4 w-4" /> {inlineEdit ? "A editar na tabela" : "Editar na tabela"}
+          </Button>
           <Button variant="outline" disabled={selected.size === 0} onClick={() => setBulkEditOpen(true)}>
             <Pencil className="mr-2 h-4 w-4" /> Editar {selected.size > 0 ? `(${selected.size})` : ""}
           </Button>
