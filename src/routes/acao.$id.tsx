@@ -100,7 +100,8 @@ function parseFields(config: any): FieldDef[] {
 
 function AcaoDetailPage() {
   const { id } = Route.useParams();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isStaff } = useAuth();
+  const canManage = isAdmin || isStaff;
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [adminPessoaOpen, setAdminPessoaOpen] = useState(false);
@@ -110,7 +111,7 @@ function AcaoDetailPage() {
     queryKey: ["acao", id],
     queryFn: async () => {
       let q = supabase.from("acoes").select("*").eq("id", id);
-      if (!isAdmin) q = q.eq("publico", true);
+      if (!canManage) q = q.eq("publico", true);
       const { data, error } = await q.single();
       if (error) throw error;
       return data;
@@ -134,7 +135,7 @@ function AcaoDetailPage() {
           <p className="text-sm text-muted-foreground">Ação não encontrada.</p>
         ) : (
           <Card className="relative overflow-hidden">
-            {isAdmin && (
+            {canManage && (
               <div className="absolute right-4 top-16 z-10">
                 <Button size="icon" variant="secondary" onClick={() => setEditOpen(true)} title="Editar ação">
                   <Pencil className="h-4 w-4" />
@@ -180,11 +181,11 @@ function AcaoDetailPage() {
                 </p>
               )}
               <Button size="lg" onClick={() => setOpen(true)}>Inscrever</Button>
-              {isAdmin && (
+              {canManage && (
                 <div className="space-y-2 rounded-md border border-dashed border-primary/40 bg-primary/5 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Gestão (admin)</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Gestão</p>
                   {!acao.publico && (
-                    <p className="text-xs text-amber-600">Esta ação não está pública — só admins a vêem.</p>
+                    <p className="text-xs text-amber-600">Esta ação não está pública — só admins/equipa a vêem.</p>
                   )}
                   <div className="flex flex-wrap gap-2">
                     <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
@@ -206,7 +207,7 @@ function AcaoDetailPage() {
         {acao && (
           <InscreverDialog open={open} onOpenChange={setOpen} acao={acao} />
         )}
-        {acao && isAdmin && (
+        {acao && canManage && (
           <>
             <EditarAcaoDialog open={editOpen} onOpenChange={setEditOpen} acao={acao} />
             <AdminInscreverPessoaDialog open={adminPessoaOpen} onOpenChange={setAdminPessoaOpen} acao={acao} />
