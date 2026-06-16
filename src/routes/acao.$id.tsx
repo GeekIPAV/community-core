@@ -17,7 +17,6 @@ import { RichTextView } from "@/components/rich-text-view";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { ImageUpload } from "@/components/image-upload";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { matchCidade, formatEuro, type CidadeBolsa } from "@/lib/bolsa-transporte";
@@ -134,7 +133,7 @@ function AcaoDetailPage() {
         ) : !acao ? (
           <p className="text-sm text-muted-foreground">Ação não encontrada.</p>
         ) : (
-          <Card className="overflow-hidden">
+          <Card className="relative overflow-hidden">
             {isAdmin && (
               <div className="absolute right-4 top-16 z-10">
                 <Button size="icon" variant="secondary" onClick={() => setEditOpen(true)} title="Editar ação">
