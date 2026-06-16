@@ -690,7 +690,7 @@ function FamiliasPage() {
     setSelected(next);
   };
 
-  const openDetail = (f: Familia, tab: "dados" | "membros" | "acoes" | "atividades" = "membros") => {
+  const openDetail = (f: Familia, tab: "dados" | "membros" | "projetos" | "acoes" | "atividades" = "membros") => {
     setMembrosFamilia(f);
     setEditing({ ...f });
     setDetailTab(tab);
