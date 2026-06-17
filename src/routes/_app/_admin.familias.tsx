@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SavedViews } from "@/components/saved-views";
 import { toast } from "sonner";
@@ -42,6 +42,9 @@ const GENERO_OPTS = ["Masculino", "Feminino"];
 
 export const Route = createFileRoute("/_app/_admin/familias")({
   component: FamiliasPage,
+  validateSearch: (s: Record<string, unknown>) => ({
+    familia: typeof s.familia === "string" ? s.familia : undefined,
+  }),
 });
 
 const STATUS_OPTS = [
