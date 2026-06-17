@@ -89,6 +89,7 @@ function FamiliasPage() {
   const [bulkStatus, setBulkStatus] = useState<string>("__noop");
 
   const [membrosFamilia, setMembrosFamilia] = useState<Familia | null>(null);
+  const [detailTab, setDetailTab] = useState<"dados" | "membros" | "projetos" | "acoes" | "atividades">("membros");
   const [view, setView] = useState<"tabela" | "galeria">("tabela");
   const [globalFilter, setGlobalFilter] = useState("");
   const [inlineEdit, setInlineEdit] = useState(false);
