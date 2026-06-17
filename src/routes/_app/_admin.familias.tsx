@@ -36,6 +36,7 @@ import { Card } from "@/components/ui/card";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { InlineText, InlineSelect, InlineMultiSelect } from "@/components/inline-edit";
 import { personIcon, flagFor } from "@/lib/person-display";
+import { FamilyDetailDialog } from "@/components/family-detail";
 
 const PESSOA_STATUS_OPTS = ["ativo", "suspeito_duplicado", "fundido", "arquivado"];
 const GENERO_OPTS = ["Masculino", "Feminino"];
@@ -96,34 +97,7 @@ function FamiliasPage() {
   const [globalFilter, setGlobalFilter] = useState("");
   const [inlineEdit, setInlineEdit] = useState(false);
   const [groupBy, setGroupBy] = useState<"none" | "status" | "projeto" | "cidade" | "religiao" | "contacto">("none");
-  const [addAcaoOpen, setAddAcaoOpen] = useState(false);
-  const [novaAcao, setNovaAcao] = useState<{ pessoa_id: string; acao_id: string }>({ pessoa_id: "", acao_id: "" });
-  const [detailTab, setDetailTab] = useState<"dados" | "membros" | "projetos" | "acoes" | "atividades">("membros");
-  const [bulkProjetoId, setBulkProjetoId] = useState<string>("");
 
-  const [addMembroOpen, setAddMembroOpen] = useState(false);
-  const emptyMembro = {
-    nome_completo: "",
-    email: "",
-    telefone: "",
-    data_nascimento: "",
-    genero: "" as string,
-    cidade_residencia: "",
-    nacionalidade: "",
-    religiao: "",
-    nif: "",
-    projeto_ids: [] as string[],
-    status: "ativo" as string,
-  };
-  const [novoMembro, setNovoMembro] = useState(emptyMembro);
-
-  const [bulkMembrosText, setBulkMembrosText] = useState("");
-  const [bulkMembrosVoluntario, setBulkMembrosVoluntario] = useState(false);
-
-  const BULK_MEMBROS_PLACEHOLDER =
-    "nome, email, telefone, data_nascimento (AAAA-MM-DD), genero, cidade, nacionalidade, religiao, nif\n" +
-    "Maria Silva, maria@exemplo.pt, 912345678, 1985-03-12, Feminino, Lisboa, Portuguesa, Católica, 123456789\n" +
-    "João Costa, , 933221100, 1990-07-25, Masculino, Porto, Portuguesa, , ";
 
   const bulkAddMembros = useMutation({
     mutationFn: async () => {
