@@ -458,25 +458,59 @@ function FamiliaSection({ pessoa }: { pessoa: PessoaFull }) {
         )}
       </div>
 
-      {familiasResponsavel && familiasResponsavel.length > 0 && (
-        <div className="rounded-lg border p-4">
-          <h3 className="text-base font-semibold mb-1">Famílias pelas quais és responsável</h3>
-          <p className="text-sm text-muted-foreground mb-3">És o contacto da Equipa MEERU para estas famílias.</p>
-          <ul className="divide-y">
-            {familiasResponsavel.map((f) => (
-              <li key={f.id} className="py-2 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <Link to="/familias" className="font-medium hover:underline">{f.nome}</Link>
-                  {f.notas && <div className="text-xs text-muted-foreground line-clamp-1">{f.notas}</div>}
-                </div>
-                <Badge variant="outline">{f.status}</Badge>
-              </li>
-            ))}
-          </ul>
+      <MembroDialog memberId={openMemberId} onClose={() => setOpenMemberId(null)} />
+    </div>
+  );
+}
+
+function FamiliasAcompanhoSection({ pessoaId }: { pessoaId: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["familias-acompanho", pessoaId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("familias")
+        .select("id, nome, status, notas")
+        .eq("contacto_meeru_id", pessoaId)
+        .is("deleted_at", null)
+        .order("nome");
+      if (error) throw error;
+      return data as Array<{ id: string; nome: string; status: string; notas: string | null }>;
+    },
+  });
+
+  return (
+    <div className="rounded-lg border p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h3 className="text-base font-semibold flex items-center gap-2"><Users className="h-4 w-4" /> Famílias que acompanho</h3>
+          <p className="text-sm text-muted-foreground">Clica numa família para ver os detalhes e editar.</p>
+        </div>
+        <Badge variant="outline">{(data ?? []).length}</Badge>
+      </div>
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
+        </div>
+      ) : (data ?? []).length === 0 ? (
+        <p className="text-sm text-muted-foreground">Ainda não tens nenhuma família atribuída.</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {data!.map((f) => (
+            <Link
+              key={f.id}
+              to="/familias"
+              search={{ familia: f.id } as any}
+              className="rounded-md border p-3 bg-card hover:bg-muted/40 hover:border-primary/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium truncate">{f.nome}</span>
+                <Badge variant="outline" className="shrink-0 text-xs">{f.status}</Badge>
+              </div>
+              {f.notas && <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{f.notas}</p>}
+            </Link>
+          ))}
         </div>
       )}
-
-      <MembroDialog memberId={openMemberId} onClose={() => setOpenMemberId(null)} />
     </div>
   );
 }
