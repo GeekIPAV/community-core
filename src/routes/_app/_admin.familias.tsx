@@ -689,6 +689,9 @@ function FamiliasPage() {
       const agg = agregados?.get(f.id);
       if (groupBy === "status") {
         push(f.status || "Sem estado", r);
+      } else if (groupBy === "contacto") {
+        const nome = f.contacto_meeru_id ? (equipaMap.get(f.contacto_meeru_id)?.nome_completo ?? "—") : "— Sem contacto —";
+        push(nome, r);
       } else {
         const set =
           groupBy === "projeto" ? agg?.projetos :
@@ -702,7 +705,7 @@ function FamiliasPage() {
     return Array.from(map.entries())
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([label, rows]) => ({ label, rows }));
-  }, [tableRows, groupBy, agregados]);
+  }, [tableRows, groupBy, agregados, equipaMap]);
   const allChecked = tableRows.length > 0 && tableRows.every((r) => selected.has(r.original.id));
   const toggleAll = () => {
     const next = new Set(selected);
