@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth-context";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CurriculoSection } from "@/components/curriculo-section";
+import { FamilyDetailDialog } from "@/components/family-detail";
+import type { Familia } from "@/components/family-detail";
 import {
   Mail, Phone, MapPin, Cake, Briefcase, Globe, HeartHandshake, Users, IdCard,
   ShieldCheck, Heart, Pencil, Save, X, Calendar,
