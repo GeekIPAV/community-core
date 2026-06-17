@@ -92,7 +92,7 @@ function FamiliasPage() {
   const [view, setView] = useState<"tabela" | "galeria">("tabela");
   const [globalFilter, setGlobalFilter] = useState("");
   const [inlineEdit, setInlineEdit] = useState(false);
-  const [groupBy, setGroupBy] = useState<"none" | "status" | "projeto" | "cidade" | "religiao">("none");
+  const [groupBy, setGroupBy] = useState<"none" | "status" | "projeto" | "cidade" | "religiao" | "contacto">("none");
   const [addAcaoOpen, setAddAcaoOpen] = useState(false);
   const [novaAcao, setNovaAcao] = useState<{ pessoa_id: string; acao_id: string }>({ pessoa_id: "", acao_id: "" });
   const [detailTab, setDetailTab] = useState<"dados" | "membros" | "projetos" | "acoes" | "atividades">("membros");
@@ -689,6 +689,9 @@ function FamiliasPage() {
       const agg = agregados?.get(f.id);
       if (groupBy === "status") {
         push(f.status || "Sem estado", r);
+      } else if (groupBy === "contacto") {
+        const nome = f.contacto_meeru_id ? (equipaMap.get(f.contacto_meeru_id)?.nome_completo ?? "—") : "— Sem contacto —";
+        push(nome, r);
       } else {
         const set =
           groupBy === "projeto" ? agg?.projetos :
@@ -702,7 +705,7 @@ function FamiliasPage() {
     return Array.from(map.entries())
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([label, rows]) => ({ label, rows }));
-  }, [tableRows, groupBy, agregados]);
+  }, [tableRows, groupBy, agregados, equipaMap]);
   const allChecked = tableRows.length > 0 && tableRows.every((r) => selected.has(r.original.id));
   const toggleAll = () => {
     const next = new Set(selected);
@@ -868,6 +871,7 @@ function FamiliasPage() {
               <SelectItem value="projeto">Projeto</SelectItem>
               <SelectItem value="cidade">Cidade</SelectItem>
               <SelectItem value="religiao">Religião</SelectItem>
+              <SelectItem value="contacto">Contacto MEERU</SelectItem>
             </SelectContent>
           </Select>
           <AdvancedTableFilters table={table} />
@@ -902,7 +906,15 @@ function FamiliasPage() {
         </div>
       </div>
 
-      <SavedViews storageKey="views:familias" table={table} />
+      <SavedViews
+        storageKey="views:familias"
+        table={table}
+        defaultViewName="Ativos"
+        extra={{ groupBy }}
+        onExtraChange={(e) => {
+          if (e?.groupBy) setGroupBy(e.groupBy);
+        }}
+      />
 
       {isLoading ? (
         <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>

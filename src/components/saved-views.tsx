@@ -42,6 +42,7 @@ export function SavedViews<T>({
   onSearchChange,
   extra,
   onExtraChange,
+  defaultViewName,
 }: {
   storageKey: string;
   table: Table<T>;
@@ -49,6 +50,7 @@ export function SavedViews<T>({
   onSearchChange?: (v: string) => void;
   extra?: Record<string, any>;
   onExtraChange?: (e: Record<string, any>) => void;
+  defaultViewName?: string;
 }) {
   const { realIsAdmin } = useAuth();
   const [views, setViews] = useState<SavedView[]>([]);
@@ -68,17 +70,33 @@ export function SavedViews<T>({
       console.error(error);
       return;
     }
-    setViews((data ?? []) as SavedView[]);
+    const loaded = (data ?? []) as SavedView[];
+    setViews(loaded);
+    return loaded;
   };
 
   useEffect(() => {
-    loadViews();
-    try {
-      const saved = localStorage.getItem(activeLocalKey);
-      if (saved) setActiveId(saved);
-    } catch {
-      /* ignore */
-    }
+    (async () => {
+      const loaded = await loadViews();
+      let savedId: string | null = null;
+      try {
+        savedId = localStorage.getItem(activeLocalKey);
+      } catch {
+        /* ignore */
+      }
+      if (savedId) {
+        setActiveId(savedId);
+        const v = (loaded ?? []).find((x) => x.id === savedId);
+        if (v) applySnapshot(v.snapshot);
+      } else if (defaultViewName && loaded) {
+        const v = loaded.find((x) => x.name === defaultViewName);
+        if (v) {
+          setActiveId(v.id);
+          try { localStorage.setItem(activeLocalKey, v.id); } catch { /* ignore */ }
+          applySnapshot(v.snapshot);
+        }
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
 
