@@ -79,14 +79,12 @@ export function NotificationsBell() {
     fetchItems();
   };
 
-  if (!user) return null;
-
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative h-9 w-9">
           <Bell className="h-4 w-4" />
-          {unread > 0 && (
+          {user && unread > 0 && (
             <Badge
               variant="destructive"
               className="absolute -right-0.5 -top-0.5 h-4 min-w-4 rounded-full px-1 text-[10px] leading-none"
@@ -100,16 +98,18 @@ export function NotificationsBell() {
         <div className="flex items-center justify-between border-b px-3 py-2">
           <span className="text-sm font-semibold">Notificações</span>
           <div className="flex gap-1">
-            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={markAll} disabled={unread === 0}>
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={markAll} disabled={!user || unread === 0}>
               <Check className="mr-1 h-3 w-3" /> Marcar lidas
             </Button>
-            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={clearAll} disabled={items.length === 0}>
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={clearAll} disabled={!user || items.length === 0}>
               <Trash2 className="h-3 w-3" />
             </Button>
           </div>
         </div>
         <ScrollArea className="max-h-[420px]">
-          {items.length === 0 ? (
+          {!user ? (
+            <div className="px-3 py-8 text-center text-xs text-muted-foreground">Inicia sessão para ver notificações</div>
+          ) : items.length === 0 ? (
             <div className="px-3 py-8 text-center text-xs text-muted-foreground">Sem notificações</div>
           ) : (
             <ul className="divide-y">
