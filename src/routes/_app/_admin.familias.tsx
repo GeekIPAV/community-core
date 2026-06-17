@@ -12,11 +12,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useEffect, useMemo, useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SavedViews } from "@/components/saved-views";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, LayoutGrid, List, Pencil, Plus, Search, Trash2, Upload, UserMinus, Users } from "lucide-react";
-import { formatDateBR } from "@/lib/utils";
+import { LayoutGrid, List, Pencil, Plus, Search, Upload, Users } from "lucide-react";
 import {
   useReactTable,
   getCoreRowModel,
