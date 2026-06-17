@@ -423,7 +423,10 @@ function FamiliasPage() {
     setSelected(next);
   };
 
-  const openDetail = (f: Familia, _tab?: any) => setMembrosFamilia(f);
+  const openDetail = (f: Familia, tab: "dados" | "membros" | "projetos" | "acoes" | "atividades" = "membros") => {
+    setDetailTab(tab);
+    setMembrosFamilia(f);
+  };
 
   const renderGalleryCard = (row: typeof tableRows[number]) => {
     const f = row.original;
