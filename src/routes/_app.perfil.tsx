@@ -452,18 +452,18 @@ function FamiliaSection({ pessoa }: { pessoa: PessoaFull }) {
   );
 }
 
-function FamiliasAcompanhoSection({ pessoaId }: { pessoaId: string }) {
+function FamiliasAcompanhoSection({ pessoaId, onSelect }: { pessoaId: string; onSelect: (f: Familia) => void }) {
   const { data, isLoading } = useQuery({
     queryKey: ["familias-acompanho", pessoaId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("familias")
-        .select("id, nome, status, notas")
+        .select("id, nome, status, notas, contacto_meeru_id, updated_at")
         .eq("contacto_meeru_id", pessoaId)
         .is("deleted_at", null)
         .order("nome");
       if (error) throw error;
-      return data as Array<{ id: string; nome: string; status: string; notas: string | null }>;
+      return data as Familia[];
     },
   });
 
@@ -485,18 +485,18 @@ function FamiliasAcompanhoSection({ pessoaId }: { pessoaId: string }) {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {data!.map((f) => (
-            <Link
+            <button
               key={f.id}
-              to="/familias"
-              search={{ familia: f.id } as any}
-              className="rounded-md border p-3 bg-card hover:bg-muted/40 hover:border-primary/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              type="button"
+              onClick={() => onSelect(f)}
+              className="text-left rounded-md border p-3 bg-card hover:bg-muted/40 hover:border-primary/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="font-medium truncate">{f.nome}</span>
                 <Badge variant="outline" className="shrink-0 text-xs">{f.status}</Badge>
               </div>
               {f.notas && <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{f.notas}</p>}
-            </Link>
+            </button>
           ))}
         </div>
       )}
