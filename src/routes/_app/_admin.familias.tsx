@@ -728,6 +728,18 @@ function FamiliasPage() {
     setDetailTab(tab);
   };
 
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+  useEffect(() => {
+    if (!search.familia || !data || membrosFamilia) return;
+    const f = data.find((x) => x.id === search.familia);
+    if (f) {
+      openDetail(f, "dados");
+      navigate({ search: (prev) => ({ ...prev, familia: undefined }), replace: true });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.familia, data]);
+
   const goPrevFamilia = () => {
     if (!membrosFamilia || !data) return;
     const idx = data.findIndex((f) => f.id === membrosFamilia.id);
