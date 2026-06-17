@@ -7,6 +7,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/lib/auth-context";
 import { useTranslation } from "react-i18next";
+import { NotificationsBell } from "@/components/notifications-bell";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -67,6 +68,7 @@ function AppLayout() {
                   {pessoa.nome_completo ?? pessoa.email}
                 </span>
               )}
+              <NotificationsBell />
               <Button
                 variant="ghost"
                 size="sm"
