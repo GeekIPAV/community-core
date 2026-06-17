@@ -1,8 +1,8 @@
-import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, Globe, BarChart3, User } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/lib/auth-context";
@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_app")({
 function AppLayout() {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
-  const { pessoa, isAdmin, isStaff } = useAuth();
+  const { pessoa } = useAuth();
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -52,37 +52,15 @@ function AppLayout() {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
-        {(isAdmin || isStaff) && (
-          <div className="hidden md:block">
-            <AppSidebar />
-          </div>
-        )}
+        <div className="hidden md:block">
+          <AppSidebar />
+        </div>
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="flex h-auto min-h-14 flex-wrap items-center justify-between gap-2 border-b border-border/60 bg-background px-4 py-2 md:px-6">
             <div className="flex items-center gap-2 min-w-0">
-              {(isAdmin || isStaff) && <SidebarTrigger className="hidden md:inline-flex" />}
+              <SidebarTrigger className="hidden md:inline-flex" />
               <span className="text-sm font-bold tracking-tight text-foreground">Meeru</span>
               <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-              <nav className="ms-3 hidden items-center gap-1 sm:flex">
-                <Button asChild variant="ghost" size="sm">
-                  <Link to="/" className="flex items-center gap-1.5">
-                    <Globe className="h-4 w-4" />
-                    <span>{t("nav.publicPortal")}</span>
-                  </Link>
-                </Button>
-                <Button asChild variant="ghost" size="sm">
-                  <Link to="/resultados" className="flex items-center gap-1.5">
-                    <BarChart3 className="h-4 w-4" />
-                    <span>{t("nav.results")}</span>
-                  </Link>
-                </Button>
-                <Button asChild variant="ghost" size="sm">
-                  <Link to="/perfil" className="flex items-center gap-1.5">
-                    <User className="h-4 w-4" />
-                    <span>{t("nav.myProfile")}</span>
-                  </Link>
-                </Button>
-              </nav>
             </div>
             <div className="flex items-center gap-2 min-w-0">
               {pessoa && (

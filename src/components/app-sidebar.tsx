@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Users, Users2, AlertTriangle, CalendarDays, UserCog, Briefcase, Languages, Bus, Activity, MapPin, Trash2, LayoutDashboard, Mail, Palette, ShieldAlert, FileText } from "lucide-react";
+import { User, Users, Users2, AlertTriangle, CalendarDays, Globe, UserCog, Briefcase, BarChart3, Languages, Bus, Activity, MapPin, Trash2, LayoutDashboard, Mail, Palette, ShieldAlert, FileText } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   Sidebar,
@@ -23,6 +23,11 @@ export function AppSidebar() {
   const { t, i18n } = useTranslation();
   const dir = useDir();
 
+  const publicItems = [
+    { title: t("nav.publicPortal"), url: "/", icon: Globe },
+    { title: t("nav.results"), url: "/resultados", icon: BarChart3 },
+    { title: t("nav.myProfile"), url: "/perfil", icon: User },
+  ];
   const participantesItems = [
     { title: t("nav.participants"), url: "/participantes", icon: Users, page: "participantes" as const },
     { title: t("nav.families"), url: "/familias", icon: Users2, page: "familias" as const },
@@ -42,6 +47,26 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" side={dir === "rtl" ? "right" : "left"}>
       <SidebarContent className="gap-1 px-2 py-4">
+        <SidebarGroup>
+          <SidebarGroupLabel className="px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">
+            {t("nav.community")}
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {publicItems.map((item) => (
+                <SidebarMenuItem key={item.url}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                    <Link to={item.url} className="flex items-center gap-2">
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
         {visibleParticipantes.length > 0 && (
           <SidebarGroup>
             <SidebarGroupLabel className="px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">
