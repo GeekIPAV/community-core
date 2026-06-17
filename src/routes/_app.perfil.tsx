@@ -368,19 +368,6 @@ function FamiliaSection({ pessoa }: { pessoa: PessoaFull }) {
     },
   });
 
-  const { data: familiasResponsavel } = useQuery({
-    queryKey: ["meu-perfil-familias-resp", pessoa.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("familias")
-        .select("id, nome, status, notas")
-        .eq("contacto_meeru_id", pessoa.id)
-        .order("nome");
-      if (error) throw error;
-      return data as Array<{ id: string; nome: string; status: string; notas: string | null }>;
-    },
-  });
-
   if (!pessoa.familia_id) {
     return (
       <div className="rounded-lg border p-6 text-sm text-muted-foreground">
