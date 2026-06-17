@@ -92,7 +92,7 @@ function FamiliasPage() {
   const [view, setView] = useState<"tabela" | "galeria">("tabela");
   const [globalFilter, setGlobalFilter] = useState("");
   const [inlineEdit, setInlineEdit] = useState(false);
-  const [groupBy, setGroupBy] = useState<"none" | "status" | "projeto" | "cidade" | "religiao">("none");
+  const [groupBy, setGroupBy] = useState<"none" | "status" | "projeto" | "cidade" | "religiao" | "contacto">("none");
   const [addAcaoOpen, setAddAcaoOpen] = useState(false);
   const [novaAcao, setNovaAcao] = useState<{ pessoa_id: string; acao_id: string }>({ pessoa_id: "", acao_id: "" });
   const [detailTab, setDetailTab] = useState<"dados" | "membros" | "projetos" | "acoes" | "atividades">("membros");
