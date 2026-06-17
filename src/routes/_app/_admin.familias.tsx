@@ -33,7 +33,6 @@ import { useMobileColumnVisibility } from "@/hooks/use-mobile-columns";
 import { Card } from "@/components/ui/card";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { InlineText, InlineSelect, InlineMultiSelect } from "@/components/inline-edit";
-import { personIcon, flagFor } from "@/lib/person-display";
 import { FamilyDetailDialog } from "@/components/family-detail";
 
 const PESSOA_STATUS_OPTS = ["ativo", "suspeito_duplicado", "fundido", "arquivado"];
