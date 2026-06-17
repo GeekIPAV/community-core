@@ -730,6 +730,7 @@ function FamiliasPage() {
         siblings={data ?? undefined}
         onSelectSibling={(f) => setMembrosFamilia(f)}
         onUpdate={invalidate}
+        defaultTab={detailTab}
       />
     </div>
   );
