@@ -86,6 +86,7 @@ function InfoRow({ icon: Icon, label, value }: { icon: any; label: string; value
 function PerfilPage() {
   const { pessoa: ctxPessoa, session, isAdmin, refresh } = useAuth();
   const qc = useQueryClient();
+  const [selectedFamily, setSelectedFamily] = useState<Familia | null>(null);
 
   const { data: pessoa, isLoading } = useQuery({
     enabled: !!ctxPessoa?.id,
@@ -145,7 +146,18 @@ function PerfilPage() {
 
       <PerfilHeader pessoa={pessoa} isAdmin={isAdmin} />
 
-      {isEquipa && <FamiliasAcompanhoSection pessoaId={pessoa.id} />}
+      {isEquipa && (
+        <>
+          <FamiliasAcompanhoSection pessoaId={pessoa.id} onSelect={setSelectedFamily} />
+          <FamilyDetailDialog
+            family={selectedFamily}
+            open={!!selectedFamily}
+            onClose={() => setSelectedFamily(null)}
+            onUpdate={() => qc.invalidateQueries({ queryKey: ["familias-acompanho", pessoa.id] })}
+            defaultTab="dados"
+          />
+        </>
+      )}
 
       <Tabs defaultValue="dados" className="w-full">
         <TabsList>
