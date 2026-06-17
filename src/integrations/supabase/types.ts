@@ -518,6 +518,42 @@ export type Database = {
         }
         Relationships: []
       }
+      notificacoes: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          lida: boolean
+          lida_em: string | null
+          link: string | null
+          recipient_auth_id: string
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          lida?: boolean
+          lida_em?: string | null
+          link?: string | null
+          recipient_auth_id: string
+          tipo: string
+          titulo: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          lida?: boolean
+          lida_em?: string | null
+          link?: string | null
+          recipient_auth_id?: string
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: []
+      }
       pessoa_etiquetas: {
         Row: {
           created_at: string
@@ -936,6 +972,15 @@ export type Database = {
           }
       is_current_user_admin: { Args: never; Returns: boolean }
       is_current_user_staff: { Args: never; Returns: boolean }
+      notificar_staff: {
+        Args: {
+          p_descricao?: string
+          p_link?: string
+          p_tipo: string
+          p_titulo: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       status_acao: "ativa" | "cancelada" | "concluida"
