@@ -735,7 +735,7 @@ function FamiliasPage() {
     const f = data.find((x) => x.id === search.familia);
     if (f) {
       openDetail(f, "dados");
-      navigate({ search: (prev) => ({ ...prev, familia: undefined }), replace: true });
+      navigate({ search: (prev: { familia?: string }) => ({ ...prev, familia: undefined }), replace: true });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search.familia, data]);
