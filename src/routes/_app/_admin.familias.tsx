@@ -871,6 +871,7 @@ function FamiliasPage() {
               <SelectItem value="projeto">Projeto</SelectItem>
               <SelectItem value="cidade">Cidade</SelectItem>
               <SelectItem value="religiao">Religião</SelectItem>
+              <SelectItem value="contacto">Contacto MEERU</SelectItem>
             </SelectContent>
           </Select>
           <AdvancedTableFilters table={table} />
@@ -905,7 +906,15 @@ function FamiliasPage() {
         </div>
       </div>
 
-      <SavedViews storageKey="views:familias" table={table} />
+      <SavedViews
+        storageKey="views:familias"
+        table={table}
+        defaultViewName="Ativos"
+        extra={{ groupBy }}
+        onExtraChange={(e) => {
+          if (e?.groupBy) setGroupBy(e.groupBy);
+        }}
+      />
 
       {isLoading ? (
         <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
