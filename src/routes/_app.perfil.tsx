@@ -99,6 +99,16 @@ function PerfilPage() {
     },
   });
 
+  const { data: tipoNome } = useQuery({
+    enabled: !!pessoa?.tipo_user_id,
+    queryKey: ["meu-perfil-tipo-nome", pessoa?.tipo_user_id],
+    queryFn: async () => {
+      const { data } = await supabase.from("tipos_user").select("nome").eq("id", pessoa!.tipo_user_id!).maybeSingle();
+      return (data?.nome as string) ?? null;
+    },
+  });
+  const isEquipa = isAdmin || (tipoNome ?? "").toLowerCase() === "equipa";
+
   if (!ctxPessoa) {
     return (
       <div className="space-y-6">
@@ -132,6 +142,8 @@ function PerfilPage() {
       </div>
 
       <PerfilHeader pessoa={pessoa} isAdmin={isAdmin} />
+
+      {isEquipa && <FamiliasAcompanhoSection pessoaId={pessoa.id} />}
 
       <Tabs defaultValue="dados" className="w-full">
         <TabsList>
