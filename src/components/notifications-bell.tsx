@@ -134,7 +134,7 @@ export function NotificationsBell() {
                   <li key={n.id}>
                     {n.link ? (
                       <Link
-                        to={n.link}
+                        to={n.link as any}
                         onClick={() => {
                           markOne(n.id);
                           setOpen(false);
