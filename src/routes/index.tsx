@@ -68,19 +68,32 @@ function Home() {
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
 
-  const { proximos, passados } = useMemo(() => {
+  const { proximos, passados, semData } = useMemo(() => {
     const now = Date.now();
     const prox: typeof data = [];
     const pas: typeof data = [];
+    const sem: typeof data = [];
     for (const a of acoesVisiveis) {
-      const fim = a.data_fim ? new Date(a.data_fim).getTime() : a.data_inicio ? new Date(a.data_inicio).getTime() : now;
-      if (fim >= now - 24 * 60 * 60 * 1000) {
+      const fim = a.data_fim ? new Date(a.data_fim).getTime() : a.data_inicio ? new Date(a.data_inicio).getTime() : null;
+      if (fim === null) {
+        sem.push(a);
+      } else if (fim >= now - 24 * 60 * 60 * 1000) {
         prox.push(a);
       } else {
         pas.push(a);
       }
     }
-    return { proximos: prox, passados: pas };
+    prox.sort((a, b) => {
+      const ta = a.data_inicio ? new Date(a.data_inicio).getTime() : new Date(a.data_fim!).getTime();
+      const tb = b.data_inicio ? new Date(b.data_inicio).getTime() : new Date(b.data_fim!).getTime();
+      return ta - tb;
+    });
+    pas.sort((a, b) => {
+      const ta = a.data_fim ? new Date(a.data_fim).getTime() : new Date(a.data_inicio!).getTime();
+      const tb = b.data_fim ? new Date(b.data_fim).getTime() : new Date(b.data_inicio!).getTime();
+      return tb - ta;
+    });
+    return { proximos: prox, passados: pas, semData: sem };
   }, [acoesVisiveis]);
 
   const todasAcoes = useMemo(() => [...proximos, ...passados], [proximos, passados]);
