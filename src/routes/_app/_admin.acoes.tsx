@@ -1849,6 +1849,93 @@ function AcoesPageInner() {
     return { proximos: prox, passados: pas, semData: sem };
   }, [data]);
 
+  function renderAcaoCard(a: (typeof data)[number]) {
+    const fields = parseFields(a.config_campos);
+    const counts = inscricaoCounts?.get(a.id) ?? { total: 0, presentes: 0 };
+    const inscricoesAbertas = (a as any).inscricoes_abertas ?? true;
+    return (
+      <Card
+        key={a.id}
+        className="cursor-pointer transition-colors hover:bg-muted/30"
+        onClick={async () => {
+          const { data: full } = await supabase
+            .from("acoes")
+            .select("descricao")
+            .eq("id", a.id)
+            .maybeSingle();
+          setEditing({
+            id: a.id,
+            nome: a.nome ?? "",
+            local: a.local ?? "",
+            mapa_url: (a as any).mapa_url ?? "",
+            imagem_url: (a as any).imagem_url ?? "",
+            descricao: full?.descricao ?? "",
+            data_inicio: toDtLocal(a.data_inicio),
+            data_fim: toDtLocal(a.data_fim),
+            status: String((a as any).status ?? "ativa"),
+            inscricoes_abertas: inscricoesAbertas,
+            bolsa_transporte: !!(a as any).bolsa_transporte,
+            projeto_ids: ((a as any).projeto_ids ?? []) as string[],
+            restrito_a_projetos: !!(a as any).restrito_a_projetos,
+            publico: (a as any).publico ?? true,
+            fields,
+          });
+        }}
+      >
+        <CardHeader>
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <CardTitle>{a.nome}</CardTitle>
+              {a.data_inicio ? (
+                <CardDescription>
+                  {new Date(a.data_inicio).toLocaleString("pt-PT", { dateStyle: "short", timeStyle: "short" })}
+                  {a.data_fim ? ` → ${new Date(a.data_fim).toLocaleString("pt-PT", { dateStyle: "short", timeStyle: "short" })}` : ""}
+                </CardDescription>
+              ) : (
+                <CardDescription>Data a definir</CardDescription>
+              )}
+            </div>
+            <Pencil className="h-4 w-4 text-muted-foreground" />
+          </div>
+        </CardHeader>
+        <CardContent className="text-sm space-y-3">
+          <label
+            className="flex items-center justify-between rounded-md border p-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span className="text-xs font-medium">Inscrições abertas</span>
+            <Switch
+              checked={inscricoesAbertas}
+              disabled={toggleInscricoesAbertas.isPending}
+              onCheckedChange={(c) => toggleInscricoesAbertas.mutate({ id: a.id, value: c })}
+            />
+          </label>
+          <label
+            className="flex items-center justify-between rounded-md border p-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span className="text-xs font-medium">Evento público</span>
+            <Switch
+              checked={(a as any).publico ?? true}
+              disabled={togglePublico.isPending}
+              onCheckedChange={(c) => togglePublico.mutate({ id: a.id, value: c })}
+            />
+          </label>
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Inscritos</span>
+            <span className="text-sm font-semibold text-foreground">{counts.total}</span>
+          </div>
+          {counts.presentes > 0 && (
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Presentes</span>
+              <span className="text-sm font-semibold text-foreground">{counts.presentes}</span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
   const create = useMutation({
     mutationFn: async () => {
       if (!validateAcaoForm(form)) throw new Error("Validação falhou");
