@@ -96,7 +96,7 @@ function Home() {
     return { proximos: prox, passados: pas, semData: sem };
   }, [acoesVisiveis]);
 
-  const todasAcoes = useMemo(() => [...proximos, ...passados], [proximos, passados]);
+  const todasAcoes = useMemo(() => [...proximos, ...passados, ...semData], [proximos, passados, semData]);
 
   const diasComAcao = useMemo(
     () => todasAcoes.filter((a) => a.data_inicio).map((a) => new Date(a.data_inicio!)),
@@ -171,7 +171,7 @@ function Home() {
             ) : (
               <>
                 <section>
-                  <h2 className="mb-3 text-xl font-semibold">Próximos eventos</h2>
+                  <h2 className="mb-3 text-xl font-semibold">Próximas ações</h2>
                   {proximos.length === 0 ? (
                     <p className="text-sm text-muted-foreground">Sem ações abertas no momento.</p>
                   ) : (
@@ -182,7 +182,18 @@ function Home() {
                 </section>
 
                 <section>
-                  <h2 className="mb-3 text-xl font-semibold">Eventos passados</h2>
+                  <h2 className="mb-3 text-xl font-semibold">Data a definir</h2>
+                  {semData.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Sem ações sem data.</p>
+                  ) : (
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {semData.map((a) => <AcaoCard key={a.id} acao={a} />)}
+                    </div>
+                  )}
+                </section>
+
+                <section>
+                  <h2 className="mb-3 text-xl font-semibold">Ações passadas</h2>
                   {passados.length === 0 ? (
                     <p className="text-sm text-muted-foreground">Sem eventos passados.</p>
                   ) : (
