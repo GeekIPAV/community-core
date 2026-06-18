@@ -1849,7 +1849,7 @@ function AcoesPageInner() {
     return { proximos: prox, passados: pas, semData: sem };
   }, [data]);
 
-  function renderAcaoCard(a: (typeof data)[number]) {
+  function renderAcaoCard(a: NonNullable<typeof data>[number]) {
     const fields = parseFields(a.config_campos);
     const counts = inscricaoCounts?.get(a.id) ?? { total: 0, presentes: 0 };
     const inscricoesAbertas = (a as any).inscricoes_abertas ?? true;
