@@ -82,7 +82,7 @@ function AppLayout() {
               </Button>
             </div>
           </header>
-          <main className="min-w-0 flex-1 overflow-x-hidden px-4 py-5 md:px-10 md:py-10">
+          <main className="min-w-0 flex-1 overflow-x-hidden px-4 py-6 md:px-10 md:py-10">
             <Outlet />
           </main>
         </div>
