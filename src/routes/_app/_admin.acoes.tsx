@@ -468,6 +468,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
   const [bulkEditValue, setBulkEditValue] = useState<any>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [groupByFamilia, setGroupByFamilia] = useState(false);
+  const [resumoFamiliasOpen, setResumoFamiliasOpen] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ["inscricoes", acaoId],
     queryFn: async () => {
