@@ -710,7 +710,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 pt-2">
       <div className="flex flex-wrap items-center gap-3">
         <div className="rounded-md border px-3 py-2">
           <p className="text-xs text-muted-foreground">Inscritos</p>
@@ -2406,7 +2406,7 @@ function AcoesPageInner() {
               </div>
               <FieldsEditor fields={editing.fields} setFields={(fields) => setEditing({ ...editing, fields })} />
               </TabsContent>
-              <TabsContent value="inscricoes" className="mt-4 min-w-0">
+              <TabsContent value="inscricoes" className="mt-6 min-w-0">
                 <InscricoesTab acaoId={editing.id} fields={editing.fields} />
               </TabsContent>
               {editing.bolsa_transporte && (
