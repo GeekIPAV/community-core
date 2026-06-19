@@ -726,11 +726,27 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
           <Switch id="group-familia" checked={groupByFamilia} onCheckedChange={setGroupByFamilia} />
           <Label htmlFor="group-familia" className="text-xs cursor-pointer">Agrupar por família</Label>
         </div>
+        <div className="flex items-center gap-2 rounded-md border px-3 py-1.5">
+          <Switch id="resumo-familias" checked={resumoFamiliasOpen} onCheckedChange={setResumoFamiliasOpen} />
+          <Label htmlFor="resumo-familias" className="text-xs cursor-pointer">Resumo famílias</Label>
+        </div>
         <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}>
           <UserPlus className="mr-1 h-3.5 w-3.5" /> Adicionar Pessoas
         </Button>
         <DataTableViewOptions table={table} />
       </div>
+      {resumoFamiliasOpen && (
+        <div className="flex flex-wrap gap-3">
+          <div className="flex-1 min-w-[240px] rounded-md border px-3 py-2">
+            <p className="text-xs font-medium text-muted-foreground">Famílias inscritas ({familiasInscritas.length})</p>
+            <p className="mt-1 text-sm leading-relaxed">{familiasInscritas.length > 0 ? familiasInscritas.join(", ") : <span className="text-muted-foreground italic">Nenhuma</span>}</p>
+          </div>
+          <div className="flex-1 min-w-[240px] rounded-md border px-3 py-2">
+            <p className="text-xs font-medium text-muted-foreground">Famílias presentes ({familiasPresentes.length})</p>
+            <p className="mt-1 text-sm leading-relaxed">{familiasPresentes.length > 0 ? familiasPresentes.join(", ") : <span className="text-muted-foreground italic">Nenhuma</span>}</p>
+          </div>
+        </div>
+      )}
       <AddPessoasDialog
         open={addOpen}
         onOpenChange={setAddOpen}
