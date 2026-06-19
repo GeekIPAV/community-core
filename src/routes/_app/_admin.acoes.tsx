@@ -2406,7 +2406,7 @@ function AcoesPageInner() {
               </div>
               <FieldsEditor fields={editing.fields} setFields={(fields) => setEditing({ ...editing, fields })} />
               </TabsContent>
-              <TabsContent value="inscricoes" className="mt-4 min-w-0">
+              <TabsContent value="inscricoes" className="mt-6 min-w-0">
                 <InscricoesTab acaoId={editing.id} fields={editing.fields} />
               </TabsContent>
               {editing.bolsa_transporte && (
