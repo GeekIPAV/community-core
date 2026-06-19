@@ -115,7 +115,7 @@ function EliminadosPage() {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Eliminados</h1>
         <p className="text-sm text-muted-foreground">
@@ -133,7 +133,7 @@ function EliminadosPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="participantes" className="mt-4">
+        <TabsContent value="participantes" className="mt-6">
           {pessoas.isLoading ? (
             <Skeleton className="h-32 w-full" />
           ) : !pessoas.data || pessoas.data.length === 0 ? (
@@ -182,7 +182,7 @@ function EliminadosPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="familias" className="mt-4">
+        <TabsContent value="familias" className="mt-6">
           {familias.isLoading ? (
             <Skeleton className="h-32 w-full" />
           ) : !familias.data || familias.data.length === 0 ? (
