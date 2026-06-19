@@ -70,10 +70,10 @@ function UtilizadoresPage() {
           <TabsTrigger value="users">Utilizadores</TabsTrigger>
           <TabsTrigger value="tipos">Tipos de perfil</TabsTrigger>
         </TabsList>
-        <TabsContent value="users" className="space-y-4">
+        <TabsContent value="users" className="mt-6 space-y-4">
           <UsersTab />
         </TabsContent>
-        <TabsContent value="tipos" className="space-y-4">
+        <TabsContent value="tipos" className="mt-6 space-y-4">
           <TiposTab />
         </TabsContent>
       </Tabs>

@@ -60,7 +60,7 @@ function EmailsPage() {
   );
 
   return (
-    <div className="space-y-4 p-4">
+    <div className="space-y-6">
       <div className="flex items-center gap-2">
         <Mail className="h-5 w-5" />
         <h1 className="text-2xl font-semibold">Emails</h1>
@@ -217,7 +217,7 @@ function TemplateEditor({ template, onSaved }: { template: Template; onSaved: ()
               <Eye className="h-3.5 w-3.5 mr-1" /> Pré-visualizar
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="editar" className="space-y-4">
+          <TabsContent value="editar" className="mt-6 space-y-4">
             <div className="space-y-2">
               <Label>Assunto</Label>
               <Input value={assunto} onChange={(e) => setAssunto(e.target.value)} />
@@ -227,7 +227,7 @@ function TemplateEditor({ template, onSaved }: { template: Template; onSaved: ()
               <RichTextEditor value={conteudo} onChange={setConteudo} />
             </div>
           </TabsContent>
-          <TabsContent value="preview" className="space-y-2">
+          <TabsContent value="preview" className="mt-6 space-y-2">
             <div className="rounded-md border bg-muted/30 p-3 text-sm">
               <div className="text-xs text-muted-foreground">Assunto</div>
               <div className="font-medium">{previewSubject}</div>
