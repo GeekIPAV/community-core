@@ -569,6 +569,26 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
   }, [baseRows]);
   const [addOpen, setAddOpen] = useState(false);
 
+  const familiasInscritas = useMemo(() => {
+    const map = new Map<string, string>();
+    baseRows.forEach((r) => {
+      const fam = r.pessoa?.familia;
+      if (fam?.id && fam?.nome) map.set(fam.id, fam.nome);
+    });
+    return Array.from(map.values()).sort((a, b) => a.localeCompare(b));
+  }, [baseRows]);
+
+  const familiasPresentes = useMemo(() => {
+    const map = new Map<string, string>();
+    baseRows.forEach((r) => {
+      if (r.status === "presente") {
+        const fam = r.pessoa?.familia;
+        if (fam?.id && fam?.nome) map.set(fam.id, fam.nome);
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => a.localeCompare(b));
+  }, [baseRows]);
+
   const columns: ColumnDef<InscricaoRow>[] = useMemo(() => [
     {
       id: "status",
