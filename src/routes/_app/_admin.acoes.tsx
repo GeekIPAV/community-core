@@ -2195,7 +2195,7 @@ function AcoesPageInner() {
           <TabsTrigger value="tabela">Tabela</TabsTrigger>
           <TabsTrigger value="planeamento">Planeamento</TabsTrigger>
         </TabsList>
-        <TabsContent value="lista" className="mt-4 space-y-8">
+        <TabsContent value="lista" className="mt-6 space-y-8">
       {isLoading ? (
         <div className="grid gap-3 md:grid-cols-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}</div>
       ) : (
@@ -2235,7 +2235,7 @@ function AcoesPageInner() {
         </>
       )}
         </TabsContent>
-        <TabsContent value="tabela" className="mt-4">
+        <TabsContent value="tabela" className="mt-6">
           <AcoesBulkTable
             acoes={(data ?? []) as any[]}
             isLoading={isLoading}
@@ -2243,7 +2243,7 @@ function AcoesPageInner() {
             fireGoogleSync={fireGoogleSync}
           />
         </TabsContent>
-        <TabsContent value="planeamento" className="mt-4">
+        <TabsContent value="planeamento" className="mt-6">
           <AcoesPlaneamento
             acoes={(data ?? []) as any}
             projetos={projetos ?? []}
@@ -2309,7 +2309,7 @@ function AcoesPageInner() {
                   {editing.bolsa_transporte && <TabsTrigger value="bolsa">Bolsa</TabsTrigger>}
                 </TabsList>
               </DialogHeader>
-              <TabsContent value="detalhes" className="mt-4 space-y-4 min-w-0">
+              <TabsContent value="detalhes" className="mt-6 space-y-4 min-w-0">
               <div className="space-y-2"><Label>Nome</Label><Input value={editing.nome} onChange={(e) => setEditing({ ...editing, nome: e.target.value })} /></div>
               <div className="space-y-2">
                 <Label>Imagem do evento</Label>
@@ -2410,7 +2410,7 @@ function AcoesPageInner() {
                 <InscricoesTab acaoId={editing.id} fields={editing.fields} />
               </TabsContent>
               {editing.bolsa_transporte && (
-                <TabsContent value="bolsa" className="mt-4 min-w-0">
+                <TabsContent value="bolsa" className="mt-6 min-w-0">
                   <BolsaTab acaoId={editing.id} />
                 </TabsContent>
               )}
