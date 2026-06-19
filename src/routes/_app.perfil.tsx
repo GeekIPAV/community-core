@@ -169,22 +169,22 @@ function PerfilPage() {
           )}
         </TabsList>
 
-        <TabsContent value="dados" className="mt-4">
+        <TabsContent value="dados" className="mt-6">
           <DadosSection pessoa={pessoa} onSaved={async () => {
             await qc.invalidateQueries({ queryKey: ["meu-perfil", pessoa.id] });
             await refresh();
           }} />
         </TabsContent>
 
-        <TabsContent value="familia" className="mt-4">
+        <TabsContent value="familia" className="mt-6">
           <FamiliaSection pessoa={pessoa} />
         </TabsContent>
 
-        <TabsContent value="atividades" className="mt-4">
+        <TabsContent value="atividades" className="mt-6">
           <AtividadesSection pessoaId={pessoa.id} />
         </TabsContent>
         {(calcIdade(pessoa.data_nascimento) ?? 0) >= 18 && (
-          <TabsContent value="curriculo" className="mt-4">
+          <TabsContent value="curriculo" className="mt-6">
             <CurriculoSection pessoaId={pessoa.id} />
           </TabsContent>
         )}
