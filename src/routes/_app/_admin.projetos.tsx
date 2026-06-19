@@ -454,13 +454,13 @@ function ProjetoMembros({ projetoId }: { projetoId: string }) {
           </Popover>
         </div>
 
-        <TabsContent value="membros">
+        <TabsContent value="membros" className="mt-6">
           {renderPessoasList(membros, "Sem pessoas atribuídas a este projeto.")}
         </TabsContent>
-        <TabsContent value="voluntarios">
+        <TabsContent value="voluntarios" className="mt-6">
           {renderPessoasList(voluntariosNoProjeto, "Sem voluntários neste projeto.")}
         </TabsContent>
-        <TabsContent value="familias">
+        <TabsContent value="familias" className="mt-6">
           {isLoading ? (
             <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-9 w-full" />)}</div>
           ) : familiasNoProjeto.length === 0 ? (
