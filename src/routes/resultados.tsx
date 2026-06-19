@@ -292,7 +292,7 @@ function ResultadosPage() {
             </div>
           </header>
 
-          <main className="mx-auto w-full max-w-6xl space-y-8 px-4 py-6 md:py-10">
+          <main className="mx-auto w-full max-w-6xl space-y-8 px-4 py-6 md:py-8">
             <div>
               <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">{t("results.title")}</h1>
               <p className="text-sm text-muted-foreground">
