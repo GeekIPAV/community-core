@@ -88,7 +88,7 @@ function calcTotal(r: Registo, tipoMap: Map<string, Tipo>) {
 // ============ page ============
 type Vista = "mes" | "semana" | "gantt";
 
-export function ServicosCalendarioPage() {
+export function ServicosCalendarioPage({ embedded = false }: { embedded?: boolean } = {}) {
   const isMobile = useIsMobile();
   const today = new Date();
   const [vista, setVista] = useState<Vista>("mes");
@@ -187,15 +187,16 @@ export function ServicosCalendarioPage() {
   return (
     <TooltipProvider delayDuration={150}>
       <div className="space-y-4">
-        {/* Header */}
-        <div>
-          <nav className="text-xs text-muted-foreground mb-1">
-            <Link to="/servicos" className="hover:underline">Serviços & Pagamentos</Link>
-            <span className="mx-1.5">→</span>
-            <span>Calendário</span>
-          </nav>
-          <h1 className="text-2xl font-semibold">Calendário de Serviços</h1>
-        </div>
+        {!embedded && (
+          <div>
+            <nav className="text-xs text-muted-foreground mb-1">
+              <Link to="/servicos" className="hover:underline">Serviços & Pagamentos</Link>
+              <span className="mx-1.5">→</span>
+              <span>Calendário</span>
+            </nav>
+            <h1 className="text-2xl font-semibold">Calendário de Serviços</h1>
+          </div>
+        )}
 
         {/* Toolbar */}
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-3">
