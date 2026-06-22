@@ -650,6 +650,87 @@ export type Database = {
           },
         ]
       }
+      financiamento_indicadores: {
+        Row: {
+          created_at: string
+          financiamento_id: string
+          indicador_id: string
+        }
+        Insert: {
+          created_at?: string
+          financiamento_id: string
+          indicador_id: string
+        }
+        Update: {
+          created_at?: string
+          financiamento_id?: string
+          indicador_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financiamento_indicadores_financiamento_id_fkey"
+            columns: ["financiamento_id"]
+            isOneToOne: false
+            referencedRelation: "financiamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financiamento_indicadores_indicador_id_fkey"
+            columns: ["indicador_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_kpis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financiamentos: {
+        Row: {
+          created_at: string
+          data_fim: string | null
+          data_inicio: string | null
+          estado: string
+          financiador: string
+          id: string
+          nome: string
+          notas: string | null
+          referencia: string | null
+          responsavel: string | null
+          tipo: string
+          updated_at: string
+          valor_total: number | null
+        }
+        Insert: {
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string | null
+          estado?: string
+          financiador: string
+          id?: string
+          nome: string
+          notas?: string | null
+          referencia?: string | null
+          responsavel?: string | null
+          tipo: string
+          updated_at?: string
+          valor_total?: number | null
+        }
+        Update: {
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string | null
+          estado?: string
+          financiador?: string
+          id?: string
+          nome?: string
+          notas?: string | null
+          referencia?: string | null
+          responsavel?: string | null
+          tipo?: string
+          updated_at?: string
+          valor_total?: number | null
+        }
+        Relationships: []
+      }
       inscricoes: {
         Row: {
           acao_id: string

@@ -33,6 +33,7 @@ type IndicadoresSearch = {
   estado?: Estado;
   fonte?: Fonte;
   q?: string;
+  financiamento?: string;
 };
 
 const ESTADOS_VALIDOS: Estado[] = ["por_iniciar", "em_execucao", "concluido"];
@@ -54,6 +55,7 @@ export const Route = createFileRoute("/_app/_admin/indicadores")({
     if (typeof raw.fonte === "string" && (FONTES_VALIDAS as string[]).includes(raw.fonte))
       out.fonte = raw.fonte as Fonte;
     if (typeof raw.q === "string" && raw.q) out.q = raw.q;
+    if (typeof raw.financiamento === "string" && raw.financiamento) out.financiamento = raw.financiamento;
     return out;
   },
   component: IndicadoresGlobalPage,
@@ -77,6 +79,54 @@ function IndicadoresGlobalPage() {
       return (data ?? []) as Projeto[];
     },
   });
+
+  const { data: financiamentos } = useQuery({
+    queryKey: ["financiamentos-min"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financiamentos" as any)
+        .select("id, nome, financiador, data_inicio, data_fim, valor_total, estado")
+        .order("nome");
+      if (error) throw error;
+      return ((data ?? []) as unknown) as {
+        id: string;
+        nome: string;
+        financiador: string;
+        data_inicio: string | null;
+        data_fim: string | null;
+        valor_total: number | null;
+        estado: string;
+      }[];
+    },
+  });
+
+  const { data: financiamentoLinks } = useQuery({
+    queryKey: ["financiamento-links"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financiamento_indicadores" as any)
+        .select("financiamento_id, indicador_id");
+      if (error) throw error;
+      return ((data ?? []) as unknown) as {
+        financiamento_id: string;
+        indicador_id: string;
+      }[];
+    },
+  });
+
+  const financiamentoSelecionado = useMemo(
+    () => (financiamentos ?? []).find((f) => f.id === search.financiamento) ?? null,
+    [financiamentos, search.financiamento],
+  );
+
+  const idsDoFinanciamento = useMemo(() => {
+    if (!search.financiamento) return null;
+    return new Set(
+      (financiamentoLinks ?? [])
+        .filter((l) => l.financiamento_id === search.financiamento)
+        .map((l) => l.indicador_id),
+    );
+  }, [financiamentoLinks, search.financiamento]);
 
   const { data: kpis, isLoading } = useQuery({
     queryKey: ["indicadores-global"],
@@ -102,9 +152,10 @@ function IndicadoresGlobalPage() {
       if (search.estado && k.estado !== search.estado) return false;
       if (search.fonte && k.fonte !== search.fonte) return false;
       if (q && !k.nome.toLowerCase().includes(q)) return false;
+      if (idsDoFinanciamento && !idsDoFinanciamento.has(k.id)) return false;
       return true;
     });
-  }, [kpis, search.projeto, search.estado, search.fonte, search.q]);
+  }, [kpis, search.projeto, search.estado, search.fonte, search.q, idsDoFinanciamento]);
 
   // Computed values
   const [values, setValues] = useState<Record<string, number>>({});
@@ -142,7 +193,15 @@ function IndicadoresGlobalPage() {
   const exportar = () => {
     const lines: string[] = [];
     lines.push("═════════════════════════════");
-    lines.push("RELATÓRIO M&A — MEERU");
+    if (financiamentoSelecionado) {
+      lines.push(`RELATÓRIO — ${financiamentoSelecionado.nome.toUpperCase()}`);
+      lines.push(`Financiador: ${financiamentoSelecionado.financiador}`);
+      const fmt = (d: string | null) =>
+        d ? new Date(d).toLocaleDateString("pt-PT", { month: "short", year: "numeric" }) : "—";
+      lines.push(`Período: ${fmt(financiamentoSelecionado.data_inicio)} → ${fmt(financiamentoSelecionado.data_fim)}`);
+    } else {
+      lines.push("RELATÓRIO M&A — MEERU");
+    }
     lines.push(`Exportado em ${new Date().toLocaleDateString("pt-PT")}`);
     lines.push("═════════════════════════════");
     lines.push(`Resumo: ${total} indicadores · ${emExec} em execução · ${concluidos} concluídos · ${pctMedia}% média`);
@@ -203,6 +262,18 @@ function IndicadoresGlobalPage() {
           />
         </div>
         <Select
+          value={search.financiamento ?? "__all__"}
+          onValueChange={(v) => setSearch({ financiamento: v === "__all__" ? undefined : v })}
+        >
+          <SelectTrigger className="w-64"><SelectValue placeholder="Financiamento" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Todos os financiamentos</SelectItem>
+            {(financiamentos ?? []).map((f) => (
+              <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
           value={search.projeto ?? "__all__"}
           onValueChange={(v) => setSearch({ projeto: v === "__all__" ? undefined : v })}
         >
@@ -238,7 +309,7 @@ function IndicadoresGlobalPage() {
             ))}
           </SelectContent>
         </Select>
-        {(search.projeto || search.estado || search.fonte || search.q) && (
+        {(search.projeto || search.estado || search.fonte || search.q || search.financiamento) && (
           <Button
             variant="ghost"
             size="sm"
@@ -248,6 +319,37 @@ function IndicadoresGlobalPage() {
           </Button>
         )}
       </div>
+
+      {financiamentoSelecionado && (
+        <div className="rounded-md border bg-muted/30 p-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="space-y-0.5">
+            <p className="text-sm font-semibold">{financiamentoSelecionado.nome}</p>
+            <p className="text-xs text-muted-foreground">
+              {financiamentoSelecionado.financiador}
+              {financiamentoSelecionado.data_inicio || financiamentoSelecionado.data_fim ? (
+                <>
+                  {" · "}
+                  {financiamentoSelecionado.data_inicio
+                    ? new Date(financiamentoSelecionado.data_inicio).toLocaleDateString("pt-PT", { month: "short", year: "numeric" })
+                    : "—"}
+                  {" → "}
+                  {financiamentoSelecionado.data_fim
+                    ? new Date(financiamentoSelecionado.data_fim).toLocaleDateString("pt-PT", { month: "short", year: "numeric" })
+                    : "—"}
+                </>
+              ) : null}
+            </p>
+          </div>
+          <div className="flex items-center gap-3 text-sm">
+            {financiamentoSelecionado.valor_total != null && (
+              <span className="font-medium tabular-nums">
+                {new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(financiamentoSelecionado.valor_total)}
+              </span>
+            )}
+            <Badge variant="outline">{financiamentoSelecionado.estado}</Badge>
+          </div>
+        </div>
+      )}
 
       {/* Table */}
       {isLoading ? (
