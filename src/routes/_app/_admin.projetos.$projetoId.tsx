@@ -224,65 +224,23 @@ function IndicadoresTab({ projeto }: { projeto: Projeto }) {
         .order("position")
         .order("created_at");
       if (error) throw error;
-      return (data ?? []) as Kpi[];
+      return ((data ?? []) as any[]).map((r) => ({
+        ...r,
+        filtro: (r.filtro ?? {}) as KpiFiltro,
+        estado: (r.estado ?? "em_execucao") as Estado,
+      })) as Kpi[];
     },
   });
-
-  const { data: calcCounts } = useQuery({
-    queryKey: ["projeto-kpi-counts", projeto.id],
-    queryFn: async () => {
-      const [acoesRes, pessoasRes, familiasRes] = await Promise.all([
-        supabase
-          .from("acoes")
-          .select("id", { count: "exact", head: true })
-          .contains("projeto_ids", [projeto.id]),
-        supabase
-          .from("pessoas")
-          .select("id", { count: "exact", head: true })
-          .contains("projeto_ids", [projeto.id])
-          .eq("status", "ativo"),
-        supabase
-          .from("pessoas")
-          .select("familia_id")
-          .contains("projeto_ids", [projeto.id])
-          .eq("status", "ativo")
-          .not("familia_id", "is", null),
-      ]);
-      const famIds = Array.from(
-        new Set(((familiasRes.data ?? []) as { familia_id: string | null }[]).map((r) => r.familia_id).filter(Boolean) as string[]),
-      );
-      let atividades = 0;
-      if (famIds.length > 0) {
-        const { count } = await supabase
-          .from("familia_atividades")
-          .select("id", { count: "exact", head: true })
-          .in("familia_id", famIds);
-        atividades = count ?? 0;
-      }
-      return {
-        acoes: acoesRes.count ?? 0,
-        participantes: pessoasRes.count ?? 0,
-        atividades,
-      };
-    },
-  });
-
-  const valorAtual = (k: Kpi): number => {
-    if (k.fonte === "manual") return Number(k.valor_manual ?? 0);
-    if (k.fonte === "acoes") return calcCounts?.acoes ?? 0;
-    if (k.fonte === "participantes") return calcCounts?.participantes ?? 0;
-    if (k.fonte === "atividades") return calcCounts?.atividades ?? 0;
-    return 0;
-  };
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["projeto-kpis", projeto.id] });
+  const invalidateAllValues = () => qc.invalidateQueries({ queryKey: ["projeto-kpi-value"] });
 
   const updateField = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<Kpi> }) => {
       const { error } = await supabase.from("projeto_kpis").update(patch as any).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: invalidate,
+    onSuccess: () => { invalidate(); invalidateAllValues(); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -294,6 +252,13 @@ function IndicadoresTab({ projeto }: { projeto: Projeto }) {
     onSuccess: () => { toast.success("Indicador removido"); invalidate(); },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const [computedValues, setComputedValues] = useState<Record<string, number>>({});
+  const handleComputed = (id: string, value: number) => {
+    setComputedValues((p) => (p[id] === value ? p : { ...p, [id]: value }));
+  };
+  const valorAtual = (k: Kpi): number =>
+    k.fonte === "manual" ? Number(k.valor_manual ?? 0) : computedValues[k.id] ?? 0;
 
   const exportar = () => {
     const lines: string[] = [];
@@ -308,6 +273,7 @@ function IndicadoresTab({ projeto }: { projeto: Projeto }) {
       const full = Math.round((pct / 100) * 10);
       const bar = "█".repeat(full) + "░".repeat(10 - full);
       lines.push(k.nome);
+      lines.push(`Estado: ${ESTADO_LABELS[k.estado]}`);
       lines.push(`Meta: ${k.meta} ${k.unidade}`);
       lines.push(`Valor atual: ${v} ${k.unidade} (${pct}%)`);
       lines.push(`${bar} ${pct}%`);
@@ -320,6 +286,21 @@ function IndicadoresTab({ projeto }: { projeto: Projeto }) {
     navigator.clipboard.writeText(lines.join("\n"));
     toast.success("Relatório copiado para a área de transferência ✓");
   };
+
+  // Summary metrics
+  const total = kpis?.length ?? 0;
+  const emExec = (kpis ?? []).filter((k) => k.estado === "em_execucao").length;
+  const concluidos = (kpis ?? []).filter((k) => k.estado === "concluido").length;
+  const pctMedia =
+    total === 0
+      ? 0
+      : Math.round(
+          (kpis ?? []).reduce((acc, k) => {
+            const v = valorAtual(k);
+            const p = k.meta > 0 ? Math.min(100, (v / k.meta) * 100) : 0;
+            return acc + p;
+          }, 0) / total,
+        );
 
   const openNew = () => { setEditing(null); setOpen(true); };
   const openEdit = (k: Kpi) => { setEditing(k); setOpen(true); };
@@ -341,6 +322,15 @@ function IndicadoresTab({ projeto }: { projeto: Projeto }) {
         </div>
       </div>
 
+      {total > 0 && (
+        <div className="grid gap-3 sm:grid-cols-4">
+          <StatCard label="Total indicadores" value={total} />
+          <StatCard label="Em execução" value={emExec} />
+          <StatCard label="Concluídos" value={concluidos} />
+          <StatCard label="% média execução" value={pctMedia} />
+        </div>
+      )}
+
       {isLoading ? (
         <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
       ) : (kpis?.length ?? 0) === 0 ? (
@@ -353,6 +343,7 @@ function IndicadoresTab({ projeto }: { projeto: Projeto }) {
             <TableHeader>
               <TableRow>
                 <TableHead>Indicador</TableHead>
+                <TableHead className="w-32">Estado</TableHead>
                 <TableHead className="w-24 text-right">Meta</TableHead>
                 <TableHead className="w-32 text-right">Valor Atual</TableHead>
                 <TableHead className="w-32">Unidade</TableHead>
@@ -363,82 +354,17 @@ function IndicadoresTab({ projeto }: { projeto: Projeto }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(kpis ?? []).map((k) => {
-                const v = valorAtual(k);
-                const pct = k.meta > 0 ? Math.min(100, Math.round((v / k.meta) * 100)) : 0;
-                const color =
-                  pct >= 100
-                    ? "bg-emerald-500"
-                    : pct >= 50
-                    ? "bg-amber-500"
-                    : "bg-red-500";
-                return (
-                  <TableRow key={k.id}>
-                    <TableCell>
-                      <InlineText
-                        value={k.nome}
-                        onSave={(val) => updateField.mutateAsync({ id: k.id, patch: { nome: val ?? "" } })}
-                      />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <InlineText
-                        value={String(k.meta)}
-                        onSave={(val) => updateField.mutateAsync({ id: k.id, patch: { meta: Number(val ?? 0) || 0 } })}
-                      />
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {k.fonte === "manual" ? (
-                        <InlineText
-                          value={String(k.valor_manual ?? 0)}
-                          onSave={(val) => updateField.mutateAsync({ id: k.id, patch: { valor_manual: Number(val ?? 0) || 0 } })}
-                        />
-                      ) : (
-                        <span title="Calculado automaticamente" className="inline-flex items-center gap-1 text-muted-foreground">
-                          {v}
-                          <RefreshCw className="h-3 w-3 opacity-60" />
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <InlineText
-                        value={k.unidade}
-                        onSave={(val) => updateField.mutateAsync({ id: k.id, patch: { unidade: val ?? "" } })}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
-                          <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
-                        </div>
-                        <span className="text-xs tabular-nums w-9 text-right">{pct}%</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{FONTE_LABELS[k.fonte]}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <NarrativaCell
-                        value={k.narrativa}
-                        onSave={(val) => updateField.mutateAsync({ id: k.id, patch: { narrativa: val } })}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button size="icon" variant="ghost" onClick={() => openEdit(k)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => { if (confirm(`Remover o indicador "${k.nome}"?`)) remove.mutate(k.id); }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+              {(kpis ?? []).map((k) => (
+                <KpiRow
+                  key={k.id}
+                  kpi={k}
+                  projeto={projeto}
+                  onCompute={handleComputed}
+                  onUpdate={(patch) => updateField.mutateAsync({ id: k.id, patch })}
+                  onEdit={() => openEdit(k)}
+                  onRemove={() => { if (confirm(`Remover o indicador "${k.nome}"?`)) remove.mutate(k.id); }}
+                />
+              ))}
             </TableBody>
           </Table>
         </div>
@@ -451,6 +377,290 @@ function IndicadoresTab({ projeto }: { projeto: Projeto }) {
         editing={editing}
         onSaved={invalidate}
       />
+    </div>
+  );
+}
+
+function useKpiValue(kpi: Kpi, projeto: Projeto) {
+  return useQuery({
+    queryKey: ["projeto-kpi-value", kpi.id, kpi.fonte, kpi.filtro, kpi.projeto_id],
+    queryFn: async () => {
+      const f = kpi.filtro ?? {};
+      if (kpi.fonte === "manual") return Number(kpi.valor_manual ?? 0);
+
+      // ACOES — count actions linked to this projeto, optional categoria filter
+      if (kpi.fonte === "acoes") {
+        let q = supabase
+          .from("acoes")
+          .select("id", { count: "exact", head: true })
+          .contains("projeto_ids", [projeto.id]);
+        if (f.categoria) q = q.eq("categoria", f.categoria);
+        const { count } = await q;
+        return count ?? 0;
+      }
+
+      // INSCRICOES — count inscricoes for acoes filtered by projeto_ids (default this projeto) + categoria
+      if (kpi.fonte === "inscricoes") {
+        const scopeProjetos = f.projeto_ids?.length ? f.projeto_ids : [projeto.id];
+        let aq = supabase.from("acoes").select("id").overlaps("projeto_ids", scopeProjetos);
+        if (f.categoria) aq = aq.eq("categoria", f.categoria);
+        const { data: acoesData } = await aq;
+        const acaoIds = (acoesData ?? []).map((a: any) => a.id as string);
+        if (acaoIds.length === 0) return 0;
+        const { count } = await supabase
+          .from("inscricoes")
+          .select("id", { count: "exact", head: true })
+          .in("acao_id", acaoIds)
+          .neq("status", "cancelada");
+        return count ?? 0;
+      }
+
+      // PARTICIPANTES — pessoas with projeto_ids contains this projeto + optional filters
+      if (kpi.fonte === "participantes") {
+        let q = supabase
+          .from("pessoas")
+          .select("id, familia_id, genero, nacionalidade, is_voluntario")
+          .contains("projeto_ids", [projeto.id])
+          .eq("status", "ativo");
+        if (f.voluntario) q = q.eq("is_voluntario", true);
+        if (f.mulheres) q = q.eq("genero", "Feminino");
+        if (f.imigrante) {
+          q = q
+            .not("nacionalidade", "is", null)
+            .neq("nacionalidade", "")
+            .not("nacionalidade", "ilike", "Portugu%");
+        }
+        const { data: pessoasData } = await q;
+        const pessoas = (pessoasData ?? []) as any[];
+        if (!f.regular || f.regular <= 0) return pessoas.length;
+        // Regular threshold: count pessoas whose familia has >= N atividades
+        const famIds = Array.from(new Set(pessoas.map((p) => p.familia_id).filter(Boolean)));
+        if (famIds.length === 0) return 0;
+        const { data: ativData } = await supabase
+          .from("familia_atividades")
+          .select("familia_id")
+          .in("familia_id", famIds);
+        const counts = new Map<string, number>();
+        for (const r of (ativData ?? []) as any[]) {
+          counts.set(r.familia_id, (counts.get(r.familia_id) ?? 0) + 1);
+        }
+        const okFams = new Set(
+          Array.from(counts.entries()).filter(([, c]) => c >= (f.regular ?? 0)).map(([id]) => id),
+        );
+        return pessoas.filter((p) => p.familia_id && okFams.has(p.familia_id)).length;
+      }
+
+      // ATIVIDADES — total familia_atividades para familias deste projeto
+      if (kpi.fonte === "atividades") {
+        const { data: pessoasData } = await supabase
+          .from("pessoas")
+          .select("familia_id")
+          .contains("projeto_ids", [projeto.id])
+          .eq("status", "ativo")
+          .not("familia_id", "is", null);
+        const famIds = Array.from(new Set(((pessoasData ?? []) as any[]).map((p) => p.familia_id).filter(Boolean)));
+        if (famIds.length === 0) return 0;
+        const { count } = await supabase
+          .from("familia_atividades")
+          .select("id", { count: "exact", head: true })
+          .in("familia_id", famIds);
+        return count ?? 0;
+      }
+
+      // AUTO TOTAL UNICOS — pessoas únicas em qualquer projeto (somatório global)
+      if (kpi.fonte === "auto_total_unicos") {
+        const { data: projetosData } = await supabase.from("projetos").select("id");
+        const ids = ((projetosData ?? []) as any[]).map((p) => p.id);
+        if (ids.length === 0) return 0;
+        const { count } = await supabase
+          .from("pessoas")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "ativo")
+          .overlaps("projeto_ids", ids);
+        return count ?? 0;
+      }
+
+      return 0;
+    },
+  });
+}
+
+function KpiRow({
+  kpi,
+  projeto,
+  onCompute,
+  onUpdate,
+  onEdit,
+  onRemove,
+}: {
+  kpi: Kpi;
+  projeto: Projeto;
+  onCompute: (id: string, value: number) => void;
+  onUpdate: (patch: Partial<Kpi>) => Promise<void> | void;
+  onEdit: () => void;
+  onRemove: () => void;
+}) {
+  const { data: computed } = useKpiValue(kpi, projeto);
+  const v = kpi.fonte === "manual" ? Number(kpi.valor_manual ?? 0) : computed ?? 0;
+  // Surface upward for summary calc + export
+  if (computed != null) onCompute(kpi.id, computed);
+  const pct = kpi.meta > 0 ? Math.min(100, Math.round((v / kpi.meta) * 100)) : 0;
+  const color = pct > 70 ? "bg-emerald-500" : pct >= 30 ? "bg-amber-500" : "bg-red-500";
+
+  return (
+    <TableRow>
+      <TableCell>
+        <InlineText value={kpi.nome} onSave={(val) => onUpdate({ nome: val ?? "" })} />
+      </TableCell>
+      <TableCell>
+        <Select value={kpi.estado} onValueChange={(val) => onUpdate({ estado: val as Estado })}>
+          <SelectTrigger className="h-8">
+            <Badge variant={ESTADO_VARIANTS[kpi.estado]} className="font-normal">
+              {ESTADO_LABELS[kpi.estado]}
+            </Badge>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="por_iniciar">Por iniciar</SelectItem>
+            <SelectItem value="em_execucao">Em execução</SelectItem>
+            <SelectItem value="concluido">Concluído</SelectItem>
+          </SelectContent>
+        </Select>
+      </TableCell>
+      <TableCell className="text-right">
+        <InlineText
+          value={String(kpi.meta)}
+          onSave={(val) => onUpdate({ meta: Number(val ?? 0) || 0 })}
+        />
+      </TableCell>
+      <TableCell className="text-right tabular-nums">
+        {kpi.fonte === "manual" ? (
+          <InlineText
+            value={String(kpi.valor_manual ?? 0)}
+            onSave={(val) => onUpdate({ valor_manual: Number(val ?? 0) || 0 })}
+          />
+        ) : (
+          <span title="Calculado automaticamente" className="inline-flex items-center gap-1 text-muted-foreground">
+            {v}
+            <RefreshCw className="h-3 w-3 opacity-60" />
+          </span>
+        )}
+      </TableCell>
+      <TableCell>
+        <InlineText value={kpi.unidade} onSave={(val) => onUpdate({ unidade: val ?? "" })} />
+      </TableCell>
+      <TableCell>
+        <div className="flex items-center gap-2">
+          <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
+            <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+          </div>
+          <span className="text-xs tabular-nums w-9 text-right">{pct}%</span>
+        </div>
+      </TableCell>
+      <TableCell>
+        <Badge variant="secondary">{FONTE_LABELS[kpi.fonte]}</Badge>
+      </TableCell>
+      <TableCell>
+        <NarrativaCell
+          value={kpi.narrativa}
+          onSave={(val) => onUpdate({ narrativa: val })}
+        />
+      </TableCell>
+      <TableCell>
+        <div className="flex gap-1">
+          <Button size="icon" variant="ghost" onClick={onEdit}>
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="ghost" onClick={onRemove}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+}
+
+function AcoesProjetoTab({ projeto }: { projeto: Projeto }) {
+  const qc = useQueryClient();
+  const { data: acoes, isLoading } = useQuery({
+    queryKey: ["projeto-acoes", projeto.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("acoes")
+        .select("id, nome, tipo, status, data_inicio, categoria")
+        .contains("projeto_ids", [projeto.id])
+        .order("data_inicio", { ascending: false, nullsFirst: false });
+      if (error) throw error;
+      return data as { id: string; nome: string; tipo: string; status: string; data_inicio: string | null; categoria: string | null }[];
+    },
+  });
+
+  const updateCategoria = useMutation({
+    mutationFn: async ({ id, categoria }: { id: string; categoria: string | null }) => {
+      const { error } = await supabase.from("acoes").update({ categoria } as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["projeto-acoes", projeto.id] });
+      qc.invalidateQueries({ queryKey: ["projeto-kpi-value"] });
+      toast.success("Categoria atualizada");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  if (isLoading) return <Skeleton className="h-24 w-full" />;
+  if (!acoes || acoes.length === 0) {
+    return (
+      <div className="rounded-md border border-dashed py-12 text-center text-sm text-muted-foreground">
+        Sem ações associadas a este projeto.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">
+        A categoria define como as ações contam nos indicadores M&amp;A (ex.: workshop, jantar, intercultural).
+      </p>
+      <div className="rounded-md border overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Ação</TableHead>
+              <TableHead className="w-32">Data</TableHead>
+              <TableHead className="w-56">Categoria</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {acoes.map((a) => (
+              <TableRow key={a.id}>
+                <TableCell>
+                  <div className="font-medium">{a.nome}</div>
+                  <div className="text-xs text-muted-foreground capitalize">{a.tipo} · {a.status}</div>
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {a.data_inicio ? new Date(a.data_inicio).toLocaleDateString("pt-PT") : "—"}
+                </TableCell>
+                <TableCell>
+                  <Select
+                    value={a.categoria ?? "__none__"}
+                    onValueChange={(v) => updateCategoria.mutate({ id: a.id, categoria: v === "__none__" ? null : v })}
+                  >
+                    <SelectTrigger className="h-8">
+                      <SelectValue placeholder="Sem categoria">{categoriaLabel(a.categoria)}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Sem categoria</SelectItem>
+                      {CATEGORIAS_ACAO.map((c) => (
+                        <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }
