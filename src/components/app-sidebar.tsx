@@ -173,16 +173,6 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 )}
-                {hasPage("servicos") && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={isActive("/servicos/calendario")}>
-                    <Link to="/servicos/calendario" className="flex items-center gap-2 pl-7">
-                      <CalendarRange className="h-4 w-4" />
-                      <span>Calendário de Serviços</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                )}
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={isActive("/style-guide")}>
                     <Link to="/style-guide" className="flex items-center gap-2">
