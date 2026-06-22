@@ -932,6 +932,14 @@ function RegistosTab() {
               {(colabs ?? []).filter((c) => c.ativo).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_completo}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Select value={filterSessao} onValueChange={(v) => setFilterSessao(v as typeof filterSessao)}>
+            <SelectTrigger className="w-44 h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Sessões: todos</SelectItem>
+              <SelectItem value="session">Apenas de sessão</SelectItem>
+              <SelectItem value="individual">Apenas individuais</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
