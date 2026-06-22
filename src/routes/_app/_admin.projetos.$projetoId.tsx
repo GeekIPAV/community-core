@@ -724,6 +724,12 @@ function KpiDialog({
   const [fonte, setFonte] = useState<Kpi["fonte"]>("manual");
   const [valorManual, setValorManual] = useState("");
   const [narrativa, setNarrativa] = useState("");
+  const [estado, setEstado] = useState<Estado>("em_execucao");
+  const [filtroCategoria, setFiltroCategoria] = useState<string>("__none__");
+  const [filtroImigrante, setFiltroImigrante] = useState(false);
+  const [filtroVoluntario, setFiltroVoluntario] = useState(false);
+  const [filtroMulheres, setFiltroMulheres] = useState(false);
+  const [filtroRegular, setFiltroRegular] = useState("");
 
   useMemo(() => {
     if (open) {
@@ -733,17 +739,37 @@ function KpiDialog({
       setFonte(editing?.fonte ?? "manual");
       setValorManual(editing?.valor_manual != null ? String(editing.valor_manual) : "");
       setNarrativa(editing?.narrativa ?? "");
+      setEstado(editing?.estado ?? "em_execucao");
+      const f = editing?.filtro ?? {};
+      setFiltroCategoria(f.categoria ?? "__none__");
+      setFiltroImigrante(!!f.imigrante);
+      setFiltroVoluntario(!!f.voluntario);
+      setFiltroMulheres(!!f.mulheres);
+      setFiltroRegular(f.regular ? String(f.regular) : "");
     }
   }, [open, editing]);
 
   const save = useMutation({
     mutationFn: async () => {
+      const filtro: KpiFiltro = {};
+      if (fonte === "acoes" || fonte === "inscricoes") {
+        if (filtroCategoria !== "__none__") filtro.categoria = filtroCategoria;
+      }
+      if (fonte === "participantes") {
+        if (filtroImigrante) filtro.imigrante = true;
+        if (filtroVoluntario) filtro.voluntario = true;
+        if (filtroMulheres) filtro.mulheres = true;
+        const r = Number(filtroRegular);
+        if (r > 0) filtro.regular = r;
+      }
       const payload = {
         projeto_id: projetoId,
         nome: nome.trim(),
         meta: Number(meta) || 0,
         unidade: unidade.trim(),
         fonte,
+        estado,
+        filtro: filtro as any,
         valor_manual: fonte === "manual" ? Number(valorManual) || 0 : null,
         narrativa: narrativa.trim() || null,
       };
@@ -793,17 +819,71 @@ function KpiDialog({
             </div>
           </div>
           <div className="space-y-1.5">
+            <Label>Estado</Label>
+            <Select value={estado} onValueChange={(v) => setEstado(v as Estado)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="por_iniciar">Por iniciar</SelectItem>
+                <SelectItem value="em_execucao">Em execução</SelectItem>
+                <SelectItem value="concluido">Concluído</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
             <Label>Fonte</Label>
             <Select value={fonte} onValueChange={(v) => setFonte(v as Kpi["fonte"])}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="acoes">Ações</SelectItem>
+                <SelectItem value="inscricoes">Inscrições</SelectItem>
                 <SelectItem value="atividades">Atividades</SelectItem>
                 <SelectItem value="participantes">Participantes</SelectItem>
+                <SelectItem value="auto_total_unicos">Total únicos (todos os projetos)</SelectItem>
                 <SelectItem value="manual">Manual</SelectItem>
               </SelectContent>
             </Select>
           </div>
+          {(fonte === "acoes" || fonte === "inscricoes") && (
+            <div className="space-y-1.5">
+              <Label>Filtrar por categoria de ação</Label>
+              <Select value={filtroCategoria} onValueChange={setFiltroCategoria}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Todas</SelectItem>
+                  {CATEGORIAS_ACAO.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {fonte === "participantes" && (
+            <div className="space-y-2 rounded-md border p-3">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Filtros de participantes</Label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={filtroImigrante} onChange={(e) => setFiltroImigrante(e.target.checked)} />
+                Imigrantes (nacionalidade ≠ portuguesa)
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={filtroVoluntario} onChange={(e) => setFiltroVoluntario(e.target.checked)} />
+                Voluntários
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={filtroMulheres} onChange={(e) => setFiltroMulheres(e.target.checked)} />
+                Apenas mulheres
+              </label>
+              <div className="flex items-center gap-2">
+                <Label className="text-sm">Mín. atividades (regular):</Label>
+                <Input
+                  type="number"
+                  className="h-8 w-20"
+                  value={filtroRegular}
+                  onChange={(e) => setFiltroRegular(e.target.value)}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+          )}
           {fonte === "manual" && (
             <div className="space-y-1.5">
               <Label>Valor atual</Label>
