@@ -24,6 +24,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import { SmartTable, type SmartColumnDef } from "@/components/smart-table";
 import { BulkImportDialog } from "@/components/servicos/BulkImportDialog";
 import { Upload } from "lucide-react";
+import { RegistoPagamentoCell, PagamentoServicosCell } from "@/components/servicos/PaymentLinkCells";
 
 export const Route = createFileRoute("/_app/_admin/servicos")({
   component: ServicosPage,
@@ -750,6 +751,9 @@ function RegistosTab() {
       } else {
         const { error } = await supabase.from("registos_servico").insert(payload);
         if (error) throw error;
+        if (payload.estado === "pendente") {
+          await supabase.rpc("notificar_nova_entrada_pendente" as never, { p_colaborador_id: payload.colaborador_id } as never);
+        }
       }
     },
     onSuccess: () => {
@@ -840,6 +844,19 @@ function RegistosTab() {
           <SelectTrigger className="h-8 w-28" onClick={(e) => e.stopPropagation()}><SelectValue /></SelectTrigger>
           <SelectContent>{ESTADOS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent>
         </Select>
+      ) },
+    { id: "_pagamento", header: "Pagamento", size: 200, enableSorting: false,
+      meta: { label: "Pagamento", noTruncate: true },
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <RegistoPagamentoCell
+            registoId={row.original.id}
+            colaboradorId={row.original.colaborador_id}
+            colaboradorNome={row.original._colab}
+            pagamentoId={row.original.pagamento_id}
+            total={row.original._total}
+          />
+        </div>
       ) },
     { id: "submetido_pelo_colaborador", accessorKey: "submetido_pelo_colaborador", header: "Origem", size: 120,
       meta: { label: "Origem", filterVariant: "select", filterOptions: ["true", "false"], hideOnMobile: true },
@@ -1188,6 +1205,13 @@ function PagamentosTab() {
     { id: "total", accessorKey: "total", header: "Total", size: 120,
       meta: { label: "Total", filterVariant: "number", editType: "number" },
       cell: ({ getValue }) => <span className="block text-right tabular-nums font-medium">{fmtEUR(Number(getValue() ?? 0))}</span> },
+    { id: "_servicos", header: "Serviços", size: 110, enableSorting: false,
+      meta: { label: "Serviços", noTruncate: true },
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <PagamentoServicosCell pagamentoId={row.original.id} colaboradorId={row.original.colaborador_id} />
+        </div>
+      ) },
     { id: "_actions", header: "", size: 96, enableSorting: false, enableHiding: false, enableResizing: false,
       meta: { noTruncate: true },
       cell: ({ row }) => (

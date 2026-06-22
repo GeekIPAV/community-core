@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, Check, Trash2 } from "lucide-react";
+import { Bell, Check, Trash2, AlertTriangle } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -117,7 +117,11 @@ export function NotificationsBell() {
                 const content = (
                   <div className={`px-3 py-2.5 transition-colors hover:bg-accent ${n.lida ? "opacity-60" : ""}`}>
                     <div className="flex items-start gap-2">
-                      {!n.lida && <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />}
+                      {n.tipo === "servicos_por_pagar" ? (
+                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                      ) : (
+                        !n.lida && <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                      )}
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-medium">{n.titulo}</div>
                         {n.descricao && (

@@ -35,6 +35,8 @@ export type ParsedRow = {
   quantidade: number;
   valor: number | null; // user provided override
   valorProvided: boolean;
+  outrosCustos: number;
+  outrosCustosDescricao: string;
 };
 
 const norm = (s: string) =>
@@ -106,11 +108,12 @@ export function parseImportText(raw: string, colabs: Colab[], tipos: Tipo[]): Pa
   })();
   return lines.map((line) => {
     const fields = line.split(sep).map((f) => f.trim());
-    const [nameRaw = "", dateRaw = "", descRaw = "", tipoRaw = "", qtyRaw = "", valRaw = ""] = fields;
+    const [nameRaw = "", dateRaw = "", descRaw = "", tipoRaw = "", qtyRaw = "", valRaw = "", outrosRaw = "", outrosDescRaw = ""] = fields;
     const c = matchColab(nameRaw, colabs);
     const t = matchTipo(tipoRaw, tipos);
     const qty = Number(qtyRaw.replace(",", ".")) || 1;
     const val = parseValue(valRaw);
+    const outros = parseValue(outrosRaw) ?? 0;
     return {
       raw: line,
       rawFields: fields,
@@ -126,6 +129,8 @@ export function parseImportText(raw: string, colabs: Colab[], tipos: Tipo[]): Pa
       quantidade: qty,
       valor: val,
       valorProvided: !!valRaw.trim() && val !== null,
+      outrosCustos: outros,
+      outrosCustosDescricao: outrosDescRaw,
     };
   });
 }
@@ -136,12 +141,12 @@ export function rowStatus(r: ParsedRow): RowStatus {
   return "ready";
 }
 
-const PLACEHOLDER = `Cola aqui os registos, um por linha. Formato esperado:
-Colaboradora, Data, Descrição, Tipo de Serviço, Quantidade, Valor
+const PLACEHOLDER = `Formato: Colaboradora, Data, Descrição, Tipo de Serviço, Qtd, Valor[, Outros Custos[, Desc. Outros Custos]]
 
-Exemplo:
+Exemplo com outros custos:
+Safaa, 23/02/2025, Reunião mesquita, Reunião de Parceiros, 1, 48.24, 12.50, Transportes
 Safaa, 30/03/2025, Reunião AFAQ, Reunião de Parceiros, 1, 77.52
-Rana, 01/03/2025, Tradução do documento Afaq, Tradução de Documento, 4, 50.00`;
+Rana, 01/03/2025, Tradução Afaq, Tradução de Documento, 4, 50.00, 0,`;
 
 type Props = {
   open: boolean;
@@ -192,9 +197,10 @@ export function BulkImportDialog({ open, onOpenChange, colaboradores, tipos, onI
   }, [rows]);
 
   const calcTotal = (r: ParsedRow): number => {
-    if (r.valorProvided && r.valor != null) return r.valor;
-    const tipo = r.tipo_servico_id ? tipoMap.get(r.tipo_servico_id) : null;
-    return (tipo?.preco_unitario ?? 0) * (r.quantidade || 1);
+    const base = r.valorProvided && r.valor != null
+      ? r.valor
+      : (r.tipo_servico_id ? (tipoMap.get(r.tipo_servico_id)?.preco_unitario ?? 0) : 0) * (r.quantidade || 1);
+    return base + (r.outrosCustos || 0);
   };
 
   const finalSummary = useMemo(() => {
@@ -240,7 +246,8 @@ export function BulkImportDialog({ open, onOpenChange, colaboradores, tipos, onI
             descricao: r.descricao || null,
             quantidade: r.quantidade || 1,
             preco_unitario_override: override,
-            outros_custos: 0,
+            outros_custos: Number(r.outrosCustos) || 0,
+            outros_custos_descricao: r.outrosCustosDescricao?.trim() || null,
             estado: approveAll ? "aprovado" : "pendente",
             submetido_pelo_colaborador: false,
             notas_admin: `Importado em massa em ${today}`,
@@ -251,6 +258,12 @@ export function BulkImportDialog({ open, onOpenChange, colaboradores, tipos, onI
       if (error) throw error;
       toast.success(`${payload.length} registos importados com sucesso`);
       sessionStorage.removeItem("bulk_import_text");
+      if (!approveAll) {
+        const uniqueColabs = Array.from(new Set(payload.map((p) => p.colaborador_id)));
+        await Promise.all(uniqueColabs.map((cid) =>
+          supabase.rpc("notificar_nova_entrada_pendente" as never, { p_colaborador_id: cid } as never)
+        ));
+      }
       onImported();
       close(false);
     } catch (e) {
@@ -324,6 +337,8 @@ export function BulkImportDialog({ open, onOpenChange, colaboradores, tipos, onI
                       <th className="p-2 text-left">Tipo de Serviço</th>
                       <th className="p-2 text-left w-20">Qtd</th>
                       <th className="p-2 text-left w-28">Valor</th>
+                      <th className="p-2 text-left w-24">Outros</th>
+                      <th className="p-2 text-left w-28">Total</th>
                       <th className="p-2 text-left w-24">Estado</th>
                       <th className="p-2 w-10"></th>
                     </tr>
@@ -548,6 +563,22 @@ function ImportRow({
         {!row.valorProvided && tipo && (
           <p className="text-[10px] text-muted-foreground mt-0.5">calculado: €{calc.toFixed(2)}</p>
         )}
+      </td>
+      <td className="p-2">
+        <Input
+          type="number"
+          step="0.01"
+          value={row.outrosCustos || ""}
+          placeholder="0"
+          onChange={(e) => onChange({ outrosCustos: Number(e.target.value) || 0 })}
+          className="h-8 text-sm tabular-nums text-muted-foreground"
+        />
+        {row.outrosCustos > 0 && row.outrosCustosDescricao && (
+          <p className="text-[10px] text-muted-foreground mt-0.5 truncate" title={row.outrosCustosDescricao}>{row.outrosCustosDescricao}</p>
+        )}
+      </td>
+      <td className="p-2 text-right tabular-nums font-semibold">
+        €{(((row.valorProvided && row.valor != null ? row.valor : calc)) + (row.outrosCustos || 0)).toFixed(2)}
       </td>
       <td className="p-2">
         {status === "ready" && <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-emerald-300">Pronto</Badge>}
