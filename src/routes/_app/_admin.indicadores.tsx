@@ -152,9 +152,10 @@ function IndicadoresGlobalPage() {
       if (search.estado && k.estado !== search.estado) return false;
       if (search.fonte && k.fonte !== search.fonte) return false;
       if (q && !k.nome.toLowerCase().includes(q)) return false;
+      if (idsDoFinanciamento && !idsDoFinanciamento.has(k.id)) return false;
       return true;
     });
-  }, [kpis, search.projeto, search.estado, search.fonte, search.q]);
+  }, [kpis, search.projeto, search.estado, search.fonte, search.q, idsDoFinanciamento]);
 
   // Computed values
   const [values, setValues] = useState<Record<string, number>>({});
