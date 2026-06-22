@@ -346,50 +346,66 @@ function TiposServicoTab() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const updateField = useMutation({
+    mutationFn: async ({ id, field, value }: { id: string; field: string; value: unknown }) => {
+      const { error } = await supabase.from("tipos_servico").update({ [field]: value } as never).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tipos_servico"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const columns = useMemo<SmartColumnDef<TipoServico>[]>(() => [
+    { id: "nome", accessorKey: "nome", header: "Nome", size: 240,
+      meta: { label: "Nome", filterVariant: "text", editType: "text" },
+      cell: ({ getValue }) => <span className="font-medium truncate">{String(getValue() ?? "")}</span> },
+    { id: "descricao", accessorKey: "descricao", header: "Descrição", size: 320,
+      meta: { label: "Descrição", filterVariant: "text", editType: "text", hideOnMobile: true },
+      cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span> },
+    { id: "unidade", accessorKey: "unidade", header: "Unidade", size: 110,
+      meta: { label: "Unidade", filterVariant: "select", filterOptions: UNIDADES,
+        editType: "select", editSelectOptions: UNIDADES.map((u) => ({ value: u, label: u })) },
+      cell: ({ getValue }) => <Badge variant="outline">{String(getValue() ?? "")}</Badge> },
+    { id: "preco_unitario", accessorKey: "preco_unitario", header: "Preço", size: 110,
+      meta: { label: "Preço", filterVariant: "number", editType: "number" },
+      cell: ({ getValue }) => <span className="tabular-nums text-right block">{fmtEUR(Number(getValue() ?? 0))}</span> },
+    { id: "ativo", accessorKey: "ativo", header: "Estado", size: 100,
+      meta: { label: "Estado", filterVariant: "select", filterOptions: ["true", "false"],
+        editType: "select", editSelectOptions: [{ value: "true", label: "Ativo" }, { value: "false", label: "Inativo" }] },
+      cell: ({ getValue }) => getValue() ? <Badge>Ativo</Badge> : <Badge variant="outline">Inativo</Badge> },
+    { id: "_actions", header: "", size: 96, enableSorting: false, enableHiding: false, enableResizing: false,
+      meta: { noTruncate: true },
+      cell: ({ row }) => (
+        <div className="flex justify-end gap-1">
+          <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); openEdit(row.original); }}><Pencil className="h-4 w-4" /></Button>
+          <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); if (confirm(`Remover ${row.original.nome}?`)) remove.mutate(row.original.id); }}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ) },
+  ], [remove]);
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">{data?.length ?? 0} tipo(s) de serviço</p>
-        <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />Novo tipo</Button>
-      </div>
-      {isLoading ? <Skeleton className="h-40 w-full" /> : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Unidade</TableHead>
-                <TableHead className="text-right">Preço</TableHead>
-                <TableHead>Ativo</TableHead>
-                <TableHead className="w-24"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(data ?? []).length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sem tipos de serviço</TableCell></TableRow>
-              )}
-              {(data ?? []).map((t) => (
-                <TableRow key={t.id}>
-                  <TableCell className="font-medium">{t.nome}</TableCell>
-                  <TableCell className="text-muted-foreground max-w-md truncate">{t.descricao ?? "—"}</TableCell>
-                  <TableCell><Badge variant="outline">{t.unidade}</Badge></TableCell>
-                  <TableCell className="text-right tabular-nums">{fmtEUR(t.preco_unitario)}</TableCell>
-                  <TableCell>{t.ativo ? <Badge>Ativo</Badge> : <Badge variant="outline">Inativo</Badge>}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" onClick={() => openEdit(t)}><Pencil className="h-4 w-4" /></Button>
-                      <Button size="icon" variant="ghost" onClick={() => { if (confirm(`Remover ${t.nome}?`)) remove.mutate(t.id); }}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+      <SmartTable
+        tableId="tipos_servico"
+        columns={columns}
+        data={data}
+        isLoading={isLoading}
+        editableColumns={["nome", "descricao", "unidade", "preco_unitario", "ativo"]}
+        onCellEdit={(rowId, columnId, value) => {
+          let v: unknown = value;
+          if (columnId === "ativo") v = value === "true" || value === true;
+          if (columnId === "preco_unitario") v = Number(value) || 0;
+          return updateField.mutateAsync({ id: rowId, field: columnId, value: v });
+        }}
+        toolbarActions={
+          <Button size="sm" onClick={openNew} className="h-9">
+            <Plus className="mr-2 h-4 w-4" />Novo tipo
+          </Button>
+        }
+        emptyMessage="Sem tipos de serviço"
+      />
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
