@@ -289,6 +289,7 @@ export function ServicosCalendarioPage({ embedded = false }: { embedded?: boolea
                 rows={filtered}
                 colabMap={colabMap}
                 tipoMap={tipoMap}
+                sessaoMap={sessaoMap}
                 onCreate={openCreate}
               />
             ) : vista === "semana" ? (
@@ -297,6 +298,7 @@ export function ServicosCalendarioPage({ embedded = false }: { embedded?: boolea
                 rows={filtered}
                 colabMap={colabMap}
                 tipoMap={tipoMap}
+                sessaoMap={sessaoMap}
                 onCreate={openCreate}
               />
             ) : (
