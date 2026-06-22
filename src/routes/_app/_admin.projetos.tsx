@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -115,7 +115,15 @@ function ProjetosPage() {
   });
 
   const columns = useMemo<ColumnDef<Projeto>[]>(() => [
-    { id: "nome", header: "Nome", accessorKey: "nome", cell: ({ getValue }) => <span className="font-medium">{getValue() as string}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nome" } satisfies ColumnFilterMeta },
+    { id: "nome", header: "Nome", accessorKey: "nome", cell: ({ row, getValue }) => (
+      <Link
+        to="/projetos/$projetoId"
+        params={{ projetoId: row.original.id }}
+        className="font-medium text-foreground hover:underline"
+      >
+        {getValue() as string}
+      </Link>
+    ), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nome" } satisfies ColumnFilterMeta },
     { id: "descricao", header: "Descrição", accessorKey: "descricao", cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Descrição" } satisfies ColumnFilterMeta },
     { id: "pessoas", header: "Pessoas", accessorFn: (p) => contagens?.get(p.id) ?? 0, cell: ({ getValue }) => {
         const n = getValue() as number;
