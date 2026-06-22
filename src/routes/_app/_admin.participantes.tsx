@@ -29,6 +29,7 @@ import { ChevronDown, ChevronRight, Lock, LockOpen, Pencil, Plus, Trash2, Mail, 
 import { Download } from "lucide-react";
 import { EtiquetasPicker } from "@/components/etiquetas-picker";
 import { CurriculoSection } from "@/components/curriculo-section";
+import { InviteMemberButton } from "@/components/invite-member";
 import { downloadCSV, toCSV } from "@/lib/csv";
 import {
   useReactTable,
