@@ -612,8 +612,8 @@ function MesView({ cursor, rows, colabMap, tipoMap, sessaoMap, onCreate }: {
 }
 
 // ============ Week view ============
-function SemanaView({ cursor, rows, colabMap, tipoMap, onCreate }: {
-  cursor: Date; rows: Registo[]; colabMap: Map<string, Colab>; tipoMap: Map<string, Tipo>; onCreate: (date?: string) => void;
+function SemanaView({ cursor, rows, colabMap, tipoMap, sessaoMap, onCreate }: {
+  cursor: Date; rows: Registo[]; colabMap: Map<string, Colab>; tipoMap: Map<string, Tipo>; sessaoMap: Map<string, Sessao>; onCreate: (date?: string) => void;
 }) {
   const start = startOfWeek(cursor);
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
@@ -652,7 +652,11 @@ function SemanaView({ cursor, rows, colabMap, tipoMap, onCreate }: {
                 <div className={cn("text-lg font-semibold", isToday && "text-primary")}>{d.getDate()}</div>
               </div>
               <div className="flex-1 space-y-1 min-w-0">
-                {items.map((r) => <ServicoPill key={r.id} r={r} colabMap={colabMap} tipoMap={tipoMap} compact />)}
+                {groupDayItems(items).map((b) =>
+                  b.type === "session"
+                    ? <SessionPill key={"sw-" + b.sessao.id} sessao={b.sessao} records={b.records} colabMap={colabMap} tipoMap={tipoMap} sessaoMap={sessaoMap} />
+                    : <ServicoPill key={b.record.id} r={b.record} colabMap={colabMap} tipoMap={tipoMap} compact />
+                )}
               </div>
               {total > 0 && <div className="text-[10px] text-muted-foreground text-right mt-2 pt-2 border-t tabular-nums">{fmtEUR(total)}</div>}
             </div>
