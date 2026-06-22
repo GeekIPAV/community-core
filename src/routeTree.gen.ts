@@ -25,6 +25,7 @@ import { Route as AppAdminServicosRouteImport } from './routes/_app/_admin.servi
 import { Route as AppAdminSecurityRouteImport } from './routes/_app/_admin.security'
 import { Route as AppAdminProjetosRouteImport } from './routes/_app/_admin.projetos'
 import { Route as AppAdminParticipantesRouteImport } from './routes/_app/_admin.participantes'
+import { Route as AppAdminParceirosRouteImport } from './routes/_app/_admin.parceiros'
 import { Route as AppAdminMenuRouteImport } from './routes/_app/_admin.menu'
 import { Route as AppAdminLocalizacoesRouteImport } from './routes/_app/_admin.localizacoes'
 import { Route as AppAdminFamiliasRouteImport } from './routes/_app/_admin.familias'
@@ -117,6 +118,11 @@ const AppAdminProjetosRoute = AppAdminProjetosRouteImport.update({
 const AppAdminParticipantesRoute = AppAdminParticipantesRouteImport.update({
   id: '/participantes',
   path: '/participantes',
+  getParentRoute: () => AppAdminRoute,
+} as any)
+const AppAdminParceirosRoute = AppAdminParceirosRouteImport.update({
+  id: '/parceiros',
+  path: '/parceiros',
   getParentRoute: () => AppAdminRoute,
 } as any)
 const AppAdminMenuRoute = AppAdminMenuRouteImport.update({
@@ -220,6 +226,7 @@ export interface FileRoutesByFullPath {
   '/familias': typeof AppAdminFamiliasRoute
   '/localizacoes': typeof AppAdminLocalizacoesRoute
   '/menu': typeof AppAdminMenuRoute
+  '/parceiros': typeof AppAdminParceirosRoute
   '/participantes': typeof AppAdminParticipantesRoute
   '/projetos': typeof AppAdminProjetosRouteWithChildren
   '/security': typeof AppAdminSecurityRoute
@@ -251,6 +258,7 @@ export interface FileRoutesByTo {
   '/familias': typeof AppAdminFamiliasRoute
   '/localizacoes': typeof AppAdminLocalizacoesRoute
   '/menu': typeof AppAdminMenuRoute
+  '/parceiros': typeof AppAdminParceirosRoute
   '/participantes': typeof AppAdminParticipantesRoute
   '/projetos': typeof AppAdminProjetosRouteWithChildren
   '/security': typeof AppAdminSecurityRoute
@@ -285,6 +293,7 @@ export interface FileRoutesById {
   '/_app/_admin/familias': typeof AppAdminFamiliasRoute
   '/_app/_admin/localizacoes': typeof AppAdminLocalizacoesRoute
   '/_app/_admin/menu': typeof AppAdminMenuRoute
+  '/_app/_admin/parceiros': typeof AppAdminParceirosRoute
   '/_app/_admin/participantes': typeof AppAdminParticipantesRoute
   '/_app/_admin/projetos': typeof AppAdminProjetosRouteWithChildren
   '/_app/_admin/security': typeof AppAdminSecurityRoute
@@ -318,6 +327,7 @@ export interface FileRouteTypes {
     | '/familias'
     | '/localizacoes'
     | '/menu'
+    | '/parceiros'
     | '/participantes'
     | '/projetos'
     | '/security'
@@ -349,6 +359,7 @@ export interface FileRouteTypes {
     | '/familias'
     | '/localizacoes'
     | '/menu'
+    | '/parceiros'
     | '/participantes'
     | '/projetos'
     | '/security'
@@ -382,6 +393,7 @@ export interface FileRouteTypes {
     | '/_app/_admin/familias'
     | '/_app/_admin/localizacoes'
     | '/_app/_admin/menu'
+    | '/_app/_admin/parceiros'
     | '/_app/_admin/participantes'
     | '/_app/_admin/projetos'
     | '/_app/_admin/security'
@@ -516,6 +528,13 @@ declare module '@tanstack/react-router' {
       path: '/participantes'
       fullPath: '/participantes'
       preLoaderRoute: typeof AppAdminParticipantesRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
+    '/_app/_admin/parceiros': {
+      id: '/_app/_admin/parceiros'
+      path: '/parceiros'
+      fullPath: '/parceiros'
+      preLoaderRoute: typeof AppAdminParceirosRouteImport
       parentRoute: typeof AppAdminRoute
     }
     '/_app/_admin/menu': {
@@ -662,6 +681,7 @@ interface AppAdminRouteChildren {
   AppAdminFamiliasRoute: typeof AppAdminFamiliasRoute
   AppAdminLocalizacoesRoute: typeof AppAdminLocalizacoesRoute
   AppAdminMenuRoute: typeof AppAdminMenuRoute
+  AppAdminParceirosRoute: typeof AppAdminParceirosRoute
   AppAdminParticipantesRoute: typeof AppAdminParticipantesRoute
   AppAdminProjetosRoute: typeof AppAdminProjetosRouteWithChildren
   AppAdminSecurityRoute: typeof AppAdminSecurityRoute
@@ -683,6 +703,7 @@ const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminFamiliasRoute: AppAdminFamiliasRoute,
   AppAdminLocalizacoesRoute: AppAdminLocalizacoesRoute,
   AppAdminMenuRoute: AppAdminMenuRoute,
+  AppAdminParceirosRoute: AppAdminParceirosRoute,
   AppAdminParticipantesRoute: AppAdminParticipantesRoute,
   AppAdminProjetosRoute: AppAdminProjetosRouteWithChildren,
   AppAdminSecurityRoute: AppAdminSecurityRoute,
