@@ -2303,6 +2303,7 @@ function AcoesPageInner() {
                 restrito_a_projetos: !!a.restrito_a_projetos,
                 publico: a.publico ?? true,
                 fields,
+                parceiro_ids: acaoParceiros?.get(a.id) ?? [],
               });
             }}
           />
