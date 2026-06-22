@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -488,7 +488,7 @@ function SessaoEditDialog({ sessao, onClose }: { sessao: SessaoRow | null; onClo
   const [local, setLocal] = useState("");
   const [descricao, setDescricao] = useState("");
 
-  useMemo(() => {
+  useEffect(() => {
     if (sessao) {
       setNome(sessao.nome ?? "");
       setDataInicio(sessao.data_inicio ?? "");
