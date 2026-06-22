@@ -193,7 +193,15 @@ function IndicadoresGlobalPage() {
   const exportar = () => {
     const lines: string[] = [];
     lines.push("═════════════════════════════");
-    lines.push("RELATÓRIO M&A — MEERU");
+    if (financiamentoSelecionado) {
+      lines.push(`RELATÓRIO — ${financiamentoSelecionado.nome.toUpperCase()}`);
+      lines.push(`Financiador: ${financiamentoSelecionado.financiador}`);
+      const fmt = (d: string | null) =>
+        d ? new Date(d).toLocaleDateString("pt-PT", { month: "short", year: "numeric" }) : "—";
+      lines.push(`Período: ${fmt(financiamentoSelecionado.data_inicio)} → ${fmt(financiamentoSelecionado.data_fim)}`);
+    } else {
+      lines.push("RELATÓRIO M&A — MEERU");
+    }
     lines.push(`Exportado em ${new Date().toLocaleDateString("pt-PT")}`);
     lines.push("═════════════════════════════");
     lines.push(`Resumo: ${total} indicadores · ${emExec} em execução · ${concluidos} concluídos · ${pctMedia}% média`);
