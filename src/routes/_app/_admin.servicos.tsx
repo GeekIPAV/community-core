@@ -18,6 +18,8 @@ import { toast } from "sonner";
 import { Pencil, Plus, Trash2, Check, Wallet, Receipt, Users as UsersIcon, Tag, Download, ExternalLink } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { SmartTable, type SmartColumnDef } from "@/components/smart-table";
+import { BulkImportDialog } from "@/components/servicos/BulkImportDialog";
+import { Upload } from "lucide-react";
 
 export const Route = createFileRoute("/_app/_admin/servicos")({
   component: ServicosPage,
