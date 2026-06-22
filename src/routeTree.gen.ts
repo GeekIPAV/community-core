@@ -35,6 +35,7 @@ import { Route as AppAdminCurriculosRouteImport } from './routes/_app/_admin.cur
 import { Route as AppAdminBolsasTransporteRouteImport } from './routes/_app/_admin.bolsas-transporte'
 import { Route as AppAdminAtividadesRouteImport } from './routes/_app/_admin.atividades'
 import { Route as AppAdminAcoesRouteImport } from './routes/_app/_admin.acoes'
+import { Route as AppAdminColaboradorasColaboradoraIdRouteImport } from './routes/_app/_admin.colaboradoras.$colaboradoraId'
 import { Route as AppAdminServicosColaboradorIdRouteImport } from './routes/_app/_admin.servicos.colaborador.$id'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -166,6 +167,12 @@ const AppAdminAcoesRoute = AppAdminAcoesRouteImport.update({
   path: '/acoes',
   getParentRoute: () => AppAdminRoute,
 } as any)
+const AppAdminColaboradorasColaboradoraIdRoute =
+  AppAdminColaboradorasColaboradoraIdRouteImport.update({
+    id: '/colaboradoras/$colaboradoraId',
+    path: '/colaboradoras/$colaboradoraId',
+    getParentRoute: () => AppAdminRoute,
+  } as any)
 const AppAdminServicosColaboradorIdRoute =
   AppAdminServicosColaboradorIdRouteImport.update({
     id: '/colaborador/$id',
@@ -198,6 +205,7 @@ export interface FileRoutesByFullPath {
   '/servicos': typeof AppAdminServicosRouteWithChildren
   '/style-guide': typeof AppAdminStyleGuideRoute
   '/tipos-user': typeof AppAdminTiposUserRoute
+  '/colaboradoras/$colaboradoraId': typeof AppAdminColaboradorasColaboradoraIdRoute
   '/servicos/colaborador/$id': typeof AppAdminServicosColaboradorIdRoute
 }
 export interface FileRoutesByTo {
@@ -225,6 +233,7 @@ export interface FileRoutesByTo {
   '/servicos': typeof AppAdminServicosRouteWithChildren
   '/style-guide': typeof AppAdminStyleGuideRoute
   '/tipos-user': typeof AppAdminTiposUserRoute
+  '/colaboradoras/$colaboradoraId': typeof AppAdminColaboradorasColaboradoraIdRoute
   '/servicos/colaborador/$id': typeof AppAdminServicosColaboradorIdRoute
 }
 export interface FileRoutesById {
@@ -255,6 +264,7 @@ export interface FileRoutesById {
   '/_app/_admin/servicos': typeof AppAdminServicosRouteWithChildren
   '/_app/_admin/style-guide': typeof AppAdminStyleGuideRoute
   '/_app/_admin/tipos-user': typeof AppAdminTiposUserRoute
+  '/_app/_admin/colaboradoras/$colaboradoraId': typeof AppAdminColaboradorasColaboradoraIdRoute
   '/_app/_admin/servicos/colaborador/$id': typeof AppAdminServicosColaboradorIdRoute
 }
 export interface FileRouteTypes {
@@ -284,6 +294,7 @@ export interface FileRouteTypes {
     | '/servicos'
     | '/style-guide'
     | '/tipos-user'
+    | '/colaboradoras/$colaboradoraId'
     | '/servicos/colaborador/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -311,6 +322,7 @@ export interface FileRouteTypes {
     | '/servicos'
     | '/style-guide'
     | '/tipos-user'
+    | '/colaboradoras/$colaboradoraId'
     | '/servicos/colaborador/$id'
   id:
     | '__root__'
@@ -340,6 +352,7 @@ export interface FileRouteTypes {
     | '/_app/_admin/servicos'
     | '/_app/_admin/style-guide'
     | '/_app/_admin/tipos-user'
+    | '/_app/_admin/colaboradoras/$colaboradoraId'
     | '/_app/_admin/servicos/colaborador/$id'
   fileRoutesById: FileRoutesById
 }
@@ -537,6 +550,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminAcoesRouteImport
       parentRoute: typeof AppAdminRoute
     }
+    '/_app/_admin/colaboradoras/$colaboradoraId': {
+      id: '/_app/_admin/colaboradoras/$colaboradoraId'
+      path: '/colaboradoras/$colaboradoraId'
+      fullPath: '/colaboradoras/$colaboradoraId'
+      preLoaderRoute: typeof AppAdminColaboradorasColaboradoraIdRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
     '/_app/_admin/servicos/colaborador/$id': {
       id: '/_app/_admin/servicos/colaborador/$id'
       path: '/colaborador/$id'
@@ -575,6 +595,7 @@ interface AppAdminRouteChildren {
   AppAdminServicosRoute: typeof AppAdminServicosRouteWithChildren
   AppAdminStyleGuideRoute: typeof AppAdminStyleGuideRoute
   AppAdminTiposUserRoute: typeof AppAdminTiposUserRoute
+  AppAdminColaboradorasColaboradoraIdRoute: typeof AppAdminColaboradorasColaboradoraIdRoute
 }
 
 const AppAdminRouteChildren: AppAdminRouteChildren = {
@@ -594,6 +615,8 @@ const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminServicosRoute: AppAdminServicosRouteWithChildren,
   AppAdminStyleGuideRoute: AppAdminStyleGuideRoute,
   AppAdminTiposUserRoute: AppAdminTiposUserRoute,
+  AppAdminColaboradorasColaboradoraIdRoute:
+    AppAdminColaboradorasColaboradoraIdRoute,
 }
 
 const AppAdminRouteWithChildren = AppAdminRoute._addFileChildren(
