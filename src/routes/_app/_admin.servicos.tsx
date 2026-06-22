@@ -788,11 +788,11 @@ function PagamentosTab() {
   const [form, setForm] = useState<Partial<Pagamento> & { liquidar_registos?: string[] }>({});
 
   const { data: colabs } = useQuery({
-    queryKey: ["colaboradores_lookup"],
+    queryKey: ["colaboradores_lookup_pag"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("colaboradores").select("id, nome_completo").order("nome_completo");
+      const { data, error } = await supabase.from("colaboradores").select("id, nome_completo, ativo").order("nome_completo");
       if (error) throw error;
-      return data as { id: string; nome_completo: string }[];
+      return data as { id: string; nome_completo: string; ativo: boolean }[];
     },
   });
 
@@ -973,7 +973,7 @@ function PagamentosTab() {
               <Label>Colaborador *</Label>
               <Select value={form.colaborador_id ?? ""} onValueChange={(v) => setForm({ ...form, colaborador_id: v, liquidar_registos: [] })}>
                 <SelectTrigger><SelectValue placeholder="Escolher…" /></SelectTrigger>
-                <SelectContent>{(colabs ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_completo}</SelectItem>)}</SelectContent>
+                <SelectContent>{(colabs ?? []).filter((c) => c.ativo).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_completo}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div><Label>Data *</Label><Input type="date" value={form.data_pagamento ?? ""} onChange={(e) => setForm({ ...form, data_pagamento: e.target.value })} /></div>
