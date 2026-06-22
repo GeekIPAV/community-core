@@ -88,7 +88,7 @@ function calcTotal(r: Registo, tipoMap: Map<string, Tipo>) {
 // ============ page ============
 type Vista = "mes" | "semana" | "gantt";
 
-function ServicosCalendarioPage() {
+export function ServicosCalendarioPage() {
   const isMobile = useIsMobile();
   const today = new Date();
   const [vista, setVista] = useState<Vista>("mes");
