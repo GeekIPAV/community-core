@@ -217,6 +217,7 @@ function ColabSelfArea({ colaboradorId, nome }: { colaboradorId: string; nome: s
         submetido_pelo_colaborador: true,
       });
       if (error) throw error;
+      await supabase.rpc("notificar_nova_entrada_pendente" as never, { p_colaborador_id: colaboradorId } as never);
     },
     onSuccess: () => {
       toast.success("Serviço submetido para aprovação");
