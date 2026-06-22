@@ -13,7 +13,8 @@ export type PageKey =
   | "projetos"
   | "bolsas-transporte"
   | "localizacoes"
-  | "tipos-user";
+  | "tipos-user"
+  | "servicos";
 
 export const AVAILABLE_PAGES: { key: PageKey; label: string; path: string }[] = [
   { key: "dashboard", label: "Dashboard", path: "/dashboard" },
@@ -31,6 +32,7 @@ export const AVAILABLE_PAGES: { key: PageKey; label: string; path: string }[] = 
   { key: "security", label: "Segurança (admin)", path: "/security" },
   { key: "style-guide", label: "Style Guide (admin)", path: "/style-guide" },
   { key: "tipos-user", label: "Tipos de Utilizador (admin)", path: "/tipos-user" },
+  { key: "servicos", label: "Serviços & Pagamentos", path: "/servicos" },
 ];
 
 export function pageKeyFromPath(pathname: string): PageKey | null {
