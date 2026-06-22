@@ -27,6 +27,7 @@ export function AppSidebar() {
     { title: t("nav.publicPortal"), url: "/", icon: Globe },
     { title: t("nav.results"), url: "/resultados", icon: BarChart3 },
     { title: t("nav.myProfile"), url: "/perfil", icon: User },
+    { title: "Os meus serviços", url: "/meus-servicos", icon: Wallet },
   ];
   const participantesItems = [
     { title: t("nav.participants"), url: "/participantes", icon: Users, page: "participantes" as const },
