@@ -25,6 +25,7 @@ import { Route as AppAdminServicosRouteImport } from './routes/_app/_admin.servi
 import { Route as AppAdminSecurityRouteImport } from './routes/_app/_admin.security'
 import { Route as AppAdminProjetosRouteImport } from './routes/_app/_admin.projetos'
 import { Route as AppAdminParticipantesRouteImport } from './routes/_app/_admin.participantes'
+import { Route as AppAdminParceirosRouteImport } from './routes/_app/_admin.parceiros'
 import { Route as AppAdminMenuRouteImport } from './routes/_app/_admin.menu'
 import { Route as AppAdminLocalizacoesRouteImport } from './routes/_app/_admin.localizacoes'
 import { Route as AppAdminFamiliasRouteImport } from './routes/_app/_admin.familias'
@@ -37,6 +38,8 @@ import { Route as AppAdminBolsasTransporteRouteImport } from './routes/_app/_adm
 import { Route as AppAdminAtividadesRouteImport } from './routes/_app/_admin.atividades'
 import { Route as AppAdminAcoesRouteImport } from './routes/_app/_admin.acoes'
 import { Route as AppAdminServicosCalendarioRouteImport } from './routes/_app/_admin.servicos.calendario'
+import { Route as AppAdminProjetosProjetoIdRouteImport } from './routes/_app/_admin.projetos.$projetoId'
+import { Route as AppAdminParceirosParceiroIdRouteImport } from './routes/_app/_admin.parceiros.$parceiroId'
 import { Route as AppAdminColaboradorasColaboradoraIdRouteImport } from './routes/_app/_admin.colaboradoras.$colaboradoraId'
 import { Route as AppAdminServicosColaboradorIdRouteImport } from './routes/_app/_admin.servicos.colaborador.$id'
 
@@ -118,6 +121,11 @@ const AppAdminParticipantesRoute = AppAdminParticipantesRouteImport.update({
   path: '/participantes',
   getParentRoute: () => AppAdminRoute,
 } as any)
+const AppAdminParceirosRoute = AppAdminParceirosRouteImport.update({
+  id: '/parceiros',
+  path: '/parceiros',
+  getParentRoute: () => AppAdminRoute,
+} as any)
 const AppAdminMenuRoute = AppAdminMenuRouteImport.update({
   id: '/menu',
   path: '/menu',
@@ -180,6 +188,18 @@ const AppAdminServicosCalendarioRoute =
     path: '/calendario',
     getParentRoute: () => AppAdminServicosRoute,
   } as any)
+const AppAdminProjetosProjetoIdRoute =
+  AppAdminProjetosProjetoIdRouteImport.update({
+    id: '/$projetoId',
+    path: '/$projetoId',
+    getParentRoute: () => AppAdminProjetosRoute,
+  } as any)
+const AppAdminParceirosParceiroIdRoute =
+  AppAdminParceirosParceiroIdRouteImport.update({
+    id: '/$parceiroId',
+    path: '/$parceiroId',
+    getParentRoute: () => AppAdminParceirosRoute,
+  } as any)
 const AppAdminColaboradorasColaboradoraIdRoute =
   AppAdminColaboradorasColaboradoraIdRouteImport.update({
     id: '/colaboradoras/$colaboradoraId',
@@ -213,13 +233,16 @@ export interface FileRoutesByFullPath {
   '/familias': typeof AppAdminFamiliasRoute
   '/localizacoes': typeof AppAdminLocalizacoesRoute
   '/menu': typeof AppAdminMenuRoute
+  '/parceiros': typeof AppAdminParceirosRouteWithChildren
   '/participantes': typeof AppAdminParticipantesRoute
-  '/projetos': typeof AppAdminProjetosRoute
+  '/projetos': typeof AppAdminProjetosRouteWithChildren
   '/security': typeof AppAdminSecurityRoute
   '/servicos': typeof AppAdminServicosRouteWithChildren
   '/style-guide': typeof AppAdminStyleGuideRoute
   '/tipos-user': typeof AppAdminTiposUserRoute
   '/colaboradoras/$colaboradoraId': typeof AppAdminColaboradorasColaboradoraIdRoute
+  '/parceiros/$parceiroId': typeof AppAdminParceirosParceiroIdRoute
+  '/projetos/$projetoId': typeof AppAdminProjetosProjetoIdRoute
   '/servicos/calendario': typeof AppAdminServicosCalendarioRoute
   '/servicos/colaborador/$id': typeof AppAdminServicosColaboradorIdRoute
 }
@@ -243,13 +266,16 @@ export interface FileRoutesByTo {
   '/familias': typeof AppAdminFamiliasRoute
   '/localizacoes': typeof AppAdminLocalizacoesRoute
   '/menu': typeof AppAdminMenuRoute
+  '/parceiros': typeof AppAdminParceirosRouteWithChildren
   '/participantes': typeof AppAdminParticipantesRoute
-  '/projetos': typeof AppAdminProjetosRoute
+  '/projetos': typeof AppAdminProjetosRouteWithChildren
   '/security': typeof AppAdminSecurityRoute
   '/servicos': typeof AppAdminServicosRouteWithChildren
   '/style-guide': typeof AppAdminStyleGuideRoute
   '/tipos-user': typeof AppAdminTiposUserRoute
   '/colaboradoras/$colaboradoraId': typeof AppAdminColaboradorasColaboradoraIdRoute
+  '/parceiros/$parceiroId': typeof AppAdminParceirosParceiroIdRoute
+  '/projetos/$projetoId': typeof AppAdminProjetosProjetoIdRoute
   '/servicos/calendario': typeof AppAdminServicosCalendarioRoute
   '/servicos/colaborador/$id': typeof AppAdminServicosColaboradorIdRoute
 }
@@ -276,13 +302,16 @@ export interface FileRoutesById {
   '/_app/_admin/familias': typeof AppAdminFamiliasRoute
   '/_app/_admin/localizacoes': typeof AppAdminLocalizacoesRoute
   '/_app/_admin/menu': typeof AppAdminMenuRoute
+  '/_app/_admin/parceiros': typeof AppAdminParceirosRouteWithChildren
   '/_app/_admin/participantes': typeof AppAdminParticipantesRoute
-  '/_app/_admin/projetos': typeof AppAdminProjetosRoute
+  '/_app/_admin/projetos': typeof AppAdminProjetosRouteWithChildren
   '/_app/_admin/security': typeof AppAdminSecurityRoute
   '/_app/_admin/servicos': typeof AppAdminServicosRouteWithChildren
   '/_app/_admin/style-guide': typeof AppAdminStyleGuideRoute
   '/_app/_admin/tipos-user': typeof AppAdminTiposUserRoute
   '/_app/_admin/colaboradoras/$colaboradoraId': typeof AppAdminColaboradorasColaboradoraIdRoute
+  '/_app/_admin/parceiros/$parceiroId': typeof AppAdminParceirosParceiroIdRoute
+  '/_app/_admin/projetos/$projetoId': typeof AppAdminProjetosProjetoIdRoute
   '/_app/_admin/servicos/calendario': typeof AppAdminServicosCalendarioRoute
   '/_app/_admin/servicos/colaborador/$id': typeof AppAdminServicosColaboradorIdRoute
 }
@@ -308,6 +337,7 @@ export interface FileRouteTypes {
     | '/familias'
     | '/localizacoes'
     | '/menu'
+    | '/parceiros'
     | '/participantes'
     | '/projetos'
     | '/security'
@@ -315,6 +345,8 @@ export interface FileRouteTypes {
     | '/style-guide'
     | '/tipos-user'
     | '/colaboradoras/$colaboradoraId'
+    | '/parceiros/$parceiroId'
+    | '/projetos/$projetoId'
     | '/servicos/calendario'
     | '/servicos/colaborador/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -338,6 +370,7 @@ export interface FileRouteTypes {
     | '/familias'
     | '/localizacoes'
     | '/menu'
+    | '/parceiros'
     | '/participantes'
     | '/projetos'
     | '/security'
@@ -345,6 +378,8 @@ export interface FileRouteTypes {
     | '/style-guide'
     | '/tipos-user'
     | '/colaboradoras/$colaboradoraId'
+    | '/parceiros/$parceiroId'
+    | '/projetos/$projetoId'
     | '/servicos/calendario'
     | '/servicos/colaborador/$id'
   id:
@@ -370,6 +405,7 @@ export interface FileRouteTypes {
     | '/_app/_admin/familias'
     | '/_app/_admin/localizacoes'
     | '/_app/_admin/menu'
+    | '/_app/_admin/parceiros'
     | '/_app/_admin/participantes'
     | '/_app/_admin/projetos'
     | '/_app/_admin/security'
@@ -377,6 +413,8 @@ export interface FileRouteTypes {
     | '/_app/_admin/style-guide'
     | '/_app/_admin/tipos-user'
     | '/_app/_admin/colaboradoras/$colaboradoraId'
+    | '/_app/_admin/parceiros/$parceiroId'
+    | '/_app/_admin/projetos/$projetoId'
     | '/_app/_admin/servicos/calendario'
     | '/_app/_admin/servicos/colaborador/$id'
   fileRoutesById: FileRoutesById
@@ -505,6 +543,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminParticipantesRouteImport
       parentRoute: typeof AppAdminRoute
     }
+    '/_app/_admin/parceiros': {
+      id: '/_app/_admin/parceiros'
+      path: '/parceiros'
+      fullPath: '/parceiros'
+      preLoaderRoute: typeof AppAdminParceirosRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
     '/_app/_admin/menu': {
       id: '/_app/_admin/menu'
       path: '/menu'
@@ -589,6 +634,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminServicosCalendarioRouteImport
       parentRoute: typeof AppAdminServicosRoute
     }
+    '/_app/_admin/projetos/$projetoId': {
+      id: '/_app/_admin/projetos/$projetoId'
+      path: '/$projetoId'
+      fullPath: '/projetos/$projetoId'
+      preLoaderRoute: typeof AppAdminProjetosProjetoIdRouteImport
+      parentRoute: typeof AppAdminProjetosRoute
+    }
+    '/_app/_admin/parceiros/$parceiroId': {
+      id: '/_app/_admin/parceiros/$parceiroId'
+      path: '/$parceiroId'
+      fullPath: '/parceiros/$parceiroId'
+      preLoaderRoute: typeof AppAdminParceirosParceiroIdRouteImport
+      parentRoute: typeof AppAdminParceirosRoute
+    }
     '/_app/_admin/colaboradoras/$colaboradoraId': {
       id: '/_app/_admin/colaboradoras/$colaboradoraId'
       path: '/colaboradoras/$colaboradoraId'
@@ -605,6 +664,28 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AppAdminParceirosRouteChildren {
+  AppAdminParceirosParceiroIdRoute: typeof AppAdminParceirosParceiroIdRoute
+}
+
+const AppAdminParceirosRouteChildren: AppAdminParceirosRouteChildren = {
+  AppAdminParceirosParceiroIdRoute: AppAdminParceirosParceiroIdRoute,
+}
+
+const AppAdminParceirosRouteWithChildren =
+  AppAdminParceirosRoute._addFileChildren(AppAdminParceirosRouteChildren)
+
+interface AppAdminProjetosRouteChildren {
+  AppAdminProjetosProjetoIdRoute: typeof AppAdminProjetosProjetoIdRoute
+}
+
+const AppAdminProjetosRouteChildren: AppAdminProjetosRouteChildren = {
+  AppAdminProjetosProjetoIdRoute: AppAdminProjetosProjetoIdRoute,
+}
+
+const AppAdminProjetosRouteWithChildren =
+  AppAdminProjetosRoute._addFileChildren(AppAdminProjetosRouteChildren)
 
 interface AppAdminServicosRouteChildren {
   AppAdminServicosCalendarioRoute: typeof AppAdminServicosCalendarioRoute
@@ -631,8 +712,9 @@ interface AppAdminRouteChildren {
   AppAdminFamiliasRoute: typeof AppAdminFamiliasRoute
   AppAdminLocalizacoesRoute: typeof AppAdminLocalizacoesRoute
   AppAdminMenuRoute: typeof AppAdminMenuRoute
+  AppAdminParceirosRoute: typeof AppAdminParceirosRouteWithChildren
   AppAdminParticipantesRoute: typeof AppAdminParticipantesRoute
-  AppAdminProjetosRoute: typeof AppAdminProjetosRoute
+  AppAdminProjetosRoute: typeof AppAdminProjetosRouteWithChildren
   AppAdminSecurityRoute: typeof AppAdminSecurityRoute
   AppAdminServicosRoute: typeof AppAdminServicosRouteWithChildren
   AppAdminStyleGuideRoute: typeof AppAdminStyleGuideRoute
@@ -652,8 +734,9 @@ const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminFamiliasRoute: AppAdminFamiliasRoute,
   AppAdminLocalizacoesRoute: AppAdminLocalizacoesRoute,
   AppAdminMenuRoute: AppAdminMenuRoute,
+  AppAdminParceirosRoute: AppAdminParceirosRouteWithChildren,
   AppAdminParticipantesRoute: AppAdminParticipantesRoute,
-  AppAdminProjetosRoute: AppAdminProjetosRoute,
+  AppAdminProjetosRoute: AppAdminProjetosRouteWithChildren,
   AppAdminSecurityRoute: AppAdminSecurityRoute,
   AppAdminServicosRoute: AppAdminServicosRouteWithChildren,
   AppAdminStyleGuideRoute: AppAdminStyleGuideRoute,

@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      acao_parceiros: {
+        Row: {
+          acao_id: string
+          created_at: string
+          parceiro_id: string
+        }
+        Insert: {
+          acao_id: string
+          created_at?: string
+          parceiro_id: string
+        }
+        Update: {
+          acao_id?: string
+          created_at?: string
+          parceiro_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acao_parceiros_acao_id_fkey"
+            columns: ["acao_id"]
+            isOneToOne: false
+            referencedRelation: "acoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acao_parceiros_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       acoes: {
         Row: {
           bolsa_transporte: boolean
@@ -522,6 +555,50 @@ export type Database = {
           },
         ]
       }
+      familia_contexto: {
+        Row: {
+          created_at: string
+          familia_id: string
+          frequencia_participacao: string | null
+          linguas: string[]
+          notas_relacionais: string | null
+          redes_suporte: string[]
+          territorio: string | null
+          tradicao_cultural: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          familia_id: string
+          frequencia_participacao?: string | null
+          linguas?: string[]
+          notas_relacionais?: string | null
+          redes_suporte?: string[]
+          territorio?: string | null
+          tradicao_cultural?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          familia_id?: string
+          frequencia_participacao?: string | null
+          linguas?: string[]
+          notas_relacionais?: string | null
+          redes_suporte?: string[]
+          territorio?: string | null
+          tradicao_cultural?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "familia_contexto_familia_id_fkey"
+            columns: ["familia_id"]
+            isOneToOne: true
+            referencedRelation: "familias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       familias: {
         Row: {
           contacto_meeru_id: string | null
@@ -732,6 +809,113 @@ export type Database = {
           },
         ]
       }
+      parceiro_interacoes: {
+        Row: {
+          created_at: string
+          data: string
+          id: string
+          notas: string | null
+          parceiro_id: string
+          tipo: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data?: string
+          id?: string
+          notas?: string | null
+          parceiro_id: string
+          tipo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          id?: string
+          notas?: string | null
+          parceiro_id?: string
+          tipo?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parceiro_interacoes_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parceiro_projetos: {
+        Row: {
+          created_at: string
+          parceiro_id: string
+          projeto_id: string
+        }
+        Insert: {
+          created_at?: string
+          parceiro_id: string
+          projeto_id: string
+        }
+        Update: {
+          created_at?: string
+          parceiro_id?: string
+          projeto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parceiro_projetos_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parceiro_projetos_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parceiros: {
+        Row: {
+          created_at: string
+          email_contacto: string | null
+          estado: string
+          id: string
+          nome: string
+          notas: string | null
+          pessoa_contacto: string | null
+          tipo: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email_contacto?: string | null
+          estado?: string
+          id?: string
+          nome: string
+          notas?: string | null
+          pessoa_contacto?: string | null
+          tipo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email_contacto?: string | null
+          estado?: string
+          id?: string
+          nome?: string
+          notas?: string | null
+          pessoa_contacto?: string | null
+          tipo?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pessoa_etiquetas: {
         Row: {
           created_at: string
@@ -884,6 +1068,56 @@ export type Database = {
             columns: ["tipo_user_id"]
             isOneToOne: false
             referencedRelation: "tipos_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projeto_kpis: {
+        Row: {
+          created_at: string
+          fonte: string
+          id: string
+          meta: number
+          narrativa: string | null
+          nome: string
+          position: number
+          projeto_id: string
+          unidade: string
+          updated_at: string
+          valor_manual: number | null
+        }
+        Insert: {
+          created_at?: string
+          fonte: string
+          id?: string
+          meta?: number
+          narrativa?: string | null
+          nome: string
+          position?: number
+          projeto_id: string
+          unidade?: string
+          updated_at?: string
+          valor_manual?: number | null
+        }
+        Update: {
+          created_at?: string
+          fonte?: string
+          id?: string
+          meta?: number
+          narrativa?: string | null
+          nome?: string
+          position?: number
+          projeto_id?: string
+          unidade?: string
+          updated_at?: string
+          valor_manual?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_kpis_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
             referencedColumns: ["id"]
           },
         ]

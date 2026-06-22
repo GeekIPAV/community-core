@@ -17,6 +17,7 @@ import { RichTextView } from "@/components/rich-text-view";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { ImageUpload } from "@/components/image-upload";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { matchCidade, formatEuro, type CidadeBolsa } from "@/lib/bolsa-transporte";
@@ -175,6 +176,7 @@ function AcaoDetailPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {acao.descricao && <RichTextView html={acao.descricao} />}
+              <AcaoParceirosChips acaoId={acao.id} />
               {acao.restrito_a_projetos && (acao.projeto_ids?.length ?? 0) > 0 && (
                 <p className="text-xs rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-muted-foreground">
                   Inscrição reservada a participantes dos projetos associados a esta ação.
@@ -441,6 +443,29 @@ function AnonForm({ acao, fields, onDone }: { acao: any; fields: FieldDef[]; onD
       </DialogContent>
     </Dialog>
     </>
+  );
+}
+
+function AcaoParceirosChips({ acaoId }: { acaoId: string }) {
+  const { data } = useQuery({
+    queryKey: ["acao-parceiros-public", acaoId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("acao_parceiros")
+        .select("parceiro:parceiros(id, nome)")
+        .eq("acao_id", acaoId);
+      if (error) throw error;
+      return ((data ?? []) as any[]).map((r) => r.parceiro).filter(Boolean) as { id: string; nome: string }[];
+    },
+  });
+  if (!data || data.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Parceiros:</span>
+      {data.map((p) => (
+        <Badge key={p.id} variant="secondary">{p.nome}</Badge>
+      ))}
+    </div>
   );
 }
 

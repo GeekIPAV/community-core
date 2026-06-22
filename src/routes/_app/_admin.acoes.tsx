@@ -230,9 +230,10 @@ type AcaoForm = {
   restrito_a_projetos: boolean;
   publico: boolean;
   fields: FieldDef[];
+  parceiro_ids?: string[];
 };
 
-const EMPTY_FORM: AcaoForm = { nome: "", local: "", mapa_url: "", imagem_url: "", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, bolsa_transporte: false, projeto_ids: [], restrito_a_projetos: false, publico: true, fields: [] };
+const EMPTY_FORM: AcaoForm = { nome: "", local: "", mapa_url: "", imagem_url: "", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, bolsa_transporte: false, projeto_ids: [], restrito_a_projetos: false, publico: true, fields: [], parceiro_ids: [] };
 
 const acaoFormSchema = z
   .object({
@@ -1823,6 +1824,34 @@ function AcoesPageInner() {
     },
   });
 
+  const { data: parceiros } = useQuery({
+    queryKey: ["parceiros_lookup"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("parceiros")
+        .select("id, nome")
+        .eq("estado", "Ativa")
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+  });
+
+  const { data: acaoParceiros } = useQuery({
+    queryKey: ["acao_parceiros"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("acao_parceiros").select("acao_id, parceiro_id");
+      if (error) throw error;
+      const m = new Map<string, string[]>();
+      for (const r of (data ?? []) as { acao_id: string; parceiro_id: string }[]) {
+        const arr = m.get(r.acao_id) ?? [];
+        arr.push(r.parceiro_id);
+        m.set(r.acao_id, arr);
+      }
+      return m;
+    },
+  });
+
   const { data: inscricaoCounts } = useQuery({
     queryKey: ["acoes", "inscricoes-count"],
     queryFn: async () => {
@@ -1861,6 +1890,7 @@ function AcoesPageInner() {
   });
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["acoes"] });
+  const invalidateParceiros = () => qc.invalidateQueries({ queryKey: ["acao_parceiros"] });
 
   const { proximos, passados, semData } = useMemo(() => {
     const now = Date.now();
@@ -1920,6 +1950,7 @@ function AcoesPageInner() {
             restrito_a_projetos: !!(a as any).restrito_a_projetos,
             publico: (a as any).publico ?? true,
             fields,
+            parceiro_ids: acaoParceiros?.get(a.id) ?? [],
           });
         }}
       >
@@ -1998,11 +2029,21 @@ function AcoesPageInner() {
       } as any).select("id").single();
       if (error) throw error;
       await upsertLocalizacao(form.local, form.mapa_url || null);
+      if (created?.id) {
+        const pids = form.parceiro_ids ?? [];
+        if (pids.length > 0) {
+          const { error: pe } = await supabase
+            .from("acao_parceiros")
+            .insert(pids.map((parceiro_id) => ({ acao_id: created.id, parceiro_id })));
+          if (pe) throw pe;
+        }
+      }
       if (created?.id) fireGoogleSync(created.id, "upsert");
     },
     onSuccess: () => {
       toast.success("Ação criada");
       invalidate();
+      invalidateParceiros();
       qc.invalidateQueries({ queryKey: ["localizacoes"] });
       setAddOpen(false);
       setForm(EMPTY_FORM);
@@ -2037,11 +2078,20 @@ function AcoesPageInner() {
         .eq("id", editing.id);
       if (error) throw error;
       await upsertLocalizacao(editing.local, editing.mapa_url || null);
+      await supabase.from("acao_parceiros").delete().eq("acao_id", editing.id);
+      const pids = editing.parceiro_ids ?? [];
+      if (pids.length > 0) {
+        const { error: pe } = await supabase
+          .from("acao_parceiros")
+          .insert(pids.map((parceiro_id) => ({ acao_id: editing.id, parceiro_id })));
+        if (pe) throw pe;
+      }
       fireGoogleSync(editing.id, "upsert");
     },
     onSuccess: () => {
       toast.success("Ação atualizada");
       invalidate();
+      invalidateParceiros();
       qc.invalidateQueries({ queryKey: ["localizacoes"] });
       setEditing(null);
     },
@@ -2173,6 +2223,14 @@ function AcoesPageInner() {
                   />
                 </label>
               </div>
+              <div className="space-y-2 rounded-md border p-3">
+                <Label>Parceiros co-responsáveis</Label>
+                <ProjetosMultiSelect
+                  values={form.parceiro_ids ?? []}
+                  options={(parceiros ?? []).map((p) => ({ value: p.id, label: p.nome }))}
+                  onChange={(v) => setForm({ ...form, parceiro_ids: v })}
+                />
+              </div>
               <div className="space-y-2">
                 <Label>Descrição</Label>
                 <RichTextEditor value={form.descricao} onChange={(v) => setForm({ ...form, descricao: v })} />
@@ -2273,6 +2331,7 @@ function AcoesPageInner() {
                 restrito_a_projetos: !!a.restrito_a_projetos,
                 publico: a.publico ?? true,
                 fields,
+                parceiro_ids: acaoParceiros?.get(a.id) ?? [],
               });
             }}
           />
@@ -2399,6 +2458,14 @@ function AcoesPageInner() {
                     onCheckedChange={(c) => setEditing({ ...editing, restrito_a_projetos: c })}
                   />
                 </label>
+              </div>
+              <div className="space-y-2 rounded-md border p-3">
+                <Label>Parceiros co-responsáveis</Label>
+                <ProjetosMultiSelect
+                  values={editing.parceiro_ids ?? []}
+                  options={(parceiros ?? []).map((p) => ({ value: p.id, label: p.nome }))}
+                  onChange={(v) => setEditing({ ...editing, parceiro_ids: v })}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Descrição</Label>
