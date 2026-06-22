@@ -642,7 +642,11 @@ function RegistosTab() {
                         <span className="text-muted-foreground"> → {new Date(r.data_fim).toLocaleDateString("pt-PT")}</span>
                       )}
                     </TableCell>
-                    <TableCell className="font-medium">{colabMap.get(r.colaborador_id) ?? "—"}</TableCell>
+                    <TableCell className="font-medium">
+                      <Link to="/servicos/colaborador/$id" params={{ id: r.colaborador_id }} className="hover:underline">
+                        {colabMap.get(r.colaborador_id) ?? "—"}
+                      </Link>
+                    </TableCell>
                     <TableCell>
                       <div>{tipo?.nome ?? "—"}</div>
                       {r.descricao && <div className="text-xs text-muted-foreground truncate max-w-xs">{r.descricao}</div>}
