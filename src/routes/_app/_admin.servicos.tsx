@@ -910,6 +910,7 @@ function RegistosTab() {
         data={rowsData}
         isLoading={isLoading}
         editableColumns={["quantidade", "estado"]}
+        onRowClick={(r) => openEdit(r)}
         onCellEdit={(rowId, columnId, value) => {
           let v: unknown = value;
           if (columnId === "quantidade") v = Number(value) || 0;
@@ -1207,6 +1208,7 @@ function PagamentosTab() {
         data={rows}
         isLoading={isLoading}
         editableColumns={["referencia", "metodo", "total", "data_pagamento"]}
+        onRowClick={(p) => openEdit(p)}
         onCellEdit={(rowId, columnId, value) => {
           let v: unknown = value;
           if (columnId === "total") v = Number(value) || 0;
