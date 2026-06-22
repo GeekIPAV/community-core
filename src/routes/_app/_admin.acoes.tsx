@@ -2076,6 +2076,14 @@ function AcoesPageInner() {
         .eq("id", editing.id);
       if (error) throw error;
       await upsertLocalizacao(editing.local, editing.mapa_url || null);
+      await supabase.from("acao_parceiros").delete().eq("acao_id", editing.id);
+      const pids = editing.parceiro_ids ?? [];
+      if (pids.length > 0) {
+        const { error: pe } = await supabase
+          .from("acao_parceiros")
+          .insert(pids.map((parceiro_id) => ({ acao_id: editing.id, parceiro_id })));
+        if (pe) throw pe;
+      }
       fireGoogleSync(editing.id, "upsert");
     },
     onSuccess: () => {
