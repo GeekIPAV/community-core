@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, Calendar, Inbox, Mail, Pencil, Plus, Trash2, User } from "lucide-react";
 import {
@@ -373,6 +373,3 @@ function InteracoesTab({ parceiroId }: { parceiroId: string }) {
     </div>
   );
 }
-
-// Silence unused warning for useEffect if linter strict-imports
-void useEffect;

@@ -39,6 +39,7 @@ import { Route as AppAdminAtividadesRouteImport } from './routes/_app/_admin.ati
 import { Route as AppAdminAcoesRouteImport } from './routes/_app/_admin.acoes'
 import { Route as AppAdminServicosCalendarioRouteImport } from './routes/_app/_admin.servicos.calendario'
 import { Route as AppAdminProjetosProjetoIdRouteImport } from './routes/_app/_admin.projetos.$projetoId'
+import { Route as AppAdminParceirosParceiroIdRouteImport } from './routes/_app/_admin.parceiros.$parceiroId'
 import { Route as AppAdminColaboradorasColaboradoraIdRouteImport } from './routes/_app/_admin.colaboradoras.$colaboradoraId'
 import { Route as AppAdminServicosColaboradorIdRouteImport } from './routes/_app/_admin.servicos.colaborador.$id'
 
@@ -193,6 +194,12 @@ const AppAdminProjetosProjetoIdRoute =
     path: '/$projetoId',
     getParentRoute: () => AppAdminProjetosRoute,
   } as any)
+const AppAdminParceirosParceiroIdRoute =
+  AppAdminParceirosParceiroIdRouteImport.update({
+    id: '/$parceiroId',
+    path: '/$parceiroId',
+    getParentRoute: () => AppAdminParceirosRoute,
+  } as any)
 const AppAdminColaboradorasColaboradoraIdRoute =
   AppAdminColaboradorasColaboradoraIdRouteImport.update({
     id: '/colaboradoras/$colaboradoraId',
@@ -226,7 +233,7 @@ export interface FileRoutesByFullPath {
   '/familias': typeof AppAdminFamiliasRoute
   '/localizacoes': typeof AppAdminLocalizacoesRoute
   '/menu': typeof AppAdminMenuRoute
-  '/parceiros': typeof AppAdminParceirosRoute
+  '/parceiros': typeof AppAdminParceirosRouteWithChildren
   '/participantes': typeof AppAdminParticipantesRoute
   '/projetos': typeof AppAdminProjetosRouteWithChildren
   '/security': typeof AppAdminSecurityRoute
@@ -234,6 +241,7 @@ export interface FileRoutesByFullPath {
   '/style-guide': typeof AppAdminStyleGuideRoute
   '/tipos-user': typeof AppAdminTiposUserRoute
   '/colaboradoras/$colaboradoraId': typeof AppAdminColaboradorasColaboradoraIdRoute
+  '/parceiros/$parceiroId': typeof AppAdminParceirosParceiroIdRoute
   '/projetos/$projetoId': typeof AppAdminProjetosProjetoIdRoute
   '/servicos/calendario': typeof AppAdminServicosCalendarioRoute
   '/servicos/colaborador/$id': typeof AppAdminServicosColaboradorIdRoute
@@ -258,7 +266,7 @@ export interface FileRoutesByTo {
   '/familias': typeof AppAdminFamiliasRoute
   '/localizacoes': typeof AppAdminLocalizacoesRoute
   '/menu': typeof AppAdminMenuRoute
-  '/parceiros': typeof AppAdminParceirosRoute
+  '/parceiros': typeof AppAdminParceirosRouteWithChildren
   '/participantes': typeof AppAdminParticipantesRoute
   '/projetos': typeof AppAdminProjetosRouteWithChildren
   '/security': typeof AppAdminSecurityRoute
@@ -266,6 +274,7 @@ export interface FileRoutesByTo {
   '/style-guide': typeof AppAdminStyleGuideRoute
   '/tipos-user': typeof AppAdminTiposUserRoute
   '/colaboradoras/$colaboradoraId': typeof AppAdminColaboradorasColaboradoraIdRoute
+  '/parceiros/$parceiroId': typeof AppAdminParceirosParceiroIdRoute
   '/projetos/$projetoId': typeof AppAdminProjetosProjetoIdRoute
   '/servicos/calendario': typeof AppAdminServicosCalendarioRoute
   '/servicos/colaborador/$id': typeof AppAdminServicosColaboradorIdRoute
@@ -293,7 +302,7 @@ export interface FileRoutesById {
   '/_app/_admin/familias': typeof AppAdminFamiliasRoute
   '/_app/_admin/localizacoes': typeof AppAdminLocalizacoesRoute
   '/_app/_admin/menu': typeof AppAdminMenuRoute
-  '/_app/_admin/parceiros': typeof AppAdminParceirosRoute
+  '/_app/_admin/parceiros': typeof AppAdminParceirosRouteWithChildren
   '/_app/_admin/participantes': typeof AppAdminParticipantesRoute
   '/_app/_admin/projetos': typeof AppAdminProjetosRouteWithChildren
   '/_app/_admin/security': typeof AppAdminSecurityRoute
@@ -301,6 +310,7 @@ export interface FileRoutesById {
   '/_app/_admin/style-guide': typeof AppAdminStyleGuideRoute
   '/_app/_admin/tipos-user': typeof AppAdminTiposUserRoute
   '/_app/_admin/colaboradoras/$colaboradoraId': typeof AppAdminColaboradorasColaboradoraIdRoute
+  '/_app/_admin/parceiros/$parceiroId': typeof AppAdminParceirosParceiroIdRoute
   '/_app/_admin/projetos/$projetoId': typeof AppAdminProjetosProjetoIdRoute
   '/_app/_admin/servicos/calendario': typeof AppAdminServicosCalendarioRoute
   '/_app/_admin/servicos/colaborador/$id': typeof AppAdminServicosColaboradorIdRoute
@@ -335,6 +345,7 @@ export interface FileRouteTypes {
     | '/style-guide'
     | '/tipos-user'
     | '/colaboradoras/$colaboradoraId'
+    | '/parceiros/$parceiroId'
     | '/projetos/$projetoId'
     | '/servicos/calendario'
     | '/servicos/colaborador/$id'
@@ -367,6 +378,7 @@ export interface FileRouteTypes {
     | '/style-guide'
     | '/tipos-user'
     | '/colaboradoras/$colaboradoraId'
+    | '/parceiros/$parceiroId'
     | '/projetos/$projetoId'
     | '/servicos/calendario'
     | '/servicos/colaborador/$id'
@@ -401,6 +413,7 @@ export interface FileRouteTypes {
     | '/_app/_admin/style-guide'
     | '/_app/_admin/tipos-user'
     | '/_app/_admin/colaboradoras/$colaboradoraId'
+    | '/_app/_admin/parceiros/$parceiroId'
     | '/_app/_admin/projetos/$projetoId'
     | '/_app/_admin/servicos/calendario'
     | '/_app/_admin/servicos/colaborador/$id'
@@ -628,6 +641,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminProjetosProjetoIdRouteImport
       parentRoute: typeof AppAdminProjetosRoute
     }
+    '/_app/_admin/parceiros/$parceiroId': {
+      id: '/_app/_admin/parceiros/$parceiroId'
+      path: '/$parceiroId'
+      fullPath: '/parceiros/$parceiroId'
+      preLoaderRoute: typeof AppAdminParceirosParceiroIdRouteImport
+      parentRoute: typeof AppAdminParceirosRoute
+    }
     '/_app/_admin/colaboradoras/$colaboradoraId': {
       id: '/_app/_admin/colaboradoras/$colaboradoraId'
       path: '/colaboradoras/$colaboradoraId'
@@ -644,6 +664,17 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AppAdminParceirosRouteChildren {
+  AppAdminParceirosParceiroIdRoute: typeof AppAdminParceirosParceiroIdRoute
+}
+
+const AppAdminParceirosRouteChildren: AppAdminParceirosRouteChildren = {
+  AppAdminParceirosParceiroIdRoute: AppAdminParceirosParceiroIdRoute,
+}
+
+const AppAdminParceirosRouteWithChildren =
+  AppAdminParceirosRoute._addFileChildren(AppAdminParceirosRouteChildren)
 
 interface AppAdminProjetosRouteChildren {
   AppAdminProjetosProjetoIdRoute: typeof AppAdminProjetosProjetoIdRoute
@@ -681,7 +712,7 @@ interface AppAdminRouteChildren {
   AppAdminFamiliasRoute: typeof AppAdminFamiliasRoute
   AppAdminLocalizacoesRoute: typeof AppAdminLocalizacoesRoute
   AppAdminMenuRoute: typeof AppAdminMenuRoute
-  AppAdminParceirosRoute: typeof AppAdminParceirosRoute
+  AppAdminParceirosRoute: typeof AppAdminParceirosRouteWithChildren
   AppAdminParticipantesRoute: typeof AppAdminParticipantesRoute
   AppAdminProjetosRoute: typeof AppAdminProjetosRouteWithChildren
   AppAdminSecurityRoute: typeof AppAdminSecurityRoute
@@ -703,7 +734,7 @@ const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminFamiliasRoute: AppAdminFamiliasRoute,
   AppAdminLocalizacoesRoute: AppAdminLocalizacoesRoute,
   AppAdminMenuRoute: AppAdminMenuRoute,
-  AppAdminParceirosRoute: AppAdminParceirosRoute,
+  AppAdminParceirosRoute: AppAdminParceirosRouteWithChildren,
   AppAdminParticipantesRoute: AppAdminParticipantesRoute,
   AppAdminProjetosRoute: AppAdminProjetosRouteWithChildren,
   AppAdminSecurityRoute: AppAdminSecurityRoute,
