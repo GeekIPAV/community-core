@@ -1824,6 +1824,34 @@ function AcoesPageInner() {
     },
   });
 
+  const { data: parceiros } = useQuery({
+    queryKey: ["parceiros_lookup"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("parceiros")
+        .select("id, nome")
+        .eq("estado", "Ativa")
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+  });
+
+  const { data: acaoParceiros } = useQuery({
+    queryKey: ["acao_parceiros"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("acao_parceiros").select("acao_id, parceiro_id");
+      if (error) throw error;
+      const m = new Map<string, string[]>();
+      for (const r of (data ?? []) as { acao_id: string; parceiro_id: string }[]) {
+        const arr = m.get(r.acao_id) ?? [];
+        arr.push(r.parceiro_id);
+        m.set(r.acao_id, arr);
+      }
+      return m;
+    },
+  });
+
   const { data: inscricaoCounts } = useQuery({
     queryKey: ["acoes", "inscricoes-count"],
     queryFn: async () => {
