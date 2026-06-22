@@ -33,6 +33,7 @@ type IndicadoresSearch = {
   estado?: Estado;
   fonte?: Fonte;
   q?: string;
+  financiamento?: string;
 };
 
 const ESTADOS_VALIDOS: Estado[] = ["por_iniciar", "em_execucao", "concluido"];
@@ -54,6 +55,7 @@ export const Route = createFileRoute("/_app/_admin/indicadores")({
     if (typeof raw.fonte === "string" && (FONTES_VALIDAS as string[]).includes(raw.fonte))
       out.fonte = raw.fonte as Fonte;
     if (typeof raw.q === "string" && raw.q) out.q = raw.q;
+    if (typeof raw.financiamento === "string" && raw.financiamento) out.financiamento = raw.financiamento;
     return out;
   },
   component: IndicadoresGlobalPage,
