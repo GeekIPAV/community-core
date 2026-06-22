@@ -40,6 +40,7 @@ import { Route as AppAdminAtividadesRouteImport } from './routes/_app/_admin.ati
 import { Route as AppAdminAcoesRouteImport } from './routes/_app/_admin.acoes'
 import { Route as AppAdminProjetosIndexRouteImport } from './routes/_app/_admin.projetos.index'
 import { Route as AppAdminParceirosIndexRouteImport } from './routes/_app/_admin.parceiros.index'
+import { Route as AppAdminFinanciamentosIndexRouteImport } from './routes/_app/_admin.financiamentos.index'
 import { Route as AppAdminServicosCalendarioRouteImport } from './routes/_app/_admin.servicos.calendario'
 import { Route as AppAdminProjetosProjetoIdRouteImport } from './routes/_app/_admin.projetos.$projetoId'
 import { Route as AppAdminParceirosParceiroIdRouteImport } from './routes/_app/_admin.parceiros.$parceiroId'
@@ -200,6 +201,12 @@ const AppAdminParceirosIndexRoute = AppAdminParceirosIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppAdminParceirosRoute,
 } as any)
+const AppAdminFinanciamentosIndexRoute =
+  AppAdminFinanciamentosIndexRouteImport.update({
+    id: '/financiamentos/',
+    path: '/financiamentos/',
+    getParentRoute: () => AppAdminRoute,
+  } as any)
 const AppAdminServicosCalendarioRoute =
   AppAdminServicosCalendarioRouteImport.update({
     id: '/calendario',
@@ -263,6 +270,7 @@ export interface FileRoutesByFullPath {
   '/parceiros/$parceiroId': typeof AppAdminParceirosParceiroIdRoute
   '/projetos/$projetoId': typeof AppAdminProjetosProjetoIdRoute
   '/servicos/calendario': typeof AppAdminServicosCalendarioRoute
+  '/financiamentos/': typeof AppAdminFinanciamentosIndexRoute
   '/parceiros/': typeof AppAdminParceirosIndexRoute
   '/projetos/': typeof AppAdminProjetosIndexRoute
   '/servicos/colaborador/$id': typeof AppAdminServicosColaboradorIdRoute
@@ -297,6 +305,7 @@ export interface FileRoutesByTo {
   '/parceiros/$parceiroId': typeof AppAdminParceirosParceiroIdRoute
   '/projetos/$projetoId': typeof AppAdminProjetosProjetoIdRoute
   '/servicos/calendario': typeof AppAdminServicosCalendarioRoute
+  '/financiamentos': typeof AppAdminFinanciamentosIndexRoute
   '/parceiros': typeof AppAdminParceirosIndexRoute
   '/projetos': typeof AppAdminProjetosIndexRoute
   '/servicos/colaborador/$id': typeof AppAdminServicosColaboradorIdRoute
@@ -336,6 +345,7 @@ export interface FileRoutesById {
   '/_app/_admin/parceiros/$parceiroId': typeof AppAdminParceirosParceiroIdRoute
   '/_app/_admin/projetos/$projetoId': typeof AppAdminProjetosProjetoIdRoute
   '/_app/_admin/servicos/calendario': typeof AppAdminServicosCalendarioRoute
+  '/_app/_admin/financiamentos/': typeof AppAdminFinanciamentosIndexRoute
   '/_app/_admin/parceiros/': typeof AppAdminParceirosIndexRoute
   '/_app/_admin/projetos/': typeof AppAdminProjetosIndexRoute
   '/_app/_admin/servicos/colaborador/$id': typeof AppAdminServicosColaboradorIdRoute
@@ -374,6 +384,7 @@ export interface FileRouteTypes {
     | '/parceiros/$parceiroId'
     | '/projetos/$projetoId'
     | '/servicos/calendario'
+    | '/financiamentos/'
     | '/parceiros/'
     | '/projetos/'
     | '/servicos/colaborador/$id'
@@ -408,6 +419,7 @@ export interface FileRouteTypes {
     | '/parceiros/$parceiroId'
     | '/projetos/$projetoId'
     | '/servicos/calendario'
+    | '/financiamentos'
     | '/parceiros'
     | '/projetos'
     | '/servicos/colaborador/$id'
@@ -446,6 +458,7 @@ export interface FileRouteTypes {
     | '/_app/_admin/parceiros/$parceiroId'
     | '/_app/_admin/projetos/$projetoId'
     | '/_app/_admin/servicos/calendario'
+    | '/_app/_admin/financiamentos/'
     | '/_app/_admin/parceiros/'
     | '/_app/_admin/projetos/'
     | '/_app/_admin/servicos/colaborador/$id'
@@ -680,6 +693,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminParceirosIndexRouteImport
       parentRoute: typeof AppAdminParceirosRoute
     }
+    '/_app/_admin/financiamentos/': {
+      id: '/_app/_admin/financiamentos/'
+      path: '/financiamentos'
+      fullPath: '/financiamentos/'
+      preLoaderRoute: typeof AppAdminFinanciamentosIndexRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
     '/_app/_admin/servicos/calendario': {
       id: '/_app/_admin/servicos/calendario'
       path: '/calendario'
@@ -778,6 +798,7 @@ interface AppAdminRouteChildren {
   AppAdminStyleGuideRoute: typeof AppAdminStyleGuideRoute
   AppAdminTiposUserRoute: typeof AppAdminTiposUserRoute
   AppAdminColaboradorasColaboradoraIdRoute: typeof AppAdminColaboradorasColaboradoraIdRoute
+  AppAdminFinanciamentosIndexRoute: typeof AppAdminFinanciamentosIndexRoute
 }
 
 const AppAdminRouteChildren: AppAdminRouteChildren = {
@@ -802,6 +823,7 @@ const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminTiposUserRoute: AppAdminTiposUserRoute,
   AppAdminColaboradorasColaboradoraIdRoute:
     AppAdminColaboradorasColaboradoraIdRoute,
+  AppAdminFinanciamentosIndexRoute: AppAdminFinanciamentosIndexRoute,
 }
 
 const AppAdminRouteWithChildren = AppAdminRoute._addFileChildren(

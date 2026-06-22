@@ -111,7 +111,7 @@ function FinanciamentosListPage() {
         .select("*")
         .order("data_inicio", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as Financiamento[];
+      return ((data ?? []) as unknown) as Financiamento[];
     },
   });
 
