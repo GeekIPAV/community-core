@@ -18,6 +18,8 @@ import { toast } from "sonner";
 import { Pencil, Plus, Trash2, Check, Wallet, Receipt, Users as UsersIcon, Tag, Download, ExternalLink } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { SmartTable, type SmartColumnDef } from "@/components/smart-table";
+import { BulkImportDialog } from "@/components/servicos/BulkImportDialog";
+import { Upload } from "lucide-react";
 
 export const Route = createFileRoute("/_app/_admin/servicos")({
   component: ServicosPage,
@@ -449,6 +451,7 @@ function RegistosTab() {
   const [form, setForm] = useState<Partial<Registo>>({});
   const [filterEstado, setFilterEstado] = useState<string>("__all");
   const [filterColab, setFilterColab] = useState<string>("__all");
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   const { data: colabs } = useQuery({
     queryKey: ["colaboradores_lookup"],
@@ -762,6 +765,9 @@ function RegistosTab() {
             <Button variant="outline" size="sm" onClick={exportCSV} disabled={filtered.length === 0} className="h-9">
               <Download className="mr-2 h-4 w-4" />Exportar CSV
             </Button>
+            <Button variant="outline" size="sm" onClick={() => setBulkOpen(true)} className="h-9">
+              <Upload className="mr-2 h-4 w-4" />Importar em massa
+            </Button>
             <Button size="sm" onClick={openNew} className="h-9">
               <Plus className="mr-2 h-4 w-4" />Novo registo
             </Button>
@@ -826,6 +832,14 @@ function RegistosTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <BulkImportDialog
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        colaboradores={colabs ?? []}
+        tipos={tipos ?? []}
+        onImported={() => qc.invalidateQueries({ queryKey: ["registos_servico"] })}
+      />
     </div>
   );
 }
