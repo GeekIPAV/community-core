@@ -27,7 +27,7 @@ import { toast } from "sonner";
 import { Inbox, Pencil, Plus, Trash2 } from "lucide-react";
 import { InlineMultiSelect } from "@/components/inline-edit";
 
-export const Route = createFileRoute("/_app/_admin/parceiros")({
+export const Route = createFileRoute("/_app/_admin/parceiros/")({
   component: ParceirosPage,
 });
 

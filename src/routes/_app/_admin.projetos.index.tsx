@@ -36,7 +36,7 @@ import { DataTableViewOptions } from "@/components/data-table-view-options";
 import { DraggableTableHeaders } from "@/components/draggable-table-headers";
 import { useMobileColumnVisibility } from "@/hooks/use-mobile-columns";
 
-export const Route = createFileRoute("/_app/_admin/projetos")({
+export const Route = createFileRoute("/_app/_admin/projetos/")({
   component: ProjetosPage,
 });
 
