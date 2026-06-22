@@ -984,50 +984,73 @@ function PagamentosTab() {
     setForm({ ...form, liquidar_registos: cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id] });
   };
 
+  const updateField = useMutation({
+    mutationFn: async ({ id, field, value }: { id: string; field: string; value: unknown }) => {
+      const { error } = await supabase.from("pagamentos").update({ [field]: value } as never).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pagamentos"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  type PagRow = Pagamento & { _colab: string };
+  const rows = useMemo<PagRow[]>(
+    () => (data ?? []).map((p) => ({ ...p, _colab: colabMap.get(p.colaborador_id) ?? "—" })),
+    [data, colabMap],
+  );
+
+  const columns = useMemo<SmartColumnDef<PagRow>[]>(() => [
+    { id: "data_pagamento", accessorKey: "data_pagamento", header: "Data", size: 130,
+      meta: { label: "Data", filterVariant: "date", editType: "date" },
+      cell: ({ getValue }) => <span className="text-sm whitespace-nowrap">{new Date(String(getValue())).toLocaleDateString("pt-PT")}</span> },
+    { id: "_colab", accessorKey: "_colab", header: "Colaborador", size: 220,
+      meta: { label: "Colaborador", filterVariant: "text" },
+      cell: ({ row }) => (
+        <Link to="/servicos/colaborador/$id" params={{ id: row.original.colaborador_id }} className="font-medium hover:underline truncate block">
+          {row.original._colab}
+        </Link>
+      ) },
+    { id: "referencia", accessorKey: "referencia", header: "Referência", size: 200,
+      meta: { label: "Referência", filterVariant: "text", editType: "text" },
+      cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span> },
+    { id: "metodo", accessorKey: "metodo", header: "Método", size: 180,
+      meta: { label: "Método", filterVariant: "text", editType: "text", hideOnMobile: true },
+      cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span> },
+    { id: "total", accessorKey: "total", header: "Total", size: 120,
+      meta: { label: "Total", filterVariant: "number", editType: "number" },
+      cell: ({ getValue }) => <span className="block text-right tabular-nums font-medium">{fmtEUR(Number(getValue() ?? 0))}</span> },
+    { id: "_actions", header: "", size: 96, enableSorting: false, enableHiding: false, enableResizing: false,
+      meta: { noTruncate: true },
+      cell: ({ row }) => (
+        <div className="flex justify-end gap-1">
+          <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); openEdit(row.original); }}><Pencil className="h-4 w-4" /></Button>
+          <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); if (confirm("Remover pagamento? Os registos associados voltam a 'aprovado'.")) remove.mutate(row.original.id); }}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ) },
+  ], [remove]);
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">{data?.length ?? 0} pagamento(s)</p>
-        <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />Novo pagamento</Button>
-      </div>
-      {isLoading ? <Skeleton className="h-40 w-full" /> : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Colaborador</TableHead>
-                <TableHead>Referência</TableHead>
-                <TableHead>Método</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead className="w-24"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(data ?? []).length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sem pagamentos</TableCell></TableRow>
-              )}
-              {(data ?? []).map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell className="text-sm">{new Date(p.data_pagamento).toLocaleDateString("pt-PT")}</TableCell>
-                  <TableCell className="font-medium">{colabMap.get(p.colaborador_id) ?? "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">{p.referencia ?? "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">{p.metodo ?? "—"}</TableCell>
-                  <TableCell className="text-right tabular-nums font-medium">{fmtEUR(p.total)}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
-                      <Button size="icon" variant="ghost" onClick={() => { if (confirm("Remover pagamento? Os registos associados voltam a 'aprovado'.")) remove.mutate(p.id); }}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+      <SmartTable
+        tableId="pagamentos"
+        columns={columns}
+        data={rows}
+        isLoading={isLoading}
+        editableColumns={["referencia", "metodo", "total", "data_pagamento"]}
+        onCellEdit={(rowId, columnId, value) => {
+          let v: unknown = value;
+          if (columnId === "total") v = Number(value) || 0;
+          return updateField.mutateAsync({ id: rowId, field: columnId, value: v });
+        }}
+        toolbarActions={
+          <Button size="sm" onClick={openNew} className="h-9">
+            <Plus className="mr-2 h-4 w-4" />Novo pagamento
+          </Button>
+        }
+        emptyMessage="Sem pagamentos"
+      />
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl">
