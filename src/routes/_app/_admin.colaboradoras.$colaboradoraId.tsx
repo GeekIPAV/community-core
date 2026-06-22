@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -888,12 +888,10 @@ function EditProfileSheet({
   const [form, setForm] = useState<Partial<Colab>>(colab);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  // sync when opening for new colab
-  const lastId = useState<string | null>(null);
-  if (open && lastId[0] !== colab.id) {
-    lastId[1](colab.id);
-    if (form.id !== colab.id) setForm(colab);
-  }
+  // Sync form when opening or colab changes
+  useEffect(() => {
+    if (open) setForm(colab);
+  }, [open, colab]);
 
   const save = useMutation({
     mutationFn: async () => {
