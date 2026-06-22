@@ -2043,6 +2043,7 @@ function AcoesPageInner() {
     onSuccess: () => {
       toast.success("Ação criada");
       invalidate();
+      invalidateParceiros();
       qc.invalidateQueries({ queryKey: ["localizacoes"] });
       setAddOpen(false);
       setForm(EMPTY_FORM);
@@ -2090,6 +2091,7 @@ function AcoesPageInner() {
     onSuccess: () => {
       toast.success("Ação atualizada");
       invalidate();
+      invalidateParceiros();
       qc.invalidateQueries({ queryKey: ["localizacoes"] });
       setEditing(null);
     },
