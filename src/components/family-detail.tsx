@@ -328,7 +328,7 @@ export interface FamilyDetailDialogProps {
   /** Called after any successful mutation so the parent can refresh its queries */
   onUpdate?: () => void;
   /** Which tab to open first (defaults to "membros") */
-  defaultTab?: "dados" | "membros" | "projetos" | "acoes" | "atividades";
+  defaultTab?: "dados" | "membros" | "projetos" | "acoes" | "atividades" | "contexto";
 }
 
 export function FamilyDetailDialog({
