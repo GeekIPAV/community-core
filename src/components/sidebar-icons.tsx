@@ -6,7 +6,7 @@ export const PICKABLE_ICONS: string[] = [
   "Globe", "BarChart3", "User", "Users", "Users2", "Briefcase",
   "AlertTriangle", "CalendarDays", "CalendarCheck", "Activity",
   "Wallet", "CreditCard", "ClipboardList", "Settings2", "Settings",
-  "LayoutDashboard", "Bus", "MapPin", "FileText", "FileSpreadsheet",
+  "LayoutDashboard", "Bus", "MapPin", "FileText", "FileSpreadsheet", "Handshake",
   "Mail", "UserCog", "Trash2", "ShieldAlert", "Palette", "ChartBar",
   "Folder", "Star", "Heart", "Tag",
 ];
