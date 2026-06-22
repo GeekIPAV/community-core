@@ -50,6 +50,7 @@ export type Database = {
       acoes: {
         Row: {
           bolsa_transporte: boolean
+          categoria: string | null
           config_campos: Json
           created_at: string
           data_fim: string | null
@@ -72,6 +73,7 @@ export type Database = {
         }
         Insert: {
           bolsa_transporte?: boolean
+          categoria?: string | null
           config_campos?: Json
           created_at?: string
           data_fim?: string | null
@@ -94,6 +96,7 @@ export type Database = {
         }
         Update: {
           bolsa_transporte?: boolean
+          categoria?: string | null
           config_campos?: Json
           created_at?: string
           data_fim?: string | null
@@ -1075,6 +1078,8 @@ export type Database = {
       projeto_kpis: {
         Row: {
           created_at: string
+          estado: string
+          filtro: Json
           fonte: string
           id: string
           meta: number
@@ -1088,6 +1093,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          estado?: string
+          filtro?: Json
           fonte: string
           id?: string
           meta?: number
@@ -1101,6 +1108,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          estado?: string
+          filtro?: Json
           fonte?: string
           id?: string
           meta?: number
