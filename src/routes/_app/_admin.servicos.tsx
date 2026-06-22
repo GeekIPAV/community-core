@@ -613,6 +613,7 @@ function RegistosTab() {
   const [form, setForm] = useState<Partial<Registo>>({});
   const [filterEstado, setFilterEstado] = useState<string>("__all");
   const [filterColab, setFilterColab] = useState<string>("__all");
+  const [filterSessao, setFilterSessao] = useState<"all" | "session" | "individual">("all");
   const [bulkOpen, setBulkOpen] = useState(false);
 
   const { data: colabs } = useQuery({
@@ -636,12 +637,24 @@ function RegistosTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("registos_servico")
-        .select("id, colaborador_id, tipo_servico_id, data_inicio, data_fim, descricao, quantidade, preco_unitario_override, outros_custos, outros_custos_descricao, km, estado, submetido_pelo_colaborador, pagamento_id, notas_admin")
+        .select("id, colaborador_id, tipo_servico_id, data_inicio, data_fim, descricao, quantidade, preco_unitario_override, outros_custos, outros_custos_descricao, km, estado, submetido_pelo_colaborador, pagamento_id, notas_admin, sessao_id")
         .order("data_inicio", { ascending: false });
       if (error) throw error;
       return data as Registo[];
     },
   });
+  const { data: sessoes } = useQuery({
+    queryKey: ["sessoes_list"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sessoes_servico")
+        .select("id, nome, data_inicio, tipo_servico_id, local")
+        .order("data_inicio", { ascending: false });
+      if (error) throw error;
+      return data as { id: string; nome: string; data_inicio: string; tipo_servico_id: string; local: string | null }[];
+    },
+  });
+  const sessaoMap = useMemo(() => new Map((sessoes ?? []).map((s) => [s.id, s])), [sessoes]);
 
   const colabMap = useMemo(() => new Map((colabs ?? []).map((c) => [c.id, c.nome_completo])), [colabs]);
   const tipoMap = useMemo(() => new Map((tipos ?? []).map((t) => [t.id, t])), [tipos]);
@@ -659,8 +672,10 @@ function RegistosTab() {
     let rows = data ?? [];
     if (filterEstado !== "__all") rows = rows.filter((r) => r.estado === filterEstado);
     if (filterColab !== "__all") rows = rows.filter((r) => r.colaborador_id === filterColab);
+    if (filterSessao === "session") rows = rows.filter((r) => !!r.sessao_id);
+    if (filterSessao === "individual") rows = rows.filter((r) => !r.sessao_id);
     return rows;
-  }, [data, filterEstado, filterColab]);
+  }, [data, filterEstado, filterColab, filterSessao]);
 
   const totals = useMemo(() => {
     return filtered.reduce((acc, r) => {
