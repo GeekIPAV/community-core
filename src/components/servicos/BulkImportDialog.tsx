@@ -337,6 +337,8 @@ export function BulkImportDialog({ open, onOpenChange, colaboradores, tipos, onI
                       <th className="p-2 text-left">Tipo de Serviço</th>
                       <th className="p-2 text-left w-20">Qtd</th>
                       <th className="p-2 text-left w-28">Valor</th>
+                      <th className="p-2 text-left w-24">Outros</th>
+                      <th className="p-2 text-left w-28">Total</th>
                       <th className="p-2 text-left w-24">Estado</th>
                       <th className="p-2 w-10"></th>
                     </tr>
