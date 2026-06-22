@@ -446,6 +446,29 @@ function AnonForm({ acao, fields, onDone }: { acao: any; fields: FieldDef[]; onD
   );
 }
 
+function AcaoParceirosChips({ acaoId }: { acaoId: string }) {
+  const { data } = useQuery({
+    queryKey: ["acao-parceiros-public", acaoId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("acao_parceiros")
+        .select("parceiro:parceiros(id, nome)")
+        .eq("acao_id", acaoId);
+      if (error) throw error;
+      return ((data ?? []) as any[]).map((r) => r.parceiro).filter(Boolean) as { id: string; nome: string }[];
+    },
+  });
+  if (!data || data.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Parceiros:</span>
+      {data.map((p) => (
+        <Badge key={p.id} variant="secondary">{p.nome}</Badge>
+      ))}
+    </div>
+  );
+}
+
 // ============================================================
 // ADMIN: Editar ação
 // ============================================================
