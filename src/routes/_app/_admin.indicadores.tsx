@@ -2,8 +2,6 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useMemo, useState } from "react";
-import { z } from "zod";
-import { zodValidator } from "@tanstack/zod-adapter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,17 +28,34 @@ import {
   type Kpi,
 } from "@/lib/kpi";
 
-const searchSchema = z.object({
-  projeto: z.string().optional(),
-  estado: z.enum(["por_iniciar", "em_execucao", "concluido"]).optional(),
-  fonte: z
-    .enum(["acoes", "atividades", "participantes", "manual", "inscricoes", "auto_total_unicos"])
-    .optional(),
-  q: z.string().optional(),
-});
+type IndicadoresSearch = {
+  projeto?: string;
+  estado?: Estado;
+  fonte?: Fonte;
+  q?: string;
+};
+
+const ESTADOS_VALIDOS: Estado[] = ["por_iniciar", "em_execucao", "concluido"];
+const FONTES_VALIDAS: Fonte[] = [
+  "acoes",
+  "atividades",
+  "participantes",
+  "manual",
+  "inscricoes",
+  "auto_total_unicos",
+];
 
 export const Route = createFileRoute("/_app/_admin/indicadores")({
-  validateSearch: zodValidator(searchSchema),
+  validateSearch: (raw: Record<string, unknown>): IndicadoresSearch => {
+    const out: IndicadoresSearch = {};
+    if (typeof raw.projeto === "string" && raw.projeto) out.projeto = raw.projeto;
+    if (typeof raw.estado === "string" && (ESTADOS_VALIDOS as string[]).includes(raw.estado))
+      out.estado = raw.estado as Estado;
+    if (typeof raw.fonte === "string" && (FONTES_VALIDAS as string[]).includes(raw.fonte))
+      out.fonte = raw.fonte as Fonte;
+    if (typeof raw.q === "string" && raw.q) out.q = raw.q;
+    return out;
+  },
   component: IndicadoresGlobalPage,
 });
 
@@ -51,8 +66,8 @@ function IndicadoresGlobalPage() {
   const navigate = useNavigate({ from: Route.fullPath });
   const search = Route.useSearch();
 
-  const setSearch = (patch: Partial<z.infer<typeof searchSchema>>) =>
-    navigate({ search: (prev) => ({ ...prev, ...patch }) });
+  const setSearch = (patch: Partial<IndicadoresSearch>) =>
+    navigate({ search: (prev: IndicadoresSearch) => ({ ...prev, ...patch }) });
 
   const { data: projetos } = useQuery({
     queryKey: ["projetos-min"],
