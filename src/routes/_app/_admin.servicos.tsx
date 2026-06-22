@@ -168,49 +168,69 @@ function ColaboradoresTab() {
         <p className="text-sm text-muted-foreground">{data?.length ?? 0} colaborador(es)</p>
         <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />Novo colaborador</Button>
       </div>
-      {isLoading ? <Skeleton className="h-40 w-full" /> : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Telefone</TableHead>
-                <TableHead>IBAN</TableHead>
-                <TableHead>Ativo</TableHead>
-                <TableHead className="w-24"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(data ?? []).length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sem colaboradores</TableCell></TableRow>
-              )}
-              {(data ?? []).map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-medium">
-                    <Link to="/servicos/colaborador/$id" params={{ id: c.id }} className="hover:underline inline-flex items-center gap-1">
-                      {c.nome_completo}
-                      <ExternalLink className="h-3 w-3 text-muted-foreground" />
-                    </Link>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{c.email ?? "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">{c.telefone ?? "—"}</TableCell>
-                  <TableCell className="text-muted-foreground font-mono text-xs">{c.iban ?? "—"}</TableCell>
-                  <TableCell>{c.ativo ? <Badge>Ativo</Badge> : <Badge variant="outline">Inativo</Badge>}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" onClick={() => openEdit(c)}><Pencil className="h-4 w-4" /></Button>
-                      <Button size="icon" variant="ghost" onClick={() => { if (confirm(`Remover ${c.nome_completo}?`)) remove.mutate(c.id); }}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+      {isLoading ? <Skeleton className="h-40 w-full" /> : (() => {
+        const ativos = (data ?? []).filter((c) => c.ativo);
+        const inativos = (data ?? []).filter((c) => !c.ativo);
+        const renderRow = (c: Colaborador) => (
+          <TableRow key={c.id} className={!c.ativo ? "opacity-60" : undefined}>
+            <TableCell className="font-medium">
+              <Link to="/servicos/colaborador/$id" params={{ id: c.id }} className="hover:underline inline-flex items-center gap-1">
+                {c.nome_completo}
+                <ExternalLink className="h-3 w-3 text-muted-foreground" />
+              </Link>
+            </TableCell>
+            <TableCell className="text-muted-foreground">{c.email ?? "—"}</TableCell>
+            <TableCell className="text-muted-foreground">{c.telefone ?? "—"}</TableCell>
+            <TableCell className="text-muted-foreground font-mono text-xs">{c.iban ?? "—"}</TableCell>
+            <TableCell>{c.ativo ? <Badge>Ativo</Badge> : <Badge variant="outline">Inativo</Badge>}</TableCell>
+            <TableCell>
+              <div className="flex gap-1">
+                <Button size="icon" variant="ghost" onClick={() => openEdit(c)}><Pencil className="h-4 w-4" /></Button>
+                <Button size="icon" variant="ghost" onClick={() => { if (confirm(`Remover ${c.nome_completo}?`)) remove.mutate(c.id); }}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </TableCell>
+          </TableRow>
+        );
+        return (
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Telefone</TableHead>
+                  <TableHead>IBAN</TableHead>
+                  <TableHead>Ativo</TableHead>
+                  <TableHead className="w-24"></TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+              </TableHeader>
+              <TableBody>
+                {(data ?? []).length === 0 && (
+                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sem colaboradores</TableCell></TableRow>
+                )}
+                {ativos.length > 0 && (
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableCell colSpan={6} className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Ativos ({ativos.length})
+                    </TableCell>
+                  </TableRow>
+                )}
+                {ativos.map(renderRow)}
+                {inativos.length > 0 && (
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableCell colSpan={6} className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Inativos ({inativos.length})
+                    </TableCell>
+                  </TableRow>
+                )}
+                {inativos.map(renderRow)}
+              </TableBody>
+            </Table>
+          </div>
+        );
+      })()}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
@@ -450,7 +470,9 @@ function RegistosTab() {
 
   const chartData = useMemo(() => {
     const map = new Map<string, number>();
+    const activeSet = new Set((colabs ?? []).filter((c) => c.ativo).map((c) => c.id));
     for (const r of filtered) {
+      if (!activeSet.has(r.colaborador_id)) continue;
       const name = colabMap.get(r.colaborador_id) ?? "—";
       map.set(name, (map.get(name) ?? 0) + calcTotal(r).total);
     }
@@ -458,7 +480,7 @@ function RegistosTab() {
       .map(([nome, total]) => ({ nome, total: Number(total.toFixed(2)) }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 12);
-  }, [filtered, colabMap, tipoMap]);
+  }, [filtered, colabMap, tipoMap, colabs]);
 
   const exportCSV = () => {
     const headers = ["Data", "Colaborador", "Tipo", "Unidade", "Quantidade", "Preço un.", "Outros custos", "Total", "Estado", "Descrição"];
@@ -580,7 +602,7 @@ function RegistosTab() {
             <SelectTrigger className="w-56 h-9"><SelectValue placeholder="Colaborador" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__all">Todos os colaboradores</SelectItem>
-              {(colabs ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_completo}</SelectItem>)}
+              {(colabs ?? []).filter((c) => c.ativo).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_completo}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -766,11 +788,11 @@ function PagamentosTab() {
   const [form, setForm] = useState<Partial<Pagamento> & { liquidar_registos?: string[] }>({});
 
   const { data: colabs } = useQuery({
-    queryKey: ["colaboradores_lookup"],
+    queryKey: ["colaboradores_lookup_pag"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("colaboradores").select("id, nome_completo").order("nome_completo");
+      const { data, error } = await supabase.from("colaboradores").select("id, nome_completo, ativo").order("nome_completo");
       if (error) throw error;
-      return data as { id: string; nome_completo: string }[];
+      return data as { id: string; nome_completo: string; ativo: boolean }[];
     },
   });
 
@@ -951,7 +973,7 @@ function PagamentosTab() {
               <Label>Colaborador *</Label>
               <Select value={form.colaborador_id ?? ""} onValueChange={(v) => setForm({ ...form, colaborador_id: v, liquidar_registos: [] })}>
                 <SelectTrigger><SelectValue placeholder="Escolher…" /></SelectTrigger>
-                <SelectContent>{(colabs ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_completo}</SelectItem>)}</SelectContent>
+                <SelectContent>{(colabs ?? []).filter((c) => c.ativo).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_completo}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div><Label>Data *</Label><Input type="date" value={form.data_pagamento ?? ""} onChange={(e) => setForm({ ...form, data_pagamento: e.target.value })} /></div>
