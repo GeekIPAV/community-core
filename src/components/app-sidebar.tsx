@@ -137,15 +137,25 @@ function BadgeCount({ rpc }: { rpc: string }) {
 // ---------- Item link ----------
 function ItemLink({ item, pathname, sub = false }: { item: SidebarItemRow; pathname: string; sub?: boolean }) {
   const active = pathname === item.url;
-  const Btn = sub ? SidebarMenuSubButton : SidebarMenuButton;
+  if (sub) {
+    return (
+      <SidebarMenuSubButton asChild isActive={active}>
+        <Link to={item.url} className="flex items-center gap-2">
+          {renderIcon(item.icon)}
+          <span className="flex-1 truncate">{item.label}</span>
+          {item.badge_query ? <BadgeCount rpc={item.badge_query} /> : null}
+        </Link>
+      </SidebarMenuSubButton>
+    );
+  }
   return (
-    <Btn asChild isActive={active} tooltip={item.label}>
+    <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
       <Link to={item.url} className="flex items-center gap-2">
         {renderIcon(item.icon)}
         <span className="flex-1 truncate">{item.label}</span>
         {item.badge_query ? <BadgeCount rpc={item.badge_query} /> : null}
       </Link>
-    </Btn>
+    </SidebarMenuButton>
   );
 }
 
