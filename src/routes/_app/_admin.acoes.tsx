@@ -2028,6 +2028,15 @@ function AcoesPageInner() {
       } as any).select("id").single();
       if (error) throw error;
       await upsertLocalizacao(form.local, form.mapa_url || null);
+      if (created?.id) {
+        const pids = form.parceiro_ids ?? [];
+        if (pids.length > 0) {
+          const { error: pe } = await supabase
+            .from("acao_parceiros")
+            .insert(pids.map((parceiro_id) => ({ acao_id: created.id, parceiro_id })));
+          if (pe) throw pe;
+        }
+      }
       if (created?.id) fireGoogleSync(created.id, "upsert");
     },
     onSuccess: () => {
