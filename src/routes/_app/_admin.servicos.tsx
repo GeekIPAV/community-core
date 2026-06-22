@@ -487,6 +487,10 @@ function SessaoEditDialog({ sessao, onClose }: { sessao: SessaoRow | null; onClo
   const [dataFim, setDataFim] = useState("");
   const [local, setLocal] = useState("");
   const [descricao, setDescricao] = useState("");
+  const [tipoId, setTipoId] = useState("");
+  const [quantidade, setQuantidade] = useState<number>(1);
+  const [precoOverride, setPrecoOverride] = useState<string>("");
+  const [addOpen, setAddOpen] = useState(false);
 
   useEffect(() => {
     if (sessao) {
@@ -495,14 +499,97 @@ function SessaoEditDialog({ sessao, onClose }: { sessao: SessaoRow | null; onClo
       setDataFim(sessao.data_fim ?? "");
       setLocal(sessao.local ?? "");
       setDescricao(sessao.descricao ?? "");
+      setTipoId(sessao.tipo_servico_id ?? "");
+      setQuantidade(Number(sessao.quantidade_por_colaborador) || 1);
+      setPrecoOverride(sessao.preco_unitario_override != null ? String(sessao.preco_unitario_override) : "");
     }
   }, [sessao]);
+
+  const { data: tiposEdit } = useQuery({
+    queryKey: ["tipos_servico_edit"],
+    enabled: !!sessao,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("tipos_servico").select("id, nome, unidade, preco_unitario, ativo").order("nome");
+      if (error) throw error;
+      return data as { id: string; nome: string; unidade: string; preco_unitario: number; ativo: boolean }[];
+    },
+  });
+  const { data: colabsEdit } = useQuery({
+    queryKey: ["colabs_edit"],
+    enabled: !!sessao,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("colaboradores").select("id, nome_completo, ativo").order("nome_completo");
+      if (error) throw error;
+      return data as { id: string; nome_completo: string; ativo: boolean }[];
+    },
+  });
+  const { data: sessaoRegistos } = useQuery({
+    queryKey: ["sessao_registos_edit", sessao?.id],
+    enabled: !!sessao,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("registos_servico")
+        .select("id, colaborador_id, estado, outros_custos")
+        .eq("sessao_id", sessao!.id);
+      if (error) throw error;
+      return data as { id: string; colaborador_id: string; estado: "pendente" | "aprovado" | "pago"; outros_custos: number }[];
+    },
+  });
+
+  const tipo = (tiposEdit ?? []).find((t) => t.id === tipoId);
+  const precoUnit = precoOverride !== "" ? Number(precoOverride) : (tipo?.preco_unitario ?? 0);
+  const perColab = precoUnit * (Number(quantidade) || 0);
+  const presentIds = new Set((sessaoRegistos ?? []).map((r) => r.colaborador_id));
+  const available = (colabsEdit ?? []).filter((c) => c.ativo && !presentIds.has(c.id));
+  const colabMap = useMemo(() => new Map((colabsEdit ?? []).map((c) => [c.id, c])), [colabsEdit]);
+
+  const invalidateAll = () => {
+    qc.invalidateQueries({ queryKey: ["sessoes_servico_full"] });
+    qc.invalidateQueries({ queryKey: ["registos_for_sessoes"] });
+    qc.invalidateQueries({ queryKey: ["registos_servico"] });
+    qc.invalidateQueries({ queryKey: ["registos_cal"] });
+    qc.invalidateQueries({ queryKey: ["sessoes_cal"] });
+    qc.invalidateQueries({ queryKey: ["sessao_registos_edit", sessao?.id] });
+  };
+
+  const addColab = useMutation({
+    mutationFn: async (colabId: string) => {
+      if (!sessao) return;
+      const { error } = await supabase.from("registos_servico").insert({
+        colaborador_id: colabId,
+        tipo_servico_id: tipoId,
+        sessao_id: sessao.id,
+        data_inicio: dataInicio,
+        data_fim: dataFim || null,
+        descricao: nome.trim() || sessao.nome,
+        quantidade: Number(quantidade) || 1,
+        preco_unitario_override: precoOverride !== "" ? Number(precoOverride) : null,
+        outros_custos: 0,
+        outros_custos_descricao: null,
+        estado: "pendente" as const,
+        submetido_pelo_colaborador: false,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Colaboradora adicionada"); invalidateAll(); setAddOpen(false); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const removeRecord = useMutation({
+    mutationFn: async (recordId: string) => {
+      const { error } = await supabase.from("registos_servico").delete().eq("id", recordId);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Removida da sessão"); invalidateAll(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const save = useMutation({
     mutationFn: async () => {
       if (!sessao) return;
       if (!nome.trim()) throw new Error("Nome obrigatório");
       if (!dataInicio) throw new Error("Data obrigatória");
+      if (!tipoId) throw new Error("Tipo de serviço obrigatório");
       const { error } = await supabase
         .from("sessoes_servico")
         .update({
@@ -511,39 +598,62 @@ function SessaoEditDialog({ sessao, onClose }: { sessao: SessaoRow | null; onClo
           data_fim: dataFim || null,
           local: local.trim() || null,
           descricao: descricao.trim() || null,
+          tipo_servico_id: tipoId,
+          quantidade_por_colaborador: Number(quantidade) || 1,
+          preco_unitario_override: precoOverride !== "" ? Number(precoOverride) : null,
         })
         .eq("id", sessao.id);
       if (error) throw error;
-      // sync date on linked records
       const { error: e2 } = await supabase
         .from("registos_servico")
-        .update({ data_inicio: dataInicio, data_fim: dataFim || null })
+        .update({
+          data_inicio: dataInicio,
+          data_fim: dataFim || null,
+          tipo_servico_id: tipoId,
+          quantidade: Number(quantidade) || 1,
+          preco_unitario_override: precoOverride !== "" ? Number(precoOverride) : null,
+          descricao: nome.trim(),
+        })
         .eq("sessao_id", sessao.id);
       if (e2) throw e2;
     },
-    onSuccess: () => {
-      toast.success("Sessão atualizada");
-      qc.invalidateQueries({ queryKey: ["sessoes_servico_full"] });
-      qc.invalidateQueries({ queryKey: ["registos_for_sessoes"] });
-      qc.invalidateQueries({ queryKey: ["registos_servico"] });
-      qc.invalidateQueries({ queryKey: ["registos_cal"] });
-      qc.invalidateQueries({ queryKey: ["sessoes_cal"] });
-      onClose();
-    },
+    onSuccess: () => { toast.success("Sessão atualizada"); invalidateAll(); onClose(); },
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const estadoChip = (e: "pendente" | "aprovado" | "pago") =>
+    e === "pago" ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+    : e === "aprovado" ? "bg-blue-100 text-blue-700 border-blue-200"
+    : "bg-amber-100 text-amber-700 border-amber-200";
+
   return (
     <Dialog open={!!sessao} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar sessão</DialogTitle>
-          <DialogDescription>As alterações de data aplicam-se também a todos os registos ligados.</DialogDescription>
+          <DialogDescription>As alterações de data, tipo, quantidade e preço aplicam-se a todos os registos ligados.</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div>
             <Label>Nome da sessão *</Label>
             <Input value={nome} onChange={(e) => setNome(e.target.value)} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Tipo de serviço *</Label>
+              <Select value={tipoId} onValueChange={setTipoId}>
+                <SelectTrigger><SelectValue placeholder="Escolher…" /></SelectTrigger>
+                <SelectContent>
+                  {(tiposEdit ?? []).map((t) => (
+                    <SelectItem key={t.id} value={t.id}>{t.nome} ({fmtEUR(t.preco_unitario)}/{t.unidade})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Local</Label>
+              <Input value={local} onChange={(e) => setLocal(e.target.value)} placeholder="(opcional)" />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -555,13 +665,75 @@ function SessaoEditDialog({ sessao, onClose }: { sessao: SessaoRow | null; onClo
               <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
             </div>
           </div>
-          <div>
-            <Label>Local</Label>
-            <Input value={local} onChange={(e) => setLocal(e.target.value)} placeholder="(opcional)" />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>{tipo?.unidade ? `${tipo.unidade[0].toUpperCase() + tipo.unidade.slice(1)}s por colaboradora` : "Quantidade por colaboradora"}</Label>
+              <Input type="number" step="0.01" value={quantidade} onChange={(e) => setQuantidade(Number(e.target.value))} />
+              {tipo && <p className="text-[11px] text-muted-foreground mt-1 tabular-nums">Cada colaboradora recebe {fmtEUR(perColab)}</p>}
+            </div>
+            <div>
+              <Label>Preço por unidade (€)</Label>
+              <Input type="number" step="0.01" value={precoOverride} onChange={(e) => setPrecoOverride(e.target.value)} placeholder={tipo ? String(tipo.preco_unitario) : ""} />
+              {tipo && <p className="text-[11px] text-muted-foreground mt-1 tabular-nums">{fmtEUR(precoUnit)} × {quantidade}</p>}
+            </div>
           </div>
           <div>
             <Label>Notas</Label>
-            <Textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={3} />
+            <Textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={2} />
+          </div>
+
+          <div className="rounded-md border">
+            <div className="px-3 py-2 border-b bg-muted/30 flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Colaboradoras ({(sessaoRegistos ?? []).length})
+              </span>
+              <Popover open={addOpen} onOpenChange={setAddOpen}>
+                <PopoverTrigger asChild>
+                  <Button size="sm" variant="outline" className="h-7 text-xs" disabled={available.length === 0}>
+                    <UserPlus className="mr-1.5 h-3.5 w-3.5" />
+                    {available.length === 0 ? "Todas adicionadas" : "Adicionar colaboradora"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72 p-0" align="end">
+                  <Command>
+                    <CommandInput placeholder="Procurar…" />
+                    <CommandList>
+                      <CommandEmpty>Sem resultados.</CommandEmpty>
+                      <CommandGroup>
+                        {available.map((c) => (
+                          <CommandItem key={c.id} onSelect={() => addColab.mutate(c.id)} className="cursor-pointer">
+                            {c.nome_completo}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="divide-y max-h-56 overflow-y-auto">
+              {(sessaoRegistos ?? []).length === 0 ? (
+                <div className="px-3 py-6 text-center text-xs text-muted-foreground">Sem colaboradoras</div>
+              ) : (
+                (sessaoRegistos ?? []).map((r) => {
+                  const c = colabMap.get(r.colaborador_id);
+                  return (
+                    <div key={r.id} className="flex items-center gap-2 px-3 py-2 text-sm">
+                      <span className="flex-1 min-w-0 truncate">{c?.nome_completo ?? "—"}</span>
+                      <Badge variant="outline" className={`text-[10px] ${estadoChip(r.estado)}`}>{r.estado}</Badge>
+                      <button
+                        type="button"
+                        onClick={() => { if (confirm(`Remover ${c?.nome_completo ?? "registo"} da sessão?`)) removeRecord.mutate(r.id); }}
+                        className="text-muted-foreground hover:text-destructive"
+                        title="Remover"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
         </div>
         <DialogFooter>
