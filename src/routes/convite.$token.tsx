@@ -54,8 +54,8 @@ function ConvitePage() {
     const { error } = await supabase.rpc("convite_consumir", {
       p_token: token,
       p_nome: nome.trim(),
-      p_telefone: telefone.trim() || null,
-      p_data_nascimento: dataNasc || null,
+      p_telefone: telefone.trim() || undefined,
+      p_data_nascimento: dataNasc || undefined,
     });
     setSubmitting(false);
     if (error) {

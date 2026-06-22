@@ -14,6 +14,7 @@ import { Route as ResultadosRouteImport } from './routes/resultados'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
 import { Route as AcaoIdRouteImport } from './routes/acao.$id'
 import { Route as AppPerfilRouteImport } from './routes/_app.perfil'
 import { Route as AppAdminRouteImport } from './routes/_app/_admin'
@@ -55,6 +56,11 @@ const AppRoute = AppRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConviteTokenRoute = ConviteTokenRouteImport.update({
+  id: '/convite/$token',
+  path: '/convite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AcaoIdRoute = AcaoIdRouteImport.update({
@@ -155,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/perfil': typeof AppPerfilRoute
   '/acao/$id': typeof AcaoIdRoute
+  '/convite/$token': typeof ConviteTokenRoute
   '/acoes': typeof AppAdminAcoesRoute
   '/atividades': typeof AppAdminAtividadesRoute
   '/bolsas-transporte': typeof AppAdminBolsasTransporteRoute
@@ -178,6 +185,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/perfil': typeof AppPerfilRoute
   '/acao/$id': typeof AcaoIdRoute
+  '/convite/$token': typeof ConviteTokenRoute
   '/acoes': typeof AppAdminAcoesRoute
   '/atividades': typeof AppAdminAtividadesRoute
   '/bolsas-transporte': typeof AppAdminBolsasTransporteRoute
@@ -204,6 +212,7 @@ export interface FileRoutesById {
   '/_app/_admin': typeof AppAdminRouteWithChildren
   '/_app/perfil': typeof AppPerfilRoute
   '/acao/$id': typeof AcaoIdRoute
+  '/convite/$token': typeof ConviteTokenRoute
   '/_app/_admin/acoes': typeof AppAdminAcoesRoute
   '/_app/_admin/atividades': typeof AppAdminAtividadesRoute
   '/_app/_admin/bolsas-transporte': typeof AppAdminBolsasTransporteRoute
@@ -229,6 +238,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/perfil'
     | '/acao/$id'
+    | '/convite/$token'
     | '/acoes'
     | '/atividades'
     | '/bolsas-transporte'
@@ -252,6 +262,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/perfil'
     | '/acao/$id'
+    | '/convite/$token'
     | '/acoes'
     | '/atividades'
     | '/bolsas-transporte'
@@ -277,6 +288,7 @@ export interface FileRouteTypes {
     | '/_app/_admin'
     | '/_app/perfil'
     | '/acao/$id'
+    | '/convite/$token'
     | '/_app/_admin/acoes'
     | '/_app/_admin/atividades'
     | '/_app/_admin/bolsas-transporte'
@@ -301,6 +313,7 @@ export interface RootRouteChildren {
   ResultadosRoute: typeof ResultadosRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   AcaoIdRoute: typeof AcaoIdRoute
+  ConviteTokenRoute: typeof ConviteTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -338,6 +351,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/convite/$token': {
+      id: '/convite/$token'
+      path: '/convite/$token'
+      fullPath: '/convite/$token'
+      preLoaderRoute: typeof ConviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/acao/$id': {
@@ -528,6 +548,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResultadosRoute: ResultadosRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   AcaoIdRoute: AcaoIdRoute,
+  ConviteTokenRoute: ConviteTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
