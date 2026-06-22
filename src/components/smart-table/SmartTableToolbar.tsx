@@ -105,7 +105,7 @@ export function SmartTableToolbar<T>({
         </PopoverContent>
       </Popover>
 
-      <div className="ml-auto flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {hasEditableColumns && (
           <Button
             variant={editMode ? "default" : "outline"}
