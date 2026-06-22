@@ -169,6 +169,74 @@ export type Database = {
         }
         Relationships: []
       }
+      convites: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          email: string
+          enviado: boolean
+          expira_em: string
+          id: string
+          pessoa_id: string | null
+          token: string
+          updated_at: string
+          usado_em: string | null
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          email: string
+          enviado?: boolean
+          expira_em?: string
+          id?: string
+          pessoa_id?: string | null
+          token: string
+          updated_at?: string
+          usado_em?: string | null
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          email?: string
+          enviado?: boolean
+          expira_em?: string
+          id?: string
+          pessoa_id?: string | null
+          token?: string
+          updated_at?: string
+          usado_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "convites_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "convites_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "convites_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "convites_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       curriculos: {
         Row: {
           areas_interesse: string[]
@@ -933,6 +1001,16 @@ export type Database = {
       }
     }
     Functions: {
+      convite_consumir: {
+        Args: {
+          p_data_nascimento?: string
+          p_nome: string
+          p_telefone?: string
+          p_token: string
+        }
+        Returns: Json
+      }
+      convite_validar: { Args: { p_token: string }; Returns: Json }
       current_user_familia_id: { Args: never; Returns: string }
       current_user_pessoa_id: { Args: never; Returns: string }
       fundir_perfis: {
