@@ -169,6 +169,45 @@ export type Database = {
         }
         Relationships: []
       }
+      colaboradores: {
+        Row: {
+          ativo: boolean
+          auth_user_id: string | null
+          created_at: string
+          email: string | null
+          iban: string | null
+          id: string
+          nome_completo: string
+          notas: string | null
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          auth_user_id?: string | null
+          created_at?: string
+          email?: string | null
+          iban?: string | null
+          id?: string
+          nome_completo: string
+          notas?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          auth_user_id?: string | null
+          created_at?: string
+          email?: string | null
+          iban?: string | null
+          id?: string
+          nome_completo?: string
+          notas?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       convites: {
         Row: {
           created_at: string
@@ -622,6 +661,50 @@ export type Database = {
         }
         Relationships: []
       }
+      pagamentos: {
+        Row: {
+          colaborador_id: string
+          created_at: string
+          data_pagamento: string
+          id: string
+          metodo: string | null
+          notas: string | null
+          referencia: string | null
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          colaborador_id: string
+          created_at?: string
+          data_pagamento?: string
+          id?: string
+          metodo?: string | null
+          notas?: string | null
+          referencia?: string | null
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          colaborador_id?: string
+          created_at?: string
+          data_pagamento?: string
+          id?: string
+          metodo?: string | null
+          notas?: string | null
+          referencia?: string | null
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pessoa_etiquetas: {
         Row: {
           created_at: string
@@ -802,6 +885,88 @@ export type Database = {
         }
         Relationships: []
       }
+      registos_servico: {
+        Row: {
+          colaborador_id: string
+          created_at: string
+          data_fim: string | null
+          data_inicio: string
+          descricao: string | null
+          estado: string
+          id: string
+          km: number | null
+          notas_admin: string | null
+          outros_custos: number
+          outros_custos_descricao: string | null
+          pagamento_id: string | null
+          preco_unitario_override: number | null
+          quantidade: number
+          submetido_pelo_colaborador: boolean
+          tipo_servico_id: string
+          updated_at: string
+        }
+        Insert: {
+          colaborador_id: string
+          created_at?: string
+          data_fim?: string | null
+          data_inicio: string
+          descricao?: string | null
+          estado?: string
+          id?: string
+          km?: number | null
+          notas_admin?: string | null
+          outros_custos?: number
+          outros_custos_descricao?: string | null
+          pagamento_id?: string | null
+          preco_unitario_override?: number | null
+          quantidade?: number
+          submetido_pelo_colaborador?: boolean
+          tipo_servico_id: string
+          updated_at?: string
+        }
+        Update: {
+          colaborador_id?: string
+          created_at?: string
+          data_fim?: string | null
+          data_inicio?: string
+          descricao?: string | null
+          estado?: string
+          id?: string
+          km?: number | null
+          notas_admin?: string | null
+          outros_custos?: number
+          outros_custos_descricao?: string | null
+          pagamento_id?: string | null
+          preco_unitario_override?: number | null
+          quantidade?: number
+          submetido_pelo_colaborador?: boolean
+          tipo_servico_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registos_servico_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registos_servico_pagamento_id_fkey"
+            columns: ["pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "pagamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registos_servico_tipo_servico_id_fkey"
+            columns: ["tipo_servico_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       security_finding_events: {
         Row: {
           actor_id: string | null
@@ -894,6 +1059,39 @@ export type Database = {
           title?: string
           updated_at?: string
           url?: string | null
+        }
+        Relationships: []
+      }
+      tipos_servico: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          preco_unitario: number
+          unidade: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          preco_unitario?: number
+          unidade?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          preco_unitario?: number
+          unidade?: string
+          updated_at?: string
         }
         Relationships: []
       }

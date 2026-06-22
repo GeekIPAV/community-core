@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { User, Users, Users2, AlertTriangle, CalendarDays, Globe, UserCog, Briefcase, BarChart3, Languages, Bus, Activity, MapPin, Trash2, LayoutDashboard, Mail, Palette, ShieldAlert, FileText } from "lucide-react";
+import { User, Users, Users2, AlertTriangle, CalendarDays, Globe, UserCog, Briefcase, BarChart3, Languages, Bus, Activity, MapPin, Trash2, LayoutDashboard, Mail, Palette, ShieldAlert, FileText, Wallet } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   Sidebar,
@@ -160,6 +160,16 @@ export function AppSidebar() {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                {hasPage("servicos") && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive("/servicos")}>
+                    <Link to="/servicos" className="flex items-center gap-2">
+                      <Wallet className="h-4 w-4" />
+                      <span>Serviços & Pagamentos</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                )}
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={isActive("/style-guide")}>
                     <Link to="/style-guide" className="flex items-center gap-2">
