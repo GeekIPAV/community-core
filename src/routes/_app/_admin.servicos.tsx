@@ -24,6 +24,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import { SmartTable, type SmartColumnDef } from "@/components/smart-table";
 import { BulkImportDialog } from "@/components/servicos/BulkImportDialog";
 import { Upload } from "lucide-react";
+import { RegistoPagamentoCell, PagamentoServicosCell } from "@/components/servicos/PaymentLinkCells";
 
 export const Route = createFileRoute("/_app/_admin/servicos")({
   component: ServicosPage,
