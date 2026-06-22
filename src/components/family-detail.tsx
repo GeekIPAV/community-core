@@ -718,6 +718,9 @@ export function FamilyDetailDialog({
               <TabsTrigger value="projetos" className="flex-1">Projetos</TabsTrigger>
               <TabsTrigger value="acoes" className="flex-1">Ações</TabsTrigger>
               <TabsTrigger value="atividades" className="flex-1">Atividades</TabsTrigger>
+              <TabsTrigger value="contexto" className="flex-1">
+                {family && <ContextoTabLabel familiaId={family.id} />}
+              </TabsTrigger>
             </TabsList>
 
             {/* ── Dados ── */}
