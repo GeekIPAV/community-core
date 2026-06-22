@@ -1949,6 +1949,7 @@ function AcoesPageInner() {
             restrito_a_projetos: !!(a as any).restrito_a_projetos,
             publico: (a as any).publico ?? true,
             fields,
+            parceiro_ids: acaoParceiros?.get(a.id) ?? [],
           });
         }}
       >
