@@ -54,7 +54,7 @@ function MeusServicosPage() {
 
   // Find this user's collaborator record. Try by auth_user_id, fall back to email.
   const { data: colab, isLoading: colabLoading } = useQuery({
-    queryKey: ["meu_colaborador", authUid, pessoa?.email],
+    queryKey: ["meu_colaborador", authUid, pessoa?.id, pessoa?.email],
     enabled: !!authUid,
     queryFn: async () => {
       const byAuth = await supabase.from("colaboradores")
@@ -62,6 +62,13 @@ function MeusServicosPage() {
         .eq("auth_user_id", authUid!).maybeSingle();
       if (byAuth.error) throw byAuth.error;
       if (byAuth.data) return byAuth.data;
+      if (pessoa?.id) {
+        const byPessoa = await supabase.from("colaboradores")
+          .select("id, nome_completo, email, ativo")
+          .eq("pessoa_id", pessoa.id).maybeSingle();
+        if (byPessoa.error) throw byPessoa.error;
+        if (byPessoa.data) return byPessoa.data;
+      }
       if (pessoa?.email) {
         const byEmail = await supabase.from("colaboradores")
           .select("id, nome_completo, email, ativo")
