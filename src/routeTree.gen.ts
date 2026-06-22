@@ -34,6 +34,7 @@ import { Route as AppAdminCurriculosRouteImport } from './routes/_app/_admin.cur
 import { Route as AppAdminBolsasTransporteRouteImport } from './routes/_app/_admin.bolsas-transporte'
 import { Route as AppAdminAtividadesRouteImport } from './routes/_app/_admin.atividades'
 import { Route as AppAdminAcoesRouteImport } from './routes/_app/_admin.acoes'
+import { Route as AppAdminServicosColaboradorIdRouteImport } from './routes/_app/_admin.servicos.colaborador.$id'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -159,6 +160,12 @@ const AppAdminAcoesRoute = AppAdminAcoesRouteImport.update({
   path: '/acoes',
   getParentRoute: () => AppAdminRoute,
 } as any)
+const AppAdminServicosColaboradorIdRoute =
+  AppAdminServicosColaboradorIdRouteImport.update({
+    id: '/colaborador/$id',
+    path: '/colaborador/$id',
+    getParentRoute: () => AppAdminServicosRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -181,9 +188,10 @@ export interface FileRoutesByFullPath {
   '/participantes': typeof AppAdminParticipantesRoute
   '/projetos': typeof AppAdminProjetosRoute
   '/security': typeof AppAdminSecurityRoute
-  '/servicos': typeof AppAdminServicosRoute
+  '/servicos': typeof AppAdminServicosRouteWithChildren
   '/style-guide': typeof AppAdminStyleGuideRoute
   '/tipos-user': typeof AppAdminTiposUserRoute
+  '/servicos/colaborador/$id': typeof AppAdminServicosColaboradorIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -206,9 +214,10 @@ export interface FileRoutesByTo {
   '/participantes': typeof AppAdminParticipantesRoute
   '/projetos': typeof AppAdminProjetosRoute
   '/security': typeof AppAdminSecurityRoute
-  '/servicos': typeof AppAdminServicosRoute
+  '/servicos': typeof AppAdminServicosRouteWithChildren
   '/style-guide': typeof AppAdminStyleGuideRoute
   '/tipos-user': typeof AppAdminTiposUserRoute
+  '/servicos/colaborador/$id': typeof AppAdminServicosColaboradorIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -234,9 +243,10 @@ export interface FileRoutesById {
   '/_app/_admin/participantes': typeof AppAdminParticipantesRoute
   '/_app/_admin/projetos': typeof AppAdminProjetosRoute
   '/_app/_admin/security': typeof AppAdminSecurityRoute
-  '/_app/_admin/servicos': typeof AppAdminServicosRoute
+  '/_app/_admin/servicos': typeof AppAdminServicosRouteWithChildren
   '/_app/_admin/style-guide': typeof AppAdminStyleGuideRoute
   '/_app/_admin/tipos-user': typeof AppAdminTiposUserRoute
+  '/_app/_admin/servicos/colaborador/$id': typeof AppAdminServicosColaboradorIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -264,6 +274,7 @@ export interface FileRouteTypes {
     | '/servicos'
     | '/style-guide'
     | '/tipos-user'
+    | '/servicos/colaborador/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -289,6 +300,7 @@ export interface FileRouteTypes {
     | '/servicos'
     | '/style-guide'
     | '/tipos-user'
+    | '/servicos/colaborador/$id'
   id:
     | '__root__'
     | '/'
@@ -316,6 +328,7 @@ export interface FileRouteTypes {
     | '/_app/_admin/servicos'
     | '/_app/_admin/style-guide'
     | '/_app/_admin/tipos-user'
+    | '/_app/_admin/servicos/colaborador/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -505,8 +518,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminAcoesRouteImport
       parentRoute: typeof AppAdminRoute
     }
+    '/_app/_admin/servicos/colaborador/$id': {
+      id: '/_app/_admin/servicos/colaborador/$id'
+      path: '/colaborador/$id'
+      fullPath: '/servicos/colaborador/$id'
+      preLoaderRoute: typeof AppAdminServicosColaboradorIdRouteImport
+      parentRoute: typeof AppAdminServicosRoute
+    }
   }
 }
+
+interface AppAdminServicosRouteChildren {
+  AppAdminServicosColaboradorIdRoute: typeof AppAdminServicosColaboradorIdRoute
+}
+
+const AppAdminServicosRouteChildren: AppAdminServicosRouteChildren = {
+  AppAdminServicosColaboradorIdRoute: AppAdminServicosColaboradorIdRoute,
+}
+
+const AppAdminServicosRouteWithChildren =
+  AppAdminServicosRoute._addFileChildren(AppAdminServicosRouteChildren)
 
 interface AppAdminRouteChildren {
   AppAdminAcoesRoute: typeof AppAdminAcoesRoute
@@ -522,7 +553,7 @@ interface AppAdminRouteChildren {
   AppAdminParticipantesRoute: typeof AppAdminParticipantesRoute
   AppAdminProjetosRoute: typeof AppAdminProjetosRoute
   AppAdminSecurityRoute: typeof AppAdminSecurityRoute
-  AppAdminServicosRoute: typeof AppAdminServicosRoute
+  AppAdminServicosRoute: typeof AppAdminServicosRouteWithChildren
   AppAdminStyleGuideRoute: typeof AppAdminStyleGuideRoute
   AppAdminTiposUserRoute: typeof AppAdminTiposUserRoute
 }
@@ -541,7 +572,7 @@ const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminParticipantesRoute: AppAdminParticipantesRoute,
   AppAdminProjetosRoute: AppAdminProjetosRoute,
   AppAdminSecurityRoute: AppAdminSecurityRoute,
-  AppAdminServicosRoute: AppAdminServicosRoute,
+  AppAdminServicosRoute: AppAdminServicosRouteWithChildren,
   AppAdminStyleGuideRoute: AppAdminStyleGuideRoute,
   AppAdminTiposUserRoute: AppAdminTiposUserRoute,
 }
