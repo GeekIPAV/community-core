@@ -283,14 +283,6 @@ function ColaboradoresTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <BulkImportDialog
-        open={bulkOpen}
-        onOpenChange={setBulkOpen}
-        colaboradores={colabs ?? []}
-        tipos={tipos ?? []}
-        onImported={() => qc.invalidateQueries({ queryKey: ["registos_servico"] })}
-      />
     </div>
   );
 }
