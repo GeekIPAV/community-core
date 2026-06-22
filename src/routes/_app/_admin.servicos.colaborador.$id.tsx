@@ -295,100 +295,50 @@ function ColaboradorDetailPage() {
         </TabsList>
 
         <TabsContent value="servicos" className="space-y-4 mt-4">
-          <div className="flex flex-wrap items-end gap-2 justify-between">
-            <div className="flex flex-wrap items-end gap-2">
-              <div>
-                <Label className="text-xs">Estado</Label>
-                <Select value={filterEstado} onValueChange={setFilterEstado}>
-                  <SelectTrigger className="w-36 h-9"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__all">Todos</SelectItem>
-                    {ESTADOS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div><Label className="text-xs">De</Label><Input type="date" className="h-9 w-40" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} /></div>
-              <div><Label className="text-xs">Até</Label><Input type="date" className="h-9 w-40" value={filterTo} onChange={(e) => setFilterTo(e.target.value)} /></div>
+          <div className="flex flex-wrap items-end gap-2">
+            <div>
+              <Label className="text-xs">Estado</Label>
+              <Select value={filterEstado} onValueChange={setFilterEstado}>
+                <SelectTrigger className="w-36 h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">Todos</SelectItem>
+                  {ESTADOS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
-            <RegistoButton colaboradorId={id} tipos={tipos ?? []} />
+            <div><Label className="text-xs">De</Label><Input type="date" className="h-9 w-40" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} /></div>
+            <div><Label className="text-xs">Até</Label><Input type="date" className="h-9 w-40" value={filterTo} onChange={(e) => setFilterTo(e.target.value)} /></div>
           </div>
 
-          <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Serviço</TableHead>
-                  <TableHead className="text-right">Qtd</TableHead>
-                  <TableHead className="text-right">Calc.</TableHead>
-                  <TableHead className="text-right">Outros</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="w-20"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {registosFiltered.length === 0 && (
-                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">Sem registos</TableCell></TableRow>
-                )}
-                {registosFiltered.map((r) => {
-                  const tipo = tipoMap.get(r.tipo_servico_id);
-                  const preco = r.preco_unitario_override ?? (tipo?.preco_unitario ?? 0);
-                  const calc = Number(preco) * Number(r.quantidade);
-                  return (
-                    <TableRow key={r.id}>
-                      <TableCell className="text-sm">{new Date(r.data_inicio).toLocaleDateString("pt-PT")}</TableCell>
-                      <TableCell>
-                        <div className="font-medium">{tipo?.nome ?? "—"}</div>
-                        {r.descricao && <div className="text-xs text-muted-foreground truncate max-w-xs">{r.descricao}</div>}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">{Number(r.quantidade)} {tipo?.unidade ?? ""}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtEUR(calc)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtEUR(r.outros_custos)}</TableCell>
-                      <TableCell className="text-right tabular-nums font-semibold">{fmtEUR(calc + Number(r.outros_custos || 0))}</TableCell>
-                      <TableCell>{estadoBadge(r.estado)}</TableCell>
-                      <TableCell>
-                        <DeleteRegisto id={r.id} colaboradorId={id} />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+          <SmartTable
+            tableId={`registos_colab_${id}`}
+            columns={registosColumns}
+            data={registosRows}
+            editableColumns={["quantidade", "outros_custos", "estado"]}
+            onCellEdit={(rowId, columnId, value) => {
+              let v: unknown = value;
+              if (columnId === "quantidade" || columnId === "outros_custos") v = Number(value) || 0;
+              return updateRegisto.mutateAsync({ id: rowId, field: columnId, value: v });
+            }}
+            toolbarActions={<RegistoButton colaboradorId={id} tipos={tipos ?? []} />}
+            emptyMessage="Sem registos"
+          />
         </TabsContent>
 
         <TabsContent value="pagamentos" className="space-y-4 mt-4">
-          <div className="flex justify-end">
-            <PagamentoButton colaboradorId={id} tipos={tipos ?? []} />
-          </div>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Referência</TableHead>
-                  <TableHead>Método</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                  <TableHead>Notas</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(pagamentos ?? []).length === 0 && (
-                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sem pagamentos</TableCell></TableRow>
-                )}
-                {(pagamentos ?? []).map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell className="text-sm">{new Date(p.data_pagamento).toLocaleDateString("pt-PT")}</TableCell>
-                    <TableCell>{p.referencia ?? "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">{p.metodo ?? "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums font-semibold">{fmtEUR(p.total)}</TableCell>
-                    <TableCell className="text-muted-foreground text-xs max-w-xs truncate">{p.notas ?? ""}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <SmartTable
+            tableId={`pagamentos_colab_${id}`}
+            columns={pagamentosColumns}
+            data={pagamentos ?? []}
+            editableColumns={["referencia", "metodo", "total", "data_pagamento", "notas"]}
+            onCellEdit={(rowId, columnId, value) => {
+              let v: unknown = value;
+              if (columnId === "total") v = Number(value) || 0;
+              return updatePagamento.mutateAsync({ id: rowId, field: columnId, value: v });
+            }}
+            toolbarActions={<PagamentoButton colaboradorId={id} tipos={tipos ?? []} />}
+            emptyMessage="Sem pagamentos"
+          />
         </TabsContent>
       </Tabs>
 
