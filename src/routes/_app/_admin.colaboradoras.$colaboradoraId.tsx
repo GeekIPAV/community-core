@@ -647,8 +647,8 @@ function PagamentosTab({
                 const linked = byPagamento.get(p.id) ?? [];
                 const isOpen = expanded.has(p.id);
                 return (
-                  <>
-                    <tr key={p.id} id={`pag-${p.id}`} className="border-t hover:bg-muted/20">
+                  <Fragment key={p.id}>
+                    <tr id={`pag-${p.id}`} className="border-t hover:bg-muted/20">
                       <td className="p-2">
                         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => toggle(p.id)}>
                           <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
@@ -706,7 +706,7 @@ function PagamentosTab({
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 );
               })}
             </tbody>
