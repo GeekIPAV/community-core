@@ -31,7 +31,7 @@ import {
   tipoBadgeClass,
   ESTADOS_PARCEIRO,
   type Parceiro,
-} from "./_admin.parceiros";
+} from "./_admin.parceiros.index";
 import { InlineMultiSelect } from "@/components/inline-edit";
 
 export const Route = createFileRoute("/_app/_admin/parceiros/$parceiroId")({
