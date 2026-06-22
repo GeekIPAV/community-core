@@ -343,7 +343,7 @@ export function FamilyDetailDialog({
   const qc = useQueryClient();
 
   // ── tab + editing state ───────────────────────────────────────────────────
-  const [detailTab, setDetailTab] = useState<"dados" | "membros" | "projetos" | "acoes" | "atividades">(defaultTab);
+  const [detailTab, setDetailTab] = useState<"dados" | "membros" | "projetos" | "acoes" | "atividades" | "contexto">(defaultTab);
   const [editing, setEditing] = useState<Familia | null>(family);
 
   // When the selected family changes reset editing state
