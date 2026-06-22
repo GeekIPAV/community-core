@@ -1202,6 +1202,13 @@ function PagamentosTab() {
     { id: "total", accessorKey: "total", header: "Total", size: 120,
       meta: { label: "Total", filterVariant: "number", editType: "number" },
       cell: ({ getValue }) => <span className="block text-right tabular-nums font-medium">{fmtEUR(Number(getValue() ?? 0))}</span> },
+    { id: "_servicos", header: "Serviços", size: 110, enableSorting: false,
+      meta: { label: "Serviços", noTruncate: true },
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <PagamentoServicosCell pagamentoId={row.original.id} colaboradorId={row.original.colaborador_id} />
+        </div>
+      ) },
     { id: "_actions", header: "", size: 96, enableSorting: false, enableHiding: false, enableResizing: false,
       meta: { noTruncate: true },
       cell: ({ row }) => (
