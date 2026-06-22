@@ -25,6 +25,7 @@ import { Route as AppAdminServicosRouteImport } from './routes/_app/_admin.servi
 import { Route as AppAdminSecurityRouteImport } from './routes/_app/_admin.security'
 import { Route as AppAdminProjetosRouteImport } from './routes/_app/_admin.projetos'
 import { Route as AppAdminParticipantesRouteImport } from './routes/_app/_admin.participantes'
+import { Route as AppAdminMenuRouteImport } from './routes/_app/_admin.menu'
 import { Route as AppAdminLocalizacoesRouteImport } from './routes/_app/_admin.localizacoes'
 import { Route as AppAdminFamiliasRouteImport } from './routes/_app/_admin.familias'
 import { Route as AppAdminEmailsRouteImport } from './routes/_app/_admin.emails'
@@ -117,6 +118,11 @@ const AppAdminParticipantesRoute = AppAdminParticipantesRouteImport.update({
   path: '/participantes',
   getParentRoute: () => AppAdminRoute,
 } as any)
+const AppAdminMenuRoute = AppAdminMenuRouteImport.update({
+  id: '/menu',
+  path: '/menu',
+  getParentRoute: () => AppAdminRoute,
+} as any)
 const AppAdminLocalizacoesRoute = AppAdminLocalizacoesRouteImport.update({
   id: '/localizacoes',
   path: '/localizacoes',
@@ -206,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/emails': typeof AppAdminEmailsRoute
   '/familias': typeof AppAdminFamiliasRoute
   '/localizacoes': typeof AppAdminLocalizacoesRoute
+  '/menu': typeof AppAdminMenuRoute
   '/participantes': typeof AppAdminParticipantesRoute
   '/projetos': typeof AppAdminProjetosRoute
   '/security': typeof AppAdminSecurityRoute
@@ -235,6 +242,7 @@ export interface FileRoutesByTo {
   '/emails': typeof AppAdminEmailsRoute
   '/familias': typeof AppAdminFamiliasRoute
   '/localizacoes': typeof AppAdminLocalizacoesRoute
+  '/menu': typeof AppAdminMenuRoute
   '/participantes': typeof AppAdminParticipantesRoute
   '/projetos': typeof AppAdminProjetosRoute
   '/security': typeof AppAdminSecurityRoute
@@ -267,6 +275,7 @@ export interface FileRoutesById {
   '/_app/_admin/emails': typeof AppAdminEmailsRoute
   '/_app/_admin/familias': typeof AppAdminFamiliasRoute
   '/_app/_admin/localizacoes': typeof AppAdminLocalizacoesRoute
+  '/_app/_admin/menu': typeof AppAdminMenuRoute
   '/_app/_admin/participantes': typeof AppAdminParticipantesRoute
   '/_app/_admin/projetos': typeof AppAdminProjetosRoute
   '/_app/_admin/security': typeof AppAdminSecurityRoute
@@ -298,6 +307,7 @@ export interface FileRouteTypes {
     | '/emails'
     | '/familias'
     | '/localizacoes'
+    | '/menu'
     | '/participantes'
     | '/projetos'
     | '/security'
@@ -327,6 +337,7 @@ export interface FileRouteTypes {
     | '/emails'
     | '/familias'
     | '/localizacoes'
+    | '/menu'
     | '/participantes'
     | '/projetos'
     | '/security'
@@ -358,6 +369,7 @@ export interface FileRouteTypes {
     | '/_app/_admin/emails'
     | '/_app/_admin/familias'
     | '/_app/_admin/localizacoes'
+    | '/_app/_admin/menu'
     | '/_app/_admin/participantes'
     | '/_app/_admin/projetos'
     | '/_app/_admin/security'
@@ -493,6 +505,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminParticipantesRouteImport
       parentRoute: typeof AppAdminRoute
     }
+    '/_app/_admin/menu': {
+      id: '/_app/_admin/menu'
+      path: '/menu'
+      fullPath: '/menu'
+      preLoaderRoute: typeof AppAdminMenuRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
     '/_app/_admin/localizacoes': {
       id: '/_app/_admin/localizacoes'
       path: '/localizacoes'
@@ -611,6 +630,7 @@ interface AppAdminRouteChildren {
   AppAdminEmailsRoute: typeof AppAdminEmailsRoute
   AppAdminFamiliasRoute: typeof AppAdminFamiliasRoute
   AppAdminLocalizacoesRoute: typeof AppAdminLocalizacoesRoute
+  AppAdminMenuRoute: typeof AppAdminMenuRoute
   AppAdminParticipantesRoute: typeof AppAdminParticipantesRoute
   AppAdminProjetosRoute: typeof AppAdminProjetosRoute
   AppAdminSecurityRoute: typeof AppAdminSecurityRoute
@@ -631,6 +651,7 @@ const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminEmailsRoute: AppAdminEmailsRoute,
   AppAdminFamiliasRoute: AppAdminFamiliasRoute,
   AppAdminLocalizacoesRoute: AppAdminLocalizacoesRoute,
+  AppAdminMenuRoute: AppAdminMenuRoute,
   AppAdminParticipantesRoute: AppAdminParticipantesRoute,
   AppAdminProjetosRoute: AppAdminProjetosRoute,
   AppAdminSecurityRoute: AppAdminSecurityRoute,
