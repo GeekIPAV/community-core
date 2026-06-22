@@ -324,6 +324,7 @@ export function ServicosCalendarioPage({ embedded = false }: { embedded?: boolea
                 colabMap={colabMap}
                 tipoMap={tipoMap}
                 sessaoMap={sessaoMap}
+                colabs={colabs ?? []}
                 onCreate={openCreate}
               />
             ) : vista === "semana" ? (
@@ -333,6 +334,7 @@ export function ServicosCalendarioPage({ embedded = false }: { embedded?: boolea
                 colabMap={colabMap}
                 tipoMap={tipoMap}
                 sessaoMap={sessaoMap}
+                colabs={colabs ?? []}
                 onCreate={openCreate}
               />
             ) : (
@@ -554,8 +556,8 @@ function ServicoDetail({ r, colab, tipo, onClose }: { r: Registo; colab?: Colab;
 }
 
 // ============ Session Pill + Detail Popover ============
-function SessionPill({ sessao, records, colabMap, tipoMap, sessaoMap }: {
-  sessao: Sessao; records: Registo[]; colabMap: Map<string, Colab>; tipoMap: Map<string, Tipo>; sessaoMap: Map<string, Sessao>;
+function SessionPill({ sessao, records, colabMap, tipoMap, sessaoMap, colabs }: {
+  sessao: Sessao; records: Registo[]; colabMap: Map<string, Colab>; tipoMap: Map<string, Tipo>; sessaoMap: Map<string, Sessao>; colabs: Colab[];
 }) {
   const [open, setOpen] = useState(false);
   const total = records.reduce((s, r) => s + calcTotal(r, tipoMap).total, 0);
@@ -577,20 +579,100 @@ function SessionPill({ sessao, records, colabMap, tipoMap, sessaoMap }: {
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-[26rem] p-0" align="start">
-        <SessionDetail sessao={sessao} records={records} colabMap={colabMap} tipoMap={tipoMap} onClose={() => setOpen(false)} />
+        <SessionDetail sessao={sessao} records={records} colabMap={colabMap} tipoMap={tipoMap} colabs={colabs} onClose={() => setOpen(false)} />
       </PopoverContent>
     </Popover>
   );
 }
 
-function SessionDetail({ sessao, records, colabMap, tipoMap, onClose }: {
-  sessao: Sessao; records: Registo[]; colabMap: Map<string, Colab>; tipoMap: Map<string, Tipo>; onClose: () => void;
+function SessionDetail({ sessao, records, colabMap, tipoMap, colabs, onClose }: {
+  sessao: Sessao; records: Registo[]; colabMap: Map<string, Colab>; tipoMap: Map<string, Tipo>; colabs: Colab[]; onClose: () => void;
 }) {
   const qc = useQueryClient();
   const tipo = tipoMap.get(sessao.tipo_servico_id);
   const total = records.reduce((s, r) => s + calcTotal(r, tipoMap).total, 0);
   const pagas = records.filter((r) => r.estado === "pago").length;
   const pendentes = records.length - pagas;
+  const [editing, setEditing] = useState(false);
+  const [eNome, setENome] = useState(sessao.nome);
+  const [eLocal, setELocal] = useState(sessao.local ?? "");
+  const [eDataInicio, setEDataInicio] = useState(sessao.data_inicio);
+  const [eDataFim, setEDataFim] = useState(sessao.data_fim ?? "");
+  const [addOpen, setAddOpen] = useState(false);
+
+  const presentIds = new Set(records.map((r) => r.colaborador_id));
+  const available = colabs.filter((c) => c.ativo && !presentIds.has(c.id));
+
+  const saveEdit = useMutation({
+    mutationFn: async () => {
+      if (!eNome.trim()) throw new Error("Nome obrigatório");
+      if (!eDataInicio) throw new Error("Data obrigatória");
+      const { error } = await supabase
+        .from("sessoes_servico")
+        .update({
+          nome: eNome.trim(),
+          local: eLocal.trim() || null,
+          data_inicio: eDataInicio,
+          data_fim: eDataFim || null,
+        })
+        .eq("id", sessao.id);
+      if (error) throw error;
+      // sync date on all linked records
+      const { error: e2 } = await supabase
+        .from("registos_servico")
+        .update({ data_inicio: eDataInicio, data_fim: eDataFim || null })
+        .eq("sessao_id", sessao.id);
+      if (e2) throw e2;
+    },
+    onSuccess: () => {
+      toast.success("Sessão atualizada");
+      qc.invalidateQueries({ queryKey: ["registos_cal"] });
+      qc.invalidateQueries({ queryKey: ["sessoes_cal"] });
+      qc.invalidateQueries({ queryKey: ["sessoes_list"] });
+      setEditing(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const addColab = useMutation({
+    mutationFn: async (colabId: string) => {
+      const { error } = await supabase.from("registos_servico").insert({
+        colaborador_id: colabId,
+        tipo_servico_id: sessao.tipo_servico_id,
+        sessao_id: sessao.id,
+        data_inicio: sessao.data_inicio,
+        data_fim: sessao.data_fim,
+        descricao: sessao.nome,
+        quantidade: sessao.quantidade_por_colaborador,
+        preco_unitario_override: sessao.preco_unitario_override,
+        outros_custos: 0,
+        outros_custos_descricao: null,
+        estado: "pendente" as Estado,
+        submetido_pelo_colaborador: false,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Colaboradora adicionada");
+      qc.invalidateQueries({ queryKey: ["registos_cal"] });
+      qc.invalidateQueries({ queryKey: ["sessoes_list"] });
+      setAddOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const removeRecord = useMutation({
+    mutationFn: async (recordId: string) => {
+      const { error } = await supabase.from("registos_servico").delete().eq("id", recordId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Removida da sessão");
+      qc.invalidateQueries({ queryKey: ["registos_cal"] });
+      qc.invalidateQueries({ queryKey: ["sessoes_list"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const remove = useMutation({
     mutationFn: async () => {
@@ -612,14 +694,36 @@ function SessionDetail({ sessao, records, colabMap, tipoMap, onClose }: {
       <div className="flex items-start gap-3 border-b p-3">
         <Users className="h-5 w-5 mt-0.5 text-primary shrink-0" />
         <div className="flex-1 min-w-0">
-          <div className="font-semibold truncate">{sessao.nome}</div>
-          <div className="text-xs text-muted-foreground">{fmtLongDate(sessao.data_inicio)}{sessao.data_fim && sessao.data_fim !== sessao.data_inicio ? ` → ${fmtLongDate(sessao.data_fim)}` : ""}</div>
-          <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            {tipo && <Badge variant="outline" className="text-[10px]">{tipo.nome}</Badge>}
-            {sessao.local && <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{sessao.local}</span>}
-          </div>
+          {editing ? (
+            <div className="space-y-2">
+              <Input value={eNome} onChange={(e) => setENome(e.target.value)} className="h-8 text-sm" placeholder="Nome da sessão" />
+              <div className="grid grid-cols-2 gap-2">
+                <Input type="date" value={eDataInicio} onChange={(e) => setEDataInicio(e.target.value)} className="h-8 text-xs" />
+                <Input type="date" value={eDataFim} onChange={(e) => setEDataFim(e.target.value)} className="h-8 text-xs" />
+              </div>
+              <Input value={eLocal} onChange={(e) => setELocal(e.target.value)} className="h-8 text-xs" placeholder="Local" />
+              <div className="flex gap-1">
+                <Button size="sm" className="h-7 text-xs" onClick={() => saveEdit.mutate()} disabled={saveEdit.isPending}><Check className="mr-1 h-3 w-3" />Guardar</Button>
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditing(false)}>Cancelar</Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="font-semibold truncate">{sessao.nome}</div>
+              <div className="text-xs text-muted-foreground">{fmtLongDate(sessao.data_inicio)}{sessao.data_fim && sessao.data_fim !== sessao.data_inicio ? ` → ${fmtLongDate(sessao.data_fim)}` : ""}</div>
+              <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                {tipo && <Badge variant="outline" className="text-[10px]">{tipo.nome}</Badge>}
+                {sessao.local && <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{sessao.local}</span>}
+              </div>
+            </>
+          )}
         </div>
-        <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+        <div className="flex items-center gap-1">
+          {!editing && (
+            <button onClick={() => setEditing(true)} className="text-muted-foreground hover:text-foreground" title="Editar sessão"><Pencil className="h-3.5 w-3.5" /></button>
+          )}
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+        </div>
       </div>
       <div className="max-h-72 overflow-y-auto divide-y">
         {records.map((r) => {
@@ -641,9 +745,42 @@ function SessionDetail({ sessao, records, colabMap, tipoMap, onClose }: {
                 </div>
               </div>
               <Badge variant="outline" className={cn("text-[9px]", estadoChip(r.estado))}>{r.estado}</Badge>
+              <button
+                onClick={() => { if (confirm(`Remover ${colab?.nome_completo ?? "registo"} da sessão?`)) removeRecord.mutate(r.id); }}
+                className="text-muted-foreground hover:text-destructive"
+                title="Remover da sessão"
+              >
+                <X className="h-3 w-3" />
+              </button>
             </div>
           );
         })}
+      </div>
+      <div className="border-t bg-muted/10 p-2">
+        <Popover open={addOpen} onOpenChange={setAddOpen}>
+          <PopoverTrigger asChild>
+            <Button size="sm" variant="outline" className="w-full h-8 text-xs" disabled={available.length === 0}>
+              <UserPlus className="mr-1.5 h-3.5 w-3.5" />
+              {available.length === 0 ? "Todas as colaboradoras já estão na sessão" : "Adicionar colaboradora"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-72 p-0" align="start">
+            <Command>
+              <CommandInput placeholder="Procurar colaboradora…" />
+              <CommandList>
+                <CommandEmpty>Sem resultados.</CommandEmpty>
+                <CommandGroup>
+                  {available.map((c) => (
+                    <CommandItem key={c.id} onSelect={() => addColab.mutate(c.id)} className="cursor-pointer">
+                      <span className="h-5 w-5 rounded-full mr-2 flex items-center justify-center text-[9px] font-semibold text-white" style={{ background: colabColor(c.id) }}>{initials(c.nome_completo)}</span>
+                      {c.nome_completo}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
       </div>
       <div className="border-t p-3 bg-muted/30">
         <div className="flex items-center justify-between mb-1">
@@ -666,8 +803,8 @@ function SessionDetail({ sessao, records, colabMap, tipoMap, onClose }: {
 }
 
 // ============ Month view ============
-function MesView({ cursor, rows, colabMap, tipoMap, sessaoMap, onCreate }: {
-  cursor: Date; rows: Registo[]; colabMap: Map<string, Colab>; tipoMap: Map<string, Tipo>; sessaoMap: Map<string, Sessao>; onCreate: (date?: string) => void;
+function MesView({ cursor, rows, colabMap, tipoMap, sessaoMap, colabs, onCreate }: {
+  cursor: Date; rows: Registo[]; colabMap: Map<string, Colab>; tipoMap: Map<string, Tipo>; sessaoMap: Map<string, Sessao>; colabs: Colab[]; onCreate: (date?: string) => void;
 }) {
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
@@ -726,7 +863,7 @@ function MesView({ cursor, rows, colabMap, tipoMap, sessaoMap, onCreate }: {
                   return <>
                     {blocks.slice(0, 2).map((b, bi) =>
                       b.type === "session"
-                        ? <SessionPill key={"s-" + b.sessao.id + "-" + d} sessao={b.sessao} records={b.records} colabMap={colabMap} tipoMap={tipoMap} sessaoMap={sessaoMap} />
+                        ? <SessionPill key={"s-" + b.sessao.id + "-" + d} sessao={b.sessao} records={b.records} colabMap={colabMap} tipoMap={tipoMap} sessaoMap={sessaoMap} colabs={colabs} />
                         : <ServicoPill key={b.record.id + "-" + d} r={b.record} colabMap={colabMap} tipoMap={tipoMap} compact />
                     )}
                     {blocks.length > 2 && (
@@ -740,7 +877,7 @@ function MesView({ cursor, rows, colabMap, tipoMap, sessaoMap, onCreate }: {
                       <div className="text-xs font-semibold mb-1 px-1">{d} {MESES_LONG[month]}</div>
                       {blocks.map((b, bi) =>
                         b.type === "session"
-                          ? <SessionPill key={"sl-" + b.sessao.id} sessao={b.sessao} records={b.records} colabMap={colabMap} tipoMap={tipoMap} sessaoMap={sessaoMap} />
+                          ? <SessionPill key={"sl-" + b.sessao.id} sessao={b.sessao} records={b.records} colabMap={colabMap} tipoMap={tipoMap} sessaoMap={sessaoMap} colabs={colabs} />
                           : <ServicoPill key={b.record.id + "-list"} r={b.record} colabMap={colabMap} tipoMap={tipoMap} />
                       )}
                     </PopoverContent>
@@ -758,8 +895,8 @@ function MesView({ cursor, rows, colabMap, tipoMap, sessaoMap, onCreate }: {
 }
 
 // ============ Week view ============
-function SemanaView({ cursor, rows, colabMap, tipoMap, sessaoMap, onCreate }: {
-  cursor: Date; rows: Registo[]; colabMap: Map<string, Colab>; tipoMap: Map<string, Tipo>; sessaoMap: Map<string, Sessao>; onCreate: (date?: string) => void;
+function SemanaView({ cursor, rows, colabMap, tipoMap, sessaoMap, colabs, onCreate }: {
+  cursor: Date; rows: Registo[]; colabMap: Map<string, Colab>; tipoMap: Map<string, Tipo>; sessaoMap: Map<string, Sessao>; colabs: Colab[]; onCreate: (date?: string) => void;
 }) {
   const start = startOfWeek(cursor);
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
@@ -800,7 +937,7 @@ function SemanaView({ cursor, rows, colabMap, tipoMap, sessaoMap, onCreate }: {
               <div className="flex-1 space-y-1 min-w-0">
                 {groupDayItems(items, sessaoMap).map((b) =>
                   b.type === "session"
-                    ? <SessionPill key={"sw-" + b.sessao.id} sessao={b.sessao} records={b.records} colabMap={colabMap} tipoMap={tipoMap} sessaoMap={sessaoMap} />
+                    ? <SessionPill key={"sw-" + b.sessao.id} sessao={b.sessao} records={b.records} colabMap={colabMap} tipoMap={tipoMap} sessaoMap={sessaoMap} colabs={colabs} />
                     : <ServicoPill key={b.record.id} r={b.record} colabMap={colabMap} tipoMap={tipoMap} compact />
                 )}
               </div>
