@@ -177,6 +177,9 @@ export type Database = {
           email: string | null
           iban: string | null
           id: string
+          matricula: string | null
+          morada: string | null
+          nif: string | null
           nome_completo: string
           notas: string | null
           telefone: string | null
@@ -189,6 +192,9 @@ export type Database = {
           email?: string | null
           iban?: string | null
           id?: string
+          matricula?: string | null
+          morada?: string | null
+          nif?: string | null
           nome_completo: string
           notas?: string | null
           telefone?: string | null
@@ -201,6 +207,9 @@ export type Database = {
           email?: string | null
           iban?: string | null
           id?: string
+          matricula?: string | null
+          morada?: string | null
+          nif?: string | null
           nome_completo?: string
           notas?: string | null
           telefone?: string | null
