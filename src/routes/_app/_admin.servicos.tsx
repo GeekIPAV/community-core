@@ -584,8 +584,33 @@ function RegistosTab() {
             </SelectContent>
           </Select>
         </div>
-        <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />Novo registo</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={exportCSV} disabled={filtered.length === 0}>
+            <Download className="mr-2 h-4 w-4" />Exportar CSV
+          </Button>
+          <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />Novo registo</Button>
+        </div>
       </div>
+
+      {chartData.length > 0 && (
+        <div className="rounded-lg border p-4">
+          <p className="text-sm font-medium mb-3">Total por colaborador (filtro atual)</p>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 32 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="nome" angle={-25} textAnchor="end" height={60} fontSize={11} interval={0} />
+                <YAxis fontSize={11} tickFormatter={(v) => `€${v}`} />
+                <Tooltip
+                  formatter={(v: number) => fmtEUR(v)}
+                  contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
+                />
+                <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
       {isLoading ? <Skeleton className="h-40 w-full" /> : (
         <div className="rounded-md border overflow-x-auto">
