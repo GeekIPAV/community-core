@@ -686,7 +686,7 @@ function SemanaView({ cursor, rows, colabMap, tipoMap, sessaoMap, onCreate }: {
                 <div className={cn("text-lg font-semibold", isToday && "text-primary")}>{d.getDate()}</div>
               </div>
               <div className="flex-1 space-y-1 min-w-0">
-                {groupDayItems(items).map((b) =>
+                {groupDayItems(items, sessaoMap).map((b) =>
                   b.type === "session"
                     ? <SessionPill key={"sw-" + b.sessao.id} sessao={b.sessao} records={b.records} colabMap={colabMap} tipoMap={tipoMap} sessaoMap={sessaoMap} />
                     : <ServicoPill key={b.record.id} r={b.record} colabMap={colabMap} tipoMap={tipoMap} compact />
