@@ -1,0 +1,941 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { Pencil, Plus, Trash2, Check, Wallet, Receipt, Users as UsersIcon, Tag } from "lucide-react";
+
+export const Route = createFileRoute("/_app/_admin/servicos")({
+  component: ServicosPage,
+});
+
+type Colaborador = {
+  id: string;
+  nome_completo: string;
+  email: string | null;
+  telefone: string | null;
+  iban: string | null;
+  notas: string | null;
+  ativo: boolean;
+};
+
+type TipoServico = {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  unidade: string;
+  preco_unitario: number;
+  ativo: boolean;
+};
+
+type Registo = {
+  id: string;
+  colaborador_id: string;
+  tipo_servico_id: string;
+  data_inicio: string;
+  data_fim: string | null;
+  descricao: string | null;
+  quantidade: number;
+  preco_unitario_override: number | null;
+  outros_custos: number;
+  outros_custos_descricao: string | null;
+  km: number | null;
+  estado: "pendente" | "aprovado" | "pago";
+  submetido_pelo_colaborador: boolean;
+  pagamento_id: string | null;
+  notas_admin: string | null;
+};
+
+type Pagamento = {
+  id: string;
+  colaborador_id: string;
+  data_pagamento: string;
+  total: number;
+  referencia: string | null;
+  metodo: string | null;
+  notas: string | null;
+};
+
+const UNIDADES = ["hora", "sessão", "página", "km", "dia", "unidade"];
+const ESTADOS: Registo["estado"][] = ["pendente", "aprovado", "pago"];
+
+const fmtEUR = (n: number | null | undefined) =>
+  (Number(n) || 0).toLocaleString("pt-PT", { style: "currency", currency: "EUR" });
+
+function ServicosPage() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold">Serviços &amp; Pagamentos</h1>
+        <p className="text-sm text-muted-foreground">
+          Gere colaboradores, tipos de serviço, registos prestados e pagamentos.
+        </p>
+      </div>
+      <Tabs defaultValue="registos" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="registos"><Receipt className="mr-2 h-4 w-4" />Registos</TabsTrigger>
+          <TabsTrigger value="pagamentos"><Wallet className="mr-2 h-4 w-4" />Pagamentos</TabsTrigger>
+          <TabsTrigger value="colaboradores"><UsersIcon className="mr-2 h-4 w-4" />Colaboradores</TabsTrigger>
+          <TabsTrigger value="tipos"><Tag className="mr-2 h-4 w-4" />Tipos de serviço</TabsTrigger>
+        </TabsList>
+        <TabsContent value="registos" className="mt-6"><RegistosTab /></TabsContent>
+        <TabsContent value="pagamentos" className="mt-6"><PagamentosTab /></TabsContent>
+        <TabsContent value="colaboradores" className="mt-6"><ColaboradoresTab /></TabsContent>
+        <TabsContent value="tipos" className="mt-6"><TiposServicoTab /></TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+// =========================================================
+// COLABORADORES
+// =========================================================
+function ColaboradoresTab() {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Colaborador | null>(null);
+  const [form, setForm] = useState<Partial<Colaborador>>({});
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["colaboradores"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("colaboradores")
+        .select("id, nome_completo, email, telefone, iban, notas, ativo")
+        .order("nome_completo");
+      if (error) throw error;
+      return data as Colaborador[];
+    },
+  });
+
+  const reset = () => { setEditing(null); setForm({ ativo: true }); };
+  const openNew = () => { reset(); setOpen(true); };
+  const openEdit = (c: Colaborador) => { setEditing(c); setForm(c); setOpen(true); };
+
+  const save = useMutation({
+    mutationFn: async () => {
+      if (!form.nome_completo?.trim()) throw new Error("Nome obrigatório");
+      const payload = {
+        nome_completo: form.nome_completo.trim(),
+        email: form.email?.trim() || null,
+        telefone: form.telefone?.trim() || null,
+        iban: form.iban?.trim() || null,
+        notas: form.notas?.trim() || null,
+        ativo: form.ativo ?? true,
+      };
+      if (editing) {
+        const { error } = await supabase.from("colaboradores").update(payload).eq("id", editing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("colaboradores").insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success(editing ? "Colaborador atualizado" : "Colaborador criado");
+      qc.invalidateQueries({ queryKey: ["colaboradores"] });
+      setOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("colaboradores").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Removido"); qc.invalidateQueries({ queryKey: ["colaboradores"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <p className="text-sm text-muted-foreground">{data?.length ?? 0} colaborador(es)</p>
+        <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />Novo colaborador</Button>
+      </div>
+      {isLoading ? <Skeleton className="h-40 w-full" /> : (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Telefone</TableHead>
+                <TableHead>IBAN</TableHead>
+                <TableHead>Ativo</TableHead>
+                <TableHead className="w-24"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(data ?? []).length === 0 && (
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sem colaboradores</TableCell></TableRow>
+              )}
+              {(data ?? []).map((c) => (
+                <TableRow key={c.id}>
+                  <TableCell className="font-medium">{c.nome_completo}</TableCell>
+                  <TableCell className="text-muted-foreground">{c.email ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{c.telefone ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground font-mono text-xs">{c.iban ?? "—"}</TableCell>
+                  <TableCell>{c.ativo ? <Badge>Ativo</Badge> : <Badge variant="outline">Inativo</Badge>}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      <Button size="icon" variant="ghost" onClick={() => openEdit(c)}><Pencil className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" onClick={() => { if (confirm(`Remover ${c.nome_completo}?`)) remove.mutate(c.id); }}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editing ? "Editar colaborador" : "Novo colaborador"}</DialogTitle>
+            <DialogDescription>Dados de identificação e pagamento.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Nome completo *</Label><Input value={form.nome_completo ?? ""} onChange={(e) => setForm({ ...form, nome_completo: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Email</Label><Input type="email" value={form.email ?? ""} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+              <div><Label>Telefone</Label><Input value={form.telefone ?? ""} onChange={(e) => setForm({ ...form, telefone: e.target.value })} /></div>
+            </div>
+            <div><Label>IBAN</Label><Input value={form.iban ?? ""} onChange={(e) => setForm({ ...form, iban: e.target.value })} /></div>
+            <div><Label>Notas</Label><Textarea value={form.notas ?? ""} onChange={(e) => setForm({ ...form, notas: e.target.value })} /></div>
+            <div className="flex items-center gap-2">
+              <Checkbox id="ativo-c" checked={form.ativo ?? true} onCheckedChange={(c) => setForm({ ...form, ativo: !!c })} />
+              <Label htmlFor="ativo-c">Ativo</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={() => save.mutate()} disabled={save.isPending}>Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// =========================================================
+// TIPOS DE SERVIÇO
+// =========================================================
+function TiposServicoTab() {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<TipoServico | null>(null);
+  const [form, setForm] = useState<Partial<TipoServico>>({});
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["tipos_servico"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tipos_servico")
+        .select("id, nome, descricao, unidade, preco_unitario, ativo")
+        .order("nome");
+      if (error) throw error;
+      return data as TipoServico[];
+    },
+  });
+
+  const reset = () => { setEditing(null); setForm({ ativo: true, unidade: "hora", preco_unitario: 0 }); };
+  const openNew = () => { reset(); setOpen(true); };
+  const openEdit = (t: TipoServico) => { setEditing(t); setForm(t); setOpen(true); };
+
+  const save = useMutation({
+    mutationFn: async () => {
+      if (!form.nome?.trim()) throw new Error("Nome obrigatório");
+      const payload = {
+        nome: form.nome.trim(),
+        descricao: form.descricao?.trim() || null,
+        unidade: form.unidade || "hora",
+        preco_unitario: Number(form.preco_unitario) || 0,
+        ativo: form.ativo ?? true,
+      };
+      if (editing) {
+        const { error } = await supabase.from("tipos_servico").update(payload).eq("id", editing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("tipos_servico").insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success(editing ? "Tipo atualizado" : "Tipo criado");
+      qc.invalidateQueries({ queryKey: ["tipos_servico"] });
+      setOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("tipos_servico").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Removido"); qc.invalidateQueries({ queryKey: ["tipos_servico"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <p className="text-sm text-muted-foreground">{data?.length ?? 0} tipo(s) de serviço</p>
+        <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />Novo tipo</Button>
+      </div>
+      {isLoading ? <Skeleton className="h-40 w-full" /> : (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Descrição</TableHead>
+                <TableHead>Unidade</TableHead>
+                <TableHead className="text-right">Preço</TableHead>
+                <TableHead>Ativo</TableHead>
+                <TableHead className="w-24"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(data ?? []).length === 0 && (
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sem tipos de serviço</TableCell></TableRow>
+              )}
+              {(data ?? []).map((t) => (
+                <TableRow key={t.id}>
+                  <TableCell className="font-medium">{t.nome}</TableCell>
+                  <TableCell className="text-muted-foreground max-w-md truncate">{t.descricao ?? "—"}</TableCell>
+                  <TableCell><Badge variant="outline">{t.unidade}</Badge></TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtEUR(t.preco_unitario)}</TableCell>
+                  <TableCell>{t.ativo ? <Badge>Ativo</Badge> : <Badge variant="outline">Inativo</Badge>}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      <Button size="icon" variant="ghost" onClick={() => openEdit(t)}><Pencil className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" onClick={() => { if (confirm(`Remover ${t.nome}?`)) remove.mutate(t.id); }}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editing ? "Editar tipo de serviço" : "Novo tipo de serviço"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Nome *</Label><Input value={form.nome ?? ""} onChange={(e) => setForm({ ...form, nome: e.target.value })} placeholder="Mediação Online" /></div>
+            <div><Label>Descrição</Label><Textarea value={form.descricao ?? ""} onChange={(e) => setForm({ ...form, descricao: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Unidade</Label>
+                <Select value={form.unidade ?? "hora"} onValueChange={(v) => setForm({ ...form, unidade: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{UNIDADES.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div><Label>Preço por unidade (€)</Label><Input type="number" step="0.01" value={form.preco_unitario ?? 0} onChange={(e) => setForm({ ...form, preco_unitario: Number(e.target.value) })} /></div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox id="ativo-t" checked={form.ativo ?? true} onCheckedChange={(c) => setForm({ ...form, ativo: !!c })} />
+              <Label htmlFor="ativo-t">Ativo</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={() => save.mutate()} disabled={save.isPending}>Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// =========================================================
+// REGISTOS
+// =========================================================
+function RegistosTab() {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Registo | null>(null);
+  const [form, setForm] = useState<Partial<Registo>>({});
+  const [filterEstado, setFilterEstado] = useState<string>("__all");
+  const [filterColab, setFilterColab] = useState<string>("__all");
+
+  const { data: colabs } = useQuery({
+    queryKey: ["colaboradores_lookup"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("colaboradores").select("id, nome_completo, ativo").order("nome_completo");
+      if (error) throw error;
+      return data as { id: string; nome_completo: string; ativo: boolean }[];
+    },
+  });
+  const { data: tipos } = useQuery({
+    queryKey: ["tipos_servico_lookup"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("tipos_servico").select("id, nome, unidade, preco_unitario, ativo").order("nome");
+      if (error) throw error;
+      return data as { id: string; nome: string; unidade: string; preco_unitario: number; ativo: boolean }[];
+    },
+  });
+  const { data, isLoading } = useQuery({
+    queryKey: ["registos_servico"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("registos_servico")
+        .select("id, colaborador_id, tipo_servico_id, data_inicio, data_fim, descricao, quantidade, preco_unitario_override, outros_custos, outros_custos_descricao, km, estado, submetido_pelo_colaborador, pagamento_id, notas_admin")
+        .order("data_inicio", { ascending: false });
+      if (error) throw error;
+      return data as Registo[];
+    },
+  });
+
+  const colabMap = useMemo(() => new Map((colabs ?? []).map((c) => [c.id, c.nome_completo])), [colabs]);
+  const tipoMap = useMemo(() => new Map((tipos ?? []).map((t) => [t.id, t])), [tipos]);
+
+  const calcTotal = (r: Partial<Registo>): { calc: number; total: number } => {
+    const tipo = r.tipo_servico_id ? tipoMap.get(r.tipo_servico_id) : null;
+    const preco = r.preco_unitario_override != null ? Number(r.preco_unitario_override) : (tipo?.preco_unitario ?? 0);
+    const qtd = Number(r.quantidade ?? 1) || 0;
+    const calc = preco * qtd;
+    const outros = Number(r.outros_custos ?? 0) || 0;
+    return { calc, total: calc + outros };
+  };
+
+  const filtered = useMemo(() => {
+    let rows = data ?? [];
+    if (filterEstado !== "__all") rows = rows.filter((r) => r.estado === filterEstado);
+    if (filterColab !== "__all") rows = rows.filter((r) => r.colaborador_id === filterColab);
+    return rows;
+  }, [data, filterEstado, filterColab]);
+
+  const totals = useMemo(() => {
+    return filtered.reduce((acc, r) => {
+      const { total } = calcTotal(r);
+      acc.total += total;
+      if (r.estado === "pendente") acc.pendente += total;
+      if (r.estado === "aprovado") acc.aprovado += total;
+      if (r.estado === "pago") acc.pago += total;
+      return acc;
+    }, { total: 0, pendente: 0, aprovado: 0, pago: 0 });
+  }, [filtered, tipoMap]);
+
+  const reset = () => {
+    setEditing(null);
+    setForm({
+      data_inicio: new Date().toISOString().slice(0, 10),
+      quantidade: 1,
+      outros_custos: 0,
+      estado: "pendente",
+      submetido_pelo_colaborador: false,
+    });
+  };
+  const openNew = () => { reset(); setOpen(true); };
+  const openEdit = (r: Registo) => { setEditing(r); setForm(r); setOpen(true); };
+
+  const save = useMutation({
+    mutationFn: async () => {
+      if (!form.colaborador_id) throw new Error("Colaborador obrigatório");
+      if (!form.tipo_servico_id) throw new Error("Tipo de serviço obrigatório");
+      if (!form.data_inicio) throw new Error("Data de início obrigatória");
+      const payload = {
+        colaborador_id: form.colaborador_id,
+        tipo_servico_id: form.tipo_servico_id,
+        data_inicio: form.data_inicio,
+        data_fim: form.data_fim || null,
+        descricao: form.descricao?.trim() || null,
+        quantidade: Number(form.quantidade) || 1,
+        preco_unitario_override: form.preco_unitario_override != null && form.preco_unitario_override !== ("" as any) ? Number(form.preco_unitario_override) : null,
+        outros_custos: Number(form.outros_custos) || 0,
+        outros_custos_descricao: form.outros_custos_descricao?.trim() || null,
+        km: form.km != null && form.km !== ("" as any) ? Number(form.km) : null,
+        estado: (form.estado ?? "pendente") as Registo["estado"],
+        submetido_pelo_colaborador: form.submetido_pelo_colaborador ?? false,
+        notas_admin: form.notas_admin?.trim() || null,
+      };
+      if (editing) {
+        const { error } = await supabase.from("registos_servico").update(payload).eq("id", editing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("registos_servico").insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success(editing ? "Registo atualizado" : "Registo criado");
+      qc.invalidateQueries({ queryKey: ["registos_servico"] });
+      setOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const setEstado = useMutation({
+    mutationFn: async (v: { id: string; estado: Registo["estado"] }) => {
+      const { error } = await supabase.from("registos_servico").update({ estado: v.estado }).eq("id", v.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["registos_servico"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("registos_servico").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Registo removido"); qc.invalidateQueries({ queryKey: ["registos_servico"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <SummaryCard label="Total filtrado" value={fmtEUR(totals.total)} />
+        <SummaryCard label="Pendente" value={fmtEUR(totals.pendente)} variant="warning" />
+        <SummaryCard label="Aprovado" value={fmtEUR(totals.aprovado)} variant="info" />
+        <SummaryCard label="Pago" value={fmtEUR(totals.pago)} variant="success" />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 justify-between">
+        <div className="flex flex-wrap gap-2">
+          <Select value={filterEstado} onValueChange={setFilterEstado}>
+            <SelectTrigger className="w-40 h-9"><SelectValue placeholder="Estado" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all">Todos os estados</SelectItem>
+              {ESTADOS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filterColab} onValueChange={setFilterColab}>
+            <SelectTrigger className="w-56 h-9"><SelectValue placeholder="Colaborador" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all">Todos os colaboradores</SelectItem>
+              {(colabs ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_completo}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />Novo registo</Button>
+      </div>
+
+      {isLoading ? <Skeleton className="h-40 w-full" /> : (
+        <div className="rounded-md border overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Data</TableHead>
+                <TableHead>Colaborador</TableHead>
+                <TableHead>Serviço</TableHead>
+                <TableHead className="text-right">Qtd</TableHead>
+                <TableHead className="text-right">Total</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead>Origem</TableHead>
+                <TableHead className="w-24"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.length === 0 && (
+                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">Sem registos</TableCell></TableRow>
+              )}
+              {filtered.map((r) => {
+                const tipo = tipoMap.get(r.tipo_servico_id);
+                const { total } = calcTotal(r);
+                return (
+                  <TableRow key={r.id}>
+                    <TableCell className="text-sm">
+                      {new Date(r.data_inicio).toLocaleDateString("pt-PT")}
+                      {r.data_fim && r.data_fim !== r.data_inicio && (
+                        <span className="text-muted-foreground"> → {new Date(r.data_fim).toLocaleDateString("pt-PT")}</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium">{colabMap.get(r.colaborador_id) ?? "—"}</TableCell>
+                    <TableCell>
+                      <div>{tipo?.nome ?? "—"}</div>
+                      {r.descricao && <div className="text-xs text-muted-foreground truncate max-w-xs">{r.descricao}</div>}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{Number(r.quantidade)} {tipo?.unidade}</TableCell>
+                    <TableCell className="text-right tabular-nums font-medium">{fmtEUR(total)}</TableCell>
+                    <TableCell>
+                      <Select value={r.estado} onValueChange={(v) => setEstado.mutate({ id: r.id, estado: v as Registo["estado"] })}>
+                        <SelectTrigger className="h-8 w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>{ESTADOS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      {r.submetido_pelo_colaborador
+                        ? <Badge variant="outline">Self-service</Badge>
+                        : <Badge variant="secondary">Admin</Badge>}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button size="icon" variant="ghost" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
+                        <Button size="icon" variant="ghost" onClick={() => { if (confirm("Remover registo?")) remove.mutate(r.id); }}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editing ? "Editar registo" : "Novo registo"}</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2 md:col-span-1">
+              <Label>Colaborador *</Label>
+              <Select value={form.colaborador_id ?? ""} onValueChange={(v) => setForm({ ...form, colaborador_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Escolher…" /></SelectTrigger>
+                <SelectContent>{(colabs ?? []).filter(c => c.ativo).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_completo}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-2 md:col-span-1">
+              <Label>Tipo de serviço *</Label>
+              <Select value={form.tipo_servico_id ?? ""} onValueChange={(v) => setForm({ ...form, tipo_servico_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Escolher…" /></SelectTrigger>
+                <SelectContent>{(tipos ?? []).filter(t => t.ativo).map((t) => <SelectItem key={t.id} value={t.id}>{t.nome} ({fmtEUR(t.preco_unitario)}/{t.unidade})</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><Label>Data início *</Label><Input type="date" value={form.data_inicio ?? ""} onChange={(e) => setForm({ ...form, data_inicio: e.target.value })} /></div>
+            <div><Label>Data fim (opcional)</Label><Input type="date" value={form.data_fim ?? ""} onChange={(e) => setForm({ ...form, data_fim: e.target.value })} /></div>
+            <div className="col-span-2"><Label>Descrição</Label><Textarea value={form.descricao ?? ""} onChange={(e) => setForm({ ...form, descricao: e.target.value })} placeholder="Detalhes do serviço prestado" /></div>
+            <div><Label>Quantidade</Label><Input type="number" step="0.01" value={form.quantidade ?? 1} onChange={(e) => setForm({ ...form, quantidade: Number(e.target.value) })} /></div>
+            <div>
+              <Label>Preço unitário (override)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                placeholder={form.tipo_servico_id ? String(tipoMap.get(form.tipo_servico_id)?.preco_unitario ?? "") : "—"}
+                value={form.preco_unitario_override ?? ""}
+                onChange={(e) => setForm({ ...form, preco_unitario_override: e.target.value === "" ? null : Number(e.target.value) })}
+              />
+            </div>
+            <div><Label>KM</Label><Input type="number" step="0.01" value={form.km ?? ""} onChange={(e) => setForm({ ...form, km: e.target.value === "" ? null : Number(e.target.value) })} /></div>
+            <div><Label>Outros custos (€)</Label><Input type="number" step="0.01" value={form.outros_custos ?? 0} onChange={(e) => setForm({ ...form, outros_custos: Number(e.target.value) })} /></div>
+            <div className="col-span-2"><Label>Descrição outros custos</Label><Input value={form.outros_custos_descricao ?? ""} onChange={(e) => setForm({ ...form, outros_custos_descricao: e.target.value })} placeholder="ex.: transporte, materiais" /></div>
+            <div>
+              <Label>Estado</Label>
+              <Select value={form.estado ?? "pendente"} onValueChange={(v) => setForm({ ...form, estado: v as Registo["estado"] })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{ESTADOS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-2"><Label>Notas admin</Label><Textarea value={form.notas_admin ?? ""} onChange={(e) => setForm({ ...form, notas_admin: e.target.value })} /></div>
+            <div className="col-span-2 rounded-md border bg-muted/40 p-3 text-sm flex justify-between">
+              <span className="text-muted-foreground">Total estimado</span>
+              <span className="font-semibold tabular-nums">{fmtEUR(calcTotal(form).total)}</span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={() => save.mutate()} disabled={save.isPending}>Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function SummaryCard({ label, value, variant }: { label: string; value: string; variant?: "warning" | "info" | "success" }) {
+  const tone =
+    variant === "warning" ? "text-amber-600 dark:text-amber-400" :
+    variant === "info" ? "text-blue-600 dark:text-blue-400" :
+    variant === "success" ? "text-emerald-600 dark:text-emerald-400" :
+    "text-foreground";
+  return (
+    <div className="rounded-lg border p-3">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className={`text-lg font-semibold tabular-nums ${tone}`}>{value}</p>
+    </div>
+  );
+}
+
+// =========================================================
+// PAGAMENTOS
+// =========================================================
+function PagamentosTab() {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Pagamento | null>(null);
+  const [form, setForm] = useState<Partial<Pagamento> & { liquidar_registos?: string[] }>({});
+
+  const { data: colabs } = useQuery({
+    queryKey: ["colaboradores_lookup"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("colaboradores").select("id, nome_completo").order("nome_completo");
+      if (error) throw error;
+      return data as { id: string; nome_completo: string }[];
+    },
+  });
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["pagamentos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pagamentos")
+        .select("id, colaborador_id, data_pagamento, total, referencia, metodo, notas")
+        .order("data_pagamento", { ascending: false });
+      if (error) throw error;
+      return data as Pagamento[];
+    },
+  });
+
+  const { data: pendentesParaLiquidar } = useQuery({
+    queryKey: ["registos_aprovados", form.colaborador_id],
+    enabled: !!form.colaborador_id && open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("registos_servico")
+        .select("id, data_inicio, quantidade, preco_unitario_override, outros_custos, tipo_servico_id, estado, pagamento_id")
+        .eq("colaborador_id", form.colaborador_id!)
+        .eq("estado", "aprovado")
+        .is("pagamento_id", null);
+      if (error) throw error;
+      return data as Array<{ id: string; data_inicio: string; quantidade: number; preco_unitario_override: number | null; outros_custos: number; tipo_servico_id: string }>;
+    },
+  });
+
+  const { data: tipos } = useQuery({
+    queryKey: ["tipos_servico_lookup"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("tipos_servico").select("id, nome, preco_unitario");
+      if (error) throw error;
+      return data as { id: string; nome: string; preco_unitario: number }[];
+    },
+  });
+  const tipoMap = useMemo(() => new Map((tipos ?? []).map((t) => [t.id, t])), [tipos]);
+  const colabMap = useMemo(() => new Map((colabs ?? []).map((c) => [c.id, c.nome_completo])), [colabs]);
+
+  const totalSelecionado = useMemo(() => {
+    if (!pendentesParaLiquidar || !form.liquidar_registos) return 0;
+    return pendentesParaLiquidar
+      .filter((r) => form.liquidar_registos!.includes(r.id))
+      .reduce((sum, r) => {
+        const preco = r.preco_unitario_override ?? (tipoMap.get(r.tipo_servico_id)?.preco_unitario ?? 0);
+        return sum + Number(preco) * Number(r.quantidade) + Number(r.outros_custos ?? 0);
+      }, 0);
+  }, [pendentesParaLiquidar, form.liquidar_registos, tipoMap]);
+
+  const reset = () => {
+    setEditing(null);
+    setForm({
+      data_pagamento: new Date().toISOString().slice(0, 10),
+      total: 0,
+      metodo: "Transferência Bancária",
+      liquidar_registos: [],
+    });
+  };
+  const openNew = () => { reset(); setOpen(true); };
+  const openEdit = (p: Pagamento) => { setEditing(p); setForm({ ...p, liquidar_registos: [] }); setOpen(true); };
+
+  const save = useMutation({
+    mutationFn: async () => {
+      if (!form.colaborador_id) throw new Error("Colaborador obrigatório");
+      const totalNum = totalSelecionado > 0 ? totalSelecionado : Number(form.total) || 0;
+      const payload = {
+        colaborador_id: form.colaborador_id,
+        data_pagamento: form.data_pagamento || new Date().toISOString().slice(0, 10),
+        total: totalNum,
+        referencia: form.referencia?.trim() || null,
+        metodo: form.metodo?.trim() || null,
+        notas: form.notas?.trim() || null,
+      };
+      let pagamentoId: string;
+      if (editing) {
+        const { error } = await supabase.from("pagamentos").update(payload).eq("id", editing.id);
+        if (error) throw error;
+        pagamentoId = editing.id;
+      } else {
+        const { data: ins, error } = await supabase.from("pagamentos").insert(payload).select("id").single();
+        if (error) throw error;
+        pagamentoId = ins.id;
+      }
+      // Liquidar registos selecionados
+      const ids = form.liquidar_registos ?? [];
+      if (ids.length > 0) {
+        const { error: e2 } = await supabase
+          .from("registos_servico")
+          .update({ pagamento_id: pagamentoId, estado: "pago" })
+          .in("id", ids);
+        if (e2) throw e2;
+      }
+    },
+    onSuccess: () => {
+      toast.success(editing ? "Pagamento atualizado" : "Pagamento registado");
+      qc.invalidateQueries({ queryKey: ["pagamentos"] });
+      qc.invalidateQueries({ queryKey: ["registos_servico"] });
+      setOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      // Soltar registos associados
+      await supabase.from("registos_servico").update({ pagamento_id: null, estado: "aprovado" }).eq("pagamento_id", id);
+      const { error } = await supabase.from("pagamentos").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Pagamento removido");
+      qc.invalidateQueries({ queryKey: ["pagamentos"] });
+      qc.invalidateQueries({ queryKey: ["registos_servico"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const togglePend = (id: string) => {
+    const cur = form.liquidar_registos ?? [];
+    setForm({ ...form, liquidar_registos: cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id] });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <p className="text-sm text-muted-foreground">{data?.length ?? 0} pagamento(s)</p>
+        <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />Novo pagamento</Button>
+      </div>
+      {isLoading ? <Skeleton className="h-40 w-full" /> : (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Data</TableHead>
+                <TableHead>Colaborador</TableHead>
+                <TableHead>Referência</TableHead>
+                <TableHead>Método</TableHead>
+                <TableHead className="text-right">Total</TableHead>
+                <TableHead className="w-24"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(data ?? []).length === 0 && (
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sem pagamentos</TableCell></TableRow>
+              )}
+              {(data ?? []).map((p) => (
+                <TableRow key={p.id}>
+                  <TableCell className="text-sm">{new Date(p.data_pagamento).toLocaleDateString("pt-PT")}</TableCell>
+                  <TableCell className="font-medium">{colabMap.get(p.colaborador_id) ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{p.referencia ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{p.metodo ?? "—"}</TableCell>
+                  <TableCell className="text-right tabular-nums font-medium">{fmtEUR(p.total)}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      <Button size="icon" variant="ghost" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" onClick={() => { if (confirm("Remover pagamento? Os registos associados voltam a 'aprovado'.")) remove.mutate(p.id); }}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editing ? "Editar pagamento" : "Novo pagamento"}</DialogTitle>
+            <DialogDescription>Liquida registos aprovados de um colaborador.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Colaborador *</Label>
+              <Select value={form.colaborador_id ?? ""} onValueChange={(v) => setForm({ ...form, colaborador_id: v, liquidar_registos: [] })}>
+                <SelectTrigger><SelectValue placeholder="Escolher…" /></SelectTrigger>
+                <SelectContent>{(colabs ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_completo}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><Label>Data *</Label><Input type="date" value={form.data_pagamento ?? ""} onChange={(e) => setForm({ ...form, data_pagamento: e.target.value })} /></div>
+            <div><Label>Referência</Label><Input value={form.referencia ?? ""} onChange={(e) => setForm({ ...form, referencia: e.target.value })} placeholder="8/04 - Safaa" /></div>
+            <div><Label>Método</Label><Input value={form.metodo ?? ""} onChange={(e) => setForm({ ...form, metodo: e.target.value })} placeholder="Transferência Bancária" /></div>
+            <div className="col-span-2"><Label>Notas</Label><Textarea value={form.notas ?? ""} onChange={(e) => setForm({ ...form, notas: e.target.value })} /></div>
+
+            {!editing && form.colaborador_id && (
+              <div className="col-span-2 space-y-2">
+                <Label>Registos aprovados disponíveis</Label>
+                <div className="rounded-md border max-h-56 overflow-y-auto">
+                  {(pendentesParaLiquidar ?? []).length === 0 ? (
+                    <p className="p-3 text-sm text-muted-foreground">Sem registos aprovados pendentes de pagamento.</p>
+                  ) : (
+                    <ul className="divide-y">
+                      {(pendentesParaLiquidar ?? []).map((r) => {
+                        const preco = r.preco_unitario_override ?? (tipoMap.get(r.tipo_servico_id)?.preco_unitario ?? 0);
+                        const total = Number(preco) * Number(r.quantidade) + Number(r.outros_custos ?? 0);
+                        const checked = (form.liquidar_registos ?? []).includes(r.id);
+                        return (
+                          <li key={r.id} className="flex items-center gap-3 p-2 text-sm">
+                            <Checkbox checked={checked} onCheckedChange={() => togglePend(r.id)} />
+                            <span className="flex-1">
+                              <span className="text-muted-foreground">{new Date(r.data_inicio).toLocaleDateString("pt-PT")}</span>{" · "}
+                              {tipoMap.get(r.tipo_servico_id)?.nome ?? "—"}{" · "}
+                              {Number(r.quantidade)} un
+                            </span>
+                            <span className="tabular-nums font-medium">{fmtEUR(total)}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="col-span-2 rounded-md border bg-muted/40 p-3 flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">
+                {totalSelecionado > 0 ? "Total dos registos selecionados" : "Total (manual)"}
+              </span>
+              {totalSelecionado > 0 ? (
+                <span className="font-semibold tabular-nums">{fmtEUR(totalSelecionado)}</span>
+              ) : (
+                <Input
+                  type="number"
+                  step="0.01"
+                  className="w-32 text-right"
+                  value={form.total ?? 0}
+                  onChange={(e) => setForm({ ...form, total: Number(e.target.value) })}
+                />
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={() => save.mutate()} disabled={save.isPending}>
+              <Check className="mr-2 h-4 w-4" />Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
