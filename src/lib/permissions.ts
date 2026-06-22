@@ -11,6 +11,7 @@ export type PageKey =
   | "style-guide"
   | "duplicados"
   | "projetos"
+  | "indicadores"
   | "bolsas-transporte"
   | "localizacoes"
   | "tipos-user"
@@ -24,6 +25,7 @@ export const AVAILABLE_PAGES: { key: PageKey; label: string; path: string }[] = 
   { key: "atividades", label: "Atividades", path: "/atividades" },
   { key: "curriculos", label: "Currículos", path: "/curriculos" },
   { key: "projetos", label: "Projetos", path: "/projetos" },
+  { key: "indicadores", label: "Indicadores M&A", path: "/indicadores" },
   { key: "bolsas-transporte", label: "Bolsa de Transporte", path: "/bolsas-transporte" },
   { key: "localizacoes", label: "Localizações", path: "/localizacoes" },
   { key: "emails", label: "Emails", path: "/emails" },
