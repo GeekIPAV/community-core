@@ -10,13 +10,13 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { ArrowLeft, Pencil, Plus, Trash2, Mail, Phone, Landmark, Receipt, Wallet } from "lucide-react";
+import { SmartTable, type SmartColumnDef } from "@/components/smart-table";
 
 export const Route = createFileRoute("/_app/_admin/servicos/colaborador/$id")({
   component: ColaboradorDetailPage,
