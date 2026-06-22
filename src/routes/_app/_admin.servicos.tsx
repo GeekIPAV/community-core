@@ -179,7 +179,7 @@ function ColaboradoresTab() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  type ColabRow = Colaborador & { _status: string };
+  type ColabRow = Colaborador & { _status: string; pessoa: { id: string; nome_completo: string } | null };
   const rows = useMemo<ColabRow[]>(
     () => (data ?? []).map((c) => ({ ...c, _status: c.ativo ? "Ativos" : "Inativos" })),
     [data],
@@ -213,6 +213,17 @@ function ColaboradoresTab() {
       id: "iban", accessorKey: "iban", header: "IBAN", size: 220,
       meta: { label: "IBAN", filterVariant: "text", editType: "text", hideOnMobile: true },
       cell: ({ getValue }) => <span className="font-mono text-xs text-muted-foreground">{(getValue() as string) ?? "—"}</span>,
+    },
+    {
+      id: "pessoa", accessorKey: "pessoa_id", header: "Participante", size: 220,
+      meta: { label: "Participante", hideOnMobile: true },
+      cell: ({ row }) => (
+        <ParticipantePicker
+          value={row.original.pessoa_id}
+          label={row.original.pessoa?.nome_completo ?? null}
+          onChange={(pid) => updateField.mutateAsync({ id: row.original.id, field: "pessoa_id", value: pid })}
+        />
+      ),
     },
     {
       id: "ativo", accessorKey: "ativo", header: "Estado", size: 100,
