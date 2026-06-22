@@ -80,6 +80,54 @@ function IndicadoresGlobalPage() {
     },
   });
 
+  const { data: financiamentos } = useQuery({
+    queryKey: ["financiamentos-min"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financiamentos" as any)
+        .select("id, nome, financiador, data_inicio, data_fim, valor_total, estado")
+        .order("nome");
+      if (error) throw error;
+      return ((data ?? []) as unknown) as {
+        id: string;
+        nome: string;
+        financiador: string;
+        data_inicio: string | null;
+        data_fim: string | null;
+        valor_total: number | null;
+        estado: string;
+      }[];
+    },
+  });
+
+  const { data: financiamentoLinks } = useQuery({
+    queryKey: ["financiamento-links"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financiamento_indicadores" as any)
+        .select("financiamento_id, indicador_id");
+      if (error) throw error;
+      return ((data ?? []) as unknown) as {
+        financiamento_id: string;
+        indicador_id: string;
+      }[];
+    },
+  });
+
+  const financiamentoSelecionado = useMemo(
+    () => (financiamentos ?? []).find((f) => f.id === search.financiamento) ?? null,
+    [financiamentos, search.financiamento],
+  );
+
+  const idsDoFinanciamento = useMemo(() => {
+    if (!search.financiamento) return null;
+    return new Set(
+      (financiamentoLinks ?? [])
+        .filter((l) => l.financiamento_id === search.financiamento)
+        .map((l) => l.indicador_id),
+    );
+  }, [financiamentoLinks, search.financiamento]);
+
   const { data: kpis, isLoading } = useQuery({
     queryKey: ["indicadores-global"],
     queryFn: async () => {
