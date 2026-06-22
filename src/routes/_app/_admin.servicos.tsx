@@ -882,6 +882,19 @@ function RegistosTab() {
     { id: "submetido_pelo_colaborador", accessorKey: "submetido_pelo_colaborador", header: "Origem", size: 120,
       meta: { label: "Origem", filterVariant: "select", filterOptions: ["true", "false"], hideOnMobile: true },
       cell: ({ getValue }) => getValue() ? <Badge variant="outline">Self-service</Badge> : <Badge variant="secondary">Admin</Badge> },
+    { id: "_sessao", header: "Sessão", size: 180, enableSorting: false,
+      meta: { label: "Sessão", noTruncate: true },
+      cell: ({ row }) => {
+        const sid = row.original.sessao_id;
+        if (!sid) return <span className="text-muted-foreground">—</span>;
+        const s = sessaoMap.get(sid);
+        return (
+          <Badge variant="outline" className="gap-1 max-w-full" title={s?.nome ?? ""}>
+            <UsersIcon className="h-3 w-3 shrink-0" />
+            <span className="truncate">{s?.nome ?? "Sessão"}</span>
+          </Badge>
+        );
+      } },
     { id: "_actions", header: "", size: 96, enableSorting: false, enableHiding: false, enableResizing: false,
       meta: { noTruncate: true },
       cell: ({ row }) => (
@@ -892,7 +905,7 @@ function RegistosTab() {
           </Button>
         </div>
       ) },
-  ], [setEstado, remove]);
+  ], [setEstado, remove, sessaoMap]);
 
   return (
     <div className="space-y-4">
