@@ -1275,6 +1275,14 @@ export type Database = {
           }
       is_current_user_admin: { Args: never; Returns: boolean }
       is_current_user_staff: { Args: never; Returns: boolean }
+      notificar_nova_entrada_pendente: {
+        Args: { p_colaborador_id: string }
+        Returns: number
+      }
+      notificar_servicos_por_pagar: {
+        Args: { p_window_days?: number }
+        Returns: number
+      }
       notificar_staff: {
         Args: {
           p_descricao?: string
