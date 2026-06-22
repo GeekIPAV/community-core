@@ -275,7 +275,7 @@ export function BulkImportDialog({ open, onOpenChange, colaboradores, tipos, onI
 
   return (
     <Dialog open={open} onOpenChange={close}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-[95vw] xl:max-w-7xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Importação em massa</DialogTitle>
           <DialogDescription>Cola registos de serviço a partir de uma folha de cálculo ou texto.</DialogDescription>
