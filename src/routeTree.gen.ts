@@ -20,6 +20,7 @@ import { Route as AppPerfilRouteImport } from './routes/_app.perfil'
 import { Route as AppAdminRouteImport } from './routes/_app/_admin'
 import { Route as AppAdminTiposUserRouteImport } from './routes/_app/_admin.tipos-user'
 import { Route as AppAdminStyleGuideRouteImport } from './routes/_app/_admin.style-guide'
+import { Route as AppAdminServicosRouteImport } from './routes/_app/_admin.servicos'
 import { Route as AppAdminSecurityRouteImport } from './routes/_app/_admin.security'
 import { Route as AppAdminProjetosRouteImport } from './routes/_app/_admin.projetos'
 import { Route as AppAdminParticipantesRouteImport } from './routes/_app/_admin.participantes'
@@ -85,6 +86,11 @@ const AppAdminTiposUserRoute = AppAdminTiposUserRouteImport.update({
 const AppAdminStyleGuideRoute = AppAdminStyleGuideRouteImport.update({
   id: '/style-guide',
   path: '/style-guide',
+  getParentRoute: () => AppAdminRoute,
+} as any)
+const AppAdminServicosRoute = AppAdminServicosRouteImport.update({
+  id: '/servicos',
+  path: '/servicos',
   getParentRoute: () => AppAdminRoute,
 } as any)
 const AppAdminSecurityRoute = AppAdminSecurityRouteImport.update({
@@ -175,6 +181,7 @@ export interface FileRoutesByFullPath {
   '/participantes': typeof AppAdminParticipantesRoute
   '/projetos': typeof AppAdminProjetosRoute
   '/security': typeof AppAdminSecurityRoute
+  '/servicos': typeof AppAdminServicosRoute
   '/style-guide': typeof AppAdminStyleGuideRoute
   '/tipos-user': typeof AppAdminTiposUserRoute
 }
@@ -199,6 +206,7 @@ export interface FileRoutesByTo {
   '/participantes': typeof AppAdminParticipantesRoute
   '/projetos': typeof AppAdminProjetosRoute
   '/security': typeof AppAdminSecurityRoute
+  '/servicos': typeof AppAdminServicosRoute
   '/style-guide': typeof AppAdminStyleGuideRoute
   '/tipos-user': typeof AppAdminTiposUserRoute
 }
@@ -226,6 +234,7 @@ export interface FileRoutesById {
   '/_app/_admin/participantes': typeof AppAdminParticipantesRoute
   '/_app/_admin/projetos': typeof AppAdminProjetosRoute
   '/_app/_admin/security': typeof AppAdminSecurityRoute
+  '/_app/_admin/servicos': typeof AppAdminServicosRoute
   '/_app/_admin/style-guide': typeof AppAdminStyleGuideRoute
   '/_app/_admin/tipos-user': typeof AppAdminTiposUserRoute
 }
@@ -252,6 +261,7 @@ export interface FileRouteTypes {
     | '/participantes'
     | '/projetos'
     | '/security'
+    | '/servicos'
     | '/style-guide'
     | '/tipos-user'
   fileRoutesByTo: FileRoutesByTo
@@ -276,6 +286,7 @@ export interface FileRouteTypes {
     | '/participantes'
     | '/projetos'
     | '/security'
+    | '/servicos'
     | '/style-guide'
     | '/tipos-user'
   id:
@@ -302,6 +313,7 @@ export interface FileRouteTypes {
     | '/_app/_admin/participantes'
     | '/_app/_admin/projetos'
     | '/_app/_admin/security'
+    | '/_app/_admin/servicos'
     | '/_app/_admin/style-guide'
     | '/_app/_admin/tipos-user'
   fileRoutesById: FileRoutesById
@@ -393,6 +405,13 @@ declare module '@tanstack/react-router' {
       path: '/style-guide'
       fullPath: '/style-guide'
       preLoaderRoute: typeof AppAdminStyleGuideRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
+    '/_app/_admin/servicos': {
+      id: '/_app/_admin/servicos'
+      path: '/servicos'
+      fullPath: '/servicos'
+      preLoaderRoute: typeof AppAdminServicosRouteImport
       parentRoute: typeof AppAdminRoute
     }
     '/_app/_admin/security': {
@@ -503,6 +522,7 @@ interface AppAdminRouteChildren {
   AppAdminParticipantesRoute: typeof AppAdminParticipantesRoute
   AppAdminProjetosRoute: typeof AppAdminProjetosRoute
   AppAdminSecurityRoute: typeof AppAdminSecurityRoute
+  AppAdminServicosRoute: typeof AppAdminServicosRoute
   AppAdminStyleGuideRoute: typeof AppAdminStyleGuideRoute
   AppAdminTiposUserRoute: typeof AppAdminTiposUserRoute
 }
@@ -521,6 +541,7 @@ const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminParticipantesRoute: AppAdminParticipantesRoute,
   AppAdminProjetosRoute: AppAdminProjetosRoute,
   AppAdminSecurityRoute: AppAdminSecurityRoute,
+  AppAdminServicosRoute: AppAdminServicosRoute,
   AppAdminStyleGuideRoute: AppAdminStyleGuideRoute,
   AppAdminTiposUserRoute: AppAdminTiposUserRoute,
 }
