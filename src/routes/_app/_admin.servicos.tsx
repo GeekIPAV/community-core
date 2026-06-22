@@ -122,10 +122,10 @@ function ColaboradoresTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("colaboradores")
-        .select("id, nome_completo, email, telefone, iban, notas, ativo")
+        .select("id, nome_completo, email, telefone, iban, notas, ativo, pessoa_id, pessoa:pessoas!colaboradores_pessoa_id_fkey(id, nome_completo)")
         .order("nome_completo");
       if (error) throw error;
-      return data as Colaborador[];
+      return data as (Colaborador & { pessoa: { id: string; nome_completo: string } | null })[];
     },
   });
 
@@ -143,6 +143,7 @@ function ColaboradoresTab() {
         iban: form.iban?.trim() || null,
         notas: form.notas?.trim() || null,
         ativo: form.ativo ?? true,
+        pessoa_id: form.pessoa_id ?? null,
       };
       if (editing) {
         const { error } = await supabase.from("colaboradores").update(payload).eq("id", editing.id);
