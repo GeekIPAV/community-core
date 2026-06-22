@@ -13,8 +13,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Plus, Filter, PanelRightClose, PanelRightOpen, X, Check, Pencil, Trash2, Wallet, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Filter, PanelRightClose, PanelRightOpen, X, Check, Pencil, Trash2, Wallet, AlertTriangle, CheckCircle2, Users, UserPlus, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { RegistoPagamentoCell } from "@/components/servicos/PaymentLinkCells";
@@ -40,8 +41,20 @@ type Registo = {
   outros_custos_descricao: string | null;
   estado: Estado;
   pagamento_id: string | null;
+  sessao_id: string | null;
 };
 type Pagamento = { id: string; referencia: string | null; data_pagamento: string };
+export type Sessao = {
+  id: string;
+  nome: string;
+  tipo_servico_id: string;
+  data_inicio: string;
+  data_fim: string | null;
+  descricao: string | null;
+  local: string | null;
+  quantidade_por_colaborador: number;
+  preco_unitario_override: number | null;
+};
 
 // ============ utils ============
 const MESES_LONG = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
