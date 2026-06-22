@@ -751,6 +751,9 @@ function RegistosTab() {
       } else {
         const { error } = await supabase.from("registos_servico").insert(payload);
         if (error) throw error;
+        if (payload.estado === "pendente") {
+          await supabase.rpc("notificar_nova_entrada_pendente" as never, { p_colaborador_id: payload.colaborador_id } as never);
+        }
       }
     },
     onSuccess: () => {
