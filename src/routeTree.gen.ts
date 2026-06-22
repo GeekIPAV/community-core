@@ -44,6 +44,7 @@ import { Route as AppAdminFinanciamentosIndexRouteImport } from './routes/_app/_
 import { Route as AppAdminServicosCalendarioRouteImport } from './routes/_app/_admin.servicos.calendario'
 import { Route as AppAdminProjetosProjetoIdRouteImport } from './routes/_app/_admin.projetos.$projetoId'
 import { Route as AppAdminParceirosParceiroIdRouteImport } from './routes/_app/_admin.parceiros.$parceiroId'
+import { Route as AppAdminFinanciamentosFinanciamentoIdRouteImport } from './routes/_app/_admin.financiamentos.$financiamentoId'
 import { Route as AppAdminColaboradorasColaboradoraIdRouteImport } from './routes/_app/_admin.colaboradoras.$colaboradoraId'
 import { Route as AppAdminServicosColaboradorIdRouteImport } from './routes/_app/_admin.servicos.colaborador.$id'
 
@@ -225,6 +226,12 @@ const AppAdminParceirosParceiroIdRoute =
     path: '/$parceiroId',
     getParentRoute: () => AppAdminParceirosRoute,
   } as any)
+const AppAdminFinanciamentosFinanciamentoIdRoute =
+  AppAdminFinanciamentosFinanciamentoIdRouteImport.update({
+    id: '/financiamentos/$financiamentoId',
+    path: '/financiamentos/$financiamentoId',
+    getParentRoute: () => AppAdminRoute,
+  } as any)
 const AppAdminColaboradorasColaboradoraIdRoute =
   AppAdminColaboradorasColaboradoraIdRouteImport.update({
     id: '/colaboradoras/$colaboradoraId',
@@ -267,6 +274,7 @@ export interface FileRoutesByFullPath {
   '/style-guide': typeof AppAdminStyleGuideRoute
   '/tipos-user': typeof AppAdminTiposUserRoute
   '/colaboradoras/$colaboradoraId': typeof AppAdminColaboradorasColaboradoraIdRoute
+  '/financiamentos/$financiamentoId': typeof AppAdminFinanciamentosFinanciamentoIdRoute
   '/parceiros/$parceiroId': typeof AppAdminParceirosParceiroIdRoute
   '/projetos/$projetoId': typeof AppAdminProjetosProjetoIdRoute
   '/servicos/calendario': typeof AppAdminServicosCalendarioRoute
@@ -302,6 +310,7 @@ export interface FileRoutesByTo {
   '/style-guide': typeof AppAdminStyleGuideRoute
   '/tipos-user': typeof AppAdminTiposUserRoute
   '/colaboradoras/$colaboradoraId': typeof AppAdminColaboradorasColaboradoraIdRoute
+  '/financiamentos/$financiamentoId': typeof AppAdminFinanciamentosFinanciamentoIdRoute
   '/parceiros/$parceiroId': typeof AppAdminParceirosParceiroIdRoute
   '/projetos/$projetoId': typeof AppAdminProjetosProjetoIdRoute
   '/servicos/calendario': typeof AppAdminServicosCalendarioRoute
@@ -342,6 +351,7 @@ export interface FileRoutesById {
   '/_app/_admin/style-guide': typeof AppAdminStyleGuideRoute
   '/_app/_admin/tipos-user': typeof AppAdminTiposUserRoute
   '/_app/_admin/colaboradoras/$colaboradoraId': typeof AppAdminColaboradorasColaboradoraIdRoute
+  '/_app/_admin/financiamentos/$financiamentoId': typeof AppAdminFinanciamentosFinanciamentoIdRoute
   '/_app/_admin/parceiros/$parceiroId': typeof AppAdminParceirosParceiroIdRoute
   '/_app/_admin/projetos/$projetoId': typeof AppAdminProjetosProjetoIdRoute
   '/_app/_admin/servicos/calendario': typeof AppAdminServicosCalendarioRoute
@@ -381,6 +391,7 @@ export interface FileRouteTypes {
     | '/style-guide'
     | '/tipos-user'
     | '/colaboradoras/$colaboradoraId'
+    | '/financiamentos/$financiamentoId'
     | '/parceiros/$parceiroId'
     | '/projetos/$projetoId'
     | '/servicos/calendario'
@@ -416,6 +427,7 @@ export interface FileRouteTypes {
     | '/style-guide'
     | '/tipos-user'
     | '/colaboradoras/$colaboradoraId'
+    | '/financiamentos/$financiamentoId'
     | '/parceiros/$parceiroId'
     | '/projetos/$projetoId'
     | '/servicos/calendario'
@@ -455,6 +467,7 @@ export interface FileRouteTypes {
     | '/_app/_admin/style-guide'
     | '/_app/_admin/tipos-user'
     | '/_app/_admin/colaboradoras/$colaboradoraId'
+    | '/_app/_admin/financiamentos/$financiamentoId'
     | '/_app/_admin/parceiros/$parceiroId'
     | '/_app/_admin/projetos/$projetoId'
     | '/_app/_admin/servicos/calendario'
@@ -721,6 +734,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminParceirosParceiroIdRouteImport
       parentRoute: typeof AppAdminParceirosRoute
     }
+    '/_app/_admin/financiamentos/$financiamentoId': {
+      id: '/_app/_admin/financiamentos/$financiamentoId'
+      path: '/financiamentos/$financiamentoId'
+      fullPath: '/financiamentos/$financiamentoId'
+      preLoaderRoute: typeof AppAdminFinanciamentosFinanciamentoIdRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
     '/_app/_admin/colaboradoras/$colaboradoraId': {
       id: '/_app/_admin/colaboradoras/$colaboradoraId'
       path: '/colaboradoras/$colaboradoraId'
@@ -798,6 +818,7 @@ interface AppAdminRouteChildren {
   AppAdminStyleGuideRoute: typeof AppAdminStyleGuideRoute
   AppAdminTiposUserRoute: typeof AppAdminTiposUserRoute
   AppAdminColaboradorasColaboradoraIdRoute: typeof AppAdminColaboradorasColaboradoraIdRoute
+  AppAdminFinanciamentosFinanciamentoIdRoute: typeof AppAdminFinanciamentosFinanciamentoIdRoute
   AppAdminFinanciamentosIndexRoute: typeof AppAdminFinanciamentosIndexRoute
 }
 
@@ -823,6 +844,8 @@ const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminTiposUserRoute: AppAdminTiposUserRoute,
   AppAdminColaboradorasColaboradoraIdRoute:
     AppAdminColaboradorasColaboradoraIdRoute,
+  AppAdminFinanciamentosFinanciamentoIdRoute:
+    AppAdminFinanciamentosFinanciamentoIdRoute,
   AppAdminFinanciamentosIndexRoute: AppAdminFinanciamentosIndexRoute,
 }
 
