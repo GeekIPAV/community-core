@@ -155,6 +155,56 @@ function ColabSelfArea({ colaboradorId, nome }: { colaboradorId: string; nome: s
   const calc = Number(precoUn) * Number(form.quantidade ?? 0);
   const totalPreview = calc + Number(form.outros_custos ?? 0);
 
+  type RegRow = Registo & { _tipo: string; _unidade: string; _total: number };
+  const registosRows = useMemo<RegRow[]>(() => (registos ?? []).map((r) => {
+    const tipo = tipoMap.get(r.tipo_servico_id);
+    const preco = r.preco_unitario_override ?? (tipo?.preco_unitario ?? 0);
+    return {
+      ...r,
+      _tipo: tipo?.nome ?? "—",
+      _unidade: tipo?.unidade ?? "",
+      _total: Number(preco) * Number(r.quantidade) + Number(r.outros_custos ?? 0),
+    };
+  }), [registos, tipoMap]);
+
+  const registosColumns = useMemo<SmartColumnDef<RegRow>[]>(() => [
+    { id: "data_inicio", accessorKey: "data_inicio", header: "Data", size: 130,
+      meta: { label: "Data", filterVariant: "date" },
+      cell: ({ getValue }) => <span className="text-sm whitespace-nowrap">{new Date(String(getValue())).toLocaleDateString("pt-PT")}</span> },
+    { id: "_tipo", accessorKey: "_tipo", header: "Serviço", size: 280,
+      meta: { label: "Serviço", filterVariant: "text" },
+      cell: ({ row }) => (
+        <div className="min-w-0">
+          <div className="truncate font-medium">{row.original._tipo}</div>
+          {row.original.descricao && <div className="text-xs text-muted-foreground truncate">{row.original.descricao}</div>}
+        </div>
+      ) },
+    { id: "quantidade", accessorKey: "quantidade", header: "Qtd", size: 110,
+      meta: { label: "Qtd", filterVariant: "number" },
+      cell: ({ row }) => <span className="block text-right tabular-nums">{Number(row.original.quantidade)} {row.original._unidade}</span> },
+    { id: "_total", accessorKey: "_total", header: "Total", size: 120,
+      meta: { label: "Total", filterVariant: "number" },
+      cell: ({ getValue }) => <span className="block text-right tabular-nums font-semibold">{fmtEUR(Number(getValue() ?? 0))}</span> },
+    { id: "estado", accessorKey: "estado", header: "Estado", size: 120,
+      meta: { label: "Estado", filterVariant: "select", filterOptions: ["pendente", "aprovado", "pago"] },
+      cell: ({ getValue }) => estadoBadge(getValue() as Registo["estado"]) },
+  ], []);
+
+  const pagamentosColumns = useMemo<SmartColumnDef<Pagamento>[]>(() => [
+    { id: "data_pagamento", accessorKey: "data_pagamento", header: "Data", size: 130,
+      meta: { label: "Data", filterVariant: "date" },
+      cell: ({ getValue }) => <span className="text-sm whitespace-nowrap">{new Date(String(getValue())).toLocaleDateString("pt-PT")}</span> },
+    { id: "referencia", accessorKey: "referencia", header: "Referência", size: 240,
+      meta: { label: "Referência", filterVariant: "text" },
+      cell: ({ getValue }) => <span>{(getValue() as string) ?? "—"}</span> },
+    { id: "metodo", accessorKey: "metodo", header: "Método", size: 180,
+      meta: { label: "Método", filterVariant: "text", hideOnMobile: true },
+      cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span> },
+    { id: "total", accessorKey: "total", header: "Total", size: 120,
+      meta: { label: "Total", filterVariant: "number" },
+      cell: ({ getValue }) => <span className="block text-right tabular-nums font-semibold">{fmtEUR(Number(getValue() ?? 0))}</span> },
+  ], []);
+
   const create = useMutation({
     mutationFn: async () => {
       if (!form.tipo_servico_id) throw new Error("Tipo de serviço obrigatório");
