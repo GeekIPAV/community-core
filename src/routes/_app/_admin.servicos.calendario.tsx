@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -914,8 +914,8 @@ function CreateServicoDialog({ open, onOpenChange, initialDate, dateLocked, onUn
   const [outros, setOutros] = useState<number>(0);
   const [outrosDesc, setOutrosDesc] = useState<string>("");
 
-  // Sync initialDate
-  useMemo(() => { if (initialDate) setDataInicio(initialDate); }, [initialDate]);
+  // Sync initialDate when dialog opens with a new pre-filled date
+  useEffect(() => { if (initialDate) setDataInicio(initialDate); }, [initialDate]);
 
   const tipo = tipos.find((t) => t.id === tipoId);
   const calc = (tipo?.preco_unitario ?? 0) * (Number(quantidade) || 0);
