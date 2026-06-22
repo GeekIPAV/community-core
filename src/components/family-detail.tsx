@@ -1054,6 +1054,11 @@ export function FamilyDetailDialog({
             <TabsContent value="atividades" className="pt-4 flex-1 min-h-0 overflow-hidden">
               {family && <AtividadesFamiliaTab familiaId={family.id} />}
             </TabsContent>
+
+            {/* ── Contexto Relacional ── */}
+            <TabsContent value="contexto" className="pt-4 flex-1 min-h-0 overflow-auto">
+              {family && <ContextoRelacionalTab familiaId={family.id} />}
+            </TabsContent>
           </Tabs>
         </DialogContent>
       </Dialog>
