@@ -14,8 +14,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+} from "@/components/ui/command";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2, Check, Wallet, Receipt, Users as UsersIcon, Tag, Download, ExternalLink } from "lucide-react";
+import { Pencil, Plus, Trash2, Check, Wallet, Receipt, Users as UsersIcon, Tag, Download, ExternalLink, UserPlus, X } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { SmartTable, type SmartColumnDef } from "@/components/smart-table";
 import { BulkImportDialog } from "@/components/servicos/BulkImportDialog";
@@ -33,6 +37,7 @@ type Colaborador = {
   iban: string | null;
   notas: string | null;
   ativo: boolean;
+  pessoa_id: string | null;
 };
 
 type TipoServico = {
