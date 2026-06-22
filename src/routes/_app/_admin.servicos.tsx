@@ -19,12 +19,13 @@ import {
   Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from "@/components/ui/command";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2, Check, Wallet, Receipt, Users as UsersIcon, Tag, Download, ExternalLink, UserPlus, X } from "lucide-react";
+import { Pencil, Plus, Trash2, Check, Wallet, Receipt, Users as UsersIcon, Tag, Download, ExternalLink, UserPlus, X, CalendarRange } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { SmartTable, type SmartColumnDef } from "@/components/smart-table";
 import { BulkImportDialog } from "@/components/servicos/BulkImportDialog";
 import { Upload } from "lucide-react";
 import { RegistoPagamentoCell, PagamentoServicosCell } from "@/components/servicos/PaymentLinkCells";
+import { ServicosCalendarioPage } from "./_admin.servicos.calendario";
 
 export const Route = createFileRoute("/_app/_admin/servicos")({
   component: ServicosPage,
