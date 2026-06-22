@@ -187,7 +187,12 @@ function ColaboradoresTab() {
               )}
               {(data ?? []).map((c) => (
                 <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.nome_completo}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link to="/servicos/colaborador/$id" params={{ id: c.id }} className="hover:underline inline-flex items-center gap-1">
+                      {c.nome_completo}
+                      <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                    </Link>
+                  </TableCell>
                   <TableCell className="text-muted-foreground">{c.email ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{c.telefone ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground font-mono text-xs">{c.iban ?? "—"}</TableCell>
