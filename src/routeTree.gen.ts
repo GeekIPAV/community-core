@@ -28,6 +28,7 @@ import { Route as AppAdminParticipantesRouteImport } from './routes/_app/_admin.
 import { Route as AppAdminParceirosRouteImport } from './routes/_app/_admin.parceiros'
 import { Route as AppAdminMenuRouteImport } from './routes/_app/_admin.menu'
 import { Route as AppAdminLocalizacoesRouteImport } from './routes/_app/_admin.localizacoes'
+import { Route as AppAdminIndicadoresRouteImport } from './routes/_app/_admin.indicadores'
 import { Route as AppAdminFamiliasRouteImport } from './routes/_app/_admin.familias'
 import { Route as AppAdminEmailsRouteImport } from './routes/_app/_admin.emails'
 import { Route as AppAdminEliminadosRouteImport } from './routes/_app/_admin.eliminados'
@@ -138,6 +139,11 @@ const AppAdminLocalizacoesRoute = AppAdminLocalizacoesRouteImport.update({
   path: '/localizacoes',
   getParentRoute: () => AppAdminRoute,
 } as any)
+const AppAdminIndicadoresRoute = AppAdminIndicadoresRouteImport.update({
+  id: '/indicadores',
+  path: '/indicadores',
+  getParentRoute: () => AppAdminRoute,
+} as any)
 const AppAdminFamiliasRoute = AppAdminFamiliasRouteImport.update({
   id: '/familias',
   path: '/familias',
@@ -243,6 +249,7 @@ export interface FileRoutesByFullPath {
   '/eliminados': typeof AppAdminEliminadosRoute
   '/emails': typeof AppAdminEmailsRoute
   '/familias': typeof AppAdminFamiliasRoute
+  '/indicadores': typeof AppAdminIndicadoresRoute
   '/localizacoes': typeof AppAdminLocalizacoesRoute
   '/menu': typeof AppAdminMenuRoute
   '/parceiros': typeof AppAdminParceirosRouteWithChildren
@@ -278,6 +285,7 @@ export interface FileRoutesByTo {
   '/eliminados': typeof AppAdminEliminadosRoute
   '/emails': typeof AppAdminEmailsRoute
   '/familias': typeof AppAdminFamiliasRoute
+  '/indicadores': typeof AppAdminIndicadoresRoute
   '/localizacoes': typeof AppAdminLocalizacoesRoute
   '/menu': typeof AppAdminMenuRoute
   '/participantes': typeof AppAdminParticipantesRoute
@@ -314,6 +322,7 @@ export interface FileRoutesById {
   '/_app/_admin/eliminados': typeof AppAdminEliminadosRoute
   '/_app/_admin/emails': typeof AppAdminEmailsRoute
   '/_app/_admin/familias': typeof AppAdminFamiliasRoute
+  '/_app/_admin/indicadores': typeof AppAdminIndicadoresRoute
   '/_app/_admin/localizacoes': typeof AppAdminLocalizacoesRoute
   '/_app/_admin/menu': typeof AppAdminMenuRoute
   '/_app/_admin/parceiros': typeof AppAdminParceirosRouteWithChildren
@@ -351,6 +360,7 @@ export interface FileRouteTypes {
     | '/eliminados'
     | '/emails'
     | '/familias'
+    | '/indicadores'
     | '/localizacoes'
     | '/menu'
     | '/parceiros'
@@ -386,6 +396,7 @@ export interface FileRouteTypes {
     | '/eliminados'
     | '/emails'
     | '/familias'
+    | '/indicadores'
     | '/localizacoes'
     | '/menu'
     | '/participantes'
@@ -421,6 +432,7 @@ export interface FileRouteTypes {
     | '/_app/_admin/eliminados'
     | '/_app/_admin/emails'
     | '/_app/_admin/familias'
+    | '/_app/_admin/indicadores'
     | '/_app/_admin/localizacoes'
     | '/_app/_admin/menu'
     | '/_app/_admin/parceiros'
@@ -582,6 +594,13 @@ declare module '@tanstack/react-router' {
       path: '/localizacoes'
       fullPath: '/localizacoes'
       preLoaderRoute: typeof AppAdminLocalizacoesRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
+    '/_app/_admin/indicadores': {
+      id: '/_app/_admin/indicadores'
+      path: '/indicadores'
+      fullPath: '/indicadores'
+      preLoaderRoute: typeof AppAdminIndicadoresRouteImport
       parentRoute: typeof AppAdminRoute
     }
     '/_app/_admin/familias': {
@@ -748,6 +767,7 @@ interface AppAdminRouteChildren {
   AppAdminEliminadosRoute: typeof AppAdminEliminadosRoute
   AppAdminEmailsRoute: typeof AppAdminEmailsRoute
   AppAdminFamiliasRoute: typeof AppAdminFamiliasRoute
+  AppAdminIndicadoresRoute: typeof AppAdminIndicadoresRoute
   AppAdminLocalizacoesRoute: typeof AppAdminLocalizacoesRoute
   AppAdminMenuRoute: typeof AppAdminMenuRoute
   AppAdminParceirosRoute: typeof AppAdminParceirosRouteWithChildren
@@ -770,6 +790,7 @@ const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminEliminadosRoute: AppAdminEliminadosRoute,
   AppAdminEmailsRoute: AppAdminEmailsRoute,
   AppAdminFamiliasRoute: AppAdminFamiliasRoute,
+  AppAdminIndicadoresRoute: AppAdminIndicadoresRoute,
   AppAdminLocalizacoesRoute: AppAdminLocalizacoesRoute,
   AppAdminMenuRoute: AppAdminMenuRoute,
   AppAdminParceirosRoute: AppAdminParceirosRouteWithChildren,
