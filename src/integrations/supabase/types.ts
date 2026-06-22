@@ -1089,6 +1089,104 @@ export type Database = {
         }
         Relationships: []
       }
+      sidebar_groups: {
+        Row: {
+          created_at: string
+          icon: string | null
+          id: string
+          is_system: boolean
+          is_visible: boolean
+          key: string
+          label: string
+          position: number
+          updated_at: string
+          visible_to: string[]
+        }
+        Insert: {
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_system?: boolean
+          is_visible?: boolean
+          key: string
+          label: string
+          position?: number
+          updated_at?: string
+          visible_to?: string[]
+        }
+        Update: {
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_system?: boolean
+          is_visible?: boolean
+          key?: string
+          label?: string
+          position?: number
+          updated_at?: string
+          visible_to?: string[]
+        }
+        Relationships: []
+      }
+      sidebar_items: {
+        Row: {
+          badge_query: string | null
+          created_at: string
+          group_id: string
+          icon: string
+          id: string
+          is_system: boolean
+          is_visible: boolean
+          key: string
+          label: string
+          position: number
+          sub_group: string | null
+          updated_at: string
+          url: string
+          visible_to: string[]
+        }
+        Insert: {
+          badge_query?: string | null
+          created_at?: string
+          group_id: string
+          icon?: string
+          id?: string
+          is_system?: boolean
+          is_visible?: boolean
+          key: string
+          label: string
+          position?: number
+          sub_group?: string | null
+          updated_at?: string
+          url: string
+          visible_to?: string[]
+        }
+        Update: {
+          badge_query?: string | null
+          created_at?: string
+          group_id?: string
+          icon?: string
+          id?: string
+          is_system?: boolean
+          is_visible?: boolean
+          key?: string
+          label?: string
+          position?: number
+          sub_group?: string | null
+          updated_at?: string
+          url?: string
+          visible_to?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sidebar_items_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "sidebar_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tipos_servico: {
         Row: {
           ativo: boolean
@@ -1236,6 +1334,7 @@ export type Database = {
         Returns: Json
       }
       convite_validar: { Args: { p_token: string }; Returns: Json }
+      count_duplicates: { Args: never; Returns: number }
       current_user_familia_id: { Args: never; Returns: string }
       current_user_pessoa_id: { Args: never; Returns: string }
       fundir_perfis: {
