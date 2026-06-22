@@ -451,6 +451,7 @@ function RegistosTab() {
   const [form, setForm] = useState<Partial<Registo>>({});
   const [filterEstado, setFilterEstado] = useState<string>("__all");
   const [filterColab, setFilterColab] = useState<string>("__all");
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   const { data: colabs } = useQuery({
     queryKey: ["colaboradores_lookup"],
@@ -763,6 +764,9 @@ function RegistosTab() {
           <>
             <Button variant="outline" size="sm" onClick={exportCSV} disabled={filtered.length === 0} className="h-9">
               <Download className="mr-2 h-4 w-4" />Exportar CSV
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setBulkOpen(true)} className="h-9">
+              <Upload className="mr-2 h-4 w-4" />Importar em massa
             </Button>
             <Button size="sm" onClick={openNew} className="h-9">
               <Plus className="mr-2 h-4 w-4" />Novo registo
