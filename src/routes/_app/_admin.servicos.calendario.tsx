@@ -520,8 +520,8 @@ function ServicoDetail({ r, colab, tipo, onClose }: { r: Registo; colab?: Colab;
 }
 
 // ============ Month view ============
-function MesView({ cursor, rows, colabMap, tipoMap, onCreate }: {
-  cursor: Date; rows: Registo[]; colabMap: Map<string, Colab>; tipoMap: Map<string, Tipo>; onCreate: (date?: string) => void;
+function MesView({ cursor, rows, colabMap, tipoMap, sessaoMap, onCreate }: {
+  cursor: Date; rows: Registo[]; colabMap: Map<string, Colab>; tipoMap: Map<string, Tipo>; sessaoMap: Map<string, Sessao>; onCreate: (date?: string) => void;
 }) {
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
@@ -575,24 +575,33 @@ function MesView({ cursor, rows, colabMap, tipoMap, onCreate }: {
                 </div>
               )}
               <div className="space-y-0.5">
-                {items.slice(0, 2).map((r) => (
-                  <ServicoPill key={r.id + "-" + d} r={r} colabMap={colabMap} tipoMap={tipoMap} compact />
-                ))}
-                {items.length > 2 && (
+                {(() => {
+                  const blocks = groupDayItems(items);
+                  return <>
+                    {blocks.slice(0, 2).map((b, bi) =>
+                      b.type === "session"
+                        ? <SessionPill key={"s-" + b.sessao.id + "-" + d} sessao={b.sessao} records={b.records} colabMap={colabMap} tipoMap={tipoMap} sessaoMap={sessaoMap} />
+                        : <ServicoPill key={b.record.id + "-" + d} r={b.record} colabMap={colabMap} tipoMap={tipoMap} compact />
+                    )}
+                    {blocks.length > 2 && (
                   <Popover>
                     <PopoverTrigger asChild>
                       <button onClick={(e) => e.stopPropagation()} className="w-full rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent">
-                        +{items.length - 2} mais
+                        +{blocks.length - 2} mais
                       </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-72 p-2 space-y-1" align="start">
                       <div className="text-xs font-semibold mb-1 px-1">{d} {MESES_LONG[month]}</div>
-                      {items.map((r) => (
-                        <ServicoPill key={r.id + "-list"} r={r} colabMap={colabMap} tipoMap={tipoMap} />
-                      ))}
+                      {blocks.map((b, bi) =>
+                        b.type === "session"
+                          ? <SessionPill key={"sl-" + b.sessao.id} sessao={b.sessao} records={b.records} colabMap={colabMap} tipoMap={tipoMap} sessaoMap={sessaoMap} />
+                          : <ServicoPill key={b.record.id + "-list"} r={b.record} colabMap={colabMap} tipoMap={tipoMap} />
+                      )}
                     </PopoverContent>
                   </Popover>
-                )}
+                    )}
+                  </>;
+                })()}
               </div>
             </div>
           );
