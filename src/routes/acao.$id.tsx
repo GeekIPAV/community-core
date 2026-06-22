@@ -17,6 +17,7 @@ import { RichTextView } from "@/components/rich-text-view";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { ImageUpload } from "@/components/image-upload";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { matchCidade, formatEuro, type CidadeBolsa } from "@/lib/bolsa-transporte";
