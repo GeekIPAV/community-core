@@ -470,7 +470,9 @@ function RegistosTab() {
 
   const chartData = useMemo(() => {
     const map = new Map<string, number>();
+    const activeSet = new Set((colabs ?? []).filter((c) => c.ativo).map((c) => c.id));
     for (const r of filtered) {
+      if (!activeSet.has(r.colaborador_id)) continue;
       const name = colabMap.get(r.colaborador_id) ?? "—";
       map.set(name, (map.get(name) ?? 0) + calcTotal(r).total);
     }
@@ -478,7 +480,7 @@ function RegistosTab() {
       .map(([nome, total]) => ({ nome, total: Number(total.toFixed(2)) }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 12);
-  }, [filtered, colabMap, tipoMap]);
+  }, [filtered, colabMap, tipoMap, colabs]);
 
   const exportCSV = () => {
     const headers = ["Data", "Colaborador", "Tipo", "Unidade", "Quantidade", "Preço un.", "Outros custos", "Total", "Estado", "Descrição"];
@@ -600,7 +602,7 @@ function RegistosTab() {
             <SelectTrigger className="w-56 h-9"><SelectValue placeholder="Colaborador" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__all">Todos os colaboradores</SelectItem>
-              {(colabs ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_completo}</SelectItem>)}
+              {(colabs ?? []).filter((c) => c.ativo).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_completo}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
