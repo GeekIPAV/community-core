@@ -553,6 +553,118 @@ function ServicoDetail({ r, colab, tipo, onClose }: { r: Registo; colab?: Colab;
   );
 }
 
+// ============ Session Pill + Detail Popover ============
+function SessionPill({ sessao, records, colabMap, tipoMap, sessaoMap }: {
+  sessao: Sessao; records: Registo[]; colabMap: Map<string, Colab>; tipoMap: Map<string, Tipo>; sessaoMap: Map<string, Sessao>;
+}) {
+  const [open, setOpen] = useState(false);
+  const total = records.reduce((s, r) => s + calcTotal(r, tipoMap).total, 0);
+  const dots = records.slice(0, 3);
+  const tipo = tipoMap.get(sessao.tipo_servico_id);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          onClick={(e) => e.stopPropagation()}
+          className="w-full text-left rounded-md border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] flex items-center gap-1 hover:bg-primary/20 transition-colors"
+        >
+          <Users className="h-3 w-3 shrink-0 text-primary" />
+          <span className="truncate flex-1 font-medium text-foreground">{sessao.nome}</span>
+          <span className="flex items-center gap-0.5">
+            {dots.map((r) => <span key={r.id} className={cn("h-1.5 w-1.5 rounded-full", estadoDot(r.estado))} />)}
+            {records.length > 3 && <span className="text-[9px] text-muted-foreground ml-0.5">+{records.length - 3}</span>}
+          </span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[26rem] p-0" align="start">
+        <SessionDetail sessao={sessao} records={records} colabMap={colabMap} tipoMap={tipoMap} onClose={() => setOpen(false)} />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function SessionDetail({ sessao, records, colabMap, tipoMap, onClose }: {
+  sessao: Sessao; records: Registo[]; colabMap: Map<string, Colab>; tipoMap: Map<string, Tipo>; onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const tipo = tipoMap.get(sessao.tipo_servico_id);
+  const total = records.reduce((s, r) => s + calcTotal(r, tipoMap).total, 0);
+  const pagas = records.filter((r) => r.estado === "pago").length;
+  const pendentes = records.length - pagas;
+
+  const remove = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("sessoes_servico").delete().eq("id", sessao.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Sessão eliminada");
+      qc.invalidateQueries({ queryKey: ["registos_cal"] });
+      qc.invalidateQueries({ queryKey: ["sessoes_cal"] });
+      qc.invalidateQueries({ queryKey: ["sessoes_list"] });
+      onClose();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="text-sm">
+      <div className="flex items-start gap-3 border-b p-3">
+        <Users className="h-5 w-5 mt-0.5 text-primary shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold truncate">{sessao.nome}</div>
+          <div className="text-xs text-muted-foreground">{fmtLongDate(sessao.data_inicio)}{sessao.data_fim && sessao.data_fim !== sessao.data_inicio ? ` → ${fmtLongDate(sessao.data_fim)}` : ""}</div>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            {tipo && <Badge variant="outline" className="text-[10px]">{tipo.nome}</Badge>}
+            {sessao.local && <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{sessao.local}</span>}
+          </div>
+        </div>
+        <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+      </div>
+      <div className="max-h-72 overflow-y-auto divide-y">
+        {records.map((r) => {
+          const colab = colabMap.get(r.colaborador_id);
+          const rtotal = calcTotal(r, tipoMap).total;
+          return (
+            <div key={r.id} className="flex items-center gap-2 px-3 py-2">
+              <div className="h-7 w-7 shrink-0 rounded-full flex items-center justify-center text-[10px] font-semibold text-white" style={{ background: colabColor(r.colaborador_id) }}>
+                {colab ? initials(colab.nome_completo) : "?"}
+              </div>
+              <div className="flex-1 min-w-0">
+                {colab ? (
+                  <Link to="/colaboradoras/$colaboradoraId" params={{ colaboradoraId: colab.id }} className="text-xs font-medium hover:underline block truncate">
+                    {colab.nome_completo}
+                  </Link>
+                ) : <span className="text-xs">—</span>}
+                <div className="text-[10px] text-muted-foreground tabular-nums">
+                  {fmtEUR(rtotal)}{r.outros_custos > 0 && <span className="ml-1">+ {fmtEUR(r.outros_custos)} {r.outros_custos_descricao || ""}</span>}
+                </div>
+              </div>
+              <Badge variant="outline" className={cn("text-[9px]", estadoChip(r.estado))}>{r.estado}</Badge>
+            </div>
+          );
+        })}
+      </div>
+      <div className="border-t p-3 bg-muted/30">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-xs text-muted-foreground">Total da sessão</span>
+          <span className="text-base font-semibold tabular-nums">{fmtEUR(total)}</span>
+        </div>
+        <div className="text-[11px] text-muted-foreground">
+          {pagas > 0 && <span className="text-emerald-700">{pagas} paga{pagas === 1 ? "" : "s"}</span>}
+          {pagas > 0 && pendentes > 0 && <span> · </span>}
+          {pendentes > 0 && <span className="text-amber-700">{pendentes} pendente{pendentes === 1 ? "" : "s"}</span>}
+        </div>
+      </div>
+      <div className="flex justify-end gap-2 border-t bg-muted/20 p-2">
+        <Button size="sm" variant="ghost" onClick={() => { if (confirm("Eliminar esta sessão? Os registos individuais mantêm-se.")) remove.mutate(); }}>
+          <Trash2 className="mr-1.5 h-3.5 w-3.5" />Eliminar sessão
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // ============ Month view ============
 function MesView({ cursor, rows, colabMap, tipoMap, sessaoMap, onCreate }: {
   cursor: Date; rows: Registo[]; colabMap: Map<string, Colab>; tipoMap: Map<string, Tipo>; sessaoMap: Map<string, Sessao>; onCreate: (date?: string) => void;
