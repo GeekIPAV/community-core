@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -13,17 +12,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ExternalLink, MapPin, Pencil, Plus, Trash2 } from "lucide-react";
+import { SmartTable, type SmartColumnDef } from "@/components/smart-table";
 
 export const Route = createFileRoute("/_app/_admin/localizacoes")({
   component: LocalizacoesPage,
@@ -115,6 +107,114 @@ function LocalizacoesPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const updateField = useMutation({
+    mutationFn: async ({ id, field, value }: { id: string; field: string; value: unknown }) => {
+      const { error } = await supabase
+        .from("localizacoes")
+        .update({ [field]: value } as never)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidate(),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const columns = useMemo<SmartColumnDef<Localizacao>[]>(
+    () => [
+      {
+        id: "nome",
+        accessorKey: "nome",
+        header: "Nome",
+        size: 240,
+        meta: { label: "Nome", filterVariant: "text", editType: "text" },
+        cell: ({ row }) => (
+          <span className="inline-flex items-center gap-2 truncate font-medium">
+            <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="truncate">{row.original.nome}</span>
+          </span>
+        ),
+      },
+      {
+        id: "proprietario",
+        accessorKey: "proprietario",
+        header: "Proprietário",
+        size: 200,
+        meta: { label: "Proprietário", filterVariant: "text", editType: "text", hideOnMobile: true },
+        cell: ({ getValue }) => (
+          <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>
+        ),
+      },
+      {
+        id: "link_mapa",
+        accessorKey: "link_mapa",
+        header: "Mapa",
+        size: 160,
+        enableSorting: false,
+        meta: { label: "Mapa", editType: "text", hideOnMobile: true, noTruncate: true },
+        cell: ({ getValue }) => {
+          const v = getValue() as string | null;
+          return v ? (
+            <a
+              href={v}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1 text-primary hover:underline"
+            >
+              Ver no mapa <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          );
+        },
+      },
+      {
+        id: "notas",
+        accessorKey: "notas",
+        header: "Notas",
+        size: 280,
+        meta: { label: "Notas", filterVariant: "text", editType: "text", hideOnMobile: true },
+        cell: ({ getValue }) => (
+          <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>
+        ),
+      },
+      {
+        id: "_actions",
+        header: "",
+        size: 96,
+        enableSorting: false,
+        enableHiding: false,
+        enableResizing: false,
+        meta: { label: "Ações", noTruncate: true },
+        cell: ({ row }) => (
+          <div className="flex justify-end gap-1">
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={(e) => {
+                e.stopPropagation();
+                openEdit(row.original);
+              }}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (confirm(`Remover "${row.original.nome}"?`)) remove.mutate(row.original.id);
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    [remove],
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -124,87 +224,24 @@ function LocalizacoesPage() {
             {data?.length ?? 0} localizações disponíveis para eventos
           </p>
         </div>
-        <Button onClick={openNew}>
-          <Plus className="mr-2 h-4 w-4" /> Nova localização
-        </Button>
       </div>
 
-      {isLoading ? (
-        <div className="space-y-2">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full" />
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Proprietário</TableHead>
-                <TableHead>Mapa</TableHead>
-                <TableHead>Notas</TableHead>
-                <TableHead className="w-24"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(data ?? []).length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
-                    Sem localizações
-                  </TableCell>
-                </TableRow>
-              )}
-              {(data ?? []).map((l) => (
-                <TableRow key={l.id}>
-                  <TableCell className="font-medium">
-                    <span className="inline-flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      {l.nome}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {l.proprietario ?? "—"}
-                  </TableCell>
-                  <TableCell>
-                    {l.link_mapa ? (
-                      <a
-                        href={l.link_mapa}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-primary hover:underline"
-                      >
-                        Ver no mapa <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground max-w-[280px] truncate">
-                    {l.notas ?? "—"}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" onClick={() => openEdit(l)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => {
-                          if (confirm(`Remover "${l.nome}"?`)) remove.mutate(l.id);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+      <SmartTable
+        tableId="localizacoes"
+        columns={columns}
+        data={data}
+        isLoading={isLoading}
+        editableColumns={["nome", "proprietario", "link_mapa", "notas"]}
+        onCellEdit={(rowId, columnId, value) =>
+          updateField.mutateAsync({ id: rowId, field: columnId, value })
+        }
+        toolbarActions={
+          <Button size="sm" onClick={openNew} className="h-9">
+            <Plus className="mr-2 h-4 w-4" /> Nova localização
+          </Button>
+        }
+        emptyMessage="Sem localizações"
+      />
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-xl">
