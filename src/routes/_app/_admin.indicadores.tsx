@@ -309,7 +309,7 @@ function IndicadoresGlobalPage() {
             ))}
           </SelectContent>
         </Select>
-        {(search.projeto || search.estado || search.fonte || search.q) && (
+        {(search.projeto || search.estado || search.fonte || search.q || search.financiamento) && (
           <Button
             variant="ghost"
             size="sm"
