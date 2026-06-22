@@ -67,6 +67,7 @@ type Registo = {
   submetido_pelo_colaborador: boolean;
   pagamento_id: string | null;
   notas_admin: string | null;
+  sessao_id: string | null;
 };
 
 type Pagamento = {
