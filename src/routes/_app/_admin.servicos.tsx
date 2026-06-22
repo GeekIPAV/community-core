@@ -842,6 +842,19 @@ function RegistosTab() {
           <SelectContent>{ESTADOS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent>
         </Select>
       ) },
+    { id: "_pagamento", header: "Pagamento", size: 200, enableSorting: false,
+      meta: { label: "Pagamento", noTruncate: true },
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <RegistoPagamentoCell
+            registoId={row.original.id}
+            colaboradorId={row.original.colaborador_id}
+            colaboradorNome={row.original._colab}
+            pagamentoId={row.original.pagamento_id}
+            total={row.original._total}
+          />
+        </div>
+      ) },
     { id: "submetido_pelo_colaborador", accessorKey: "submetido_pelo_colaborador", header: "Origem", size: 120,
       meta: { label: "Origem", filterVariant: "select", filterOptions: ["true", "false"], hideOnMobile: true },
       cell: ({ getValue }) => getValue() ? <Badge variant="outline">Self-service</Badge> : <Badge variant="secondary">Admin</Badge> },
