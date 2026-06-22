@@ -137,6 +137,93 @@ function ColaboradorDetailPage() {
     return rows;
   }, [registos, filterEstado, filterFrom, filterTo]);
 
+  const updateRegisto = useMutation({
+    mutationFn: async ({ id, field, value }: { id: string; field: string; value: unknown }) => {
+      const { error } = await supabase.from("registos_servico").update({ [field]: value } as never).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["registos_colab", id] });
+      qc.invalidateQueries({ queryKey: ["registos_servico"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const updatePagamento = useMutation({
+    mutationFn: async ({ id, field, value }: { id: string; field: string; value: unknown }) => {
+      const { error } = await supabase.from("pagamentos").update({ [field]: value } as never).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pagamentos_colab", id] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  type RegRow = Registo & { _tipo: string; _unidade: string; _preco: number; _calc: number; _total: number };
+  const registosRows = useMemo<RegRow[]>(() => registosFiltered.map((r) => {
+    const tipo = tipoMap.get(r.tipo_servico_id);
+    const preco = r.preco_unitario_override ?? (tipo?.preco_unitario ?? 0);
+    const calc = Number(preco) * Number(r.quantidade);
+    return {
+      ...r,
+      _tipo: tipo?.nome ?? "—",
+      _unidade: tipo?.unidade ?? "",
+      _preco: Number(preco),
+      _calc: calc,
+      _total: calc + Number(r.outros_custos || 0),
+    };
+  }), [registosFiltered, tipoMap]);
+
+  const registosColumns = useMemo<SmartColumnDef<RegRow>[]>(() => [
+    { id: "data_inicio", accessorKey: "data_inicio", header: "Data", size: 130,
+      meta: { label: "Data", filterVariant: "date" },
+      cell: ({ getValue }) => <span className="text-sm whitespace-nowrap">{new Date(String(getValue())).toLocaleDateString("pt-PT")}</span> },
+    { id: "_tipo", accessorKey: "_tipo", header: "Serviço", size: 260,
+      meta: { label: "Serviço", filterVariant: "text" },
+      cell: ({ row }) => (
+        <div className="min-w-0">
+          <div className="truncate font-medium">{row.original._tipo}</div>
+          {row.original.descricao && <div className="text-xs text-muted-foreground truncate">{row.original.descricao}</div>}
+        </div>
+      ) },
+    { id: "quantidade", accessorKey: "quantidade", header: "Qtd", size: 100,
+      meta: { label: "Qtd", filterVariant: "number", editType: "number" },
+      cell: ({ row }) => <span className="block text-right tabular-nums">{Number(row.original.quantidade)} {row.original._unidade}</span> },
+    { id: "_calc", accessorKey: "_calc", header: "Calc.", size: 110,
+      meta: { label: "Calculado", filterVariant: "number", hideOnMobile: true },
+      cell: ({ getValue }) => <span className="block text-right tabular-nums">{fmtEUR(Number(getValue() ?? 0))}</span> },
+    { id: "outros_custos", accessorKey: "outros_custos", header: "Outros", size: 110,
+      meta: { label: "Outros", filterVariant: "number", editType: "number", hideOnMobile: true },
+      cell: ({ getValue }) => <span className="block text-right tabular-nums">{fmtEUR(Number(getValue() ?? 0))}</span> },
+    { id: "_total", accessorKey: "_total", header: "Total", size: 120,
+      meta: { label: "Total", filterVariant: "number" },
+      cell: ({ getValue }) => <span className="block text-right tabular-nums font-semibold">{fmtEUR(Number(getValue() ?? 0))}</span> },
+    { id: "estado", accessorKey: "estado", header: "Estado", size: 130,
+      meta: { label: "Estado", filterVariant: "select", filterOptions: ESTADOS as unknown as string[],
+        editType: "select", editSelectOptions: ESTADOS.map((e) => ({ value: e, label: e })) },
+      cell: ({ getValue }) => estadoBadge(getValue() as Registo["estado"]) },
+    { id: "_actions", header: "", size: 80, enableSorting: false, enableHiding: false, enableResizing: false,
+      meta: { noTruncate: true },
+      cell: ({ row }) => <DeleteRegisto id={row.original.id} colaboradorId={id} /> },
+  ], [id]);
+
+  type PagRow = Pagamento;
+  const pagamentosColumns = useMemo<SmartColumnDef<PagRow>[]>(() => [
+    { id: "data_pagamento", accessorKey: "data_pagamento", header: "Data", size: 130,
+      meta: { label: "Data", filterVariant: "date", editType: "date" },
+      cell: ({ getValue }) => <span className="text-sm whitespace-nowrap">{new Date(String(getValue())).toLocaleDateString("pt-PT")}</span> },
+    { id: "referencia", accessorKey: "referencia", header: "Referência", size: 200,
+      meta: { label: "Referência", filterVariant: "text", editType: "text" },
+      cell: ({ getValue }) => <span>{(getValue() as string) ?? "—"}</span> },
+    { id: "metodo", accessorKey: "metodo", header: "Método", size: 180,
+      meta: { label: "Método", filterVariant: "text", editType: "text", hideOnMobile: true },
+      cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span> },
+    { id: "total", accessorKey: "total", header: "Total", size: 120,
+      meta: { label: "Total", filterVariant: "number", editType: "number" },
+      cell: ({ getValue }) => <span className="block text-right tabular-nums font-semibold">{fmtEUR(Number(getValue() ?? 0))}</span> },
+    { id: "notas", accessorKey: "notas", header: "Notas", size: 260,
+      meta: { label: "Notas", filterVariant: "text", editType: "text", hideOnMobile: true },
+      cell: ({ getValue }) => <span className="text-muted-foreground text-xs">{(getValue() as string) ?? ""}</span> },
+  ], []);
+
   const saveColab = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from("colaboradores").update({
