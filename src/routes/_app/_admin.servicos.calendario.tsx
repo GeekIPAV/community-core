@@ -98,6 +98,40 @@ function calcTotal(r: Registo, tipoMap: Map<string, Tipo>) {
   return { calc, total: calc + (Number(r.outros_custos) || 0) };
 }
 
+// Group day's records into blocks: shared-session records into one block, individual records as themselves.
+type DayBlock =
+  | { type: "single"; record: Registo }
+  | { type: "session"; sessao: Sessao; records: Registo[] };
+function groupDayItems(items: Registo[], sessoesMap?: Map<string, Sessao>): DayBlock[] {
+  const sessionGroups = new Map<string, Registo[]>();
+  const singles: Registo[] = [];
+  for (const r of items) {
+    if (r.sessao_id) {
+      const arr = sessionGroups.get(r.sessao_id) ?? [];
+      arr.push(r);
+      sessionGroups.set(r.sessao_id, arr);
+    } else singles.push(r);
+  }
+  const blocks: DayBlock[] = [];
+  for (const [sid, recs] of sessionGroups.entries()) {
+    // The sessoesMap may not be passed (it's optional); we synthesize from records when needed.
+    const sessao = sessoesMap?.get(sid) ?? {
+      id: sid,
+      nome: recs[0].descricao || "Sessão de grupo",
+      tipo_servico_id: recs[0].tipo_servico_id,
+      data_inicio: recs[0].data_inicio,
+      data_fim: recs[0].data_fim,
+      descricao: null,
+      local: null,
+      quantidade_por_colaborador: recs[0].quantidade,
+      preco_unitario_override: recs[0].preco_unitario_override,
+    } satisfies Sessao;
+    blocks.push({ type: "session", sessao, records: recs });
+  }
+  for (const r of singles) blocks.push({ type: "single", record: r });
+  return blocks;
+}
+
 // ============ page ============
 type Vista = "mes" | "semana" | "gantt";
 
