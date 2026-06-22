@@ -2439,6 +2439,14 @@ function AcoesPageInner() {
                   />
                 </label>
               </div>
+              <div className="space-y-2 rounded-md border p-3">
+                <Label>Parceiros co-responsáveis</Label>
+                <ProjetosMultiSelect
+                  values={editing.parceiro_ids ?? []}
+                  options={(parceiros ?? []).map((p) => ({ value: p.id, label: p.nome }))}
+                  onChange={(v) => setEditing({ ...editing, parceiro_ids: v })}
+                />
+              </div>
               <div className="space-y-2">
                 <Label>Descrição</Label>
                 <RichTextEditor value={editing.descricao} onChange={(v) => setEditing({ ...editing, descricao: v })} />
