@@ -411,6 +411,8 @@ function SessoesTab() {
     return rows;
   }, [rows, filterEstado]);
 
+  const [editing, setEditing] = useState<SessaoRow | null>(null);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -440,7 +442,11 @@ function SessoesTab() {
             const tipo = tipoMap.get(s.tipo_servico_id);
             const allPaid = s.count > 0 && s.pendentes === 0;
             return (
-              <div key={s.id} className="p-4 flex flex-wrap items-center gap-4 hover:bg-muted/20">
+              <div
+                key={s.id}
+                onClick={() => setEditing(s)}
+                className="p-4 flex flex-wrap items-center gap-4 hover:bg-muted/30 cursor-pointer transition-colors"
+              >
                 <div className="flex-1 min-w-[200px]">
                   <div className="flex items-center gap-2">
                     <UsersIcon className="h-4 w-4 text-primary" />
@@ -457,7 +463,7 @@ function SessoesTab() {
                 {allPaid
                   ? <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100">Todas pagas</Badge>
                   : <Badge className="bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-100">{s.pendentes} pendente{s.pendentes === 1 ? "" : "s"}</Badge>}
-                <Button size="icon" variant="ghost" onClick={() => { if (confirm("Eliminar sessão? Os registos individuais mantêm-se sem ligação.")) remove.mutate(s.id); }}>
+                <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); if (confirm("Eliminar sessão? Os registos individuais mantêm-se sem ligação.")) remove.mutate(s.id); }}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -465,7 +471,107 @@ function SessoesTab() {
           })}
         </div>
       )}
+
+      <SessaoEditDialog sessao={editing} onClose={() => setEditing(null)} />
     </div>
+  );
+}
+
+// =========================================================
+// SESSAO EDIT DIALOG
+// =========================================================
+function SessaoEditDialog({ sessao, onClose }: { sessao: SessaoRow | null; onClose: () => void }) {
+  const qc = useQueryClient();
+  const [nome, setNome] = useState("");
+  const [dataInicio, setDataInicio] = useState("");
+  const [dataFim, setDataFim] = useState("");
+  const [local, setLocal] = useState("");
+  const [descricao, setDescricao] = useState("");
+
+  useMemo(() => {
+    if (sessao) {
+      setNome(sessao.nome ?? "");
+      setDataInicio(sessao.data_inicio ?? "");
+      setDataFim(sessao.data_fim ?? "");
+      setLocal(sessao.local ?? "");
+      setDescricao(sessao.descricao ?? "");
+    }
+  }, [sessao]);
+
+  const save = useMutation({
+    mutationFn: async () => {
+      if (!sessao) return;
+      if (!nome.trim()) throw new Error("Nome obrigatório");
+      if (!dataInicio) throw new Error("Data obrigatória");
+      const { error } = await supabase
+        .from("sessoes_servico")
+        .update({
+          nome: nome.trim(),
+          data_inicio: dataInicio,
+          data_fim: dataFim || null,
+          local: local.trim() || null,
+          descricao: descricao.trim() || null,
+        })
+        .eq("id", sessao.id);
+      if (error) throw error;
+      // sync date on linked records
+      const { error: e2 } = await supabase
+        .from("registos_servico")
+        .update({ data_inicio: dataInicio, data_fim: dataFim || null })
+        .eq("sessao_id", sessao.id);
+      if (e2) throw e2;
+    },
+    onSuccess: () => {
+      toast.success("Sessão atualizada");
+      qc.invalidateQueries({ queryKey: ["sessoes_servico_full"] });
+      qc.invalidateQueries({ queryKey: ["registos_for_sessoes"] });
+      qc.invalidateQueries({ queryKey: ["registos_servico"] });
+      qc.invalidateQueries({ queryKey: ["registos_cal"] });
+      qc.invalidateQueries({ queryKey: ["sessoes_cal"] });
+      onClose();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open={!!sessao} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Editar sessão</DialogTitle>
+          <DialogDescription>As alterações de data aplicam-se também a todos os registos ligados.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>Nome da sessão *</Label>
+            <Input value={nome} onChange={(e) => setNome(e.target.value)} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Data *</Label>
+              <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
+            </div>
+            <div>
+              <Label>Data de fim</Label>
+              <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
+            </div>
+          </div>
+          <div>
+            <Label>Local</Label>
+            <Input value={local} onChange={(e) => setLocal(e.target.value)} placeholder="(opcional)" />
+          </div>
+          <div>
+            <Label>Notas</Label>
+            <Textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={3} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+          <Button onClick={() => save.mutate()} disabled={save.isPending}>
+            <Check className="mr-2 h-4 w-4" />Guardar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
