@@ -175,6 +175,7 @@ function AcaoDetailPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {acao.descricao && <RichTextView html={acao.descricao} />}
+              <AcaoParceirosChips acaoId={acao.id} />
               {acao.restrito_a_projetos && (acao.projeto_ids?.length ?? 0) > 0 && (
                 <p className="text-xs rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-muted-foreground">
                   Inscrição reservada a participantes dos projetos associados a esta ação.
