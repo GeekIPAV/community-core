@@ -112,7 +112,7 @@ function LocalizacoesPage() {
     mutationFn: async ({ id, field, value }: { id: string; field: string; value: unknown }) => {
       const { error } = await supabase
         .from("localizacoes")
-        .update({ [field]: value })
+        .update({ [field]: value } as never)
         .eq("id", id);
       if (error) throw error;
     },
