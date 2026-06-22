@@ -565,6 +565,22 @@ function ImportRow({
         )}
       </td>
       <td className="p-2">
+        <Input
+          type="number"
+          step="0.01"
+          value={row.outrosCustos || ""}
+          placeholder="0"
+          onChange={(e) => onChange({ outrosCustos: Number(e.target.value) || 0 })}
+          className="h-8 text-sm tabular-nums text-muted-foreground"
+        />
+        {row.outrosCustos > 0 && row.outrosCustosDescricao && (
+          <p className="text-[10px] text-muted-foreground mt-0.5 truncate" title={row.outrosCustosDescricao}>{row.outrosCustosDescricao}</p>
+        )}
+      </td>
+      <td className="p-2 text-right tabular-nums font-semibold">
+        €{(((row.valorProvided && row.valor != null ? row.valor : calc)) + (row.outrosCustos || 0)).toFixed(2)}
+      </td>
+      <td className="p-2">
         {status === "ready" && <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-emerald-300">Pronto</Badge>}
         {status === "warning" && <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-amber-300">Verificar</Badge>}
         {status === "error" && <Badge variant="destructive">Erro</Badge>}
