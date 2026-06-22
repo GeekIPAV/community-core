@@ -320,6 +320,37 @@ function IndicadoresGlobalPage() {
         )}
       </div>
 
+      {financiamentoSelecionado && (
+        <div className="rounded-md border bg-muted/30 p-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="space-y-0.5">
+            <p className="text-sm font-semibold">{financiamentoSelecionado.nome}</p>
+            <p className="text-xs text-muted-foreground">
+              {financiamentoSelecionado.financiador}
+              {financiamentoSelecionado.data_inicio || financiamentoSelecionado.data_fim ? (
+                <>
+                  {" · "}
+                  {financiamentoSelecionado.data_inicio
+                    ? new Date(financiamentoSelecionado.data_inicio).toLocaleDateString("pt-PT", { month: "short", year: "numeric" })
+                    : "—"}
+                  {" → "}
+                  {financiamentoSelecionado.data_fim
+                    ? new Date(financiamentoSelecionado.data_fim).toLocaleDateString("pt-PT", { month: "short", year: "numeric" })
+                    : "—"}
+                </>
+              ) : null}
+            </p>
+          </div>
+          <div className="flex items-center gap-3 text-sm">
+            {financiamentoSelecionado.valor_total != null && (
+              <span className="font-medium tabular-nums">
+                {new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(financiamentoSelecionado.valor_total)}
+              </span>
+            )}
+            <Badge variant="outline">{financiamentoSelecionado.estado}</Badge>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       {isLoading ? (
         <div className="space-y-2">
