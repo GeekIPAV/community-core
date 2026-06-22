@@ -928,6 +928,7 @@ export type Database = {
           pagamento_id: string | null
           preco_unitario_override: number | null
           quantidade: number
+          sessao_id: string | null
           submetido_pelo_colaborador: boolean
           tipo_servico_id: string
           updated_at: string
@@ -947,6 +948,7 @@ export type Database = {
           pagamento_id?: string | null
           preco_unitario_override?: number | null
           quantidade?: number
+          sessao_id?: string | null
           submetido_pelo_colaborador?: boolean
           tipo_servico_id: string
           updated_at?: string
@@ -966,6 +968,7 @@ export type Database = {
           pagamento_id?: string | null
           preco_unitario_override?: number | null
           quantidade?: number
+          sessao_id?: string | null
           submetido_pelo_colaborador?: boolean
           tipo_servico_id?: string
           updated_at?: string
@@ -983,6 +986,13 @@ export type Database = {
             columns: ["pagamento_id"]
             isOneToOne: false
             referencedRelation: "pagamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registos_servico_sessao_id_fkey"
+            columns: ["sessao_id"]
+            isOneToOne: false
+            referencedRelation: "sessoes_servico"
             referencedColumns: ["id"]
           },
           {
@@ -1088,6 +1098,59 @@ export type Database = {
           url?: string | null
         }
         Relationships: []
+      }
+      sessoes_servico: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_fim: string | null
+          data_inicio: string
+          descricao: string | null
+          id: string
+          local: string | null
+          nome: string
+          preco_unitario_override: number | null
+          quantidade_por_colaborador: number
+          tipo_servico_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_fim?: string | null
+          data_inicio: string
+          descricao?: string | null
+          id?: string
+          local?: string | null
+          nome: string
+          preco_unitario_override?: number | null
+          quantidade_por_colaborador?: number
+          tipo_servico_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_fim?: string | null
+          data_inicio?: string
+          descricao?: string | null
+          id?: string
+          local?: string | null
+          nome?: string
+          preco_unitario_override?: number | null
+          quantidade_por_colaborador?: number
+          tipo_servico_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessoes_servico_tipo_servico_id_fkey"
+            columns: ["tipo_servico_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_servico"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sidebar_groups: {
         Row: {

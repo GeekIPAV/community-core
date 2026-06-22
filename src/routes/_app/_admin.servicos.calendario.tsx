@@ -13,8 +13,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Plus, Filter, PanelRightClose, PanelRightOpen, X, Check, Pencil, Trash2, Wallet, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Filter, PanelRightClose, PanelRightOpen, X, Check, Pencil, Trash2, Wallet, AlertTriangle, CheckCircle2, Users, UserPlus, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { RegistoPagamentoCell } from "@/components/servicos/PaymentLinkCells";
@@ -40,8 +41,20 @@ type Registo = {
   outros_custos_descricao: string | null;
   estado: Estado;
   pagamento_id: string | null;
+  sessao_id: string | null;
 };
 type Pagamento = { id: string; referencia: string | null; data_pagamento: string };
+export type Sessao = {
+  id: string;
+  nome: string;
+  tipo_servico_id: string;
+  data_inicio: string;
+  data_fim: string | null;
+  descricao: string | null;
+  local: string | null;
+  quantidade_por_colaborador: number;
+  preco_unitario_override: number | null;
+};
 
 // ============ utils ============
 const MESES_LONG = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -83,6 +96,40 @@ function calcTotal(r: Registo, tipoMap: Map<string, Tipo>) {
   const preco = r.preco_unitario_override != null ? Number(r.preco_unitario_override) : (tipo?.preco_unitario ?? 0);
   const calc = preco * (Number(r.quantidade) || 0);
   return { calc, total: calc + (Number(r.outros_custos) || 0) };
+}
+
+// Group day's records into blocks: shared-session records into one block, individual records as themselves.
+type DayBlock =
+  | { type: "single"; record: Registo }
+  | { type: "session"; sessao: Sessao; records: Registo[] };
+function groupDayItems(items: Registo[], sessoesMap?: Map<string, Sessao>): DayBlock[] {
+  const sessionGroups = new Map<string, Registo[]>();
+  const singles: Registo[] = [];
+  for (const r of items) {
+    if (r.sessao_id) {
+      const arr = sessionGroups.get(r.sessao_id) ?? [];
+      arr.push(r);
+      sessionGroups.set(r.sessao_id, arr);
+    } else singles.push(r);
+  }
+  const blocks: DayBlock[] = [];
+  for (const [sid, recs] of sessionGroups.entries()) {
+    // The sessoesMap may not be passed (it's optional); we synthesize from records when needed.
+    const sessao = sessoesMap?.get(sid) ?? {
+      id: sid,
+      nome: recs[0].descricao || "Sessão de grupo",
+      tipo_servico_id: recs[0].tipo_servico_id,
+      data_inicio: recs[0].data_inicio,
+      data_fim: recs[0].data_fim,
+      descricao: null,
+      local: null,
+      quantidade_por_colaborador: recs[0].quantidade,
+      preco_unitario_override: recs[0].preco_unitario_override,
+    } satisfies Sessao;
+    blocks.push({ type: "session", sessao, records: recs });
+  }
+  for (const r of singles) blocks.push({ type: "single", record: r });
+  return blocks;
 }
 
 // ============ page ============
@@ -156,7 +203,7 @@ export function ServicosCalendarioPage({ embedded = false }: { embedded?: boolea
     queryFn: async () => {
       const { data, error } = await supabase
         .from("registos_servico")
-        .select("id, colaborador_id, tipo_servico_id, data_inicio, data_fim, descricao, quantidade, preco_unitario_override, outros_custos, outros_custos_descricao, estado, pagamento_id")
+        .select("id, colaborador_id, tipo_servico_id, data_inicio, data_fim, descricao, quantidade, preco_unitario_override, outros_custos, outros_custos_descricao, estado, pagamento_id, sessao_id")
         .gte("data_inicio", ymd(range.start))
         .lt("data_inicio", ymd(range.end))
         .order("data_inicio");
@@ -164,9 +211,22 @@ export function ServicosCalendarioPage({ embedded = false }: { embedded?: boolea
       return data as Registo[];
     },
   });
+  const { data: sessoes } = useQuery({
+    queryKey: ["sessoes_cal", ymd(range.start), ymd(range.end)],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sessoes_servico")
+        .select("id, nome, tipo_servico_id, data_inicio, data_fim, descricao, local, quantidade_por_colaborador, preco_unitario_override")
+        .gte("data_inicio", ymd(range.start))
+        .lt("data_inicio", ymd(range.end));
+      if (error) throw error;
+      return data as Sessao[];
+    },
+  });
 
   const colabMap = useMemo(() => new Map((colabs ?? []).map((c) => [c.id, c])), [colabs]);
   const tipoMap = useMemo(() => new Map((tipos ?? []).map((t) => [t.id, t])), [tipos]);
+  const sessaoMap = useMemo(() => new Map((sessoes ?? []).map((s) => [s.id, s])), [sessoes]);
 
   const filtered = useMemo(() => {
     let rows = registos ?? [];
@@ -263,6 +323,7 @@ export function ServicosCalendarioPage({ embedded = false }: { embedded?: boolea
                 rows={filtered}
                 colabMap={colabMap}
                 tipoMap={tipoMap}
+                sessaoMap={sessaoMap}
                 onCreate={openCreate}
               />
             ) : vista === "semana" ? (
@@ -271,6 +332,7 @@ export function ServicosCalendarioPage({ embedded = false }: { embedded?: boolea
                 rows={filtered}
                 colabMap={colabMap}
                 tipoMap={tipoMap}
+                sessaoMap={sessaoMap}
                 onCreate={openCreate}
               />
             ) : (
@@ -491,9 +553,121 @@ function ServicoDetail({ r, colab, tipo, onClose }: { r: Registo; colab?: Colab;
   );
 }
 
+// ============ Session Pill + Detail Popover ============
+function SessionPill({ sessao, records, colabMap, tipoMap, sessaoMap }: {
+  sessao: Sessao; records: Registo[]; colabMap: Map<string, Colab>; tipoMap: Map<string, Tipo>; sessaoMap: Map<string, Sessao>;
+}) {
+  const [open, setOpen] = useState(false);
+  const total = records.reduce((s, r) => s + calcTotal(r, tipoMap).total, 0);
+  const dots = records.slice(0, 3);
+  const tipo = tipoMap.get(sessao.tipo_servico_id);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          onClick={(e) => e.stopPropagation()}
+          className="w-full text-left rounded-md border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] flex items-center gap-1 hover:bg-primary/20 transition-colors"
+        >
+          <Users className="h-3 w-3 shrink-0 text-primary" />
+          <span className="truncate flex-1 font-medium text-foreground">{sessao.nome}</span>
+          <span className="flex items-center gap-0.5">
+            {dots.map((r) => <span key={r.id} className={cn("h-1.5 w-1.5 rounded-full", estadoDot(r.estado))} />)}
+            {records.length > 3 && <span className="text-[9px] text-muted-foreground ml-0.5">+{records.length - 3}</span>}
+          </span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[26rem] p-0" align="start">
+        <SessionDetail sessao={sessao} records={records} colabMap={colabMap} tipoMap={tipoMap} onClose={() => setOpen(false)} />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function SessionDetail({ sessao, records, colabMap, tipoMap, onClose }: {
+  sessao: Sessao; records: Registo[]; colabMap: Map<string, Colab>; tipoMap: Map<string, Tipo>; onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const tipo = tipoMap.get(sessao.tipo_servico_id);
+  const total = records.reduce((s, r) => s + calcTotal(r, tipoMap).total, 0);
+  const pagas = records.filter((r) => r.estado === "pago").length;
+  const pendentes = records.length - pagas;
+
+  const remove = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("sessoes_servico").delete().eq("id", sessao.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Sessão eliminada");
+      qc.invalidateQueries({ queryKey: ["registos_cal"] });
+      qc.invalidateQueries({ queryKey: ["sessoes_cal"] });
+      qc.invalidateQueries({ queryKey: ["sessoes_list"] });
+      onClose();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="text-sm">
+      <div className="flex items-start gap-3 border-b p-3">
+        <Users className="h-5 w-5 mt-0.5 text-primary shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold truncate">{sessao.nome}</div>
+          <div className="text-xs text-muted-foreground">{fmtLongDate(sessao.data_inicio)}{sessao.data_fim && sessao.data_fim !== sessao.data_inicio ? ` → ${fmtLongDate(sessao.data_fim)}` : ""}</div>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            {tipo && <Badge variant="outline" className="text-[10px]">{tipo.nome}</Badge>}
+            {sessao.local && <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{sessao.local}</span>}
+          </div>
+        </div>
+        <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+      </div>
+      <div className="max-h-72 overflow-y-auto divide-y">
+        {records.map((r) => {
+          const colab = colabMap.get(r.colaborador_id);
+          const rtotal = calcTotal(r, tipoMap).total;
+          return (
+            <div key={r.id} className="flex items-center gap-2 px-3 py-2">
+              <div className="h-7 w-7 shrink-0 rounded-full flex items-center justify-center text-[10px] font-semibold text-white" style={{ background: colabColor(r.colaborador_id) }}>
+                {colab ? initials(colab.nome_completo) : "?"}
+              </div>
+              <div className="flex-1 min-w-0">
+                {colab ? (
+                  <Link to="/colaboradoras/$colaboradoraId" params={{ colaboradoraId: colab.id }} className="text-xs font-medium hover:underline block truncate">
+                    {colab.nome_completo}
+                  </Link>
+                ) : <span className="text-xs">—</span>}
+                <div className="text-[10px] text-muted-foreground tabular-nums">
+                  {fmtEUR(rtotal)}{r.outros_custos > 0 && <span className="ml-1">+ {fmtEUR(r.outros_custos)} {r.outros_custos_descricao || ""}</span>}
+                </div>
+              </div>
+              <Badge variant="outline" className={cn("text-[9px]", estadoChip(r.estado))}>{r.estado}</Badge>
+            </div>
+          );
+        })}
+      </div>
+      <div className="border-t p-3 bg-muted/30">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-xs text-muted-foreground">Total da sessão</span>
+          <span className="text-base font-semibold tabular-nums">{fmtEUR(total)}</span>
+        </div>
+        <div className="text-[11px] text-muted-foreground">
+          {pagas > 0 && <span className="text-emerald-700">{pagas} paga{pagas === 1 ? "" : "s"}</span>}
+          {pagas > 0 && pendentes > 0 && <span> · </span>}
+          {pendentes > 0 && <span className="text-amber-700">{pendentes} pendente{pendentes === 1 ? "" : "s"}</span>}
+        </div>
+      </div>
+      <div className="flex justify-end gap-2 border-t bg-muted/20 p-2">
+        <Button size="sm" variant="ghost" onClick={() => { if (confirm("Eliminar esta sessão? Os registos individuais mantêm-se.")) remove.mutate(); }}>
+          <Trash2 className="mr-1.5 h-3.5 w-3.5" />Eliminar sessão
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // ============ Month view ============
-function MesView({ cursor, rows, colabMap, tipoMap, onCreate }: {
-  cursor: Date; rows: Registo[]; colabMap: Map<string, Colab>; tipoMap: Map<string, Tipo>; onCreate: (date?: string) => void;
+function MesView({ cursor, rows, colabMap, tipoMap, sessaoMap, onCreate }: {
+  cursor: Date; rows: Registo[]; colabMap: Map<string, Colab>; tipoMap: Map<string, Tipo>; sessaoMap: Map<string, Sessao>; onCreate: (date?: string) => void;
 }) {
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
@@ -547,24 +721,33 @@ function MesView({ cursor, rows, colabMap, tipoMap, onCreate }: {
                 </div>
               )}
               <div className="space-y-0.5">
-                {items.slice(0, 2).map((r) => (
-                  <ServicoPill key={r.id + "-" + d} r={r} colabMap={colabMap} tipoMap={tipoMap} compact />
-                ))}
-                {items.length > 2 && (
+                {(() => {
+                  const blocks = groupDayItems(items, sessaoMap);
+                  return <>
+                    {blocks.slice(0, 2).map((b, bi) =>
+                      b.type === "session"
+                        ? <SessionPill key={"s-" + b.sessao.id + "-" + d} sessao={b.sessao} records={b.records} colabMap={colabMap} tipoMap={tipoMap} sessaoMap={sessaoMap} />
+                        : <ServicoPill key={b.record.id + "-" + d} r={b.record} colabMap={colabMap} tipoMap={tipoMap} compact />
+                    )}
+                    {blocks.length > 2 && (
                   <Popover>
                     <PopoverTrigger asChild>
                       <button onClick={(e) => e.stopPropagation()} className="w-full rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent">
-                        +{items.length - 2} mais
+                        +{blocks.length - 2} mais
                       </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-72 p-2 space-y-1" align="start">
                       <div className="text-xs font-semibold mb-1 px-1">{d} {MESES_LONG[month]}</div>
-                      {items.map((r) => (
-                        <ServicoPill key={r.id + "-list"} r={r} colabMap={colabMap} tipoMap={tipoMap} />
-                      ))}
+                      {blocks.map((b, bi) =>
+                        b.type === "session"
+                          ? <SessionPill key={"sl-" + b.sessao.id} sessao={b.sessao} records={b.records} colabMap={colabMap} tipoMap={tipoMap} sessaoMap={sessaoMap} />
+                          : <ServicoPill key={b.record.id + "-list"} r={b.record} colabMap={colabMap} tipoMap={tipoMap} />
+                      )}
                     </PopoverContent>
                   </Popover>
-                )}
+                    )}
+                  </>;
+                })()}
               </div>
             </div>
           );
@@ -575,8 +758,8 @@ function MesView({ cursor, rows, colabMap, tipoMap, onCreate }: {
 }
 
 // ============ Week view ============
-function SemanaView({ cursor, rows, colabMap, tipoMap, onCreate }: {
-  cursor: Date; rows: Registo[]; colabMap: Map<string, Colab>; tipoMap: Map<string, Tipo>; onCreate: (date?: string) => void;
+function SemanaView({ cursor, rows, colabMap, tipoMap, sessaoMap, onCreate }: {
+  cursor: Date; rows: Registo[]; colabMap: Map<string, Colab>; tipoMap: Map<string, Tipo>; sessaoMap: Map<string, Sessao>; onCreate: (date?: string) => void;
 }) {
   const start = startOfWeek(cursor);
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
@@ -615,7 +798,11 @@ function SemanaView({ cursor, rows, colabMap, tipoMap, onCreate }: {
                 <div className={cn("text-lg font-semibold", isToday && "text-primary")}>{d.getDate()}</div>
               </div>
               <div className="flex-1 space-y-1 min-w-0">
-                {items.map((r) => <ServicoPill key={r.id} r={r} colabMap={colabMap} tipoMap={tipoMap} compact />)}
+                {groupDayItems(items, sessaoMap).map((b) =>
+                  b.type === "session"
+                    ? <SessionPill key={"sw-" + b.sessao.id} sessao={b.sessao} records={b.records} colabMap={colabMap} tipoMap={tipoMap} sessaoMap={sessaoMap} />
+                    : <ServicoPill key={b.record.id} r={b.record} colabMap={colabMap} tipoMap={tipoMap} compact />
+                )}
               </div>
               {total > 0 && <div className="text-[10px] text-muted-foreground text-right mt-2 pt-2 border-t tabular-nums">{fmtEUR(total)}</div>}
             </div>
@@ -905,6 +1092,51 @@ function CreateServicoDialog({ open, onOpenChange, initialDate, dateLocked, onUn
   colabs: Colab[];
   tipos: Tipo[];
 }) {
+  const [tab, setTab] = useState<"individual" | "sessao">("individual");
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Novo serviço</DialogTitle>
+        </DialogHeader>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as "individual" | "sessao")}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="individual"><Wallet className="mr-2 h-4 w-4" />Serviço Individual</TabsTrigger>
+            <TabsTrigger value="sessao"><Users className="mr-2 h-4 w-4" />Sessão de Grupo</TabsTrigger>
+          </TabsList>
+          <TabsContent value="individual" className="mt-4">
+            <IndividualForm
+              initialDate={initialDate}
+              dateLocked={dateLocked}
+              onUnlockDate={onUnlockDate}
+              colabs={colabs}
+              tipos={tipos}
+              onDone={() => onOpenChange(false)}
+            />
+          </TabsContent>
+          <TabsContent value="sessao" className="mt-4">
+            <SessaoForm
+              initialDate={initialDate}
+              colabs={colabs}
+              tipos={tipos}
+              onDone={() => onOpenChange(false)}
+            />
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ---------- Individual service form ----------
+function IndividualForm({ initialDate, dateLocked, onUnlockDate, colabs, tipos, onDone }: {
+  initialDate: string | null;
+  dateLocked: boolean;
+  onUnlockDate: () => void;
+  colabs: Colab[];
+  tipos: Tipo[];
+  onDone: () => void;
+}) {
   const qc = useQueryClient();
   const [colabId, setColabId] = useState<string>("");
   const [tipoId, setTipoId] = useState<string>("");
@@ -915,16 +1147,11 @@ function CreateServicoDialog({ open, onOpenChange, initialDate, dateLocked, onUn
   const [outros, setOutros] = useState<number>(0);
   const [outrosDesc, setOutrosDesc] = useState<string>("");
 
-  // Sync initialDate when dialog opens with a new pre-filled date
   useEffect(() => { if (initialDate) setDataInicio(initialDate); }, [initialDate]);
 
   const tipo = tipos.find((t) => t.id === tipoId);
   const calc = (tipo?.preco_unitario ?? 0) * (Number(quantidade) || 0);
   const total = calc + (Number(outros) || 0);
-
-  const reset = () => {
-    setColabId(""); setTipoId(""); setDataFim(""); setDescricao(""); setQuantidade(1); setOutros(0); setOutrosDesc("");
-  };
 
   const save = useMutation({
     mutationFn: async () => {
@@ -951,19 +1178,14 @@ function CreateServicoDialog({ open, onOpenChange, initialDate, dateLocked, onUn
     onSuccess: (name) => {
       toast.success(`Serviço registado para ${name}`);
       qc.invalidateQueries({ queryKey: ["registos_cal"] });
-      reset();
-      onOpenChange(false);
+      onDone();
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) reset(); }}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Novo serviço</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3">
+    <div>
+      <div className="space-y-3">
           <div>
             <Label>Colaboradora *</Label>
             <Select value={colabId} onValueChange={setColabId}>
@@ -1026,13 +1248,225 @@ function CreateServicoDialog({ open, onOpenChange, initialDate, dateLocked, onUn
             <span className="text-lg font-semibold tabular-nums">{fmtEUR(total)}</span>
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+        <DialogFooter className="mt-4">
           <Button onClick={() => save.mutate()} disabled={save.isPending}>
             <Wallet className="mr-2 h-4 w-4" />Registar serviço
           </Button>
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </div>
+  );
+}
+
+// ---------- Group session form ----------
+function SessaoForm({ initialDate, colabs, tipos, onDone }: {
+  initialDate: string | null;
+  colabs: Colab[];
+  tipos: Tipo[];
+  onDone: () => void;
+}) {
+  const qc = useQueryClient();
+  const [nome, setNome] = useState("");
+  const [tipoId, setTipoId] = useState<string>("");
+  const [dataInicio, setDataInicio] = useState<string>(initialDate ?? ymd(new Date()));
+  const [dataFim, setDataFim] = useState<string>("");
+  const [local, setLocal] = useState("");
+  const [quantidade, setQuantidade] = useState<number>(1);
+  const [precoOverride, setPrecoOverride] = useState<string>("");
+  const [selectedColabs, setSelectedColabs] = useState<string[]>([]);
+  const [outros, setOutros] = useState<number>(0);
+  const [outrosDesc, setOutrosDesc] = useState<string>("");
+  const [notas, setNotas] = useState<string>("");
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  useEffect(() => { if (initialDate) setDataInicio(initialDate); }, [initialDate]);
+
+  const tipo = tipos.find((t) => t.id === tipoId);
+  const precoUnit = precoOverride !== "" ? Number(precoOverride) : (tipo?.preco_unitario ?? 0);
+  const perColab = precoUnit * (Number(quantidade) || 0);
+  const perColabTotal = perColab + (Number(outros) || 0);
+  const totalSessao = perColabTotal * selectedColabs.length;
+
+  const toggleColab = (id: string) =>
+    setSelectedColabs((sel) => sel.includes(id) ? sel.filter((x) => x !== id) : [...sel, id]);
+
+  const save = useMutation({
+    mutationFn: async () => {
+      if (!nome.trim()) throw new Error("Nome da sessão obrigatório");
+      if (!tipoId) throw new Error("Tipo de serviço obrigatório");
+      if (!dataInicio) throw new Error("Data obrigatória");
+      if (selectedColabs.length === 0) throw new Error("Selecione pelo menos 1 colaboradora");
+
+      const { data: sessao, error: sErr } = await supabase
+        .from("sessoes_servico")
+        .insert({
+          nome: nome.trim(),
+          tipo_servico_id: tipoId,
+          data_inicio: dataInicio,
+          data_fim: dataFim || null,
+          local: local.trim() || null,
+          descricao: notas.trim() || null,
+          quantidade_por_colaborador: Number(quantidade) || 1,
+          preco_unitario_override: precoOverride !== "" ? Number(precoOverride) : null,
+        })
+        .select("id")
+        .single();
+      if (sErr) throw sErr;
+
+      const records = selectedColabs.map((colabId) => ({
+        colaborador_id: colabId,
+        tipo_servico_id: tipoId,
+        sessao_id: sessao.id,
+        data_inicio: dataInicio,
+        data_fim: dataFim || null,
+        descricao: nome.trim(),
+        quantidade: Number(quantidade) || 1,
+        preco_unitario_override: precoOverride !== "" ? Number(precoOverride) : null,
+        outros_custos: Number(outros) || 0,
+        outros_custos_descricao: outrosDesc.trim() || null,
+        estado: "pendente" as Estado,
+        submetido_pelo_colaborador: false,
+      }));
+      const { error: rErr } = await supabase.from("registos_servico").insert(records);
+      if (rErr) throw rErr;
+      return selectedColabs.length;
+    },
+    onSuccess: (n) => {
+      toast.success(`Sessão criada — ${n} registos de serviço gerados`);
+      qc.invalidateQueries({ queryKey: ["registos_cal"] });
+      qc.invalidateQueries({ queryKey: ["sessoes_cal"] });
+      qc.invalidateQueries({ queryKey: ["sessoes_list"] });
+      onDone();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+      <div>
+        <Label>Nome da sessão *</Label>
+        <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Workshop de Culinária — Março" />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label>Tipo de serviço *</Label>
+          <Select value={tipoId} onValueChange={setTipoId}>
+            <SelectTrigger><SelectValue placeholder="Escolher…" /></SelectTrigger>
+            <SelectContent>{tipos.map((t) => <SelectItem key={t.id} value={t.id}>{t.nome} ({fmtEUR(t.preco_unitario)}/{t.unidade})</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Local</Label>
+          <Input value={local} onChange={(e) => setLocal(e.target.value)} placeholder="(opcional)" />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label>Data *</Label>
+          <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
+        </div>
+        <div>
+          <Label>Data de fim</Label>
+          <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label>{tipo?.unidade ? `${tipo.unidade[0].toUpperCase() + tipo.unidade.slice(1)}s por colaboradora` : "Quantidade por colaboradora"}</Label>
+          <Input type="number" step="0.01" value={quantidade} onChange={(e) => setQuantidade(Number(e.target.value))} />
+          {tipo && <p className="text-[11px] text-muted-foreground mt-1 tabular-nums">Cada colaboradora recebe {fmtEUR(perColab)}</p>}
+        </div>
+        <div>
+          <Label>Preço por unidade (€)</Label>
+          <Input type="number" step="0.01" value={precoOverride} onChange={(e) => setPrecoOverride(e.target.value)} placeholder={tipo ? String(tipo.preco_unitario) : ""} />
+          {tipo && <p className="text-[11px] text-muted-foreground mt-1 tabular-nums">{fmtEUR(precoUnit)} × {quantidade} = {fmtEUR(perColab)} por pessoa</p>}
+        </div>
+      </div>
+
+      {/* Colaboradoras picker */}
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <Label>Colaboradoras *</Label>
+          <div className="flex items-center gap-2 text-[11px]">
+            <button type="button" className="text-primary hover:underline" onClick={() => setSelectedColabs(colabs.map((c) => c.id))}>Selecionar todas</button>
+            <span className="text-muted-foreground">·</span>
+            <button type="button" className="text-muted-foreground hover:underline" onClick={() => setSelectedColabs([])}>Limpar</button>
+          </div>
+        </div>
+        <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+          <PopoverTrigger asChild>
+            <Button type="button" variant="outline" className="w-full justify-start h-auto min-h-10 py-1.5">
+              {selectedColabs.length === 0 ? (
+                <span className="text-muted-foreground"><UserPlus className="inline h-4 w-4 mr-1.5" />Adicionar colaboradora</span>
+              ) : (
+                <div className="flex flex-wrap gap-1">
+                  {selectedColabs.map((id) => {
+                    const c = colabs.find((x) => x.id === id);
+                    if (!c) return null;
+                    return (
+                      <span key={id} className="inline-flex items-center gap-1 rounded-full bg-muted pl-0.5 pr-1.5 py-0.5 text-[11px]">
+                        <span className="h-5 w-5 rounded-full flex items-center justify-center text-[9px] font-semibold text-white" style={{ background: colabColor(id) }}>{initials(c.nome_completo)}</span>
+                        <span>{c.nome_completo}</span>
+                        <X className="h-3 w-3 cursor-pointer hover:text-destructive" onClick={(e) => { e.stopPropagation(); toggleColab(id); }} />
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 p-0" align="start">
+            <Command>
+              <CommandInput placeholder="Procurar colaboradora…" />
+              <CommandList>
+                <CommandEmpty>Sem resultados.</CommandEmpty>
+                <CommandGroup>
+                  {colabs.map((c) => {
+                    const sel = selectedColabs.includes(c.id);
+                    return (
+                      <CommandItem key={c.id} onSelect={() => toggleColab(c.id)} className="cursor-pointer">
+                        <div className={cn("mr-2 h-4 w-4 rounded border flex items-center justify-center", sel && "bg-primary border-primary text-primary-foreground")}>
+                          {sel && <Check className="h-3 w-3" />}
+                        </div>
+                        <span className="h-5 w-5 rounded-full mr-2 flex items-center justify-center text-[9px] font-semibold text-white" style={{ background: colabColor(c.id) }}>{initials(c.nome_completo)}</span>
+                        {c.nome_completo}
+                      </CommandItem>
+                    );
+                  })}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+        <p className="mt-1 text-[11px] text-muted-foreground">{selectedColabs.length} colaboradoras selecionadas</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label>Outros custos por colaboradora (€)</Label>
+          <Input type="number" step="0.01" value={outros} onChange={(e) => setOutros(Number(e.target.value))} />
+        </div>
+        <div>
+          <Label>Descrição outros</Label>
+          <Input value={outrosDesc} onChange={(e) => setOutrosDesc(e.target.value)} placeholder="ex.: transportes" />
+        </div>
+      </div>
+      <div>
+        <Label>Notas da sessão</Label>
+        <Textarea value={notas} onChange={(e) => setNotas(e.target.value)} rows={2} />
+      </div>
+
+      <div className="rounded-lg border bg-muted/30 p-3 space-y-1 text-sm">
+        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Resumo da sessão</div>
+        <div className="flex justify-between"><span>{selectedColabs.length} colaboradoras × {fmtEUR(perColab)}</span><span className="tabular-nums">{fmtEUR(perColab * selectedColabs.length)}</span></div>
+        {outros > 0 && <div className="flex justify-between text-muted-foreground"><span>+ Outros custos: {selectedColabs.length} × {fmtEUR(outros)}</span><span className="tabular-nums">{fmtEUR(outros * selectedColabs.length)}</span></div>}
+        <div className="flex justify-between border-t pt-1 font-semibold"><span>Total da sessão</span><span className="tabular-nums">{fmtEUR(totalSessao)}</span></div>
+      </div>
+
+      <DialogFooter>
+        <Button onClick={() => save.mutate()} disabled={save.isPending}>
+          <Users className="mr-2 h-4 w-4" />Criar sessão
+        </Button>
+      </DialogFooter>
+    </div>
   );
 }

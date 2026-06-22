@@ -67,6 +67,7 @@ type Registo = {
   submetido_pelo_colaborador: boolean;
   pagamento_id: string | null;
   notas_admin: string | null;
+  sessao_id: string | null;
 };
 
 type Pagamento = {
@@ -98,12 +99,14 @@ function ServicosPage() {
         <TabsList>
           <TabsTrigger value="calendario"><CalendarRange className="mr-2 h-4 w-4" />Calendário</TabsTrigger>
           <TabsTrigger value="registos"><Receipt className="mr-2 h-4 w-4" />Registos</TabsTrigger>
+          <TabsTrigger value="sessoes"><UsersIcon className="mr-2 h-4 w-4" />Sessões</TabsTrigger>
           <TabsTrigger value="pagamentos"><Wallet className="mr-2 h-4 w-4" />Pagamentos</TabsTrigger>
           <TabsTrigger value="colaboradores"><UsersIcon className="mr-2 h-4 w-4" />Colaboradores</TabsTrigger>
           <TabsTrigger value="tipos"><Tag className="mr-2 h-4 w-4" />Tipos de serviço</TabsTrigger>
         </TabsList>
         <TabsContent value="calendario" className="mt-6"><ServicosCalendarioPage embedded /></TabsContent>
         <TabsContent value="registos" className="mt-6"><RegistosTab /></TabsContent>
+        <TabsContent value="sessoes" className="mt-6"><SessoesTab /></TabsContent>
         <TabsContent value="pagamentos" className="mt-6"><PagamentosTab /></TabsContent>
         <TabsContent value="colaboradores" className="mt-6"><ColaboradoresTab /></TabsContent>
         <TabsContent value="tipos" className="mt-6"><TiposServicoTab /></TabsContent>
@@ -314,6 +317,154 @@ function ColaboradoresTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+// =========================================================
+// SESSÕES DE GRUPO
+// =========================================================
+type SessaoRow = {
+  id: string;
+  nome: string;
+  tipo_servico_id: string;
+  data_inicio: string;
+  data_fim: string | null;
+  local: string | null;
+  descricao: string | null;
+  quantidade_por_colaborador: number;
+  preco_unitario_override: number | null;
+};
+function SessoesTab() {
+  const qc = useQueryClient();
+  const [filterEstado, setFilterEstado] = useState<string>("__all");
+
+  const { data: sessoes, isLoading } = useQuery({
+    queryKey: ["sessoes_servico_full"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sessoes_servico")
+        .select("id, nome, tipo_servico_id, data_inicio, data_fim, local, descricao, quantidade_por_colaborador, preco_unitario_override")
+        .order("data_inicio", { ascending: false });
+      if (error) throw error;
+      return data as SessaoRow[];
+    },
+  });
+  const { data: tipos } = useQuery({
+    queryKey: ["tipos_servico_lookup_s"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("tipos_servico").select("id, nome, unidade, preco_unitario").order("nome");
+      if (error) throw error;
+      return data as { id: string; nome: string; unidade: string; preco_unitario: number }[];
+    },
+  });
+  const { data: registos } = useQuery({
+    queryKey: ["registos_for_sessoes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("registos_servico")
+        .select("id, sessao_id, colaborador_id, tipo_servico_id, quantidade, preco_unitario_override, outros_custos, estado")
+        .not("sessao_id", "is", null);
+      if (error) throw error;
+      return data as { id: string; sessao_id: string; colaborador_id: string; tipo_servico_id: string; quantidade: number; preco_unitario_override: number | null; outros_custos: number; estado: "pendente" | "aprovado" | "pago" }[];
+    },
+  });
+
+  const tipoMap = useMemo(() => new Map((tipos ?? []).map((t) => [t.id, t])), [tipos]);
+  const bySessao = useMemo(() => {
+    const m = new Map<string, { count: number; total: number; pagas: number; pendentes: number }>();
+    for (const r of registos ?? []) {
+      const tipo = tipoMap.get(r.tipo_servico_id);
+      const preco = r.preco_unitario_override != null ? Number(r.preco_unitario_override) : (tipo?.preco_unitario ?? 0);
+      const total = preco * Number(r.quantidade) + Number(r.outros_custos || 0);
+      const cur = m.get(r.sessao_id) ?? { count: 0, total: 0, pagas: 0, pendentes: 0 };
+      cur.count++; cur.total += total;
+      if (r.estado === "pago") cur.pagas++; else cur.pendentes++;
+      m.set(r.sessao_id, cur);
+    }
+    return m;
+  }, [registos, tipoMap]);
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("sessoes_servico").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Sessão eliminada");
+      qc.invalidateQueries({ queryKey: ["sessoes_servico_full"] });
+      qc.invalidateQueries({ queryKey: ["registos_for_sessoes"] });
+      qc.invalidateQueries({ queryKey: ["registos_servico"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const rows = useMemo(() => (sessoes ?? []).map((s) => {
+    const agg = bySessao.get(s.id) ?? { count: 0, total: 0, pagas: 0, pendentes: 0 };
+    return { ...s, ...agg };
+  }), [sessoes, bySessao]);
+
+  const filtered = useMemo(() => {
+    if (filterEstado === "__all") return rows;
+    if (filterEstado === "pagas") return rows.filter((r) => r.pendentes === 0 && r.count > 0);
+    if (filterEstado === "pendentes") return rows.filter((r) => r.pendentes > 0);
+    return rows;
+  }, [rows, filterEstado]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h2 className="text-lg font-semibold">Sessões de Grupo</h2>
+          <p className="text-sm text-muted-foreground">Eventos partilhados entre várias colaboradoras (workshops, formações, etc.)</p>
+        </div>
+        <Select value={filterEstado} onValueChange={setFilterEstado}>
+          <SelectTrigger className="w-48 h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all">Todas</SelectItem>
+            <SelectItem value="pagas">Todas pagas</SelectItem>
+            <SelectItem value="pendentes">Com pendentes</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {isLoading ? (
+        <Skeleton className="h-64 w-full" />
+      ) : filtered.length === 0 ? (
+        <div className="rounded-lg border bg-muted/20 p-10 text-center text-sm text-muted-foreground">
+          Sem sessões. Cria a primeira a partir do <Link to="/servicos" className="text-primary hover:underline">Calendário</Link>, usando o separador "Sessão de Grupo".
+        </div>
+      ) : (
+        <div className="rounded-lg border divide-y">
+          {filtered.map((s) => {
+            const tipo = tipoMap.get(s.tipo_servico_id);
+            const allPaid = s.count > 0 && s.pendentes === 0;
+            return (
+              <div key={s.id} className="p-4 flex flex-wrap items-center gap-4 hover:bg-muted/20">
+                <div className="flex-1 min-w-[200px]">
+                  <div className="flex items-center gap-2">
+                    <UsersIcon className="h-4 w-4 text-primary" />
+                    <span className="font-medium">{s.nome}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {new Date(s.data_inicio + "T00:00:00").toLocaleDateString("pt-PT", { day: "numeric", month: "long", year: "numeric" })}
+                    {s.local && <span> · {s.local}</span>}
+                  </div>
+                </div>
+                {tipo && <Badge variant="outline">{tipo.nome}</Badge>}
+                <Badge variant="secondary">{s.count} colaboradora{s.count === 1 ? "" : "s"}</Badge>
+                <span className="tabular-nums font-semibold min-w-[80px] text-right">{fmtEUR(s.total)}</span>
+                {allPaid
+                  ? <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100">Todas pagas</Badge>
+                  : <Badge className="bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-100">{s.pendentes} pendente{s.pendentes === 1 ? "" : "s"}</Badge>}
+                <Button size="icon" variant="ghost" onClick={() => { if (confirm("Eliminar sessão? Os registos individuais mantêm-se sem ligação.")) remove.mutate(s.id); }}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -610,6 +761,7 @@ function RegistosTab() {
   const [form, setForm] = useState<Partial<Registo>>({});
   const [filterEstado, setFilterEstado] = useState<string>("__all");
   const [filterColab, setFilterColab] = useState<string>("__all");
+  const [filterSessao, setFilterSessao] = useState<"all" | "session" | "individual">("all");
   const [bulkOpen, setBulkOpen] = useState(false);
 
   const { data: colabs } = useQuery({
@@ -633,12 +785,24 @@ function RegistosTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("registos_servico")
-        .select("id, colaborador_id, tipo_servico_id, data_inicio, data_fim, descricao, quantidade, preco_unitario_override, outros_custos, outros_custos_descricao, km, estado, submetido_pelo_colaborador, pagamento_id, notas_admin")
+        .select("id, colaborador_id, tipo_servico_id, data_inicio, data_fim, descricao, quantidade, preco_unitario_override, outros_custos, outros_custos_descricao, km, estado, submetido_pelo_colaborador, pagamento_id, notas_admin, sessao_id")
         .order("data_inicio", { ascending: false });
       if (error) throw error;
       return data as Registo[];
     },
   });
+  const { data: sessoes } = useQuery({
+    queryKey: ["sessoes_list"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sessoes_servico")
+        .select("id, nome, data_inicio, tipo_servico_id, local")
+        .order("data_inicio", { ascending: false });
+      if (error) throw error;
+      return data as { id: string; nome: string; data_inicio: string; tipo_servico_id: string; local: string | null }[];
+    },
+  });
+  const sessaoMap = useMemo(() => new Map((sessoes ?? []).map((s) => [s.id, s])), [sessoes]);
 
   const colabMap = useMemo(() => new Map((colabs ?? []).map((c) => [c.id, c.nome_completo])), [colabs]);
   const tipoMap = useMemo(() => new Map((tipos ?? []).map((t) => [t.id, t])), [tipos]);
@@ -656,8 +820,10 @@ function RegistosTab() {
     let rows = data ?? [];
     if (filterEstado !== "__all") rows = rows.filter((r) => r.estado === filterEstado);
     if (filterColab !== "__all") rows = rows.filter((r) => r.colaborador_id === filterColab);
+    if (filterSessao === "session") rows = rows.filter((r) => !!r.sessao_id);
+    if (filterSessao === "individual") rows = rows.filter((r) => !r.sessao_id);
     return rows;
-  }, [data, filterEstado, filterColab]);
+  }, [data, filterEstado, filterColab, filterSessao]);
 
   const totals = useMemo(() => {
     return filtered.reduce((acc, r) => {
@@ -864,6 +1030,19 @@ function RegistosTab() {
     { id: "submetido_pelo_colaborador", accessorKey: "submetido_pelo_colaborador", header: "Origem", size: 120,
       meta: { label: "Origem", filterVariant: "select", filterOptions: ["true", "false"], hideOnMobile: true },
       cell: ({ getValue }) => getValue() ? <Badge variant="outline">Self-service</Badge> : <Badge variant="secondary">Admin</Badge> },
+    { id: "_sessao", header: "Sessão", size: 180, enableSorting: false,
+      meta: { label: "Sessão", noTruncate: true },
+      cell: ({ row }) => {
+        const sid = row.original.sessao_id;
+        if (!sid) return <span className="text-muted-foreground">—</span>;
+        const s = sessaoMap.get(sid);
+        return (
+          <Badge variant="outline" className="gap-1 max-w-full" title={s?.nome ?? ""}>
+            <UsersIcon className="h-3 w-3 shrink-0" />
+            <span className="truncate">{s?.nome ?? "Sessão"}</span>
+          </Badge>
+        );
+      } },
     { id: "_actions", header: "", size: 96, enableSorting: false, enableHiding: false, enableResizing: false,
       meta: { noTruncate: true },
       cell: ({ row }) => (
@@ -874,7 +1053,7 @@ function RegistosTab() {
           </Button>
         </div>
       ) },
-  ], [setEstado, remove]);
+  ], [setEstado, remove, sessaoMap]);
 
   return (
     <div className="space-y-4">
@@ -899,6 +1078,14 @@ function RegistosTab() {
             <SelectContent>
               <SelectItem value="__all">Todos os colaboradores</SelectItem>
               {(colabs ?? []).filter((c) => c.ativo).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_completo}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filterSessao} onValueChange={(v) => setFilterSessao(v as typeof filterSessao)}>
+            <SelectTrigger className="w-44 h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Sessões: todos</SelectItem>
+              <SelectItem value="session">Apenas de sessão</SelectItem>
+              <SelectItem value="individual">Apenas individuais</SelectItem>
             </SelectContent>
           </Select>
         </div>
