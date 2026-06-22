@@ -448,6 +448,49 @@ function RegistosTab() {
     }, { total: 0, pendente: 0, aprovado: 0, pago: 0 });
   }, [filtered, tipoMap]);
 
+  const chartData = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of filtered) {
+      const name = colabMap.get(r.colaborador_id) ?? "—";
+      map.set(name, (map.get(name) ?? 0) + calcTotal(r).total);
+    }
+    return Array.from(map.entries())
+      .map(([nome, total]) => ({ nome, total: Number(total.toFixed(2)) }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 12);
+  }, [filtered, colabMap, tipoMap]);
+
+  const exportCSV = () => {
+    const headers = ["Data", "Colaborador", "Tipo", "Unidade", "Quantidade", "Preço un.", "Outros custos", "Total", "Estado", "Descrição"];
+    const rows = filtered.map((r) => {
+      const tipo = tipoMap.get(r.tipo_servico_id);
+      const preco = r.preco_unitario_override ?? (tipo?.preco_unitario ?? 0);
+      const { total } = calcTotal(r);
+      return [
+        r.data_inicio,
+        colabMap.get(r.colaborador_id) ?? "",
+        tipo?.nome ?? "",
+        tipo?.unidade ?? "",
+        String(r.quantidade),
+        String(preco),
+        String(r.outros_custos ?? 0),
+        total.toFixed(2),
+        r.estado,
+        (r.descricao ?? "").replace(/\n/g, " "),
+      ];
+    });
+    const csv = [headers, ...rows]
+      .map((cols) => cols.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `registos-servico-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const reset = () => {
     setEditing(null);
     setForm({
