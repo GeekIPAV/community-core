@@ -82,18 +82,7 @@ function MeusServicosPage() {
 
   if (colabLoading || !authUid) return <Skeleton className="h-64 w-full" />;
 
-  if (!colab) {
-    return (
-      <div className="max-w-2xl mx-auto py-12 text-center space-y-3">
-        <Info className="h-10 w-10 mx-auto text-muted-foreground" />
-        <h1 className="text-xl font-semibold">Os meus serviços</h1>
-        <p className="text-sm text-muted-foreground">
-          Esta área é para colaboradores. Ainda não existe um registo de colaborador associado à sua conta.
-          Contacte a equipa para ser adicionado.
-        </p>
-      </div>
-    );
-  }
+  if (!colab) return <Navigate to="/" replace />;
 
   return <ColabSelfArea colaboradorId={colab.id} nome={colab.nome_completo} />;
 }
