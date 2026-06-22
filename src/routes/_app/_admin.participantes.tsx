@@ -565,6 +565,7 @@ function ParticipantesPage() {
           <Button size="sm" className="h-9" onClick={() => setAddOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Adicionar
           </Button>
+          <InviteMemberButton />
           <div className="relative flex-1 min-w-[200px] sm:flex-none sm:w-64">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
