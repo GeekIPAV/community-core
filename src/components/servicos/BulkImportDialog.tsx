@@ -327,19 +327,19 @@ export function BulkImportDialog({ open, onOpenChange, colaboradores, tipos, onI
                 </div>
               )}
               <div className="rounded-md border overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-sm min-w-[1200px]">
                   <thead className="bg-muted/50 text-xs">
                     <tr>
                       <th className="p-2 text-left w-10">#</th>
-                      <th className="p-2 text-left">Colaboradora</th>
-                      <th className="p-2 text-left">Data</th>
-                      <th className="p-2 text-left">Descrição</th>
-                      <th className="p-2 text-left">Tipo de Serviço</th>
-                      <th className="p-2 text-left w-20">Qtd</th>
-                      <th className="p-2 text-left w-28">Valor</th>
-                      <th className="p-2 text-left w-24">Outros</th>
-                      <th className="p-2 text-left w-28">Total</th>
-                      <th className="p-2 text-left w-24">Estado</th>
+                      <th className="p-2 text-left min-w-[160px]">Colaboradora</th>
+                      <th className="p-2 text-left min-w-[140px]">Data</th>
+                      <th className="p-2 text-left min-w-[180px]">Descrição</th>
+                      <th className="p-2 text-left min-w-[180px]">Tipo de Serviço</th>
+                      <th className="p-2 text-left w-24 min-w-[90px]">Qtd</th>
+                      <th className="p-2 text-left w-32 min-w-[110px]">Valor</th>
+                      <th className="p-2 text-left w-32 min-w-[110px]">Outros</th>
+                      <th className="p-2 text-right w-28 min-w-[100px]">Total</th>
+                      <th className="p-2 text-left w-28 min-w-[100px]">Estado</th>
                       <th className="p-2 w-10"></th>
                     </tr>
                   </thead>
