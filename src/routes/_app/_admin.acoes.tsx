@@ -1890,6 +1890,7 @@ function AcoesPageInner() {
   });
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["acoes"] });
+  const invalidateParceiros = () => qc.invalidateQueries({ queryKey: ["acao_parceiros"] });
 
   const { proximos, passados, semData } = useMemo(() => {
     const now = Date.now();
