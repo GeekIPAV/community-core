@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,7 +16,8 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2, Check, Wallet, Receipt, Users as UsersIcon, Tag } from "lucide-react";
+import { Pencil, Plus, Trash2, Check, Wallet, Receipt, Users as UsersIcon, Tag, Download, ExternalLink } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 export const Route = createFileRoute("/_app/_admin/servicos")({
   component: ServicosPage,
@@ -186,7 +187,12 @@ function ColaboradoresTab() {
               )}
               {(data ?? []).map((c) => (
                 <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.nome_completo}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link to="/servicos/colaborador/$id" params={{ id: c.id }} className="hover:underline inline-flex items-center gap-1">
+                      {c.nome_completo}
+                      <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                    </Link>
+                  </TableCell>
                   <TableCell className="text-muted-foreground">{c.email ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{c.telefone ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground font-mono text-xs">{c.iban ?? "—"}</TableCell>
@@ -442,6 +448,49 @@ function RegistosTab() {
     }, { total: 0, pendente: 0, aprovado: 0, pago: 0 });
   }, [filtered, tipoMap]);
 
+  const chartData = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of filtered) {
+      const name = colabMap.get(r.colaborador_id) ?? "—";
+      map.set(name, (map.get(name) ?? 0) + calcTotal(r).total);
+    }
+    return Array.from(map.entries())
+      .map(([nome, total]) => ({ nome, total: Number(total.toFixed(2)) }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 12);
+  }, [filtered, colabMap, tipoMap]);
+
+  const exportCSV = () => {
+    const headers = ["Data", "Colaborador", "Tipo", "Unidade", "Quantidade", "Preço un.", "Outros custos", "Total", "Estado", "Descrição"];
+    const rows = filtered.map((r) => {
+      const tipo = tipoMap.get(r.tipo_servico_id);
+      const preco = r.preco_unitario_override ?? (tipo?.preco_unitario ?? 0);
+      const { total } = calcTotal(r);
+      return [
+        r.data_inicio,
+        colabMap.get(r.colaborador_id) ?? "",
+        tipo?.nome ?? "",
+        tipo?.unidade ?? "",
+        String(r.quantidade),
+        String(preco),
+        String(r.outros_custos ?? 0),
+        total.toFixed(2),
+        r.estado,
+        (r.descricao ?? "").replace(/\n/g, " "),
+      ];
+    });
+    const csv = [headers, ...rows]
+      .map((cols) => cols.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `registos-servico-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const reset = () => {
     setEditing(null);
     setForm({
@@ -535,8 +584,33 @@ function RegistosTab() {
             </SelectContent>
           </Select>
         </div>
-        <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />Novo registo</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={exportCSV} disabled={filtered.length === 0}>
+            <Download className="mr-2 h-4 w-4" />Exportar CSV
+          </Button>
+          <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />Novo registo</Button>
+        </div>
       </div>
+
+      {chartData.length > 0 && (
+        <div className="rounded-lg border p-4">
+          <p className="text-sm font-medium mb-3">Total por colaborador (filtro atual)</p>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 32 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="nome" angle={-25} textAnchor="end" height={60} fontSize={11} interval={0} />
+                <YAxis fontSize={11} tickFormatter={(v) => `€${v}`} />
+                <Tooltip
+                  formatter={(v: number) => fmtEUR(v)}
+                  contentStyle={{ background: "hsl(var(--background))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
+                />
+                <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
       {isLoading ? <Skeleton className="h-40 w-full" /> : (
         <div className="rounded-md border overflow-x-auto">
@@ -568,7 +642,11 @@ function RegistosTab() {
                         <span className="text-muted-foreground"> → {new Date(r.data_fim).toLocaleDateString("pt-PT")}</span>
                       )}
                     </TableCell>
-                    <TableCell className="font-medium">{colabMap.get(r.colaborador_id) ?? "—"}</TableCell>
+                    <TableCell className="font-medium">
+                      <Link to="/servicos/colaborador/$id" params={{ id: r.colaborador_id }} className="hover:underline">
+                        {colabMap.get(r.colaborador_id) ?? "—"}
+                      </Link>
+                    </TableCell>
                     <TableCell>
                       <div>{tipo?.nome ?? "—"}</div>
                       {r.descricao && <div className="text-xs text-muted-foreground truncate max-w-xs">{r.descricao}</div>}
