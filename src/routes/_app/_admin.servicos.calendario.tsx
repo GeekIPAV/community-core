@@ -610,7 +610,7 @@ function MesView({ cursor, rows, colabMap, tipoMap, sessaoMap, onCreate }: {
               )}
               <div className="space-y-0.5">
                 {(() => {
-                  const blocks = groupDayItems(items);
+                  const blocks = groupDayItems(items, sessaoMap);
                   return <>
                     {blocks.slice(0, 2).map((b, bi) =>
                       b.type === "session"
