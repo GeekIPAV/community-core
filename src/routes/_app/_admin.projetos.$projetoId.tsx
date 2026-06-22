@@ -24,7 +24,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, ClipboardCopy, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { InlineText } from "@/components/inline-edit";
@@ -503,7 +503,9 @@ function KpiRow({
   const { data: computed } = useKpiValue(kpi, projeto);
   const v = kpi.fonte === "manual" ? Number(kpi.valor_manual ?? 0) : computed ?? 0;
   // Surface upward for summary calc + export
-  if (computed != null) onCompute(kpi.id, computed);
+  useEffect(() => {
+    if (computed != null) onCompute(kpi.id, computed);
+  }, [computed, kpi.id, onCompute]);
   const pct = kpi.meta > 0 ? Math.min(100, Math.round((v / kpi.meta) * 100)) : 0;
   const color = pct > 70 ? "bg-emerald-500" : pct >= 30 ? "bg-amber-500" : "bg-red-500";
 
