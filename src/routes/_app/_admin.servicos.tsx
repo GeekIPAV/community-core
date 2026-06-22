@@ -168,49 +168,69 @@ function ColaboradoresTab() {
         <p className="text-sm text-muted-foreground">{data?.length ?? 0} colaborador(es)</p>
         <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />Novo colaborador</Button>
       </div>
-      {isLoading ? <Skeleton className="h-40 w-full" /> : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Telefone</TableHead>
-                <TableHead>IBAN</TableHead>
-                <TableHead>Ativo</TableHead>
-                <TableHead className="w-24"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(data ?? []).length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sem colaboradores</TableCell></TableRow>
-              )}
-              {(data ?? []).map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-medium">
-                    <Link to="/servicos/colaborador/$id" params={{ id: c.id }} className="hover:underline inline-flex items-center gap-1">
-                      {c.nome_completo}
-                      <ExternalLink className="h-3 w-3 text-muted-foreground" />
-                    </Link>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{c.email ?? "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">{c.telefone ?? "—"}</TableCell>
-                  <TableCell className="text-muted-foreground font-mono text-xs">{c.iban ?? "—"}</TableCell>
-                  <TableCell>{c.ativo ? <Badge>Ativo</Badge> : <Badge variant="outline">Inativo</Badge>}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" onClick={() => openEdit(c)}><Pencil className="h-4 w-4" /></Button>
-                      <Button size="icon" variant="ghost" onClick={() => { if (confirm(`Remover ${c.nome_completo}?`)) remove.mutate(c.id); }}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+      {isLoading ? <Skeleton className="h-40 w-full" /> : (() => {
+        const ativos = (data ?? []).filter((c) => c.ativo);
+        const inativos = (data ?? []).filter((c) => !c.ativo);
+        const renderRow = (c: Colaborador) => (
+          <TableRow key={c.id} className={!c.ativo ? "opacity-60" : undefined}>
+            <TableCell className="font-medium">
+              <Link to="/servicos/colaborador/$id" params={{ id: c.id }} className="hover:underline inline-flex items-center gap-1">
+                {c.nome_completo}
+                <ExternalLink className="h-3 w-3 text-muted-foreground" />
+              </Link>
+            </TableCell>
+            <TableCell className="text-muted-foreground">{c.email ?? "—"}</TableCell>
+            <TableCell className="text-muted-foreground">{c.telefone ?? "—"}</TableCell>
+            <TableCell className="text-muted-foreground font-mono text-xs">{c.iban ?? "—"}</TableCell>
+            <TableCell>{c.ativo ? <Badge>Ativo</Badge> : <Badge variant="outline">Inativo</Badge>}</TableCell>
+            <TableCell>
+              <div className="flex gap-1">
+                <Button size="icon" variant="ghost" onClick={() => openEdit(c)}><Pencil className="h-4 w-4" /></Button>
+                <Button size="icon" variant="ghost" onClick={() => { if (confirm(`Remover ${c.nome_completo}?`)) remove.mutate(c.id); }}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </TableCell>
+          </TableRow>
+        );
+        return (
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Telefone</TableHead>
+                  <TableHead>IBAN</TableHead>
+                  <TableHead>Ativo</TableHead>
+                  <TableHead className="w-24"></TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+              </TableHeader>
+              <TableBody>
+                {(data ?? []).length === 0 && (
+                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sem colaboradores</TableCell></TableRow>
+                )}
+                {ativos.length > 0 && (
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableCell colSpan={6} className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Ativos ({ativos.length})
+                    </TableCell>
+                  </TableRow>
+                )}
+                {ativos.map(renderRow)}
+                {inativos.length > 0 && (
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableCell colSpan={6} className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Inativos ({inativos.length})
+                    </TableCell>
+                  </TableRow>
+                )}
+                {inativos.map(renderRow)}
+              </TableBody>
+            </Table>
+          </div>
+        );
+      })()}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
