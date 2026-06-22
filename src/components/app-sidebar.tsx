@@ -56,8 +56,7 @@ export type SidebarItemRow = {
 const FALLBACK_GROUPS: SidebarGroupRow[] = [
   { id: "g1", key: "community", label: "Comunidade", icon: null, position: 1, is_visible: true, visible_to: ["admin","staff","user"] },
   { id: "g2", key: "participantes", label: "Gestão de Participantes", icon: null, position: 2, is_visible: true, visible_to: ["admin","staff"] },
-  { id: "g3", key: "acoes", label: "Ações & Atividades", icon: null, position: 3, is_visible: true, visible_to: ["admin","staff"] },
-  { id: "g4", key: "servicos", label: "Serviços & Pagamentos", icon: null, position: 4, is_visible: true, visible_to: ["admin","staff"] },
+  { id: "g3", key: "acoes", label: "GESTÃO", icon: null, position: 3, is_visible: true, visible_to: ["admin","staff"] },
   { id: "g5", key: "admin", label: "Administração", icon: null, position: 5, is_visible: true, visible_to: ["admin"] },
 ];
 const FALLBACK_ITEMS: SidebarItemRow[] = [
@@ -70,7 +69,8 @@ const FALLBACK_ITEMS: SidebarItemRow[] = [
   { id:"i8", group_id:"g2", key:"duplicados", label:"Duplicados", url:"/duplicados", icon:"AlertTriangle", position:4, is_visible:true, visible_to:["admin","staff"], badge_query:"count_duplicates", sub_group:null },
   { id:"i9", group_id:"g3", key:"acoes", label:"Ações", url:"/acoes", icon:"CalendarDays", position:1, is_visible:true, visible_to:["admin","staff"], badge_query:null, sub_group:null },
   { id:"i10", group_id:"g3", key:"atividades", label:"Atividades", url:"/atividades", icon:"Activity", position:2, is_visible:true, visible_to:["admin","staff"], badge_query:null, sub_group:null },
-  { id:"i11", group_id:"g4", key:"servicos-painel", label:"Painel", url:"/servicos", icon:"Wallet", position:1, is_visible:true, visible_to:["admin","staff"], badge_query:null, sub_group:"Serviços & Pagamentos" },
+  { id:"i11", group_id:"g3", key:"servicos-painel", label:"Serviços & Pagamentos", url:"/servicos", icon:"Wallet", position:3, is_visible:true, visible_to:["admin","staff"], badge_query:null, sub_group:null },
+  { id:"i14", group_id:"g3", key:"curriculos", label:"Currículos", url:"/curriculos", icon:"FileText", position:4, is_visible:true, visible_to:["admin","staff"], badge_query:null, sub_group:null },
   { id:"i12", group_id:"g5", key:"dashboard", label:"Painel", url:"/dashboard", icon:"LayoutDashboard", position:1, is_visible:true, visible_to:["admin","staff"], badge_query:null, sub_group:null },
   { id:"i13", group_id:"g5", key:"menu", label:"Gestão do Menu", url:"/menu", icon:"Settings2", position:6, is_visible:true, visible_to:["admin"], badge_query:null, sub_group:null },
 ];
@@ -185,7 +185,7 @@ function GroupBlock({
       <SidebarGroupLabel
         className={cn(
           "px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80",
-          anyActive && "border-l-2 border-primary text-foreground"
+          anyActive && "text-foreground"
         )}
       >
         {group.label}
