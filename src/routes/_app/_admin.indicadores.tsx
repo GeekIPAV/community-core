@@ -262,6 +262,18 @@ function IndicadoresGlobalPage() {
           />
         </div>
         <Select
+          value={search.financiamento ?? "__all__"}
+          onValueChange={(v) => setSearch({ financiamento: v === "__all__" ? undefined : v })}
+        >
+          <SelectTrigger className="w-64"><SelectValue placeholder="Financiamento" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Todos os financiamentos</SelectItem>
+            {(financiamentos ?? []).map((f) => (
+              <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
           value={search.projeto ?? "__all__"}
           onValueChange={(v) => setSearch({ projeto: v === "__all__" ? undefined : v })}
         >
