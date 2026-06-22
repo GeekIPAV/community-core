@@ -13,6 +13,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/lib/auth-context";
+import { useIsColaborador } from "@/hooks/use-is-colaborador";
 import { LANGUAGES, useDir } from "@/lib/i18n";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImpersonationPicker } from "@/components/impersonation-picker";
@@ -20,6 +21,7 @@ import { ImpersonationPicker } from "@/components/impersonation-picker";
 export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { isAdmin, isStaff, hasPage, realIsAdmin } = useAuth();
+  const { isColaborador } = useIsColaborador();
   const { t, i18n } = useTranslation();
   const dir = useDir();
 
@@ -27,7 +29,7 @@ export function AppSidebar() {
     { title: t("nav.publicPortal"), url: "/", icon: Globe },
     { title: t("nav.results"), url: "/resultados", icon: BarChart3 },
     { title: t("nav.myProfile"), url: "/perfil", icon: User },
-    { title: "Os meus serviços", url: "/meus-servicos", icon: Wallet },
+    ...(isColaborador ? [{ title: "Os meus serviços", url: "/meus-servicos", icon: Wallet }] : []),
   ];
   const participantesItems = [
     { title: t("nav.participants"), url: "/participantes", icon: Users, page: "participantes" as const },
