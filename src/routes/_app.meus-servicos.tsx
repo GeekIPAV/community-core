@@ -11,12 +11,12 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus, Receipt, Wallet, Info } from "lucide-react";
+import { SmartTable, type SmartColumnDef } from "@/components/smart-table";
 
 export const Route = createFileRoute("/_app/meus-servicos")({
   component: MeusServicosPage,
@@ -154,6 +154,56 @@ function ColabSelfArea({ colaboradorId, nome }: { colaboradorId: string; nome: s
   const calc = Number(precoUn) * Number(form.quantidade ?? 0);
   const totalPreview = calc + Number(form.outros_custos ?? 0);
 
+  type RegRow = Registo & { _tipo: string; _unidade: string; _total: number };
+  const registosRows = useMemo<RegRow[]>(() => (registos ?? []).map((r) => {
+    const tipo = tipoMap.get(r.tipo_servico_id);
+    const preco = r.preco_unitario_override ?? (tipo?.preco_unitario ?? 0);
+    return {
+      ...r,
+      _tipo: tipo?.nome ?? "—",
+      _unidade: tipo?.unidade ?? "",
+      _total: Number(preco) * Number(r.quantidade) + Number(r.outros_custos ?? 0),
+    };
+  }), [registos, tipoMap]);
+
+  const registosColumns = useMemo<SmartColumnDef<RegRow>[]>(() => [
+    { id: "data_inicio", accessorKey: "data_inicio", header: "Data", size: 130,
+      meta: { label: "Data", filterVariant: "date" },
+      cell: ({ getValue }) => <span className="text-sm whitespace-nowrap">{new Date(String(getValue())).toLocaleDateString("pt-PT")}</span> },
+    { id: "_tipo", accessorKey: "_tipo", header: "Serviço", size: 280,
+      meta: { label: "Serviço", filterVariant: "text" },
+      cell: ({ row }) => (
+        <div className="min-w-0">
+          <div className="truncate font-medium">{row.original._tipo}</div>
+          {row.original.descricao && <div className="text-xs text-muted-foreground truncate">{row.original.descricao}</div>}
+        </div>
+      ) },
+    { id: "quantidade", accessorKey: "quantidade", header: "Qtd", size: 110,
+      meta: { label: "Qtd", filterVariant: "number" },
+      cell: ({ row }) => <span className="block text-right tabular-nums">{Number(row.original.quantidade)} {row.original._unidade}</span> },
+    { id: "_total", accessorKey: "_total", header: "Total", size: 120,
+      meta: { label: "Total", filterVariant: "number" },
+      cell: ({ getValue }) => <span className="block text-right tabular-nums font-semibold">{fmtEUR(Number(getValue() ?? 0))}</span> },
+    { id: "estado", accessorKey: "estado", header: "Estado", size: 120,
+      meta: { label: "Estado", filterVariant: "select", filterOptions: ["pendente", "aprovado", "pago"] },
+      cell: ({ getValue }) => estadoBadge(getValue() as Registo["estado"]) },
+  ], []);
+
+  const pagamentosColumns = useMemo<SmartColumnDef<Pagamento>[]>(() => [
+    { id: "data_pagamento", accessorKey: "data_pagamento", header: "Data", size: 130,
+      meta: { label: "Data", filterVariant: "date" },
+      cell: ({ getValue }) => <span className="text-sm whitespace-nowrap">{new Date(String(getValue())).toLocaleDateString("pt-PT")}</span> },
+    { id: "referencia", accessorKey: "referencia", header: "Referência", size: 240,
+      meta: { label: "Referência", filterVariant: "text" },
+      cell: ({ getValue }) => <span>{(getValue() as string) ?? "—"}</span> },
+    { id: "metodo", accessorKey: "metodo", header: "Método", size: 180,
+      meta: { label: "Método", filterVariant: "text", hideOnMobile: true },
+      cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span> },
+    { id: "total", accessorKey: "total", header: "Total", size: 120,
+      meta: { label: "Total", filterVariant: "number" },
+      cell: ({ getValue }) => <span className="block text-right tabular-nums font-semibold">{fmtEUR(Number(getValue() ?? 0))}</span> },
+  ], []);
+
   const create = useMutation({
     mutationFn: async () => {
       if (!form.tipo_servico_id) throw new Error("Tipo de serviço obrigatório");
@@ -202,72 +252,26 @@ function ColabSelfArea({ colaboradorId, nome }: { colaboradorId: string; nome: s
         </TabsList>
 
         <TabsContent value="servicos" className="space-y-4 mt-4">
-          <div className="flex justify-end">
-            <Button onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" />Registar novo serviço</Button>
-          </div>
-          <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Serviço</TableHead>
-                  <TableHead className="text-right">Qtd</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                  <TableHead>Estado</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(registos ?? []).length === 0 && (
-                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Ainda não submeteu nenhum serviço.</TableCell></TableRow>
-                )}
-                {(registos ?? []).map((r) => {
-                  const tipo = tipoMap.get(r.tipo_servico_id);
-                  const preco = r.preco_unitario_override ?? (tipo?.preco_unitario ?? 0);
-                  const v = Number(preco) * Number(r.quantidade) + Number(r.outros_custos ?? 0);
-                  return (
-                    <TableRow key={r.id}>
-                      <TableCell className="text-sm">{new Date(r.data_inicio).toLocaleDateString("pt-PT")}</TableCell>
-                      <TableCell>
-                        <div className="font-medium">{tipo?.nome ?? "—"}</div>
-                        {r.descricao && <div className="text-xs text-muted-foreground truncate max-w-xs">{r.descricao}</div>}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">{Number(r.quantidade)} {tipo?.unidade ?? ""}</TableCell>
-                      <TableCell className="text-right tabular-nums font-semibold">{fmtEUR(v)}</TableCell>
-                      <TableCell>{estadoBadge(r.estado)}</TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+          <SmartTable
+            tableId="meus_registos"
+            columns={registosColumns}
+            data={registosRows}
+            toolbarActions={
+              <Button size="sm" onClick={() => setOpen(true)} className="h-9">
+                <Plus className="mr-2 h-4 w-4" />Registar novo serviço
+              </Button>
+            }
+            emptyMessage="Ainda não submeteu nenhum serviço."
+          />
         </TabsContent>
 
         <TabsContent value="pagamentos" className="mt-4">
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Referência</TableHead>
-                  <TableHead>Método</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(pagamentos ?? []).length === 0 && (
-                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Sem pagamentos recebidos.</TableCell></TableRow>
-                )}
-                {(pagamentos ?? []).map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell className="text-sm">{new Date(p.data_pagamento).toLocaleDateString("pt-PT")}</TableCell>
-                    <TableCell>{p.referencia ?? "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">{p.metodo ?? "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums font-semibold">{fmtEUR(p.total)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <SmartTable
+            tableId="meus_pagamentos"
+            columns={pagamentosColumns}
+            data={pagamentos ?? []}
+            emptyMessage="Sem pagamentos recebidos."
+          />
         </TabsContent>
       </Tabs>
 

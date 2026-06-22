@@ -11,13 +11,13 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Pencil, Plus, Trash2, Check, Wallet, Receipt, Users as UsersIcon, Tag, Download, ExternalLink } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { SmartTable, type SmartColumnDef } from "@/components/smart-table";
 
 export const Route = createFileRoute("/_app/_admin/servicos")({
   component: ServicosPage,
@@ -162,75 +162,99 @@ function ColaboradoresTab() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const updateField = useMutation({
+    mutationFn: async ({ id, field, value }: { id: string; field: string; value: unknown }) => {
+      const { error } = await supabase.from("colaboradores").update({ [field]: value } as never).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["colaboradores"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  type ColabRow = Colaborador & { _status: string };
+  const rows = useMemo<ColabRow[]>(
+    () => (data ?? []).map((c) => ({ ...c, _status: c.ativo ? "Ativos" : "Inativos" })),
+    [data],
+  );
+
+  const columns = useMemo<SmartColumnDef<ColabRow>[]>(() => [
+    {
+      id: "nome_completo",
+      accessorKey: "nome_completo",
+      header: "Nome",
+      size: 240,
+      meta: { label: "Nome", filterVariant: "text", editType: "text" },
+      cell: ({ row }) => (
+        <Link to="/servicos/colaborador/$id" params={{ id: row.original.id }} className="inline-flex items-center gap-1 truncate font-medium hover:underline">
+          <span className="truncate">{row.original.nome_completo}</span>
+          <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
+        </Link>
+      ),
+    },
+    {
+      id: "email", accessorKey: "email", header: "Email", size: 240,
+      meta: { label: "Email", filterVariant: "text", editType: "text", hideOnMobile: true },
+      cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>,
+    },
+    {
+      id: "telefone", accessorKey: "telefone", header: "Telefone", size: 140,
+      meta: { label: "Telefone", filterVariant: "text", editType: "text", hideOnMobile: true },
+      cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>,
+    },
+    {
+      id: "iban", accessorKey: "iban", header: "IBAN", size: 220,
+      meta: { label: "IBAN", filterVariant: "text", editType: "text", hideOnMobile: true },
+      cell: ({ getValue }) => <span className="font-mono text-xs text-muted-foreground">{(getValue() as string) ?? "—"}</span>,
+    },
+    {
+      id: "ativo", accessorKey: "ativo", header: "Estado", size: 100,
+      meta: {
+        label: "Estado", filterVariant: "select", filterOptions: ["true", "false"],
+        editType: "select", editSelectOptions: [{ value: "true", label: "Ativo" }, { value: "false", label: "Inativo" }],
+      },
+      cell: ({ getValue }) => (getValue() ? <Badge>Ativo</Badge> : <Badge variant="outline">Inativo</Badge>),
+    },
+    {
+      id: "_status", accessorKey: "_status", header: "Grupo", size: 100,
+      enableHiding: false,
+      meta: { label: "Grupo" },
+      cell: ({ getValue }) => <span className="text-xs text-muted-foreground">{String(getValue())}</span>,
+    },
+    {
+      id: "_actions", header: "", size: 96, enableSorting: false, enableHiding: false, enableResizing: false,
+      meta: { noTruncate: true },
+      cell: ({ row }) => (
+        <div className="flex justify-end gap-1">
+          <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); openEdit(row.original); }}><Pencil className="h-4 w-4" /></Button>
+          <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); if (confirm(`Remover ${row.original.nome_completo}?`)) remove.mutate(row.original.id); }}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ),
+    },
+  ], [remove]);
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">{data?.length ?? 0} colaborador(es)</p>
-        <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />Novo colaborador</Button>
-      </div>
-      {isLoading ? <Skeleton className="h-40 w-full" /> : (() => {
-        const ativos = (data ?? []).filter((c) => c.ativo);
-        const inativos = (data ?? []).filter((c) => !c.ativo);
-        const renderRow = (c: Colaborador) => (
-          <TableRow key={c.id} className={!c.ativo ? "opacity-60" : undefined}>
-            <TableCell className="font-medium">
-              <Link to="/servicos/colaborador/$id" params={{ id: c.id }} className="hover:underline inline-flex items-center gap-1">
-                {c.nome_completo}
-                <ExternalLink className="h-3 w-3 text-muted-foreground" />
-              </Link>
-            </TableCell>
-            <TableCell className="text-muted-foreground">{c.email ?? "—"}</TableCell>
-            <TableCell className="text-muted-foreground">{c.telefone ?? "—"}</TableCell>
-            <TableCell className="text-muted-foreground font-mono text-xs">{c.iban ?? "—"}</TableCell>
-            <TableCell>{c.ativo ? <Badge>Ativo</Badge> : <Badge variant="outline">Inativo</Badge>}</TableCell>
-            <TableCell>
-              <div className="flex gap-1">
-                <Button size="icon" variant="ghost" onClick={() => openEdit(c)}><Pencil className="h-4 w-4" /></Button>
-                <Button size="icon" variant="ghost" onClick={() => { if (confirm(`Remover ${c.nome_completo}?`)) remove.mutate(c.id); }}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </TableCell>
-          </TableRow>
-        );
-        return (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>IBAN</TableHead>
-                  <TableHead>Ativo</TableHead>
-                  <TableHead className="w-24"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(data ?? []).length === 0 && (
-                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sem colaboradores</TableCell></TableRow>
-                )}
-                {ativos.length > 0 && (
-                  <TableRow className="bg-muted/40 hover:bg-muted/40">
-                    <TableCell colSpan={6} className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Ativos ({ativos.length})
-                    </TableCell>
-                  </TableRow>
-                )}
-                {ativos.map(renderRow)}
-                {inativos.length > 0 && (
-                  <TableRow className="bg-muted/40 hover:bg-muted/40">
-                    <TableCell colSpan={6} className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Inativos ({inativos.length})
-                    </TableCell>
-                  </TableRow>
-                )}
-                {inativos.map(renderRow)}
-              </TableBody>
-            </Table>
-          </div>
-        );
-      })()}
+      <SmartTable
+        tableId="colaboradores"
+        columns={columns}
+        data={rows}
+        isLoading={isLoading}
+        defaultGroupBy="_status"
+        editableColumns={["nome_completo", "email", "telefone", "iban", "ativo"]}
+        onCellEdit={(rowId, columnId, value) => {
+          let v: unknown = value;
+          if (columnId === "ativo") v = value === "true" || value === true;
+          return updateField.mutateAsync({ id: rowId, field: columnId, value: v });
+        }}
+        toolbarActions={
+          <Button size="sm" onClick={openNew} className="h-9">
+            <Plus className="mr-2 h-4 w-4" />Novo colaborador
+          </Button>
+        }
+        emptyMessage="Sem colaboradores"
+      />
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
@@ -321,50 +345,66 @@ function TiposServicoTab() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const updateField = useMutation({
+    mutationFn: async ({ id, field, value }: { id: string; field: string; value: unknown }) => {
+      const { error } = await supabase.from("tipos_servico").update({ [field]: value } as never).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tipos_servico"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const columns = useMemo<SmartColumnDef<TipoServico>[]>(() => [
+    { id: "nome", accessorKey: "nome", header: "Nome", size: 240,
+      meta: { label: "Nome", filterVariant: "text", editType: "text" },
+      cell: ({ getValue }) => <span className="font-medium truncate">{String(getValue() ?? "")}</span> },
+    { id: "descricao", accessorKey: "descricao", header: "Descrição", size: 320,
+      meta: { label: "Descrição", filterVariant: "text", editType: "text", hideOnMobile: true },
+      cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span> },
+    { id: "unidade", accessorKey: "unidade", header: "Unidade", size: 110,
+      meta: { label: "Unidade", filterVariant: "select", filterOptions: UNIDADES,
+        editType: "select", editSelectOptions: UNIDADES.map((u) => ({ value: u, label: u })) },
+      cell: ({ getValue }) => <Badge variant="outline">{String(getValue() ?? "")}</Badge> },
+    { id: "preco_unitario", accessorKey: "preco_unitario", header: "Preço", size: 110,
+      meta: { label: "Preço", filterVariant: "number", editType: "number" },
+      cell: ({ getValue }) => <span className="tabular-nums text-right block">{fmtEUR(Number(getValue() ?? 0))}</span> },
+    { id: "ativo", accessorKey: "ativo", header: "Estado", size: 100,
+      meta: { label: "Estado", filterVariant: "select", filterOptions: ["true", "false"],
+        editType: "select", editSelectOptions: [{ value: "true", label: "Ativo" }, { value: "false", label: "Inativo" }] },
+      cell: ({ getValue }) => getValue() ? <Badge>Ativo</Badge> : <Badge variant="outline">Inativo</Badge> },
+    { id: "_actions", header: "", size: 96, enableSorting: false, enableHiding: false, enableResizing: false,
+      meta: { noTruncate: true },
+      cell: ({ row }) => (
+        <div className="flex justify-end gap-1">
+          <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); openEdit(row.original); }}><Pencil className="h-4 w-4" /></Button>
+          <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); if (confirm(`Remover ${row.original.nome}?`)) remove.mutate(row.original.id); }}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ) },
+  ], [remove]);
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">{data?.length ?? 0} tipo(s) de serviço</p>
-        <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />Novo tipo</Button>
-      </div>
-      {isLoading ? <Skeleton className="h-40 w-full" /> : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Unidade</TableHead>
-                <TableHead className="text-right">Preço</TableHead>
-                <TableHead>Ativo</TableHead>
-                <TableHead className="w-24"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(data ?? []).length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sem tipos de serviço</TableCell></TableRow>
-              )}
-              {(data ?? []).map((t) => (
-                <TableRow key={t.id}>
-                  <TableCell className="font-medium">{t.nome}</TableCell>
-                  <TableCell className="text-muted-foreground max-w-md truncate">{t.descricao ?? "—"}</TableCell>
-                  <TableCell><Badge variant="outline">{t.unidade}</Badge></TableCell>
-                  <TableCell className="text-right tabular-nums">{fmtEUR(t.preco_unitario)}</TableCell>
-                  <TableCell>{t.ativo ? <Badge>Ativo</Badge> : <Badge variant="outline">Inativo</Badge>}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" onClick={() => openEdit(t)}><Pencil className="h-4 w-4" /></Button>
-                      <Button size="icon" variant="ghost" onClick={() => { if (confirm(`Remover ${t.nome}?`)) remove.mutate(t.id); }}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+      <SmartTable
+        tableId="tipos_servico"
+        columns={columns}
+        data={data}
+        isLoading={isLoading}
+        editableColumns={["nome", "descricao", "unidade", "preco_unitario", "ativo"]}
+        onCellEdit={(rowId, columnId, value) => {
+          let v: unknown = value;
+          if (columnId === "ativo") v = value === "true" || value === true;
+          if (columnId === "preco_unitario") v = Number(value) || 0;
+          return updateField.mutateAsync({ id: rowId, field: columnId, value: v });
+        }}
+        toolbarActions={
+          <Button size="sm" onClick={openNew} className="h-9">
+            <Plus className="mr-2 h-4 w-4" />Novo tipo
+          </Button>
+        }
+        emptyMessage="Sem tipos de serviço"
+      />
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
@@ -580,6 +620,84 @@ function RegistosTab() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const updateField = useMutation({
+    mutationFn: async ({ id, field, value }: { id: string; field: string; value: unknown }) => {
+      const { error } = await supabase.from("registos_servico").update({ [field]: value } as never).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["registos_servico"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  type RegistoRow = Registo & { _colab: string; _tipo: string; _total: number; _unidade: string };
+  const rowsData = useMemo<RegistoRow[]>(() => filtered.map((r) => {
+    const tipo = tipoMap.get(r.tipo_servico_id);
+    return {
+      ...r,
+      _colab: colabMap.get(r.colaborador_id) ?? "—",
+      _tipo: tipo?.nome ?? "—",
+      _unidade: tipo?.unidade ?? "",
+      _total: calcTotal(r).total,
+    };
+  }), [filtered, colabMap, tipoMap]);
+
+  const columns = useMemo<SmartColumnDef<RegistoRow>[]>(() => [
+    { id: "data_inicio", accessorKey: "data_inicio", header: "Data", size: 150,
+      meta: { label: "Data", filterVariant: "date" },
+      cell: ({ row }) => (
+        <span className="text-sm whitespace-nowrap">
+          {new Date(row.original.data_inicio).toLocaleDateString("pt-PT")}
+          {row.original.data_fim && row.original.data_fim !== row.original.data_inicio && (
+            <span className="text-muted-foreground"> → {new Date(row.original.data_fim).toLocaleDateString("pt-PT")}</span>
+          )}
+        </span>
+      ) },
+    { id: "_colab", accessorKey: "_colab", header: "Colaborador", size: 200,
+      meta: { label: "Colaborador", filterVariant: "text" },
+      cell: ({ row }) => (
+        <Link to="/servicos/colaborador/$id" params={{ id: row.original.colaborador_id }} className="font-medium hover:underline truncate block">
+          {row.original._colab}
+        </Link>
+      ) },
+    { id: "_tipo", accessorKey: "_tipo", header: "Serviço", size: 260,
+      meta: { label: "Serviço", filterVariant: "text" },
+      cell: ({ row }) => (
+        <div className="min-w-0">
+          <div className="truncate">{row.original._tipo}</div>
+          {row.original.descricao && <div className="text-xs text-muted-foreground truncate">{row.original.descricao}</div>}
+        </div>
+      ) },
+    { id: "quantidade", accessorKey: "quantidade", header: "Qtd", size: 100,
+      meta: { label: "Quantidade", filterVariant: "number", editType: "number" },
+      cell: ({ row }) => (
+        <span className="block text-right tabular-nums">{Number(row.original.quantidade)} {row.original._unidade}</span>
+      ) },
+    { id: "_total", accessorKey: "_total", header: "Total", size: 110,
+      meta: { label: "Total", filterVariant: "number" },
+      cell: ({ getValue }) => <span className="block text-right tabular-nums font-medium">{fmtEUR(Number(getValue() ?? 0))}</span> },
+    { id: "estado", accessorKey: "estado", header: "Estado", size: 130,
+      meta: { label: "Estado", filterVariant: "select", filterOptions: ESTADOS as unknown as string[] },
+      cell: ({ row }) => (
+        <Select value={row.original.estado} onValueChange={(v) => setEstado.mutate({ id: row.original.id, estado: v as Registo["estado"] })}>
+          <SelectTrigger className="h-8 w-28" onClick={(e) => e.stopPropagation()}><SelectValue /></SelectTrigger>
+          <SelectContent>{ESTADOS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent>
+        </Select>
+      ) },
+    { id: "submetido_pelo_colaborador", accessorKey: "submetido_pelo_colaborador", header: "Origem", size: 120,
+      meta: { label: "Origem", filterVariant: "select", filterOptions: ["true", "false"], hideOnMobile: true },
+      cell: ({ getValue }) => getValue() ? <Badge variant="outline">Self-service</Badge> : <Badge variant="secondary">Admin</Badge> },
+    { id: "_actions", header: "", size: 96, enableSorting: false, enableHiding: false, enableResizing: false,
+      meta: { noTruncate: true },
+      cell: ({ row }) => (
+        <div className="flex justify-end gap-1">
+          <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); openEdit(row.original); }}><Pencil className="h-4 w-4" /></Button>
+          <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); if (confirm("Remover registo?")) remove.mutate(row.original.id); }}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ) },
+  ], [setEstado, remove]);
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -589,7 +707,7 @@ function RegistosTab() {
         <SummaryCard label="Pago" value={fmtEUR(totals.pago)} variant="success" />
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 justify-between">
+      <div className="flex flex-wrap items-center gap-2">
         <div className="flex flex-wrap gap-2">
           <Select value={filterEstado} onValueChange={setFilterEstado}>
             <SelectTrigger className="w-40 h-9"><SelectValue placeholder="Estado" /></SelectTrigger>
@@ -605,12 +723,6 @@ function RegistosTab() {
               {(colabs ?? []).filter((c) => c.ativo).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_completo}</SelectItem>)}
             </SelectContent>
           </Select>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={exportCSV} disabled={filtered.length === 0}>
-            <Download className="mr-2 h-4 w-4" />Exportar CSV
-          </Button>
-          <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />Novo registo</Button>
         </div>
       </div>
 
@@ -634,75 +746,29 @@ function RegistosTab() {
         </div>
       )}
 
-      {isLoading ? <Skeleton className="h-40 w-full" /> : (
-        <div className="rounded-md border overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Colaborador</TableHead>
-                <TableHead>Serviço</TableHead>
-                <TableHead className="text-right">Qtd</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Origem</TableHead>
-                <TableHead className="w-24"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.length === 0 && (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">Sem registos</TableCell></TableRow>
-              )}
-              {filtered.map((r) => {
-                const tipo = tipoMap.get(r.tipo_servico_id);
-                const { total } = calcTotal(r);
-                return (
-                  <TableRow key={r.id}>
-                    <TableCell className="text-sm">
-                      {new Date(r.data_inicio).toLocaleDateString("pt-PT")}
-                      {r.data_fim && r.data_fim !== r.data_inicio && (
-                        <span className="text-muted-foreground"> → {new Date(r.data_fim).toLocaleDateString("pt-PT")}</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      <Link to="/servicos/colaborador/$id" params={{ id: r.colaborador_id }} className="hover:underline">
-                        {colabMap.get(r.colaborador_id) ?? "—"}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      <div>{tipo?.nome ?? "—"}</div>
-                      {r.descricao && <div className="text-xs text-muted-foreground truncate max-w-xs">{r.descricao}</div>}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">{Number(r.quantidade)} {tipo?.unidade}</TableCell>
-                    <TableCell className="text-right tabular-nums font-medium">{fmtEUR(total)}</TableCell>
-                    <TableCell>
-                      <Select value={r.estado} onValueChange={(v) => setEstado.mutate({ id: r.id, estado: v as Registo["estado"] })}>
-                        <SelectTrigger className="h-8 w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>{ESTADOS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      {r.submetido_pelo_colaborador
-                        ? <Badge variant="outline">Self-service</Badge>
-                        : <Badge variant="secondary">Admin</Badge>}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button size="icon" variant="ghost" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
-                        <Button size="icon" variant="ghost" onClick={() => { if (confirm("Remover registo?")) remove.mutate(r.id); }}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+      <SmartTable
+        tableId="registos_servico"
+        columns={columns}
+        data={rowsData}
+        isLoading={isLoading}
+        editableColumns={["quantidade", "estado"]}
+        onCellEdit={(rowId, columnId, value) => {
+          let v: unknown = value;
+          if (columnId === "quantidade") v = Number(value) || 0;
+          return updateField.mutateAsync({ id: rowId, field: columnId, value: v });
+        }}
+        toolbarActions={
+          <>
+            <Button variant="outline" size="sm" onClick={exportCSV} disabled={filtered.length === 0} className="h-9">
+              <Download className="mr-2 h-4 w-4" />Exportar CSV
+            </Button>
+            <Button size="sm" onClick={openNew} className="h-9">
+              <Plus className="mr-2 h-4 w-4" />Novo registo
+            </Button>
+          </>
+        }
+        emptyMessage="Sem registos"
+      />
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl">
@@ -917,50 +983,73 @@ function PagamentosTab() {
     setForm({ ...form, liquidar_registos: cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id] });
   };
 
+  const updateField = useMutation({
+    mutationFn: async ({ id, field, value }: { id: string; field: string; value: unknown }) => {
+      const { error } = await supabase.from("pagamentos").update({ [field]: value } as never).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pagamentos"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  type PagRow = Pagamento & { _colab: string };
+  const rows = useMemo<PagRow[]>(
+    () => (data ?? []).map((p) => ({ ...p, _colab: colabMap.get(p.colaborador_id) ?? "—" })),
+    [data, colabMap],
+  );
+
+  const columns = useMemo<SmartColumnDef<PagRow>[]>(() => [
+    { id: "data_pagamento", accessorKey: "data_pagamento", header: "Data", size: 130,
+      meta: { label: "Data", filterVariant: "date", editType: "date" },
+      cell: ({ getValue }) => <span className="text-sm whitespace-nowrap">{new Date(String(getValue())).toLocaleDateString("pt-PT")}</span> },
+    { id: "_colab", accessorKey: "_colab", header: "Colaborador", size: 220,
+      meta: { label: "Colaborador", filterVariant: "text" },
+      cell: ({ row }) => (
+        <Link to="/servicos/colaborador/$id" params={{ id: row.original.colaborador_id }} className="font-medium hover:underline truncate block">
+          {row.original._colab}
+        </Link>
+      ) },
+    { id: "referencia", accessorKey: "referencia", header: "Referência", size: 200,
+      meta: { label: "Referência", filterVariant: "text", editType: "text" },
+      cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span> },
+    { id: "metodo", accessorKey: "metodo", header: "Método", size: 180,
+      meta: { label: "Método", filterVariant: "text", editType: "text", hideOnMobile: true },
+      cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span> },
+    { id: "total", accessorKey: "total", header: "Total", size: 120,
+      meta: { label: "Total", filterVariant: "number", editType: "number" },
+      cell: ({ getValue }) => <span className="block text-right tabular-nums font-medium">{fmtEUR(Number(getValue() ?? 0))}</span> },
+    { id: "_actions", header: "", size: 96, enableSorting: false, enableHiding: false, enableResizing: false,
+      meta: { noTruncate: true },
+      cell: ({ row }) => (
+        <div className="flex justify-end gap-1">
+          <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); openEdit(row.original); }}><Pencil className="h-4 w-4" /></Button>
+          <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); if (confirm("Remover pagamento? Os registos associados voltam a 'aprovado'.")) remove.mutate(row.original.id); }}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ) },
+  ], [remove]);
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">{data?.length ?? 0} pagamento(s)</p>
-        <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />Novo pagamento</Button>
-      </div>
-      {isLoading ? <Skeleton className="h-40 w-full" /> : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Colaborador</TableHead>
-                <TableHead>Referência</TableHead>
-                <TableHead>Método</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead className="w-24"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(data ?? []).length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sem pagamentos</TableCell></TableRow>
-              )}
-              {(data ?? []).map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell className="text-sm">{new Date(p.data_pagamento).toLocaleDateString("pt-PT")}</TableCell>
-                  <TableCell className="font-medium">{colabMap.get(p.colaborador_id) ?? "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">{p.referencia ?? "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">{p.metodo ?? "—"}</TableCell>
-                  <TableCell className="text-right tabular-nums font-medium">{fmtEUR(p.total)}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
-                      <Button size="icon" variant="ghost" onClick={() => { if (confirm("Remover pagamento? Os registos associados voltam a 'aprovado'.")) remove.mutate(p.id); }}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+      <SmartTable
+        tableId="pagamentos"
+        columns={columns}
+        data={rows}
+        isLoading={isLoading}
+        editableColumns={["referencia", "metodo", "total", "data_pagamento"]}
+        onCellEdit={(rowId, columnId, value) => {
+          let v: unknown = value;
+          if (columnId === "total") v = Number(value) || 0;
+          return updateField.mutateAsync({ id: rowId, field: columnId, value: v });
+        }}
+        toolbarActions={
+          <Button size="sm" onClick={openNew} className="h-9">
+            <Plus className="mr-2 h-4 w-4" />Novo pagamento
+          </Button>
+        }
+        emptyMessage="Sem pagamentos"
+      />
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl">
