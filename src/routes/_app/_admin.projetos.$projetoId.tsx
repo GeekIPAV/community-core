@@ -34,16 +34,51 @@ export const Route = createFileRoute("/_app/_admin/projetos/$projetoId")({
 });
 
 type Projeto = { id: string; nome: string; descricao: string | null };
+type Fonte = "acoes" | "atividades" | "participantes" | "manual" | "inscricoes" | "auto_total_unicos";
+type Estado = "por_iniciar" | "em_execucao" | "concluido";
+type KpiFiltro = {
+  imigrante?: boolean;
+  voluntario?: boolean;
+  mulheres?: boolean;
+  regular?: number;
+  categoria?: string;
+  projeto_ids?: string[];
+};
 type Kpi = {
   id: string;
   projeto_id: string;
   nome: string;
   meta: number;
   unidade: string;
-  fonte: "acoes" | "atividades" | "participantes" | "manual";
+  fonte: Fonte;
+  filtro: KpiFiltro;
+  estado: Estado;
   narrativa: string | null;
   valor_manual: number | null;
   position: number;
+};
+
+const CATEGORIAS_ACAO: { value: string; label: string }[] = [
+  { value: "workshop", label: "Workshop" },
+  { value: "jantar", label: "Jantar de Proximidade" },
+  { value: "intercultural", label: "Evento Intercultural" },
+  { value: "evento_comunitario", label: "Evento Comunitário" },
+  { value: "mediacao", label: "Mediação / Encaminhamento" },
+  { value: "mca", label: "MEERU Convida Amigos" },
+  { value: "outro", label: "Outro" },
+];
+const categoriaLabel = (v: string | null | undefined) =>
+  CATEGORIAS_ACAO.find((c) => c.value === v)?.label ?? "—";
+
+const ESTADO_LABELS: Record<Estado, string> = {
+  por_iniciar: "Por iniciar",
+  em_execucao: "Em execução",
+  concluido: "Concluído",
+};
+const ESTADO_VARIANTS: Record<Estado, "secondary" | "default" | "outline"> = {
+  por_iniciar: "outline",
+  em_execucao: "secondary",
+  concluido: "default",
 };
 
 const UNIDADES_SUGESTOES = [
@@ -60,6 +95,8 @@ const FONTE_LABELS: Record<Kpi["fonte"], string> = {
   atividades: "Atividades",
   participantes: "Participantes",
   manual: "Manual",
+  inscricoes: "Inscrições",
+  auto_total_unicos: "Total únicos",
 };
 
 function ProjetoDetailPage() {
@@ -117,12 +154,16 @@ function ProjetoDetailPage() {
         <TabsList>
           <TabsTrigger value="geral">Geral</TabsTrigger>
           <TabsTrigger value="indicadores">Indicadores</TabsTrigger>
+          <TabsTrigger value="acoes">Ações</TabsTrigger>
         </TabsList>
         <TabsContent value="geral" className="mt-6">
           <ProjetoGeralTab projeto={projeto} />
         </TabsContent>
         <TabsContent value="indicadores" className="mt-6">
           <IndicadoresTab projeto={projeto} />
+        </TabsContent>
+        <TabsContent value="acoes" className="mt-6">
+          <AcoesProjetoTab projeto={projeto} />
         </TabsContent>
       </Tabs>
     </div>
