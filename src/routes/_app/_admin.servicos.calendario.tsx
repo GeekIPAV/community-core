@@ -169,7 +169,7 @@ export function ServicosCalendarioPage({ embedded = false }: { embedded?: boolea
     queryFn: async () => {
       const { data, error } = await supabase
         .from("registos_servico")
-        .select("id, colaborador_id, tipo_servico_id, data_inicio, data_fim, descricao, quantidade, preco_unitario_override, outros_custos, outros_custos_descricao, estado, pagamento_id")
+        .select("id, colaborador_id, tipo_servico_id, data_inicio, data_fim, descricao, quantidade, preco_unitario_override, outros_custos, outros_custos_descricao, estado, pagamento_id, sessao_id")
         .gte("data_inicio", ymd(range.start))
         .lt("data_inicio", ymd(range.end))
         .order("data_inicio");
@@ -177,9 +177,22 @@ export function ServicosCalendarioPage({ embedded = false }: { embedded?: boolea
       return data as Registo[];
     },
   });
+  const { data: sessoes } = useQuery({
+    queryKey: ["sessoes_cal", ymd(range.start), ymd(range.end)],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sessoes_servico")
+        .select("id, nome, tipo_servico_id, data_inicio, data_fim, descricao, local, quantidade_por_colaborador, preco_unitario_override")
+        .gte("data_inicio", ymd(range.start))
+        .lt("data_inicio", ymd(range.end));
+      if (error) throw error;
+      return data as Sessao[];
+    },
+  });
 
   const colabMap = useMemo(() => new Map((colabs ?? []).map((c) => [c.id, c])), [colabs]);
   const tipoMap = useMemo(() => new Map((tipos ?? []).map((t) => [t.id, t])), [tipos]);
+  const sessaoMap = useMemo(() => new Map((sessoes ?? []).map((s) => [s.id, s])), [sessoes]);
 
   const filtered = useMemo(() => {
     let rows = registos ?? [];
