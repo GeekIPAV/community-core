@@ -182,6 +182,7 @@ export type Database = {
           nif: string | null
           nome_completo: string
           notas: string | null
+          pessoa_id: string | null
           telefone: string | null
           updated_at: string
         }
@@ -197,6 +198,7 @@ export type Database = {
           nif?: string | null
           nome_completo: string
           notas?: string | null
+          pessoa_id?: string | null
           telefone?: string | null
           updated_at?: string
         }
@@ -212,10 +214,26 @@ export type Database = {
           nif?: string | null
           nome_completo?: string
           notas?: string | null
+          pessoa_id?: string | null
           telefone?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "colaboradores_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "colaboradores_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       convites: {
         Row: {

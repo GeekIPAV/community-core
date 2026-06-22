@@ -14,8 +14,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+} from "@/components/ui/command";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2, Check, Wallet, Receipt, Users as UsersIcon, Tag, Download, ExternalLink } from "lucide-react";
+import { Pencil, Plus, Trash2, Check, Wallet, Receipt, Users as UsersIcon, Tag, Download, ExternalLink, UserPlus, X } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { SmartTable, type SmartColumnDef } from "@/components/smart-table";
 import { BulkImportDialog } from "@/components/servicos/BulkImportDialog";
@@ -33,6 +37,7 @@ type Colaborador = {
   iban: string | null;
   notas: string | null;
   ativo: boolean;
+  pessoa_id: string | null;
 };
 
 type TipoServico = {
@@ -117,10 +122,10 @@ function ColaboradoresTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("colaboradores")
-        .select("id, nome_completo, email, telefone, iban, notas, ativo")
+        .select("id, nome_completo, email, telefone, iban, notas, ativo, pessoa_id, pessoa:pessoas!colaboradores_pessoa_id_fkey(id, nome_completo)")
         .order("nome_completo");
       if (error) throw error;
-      return data as Colaborador[];
+      return data as (Colaborador & { pessoa: { id: string; nome_completo: string } | null })[];
     },
   });
 
@@ -138,6 +143,7 @@ function ColaboradoresTab() {
         iban: form.iban?.trim() || null,
         notas: form.notas?.trim() || null,
         ativo: form.ativo ?? true,
+        pessoa_id: form.pessoa_id ?? null,
       };
       if (editing) {
         const { error } = await supabase.from("colaboradores").update(payload).eq("id", editing.id);
@@ -173,7 +179,7 @@ function ColaboradoresTab() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  type ColabRow = Colaborador & { _status: string };
+  type ColabRow = Colaborador & { _status: string; pessoa: { id: string; nome_completo: string } | null };
   const rows = useMemo<ColabRow[]>(
     () => (data ?? []).map((c) => ({ ...c, _status: c.ativo ? "Ativos" : "Inativos" })),
     [data],
@@ -207,6 +213,17 @@ function ColaboradoresTab() {
       id: "iban", accessorKey: "iban", header: "IBAN", size: 220,
       meta: { label: "IBAN", filterVariant: "text", editType: "text", hideOnMobile: true },
       cell: ({ getValue }) => <span className="font-mono text-xs text-muted-foreground">{(getValue() as string) ?? "—"}</span>,
+    },
+    {
+      id: "pessoa", accessorKey: "pessoa_id", header: "Participante", size: 220,
+      meta: { label: "Participante", hideOnMobile: true },
+      cell: ({ row }) => (
+        <ParticipantePicker
+          value={row.original.pessoa_id}
+          label={row.original.pessoa?.nome_completo ?? null}
+          onChange={(pid) => updateField.mutateAsync({ id: row.original.id, field: "pessoa_id", value: pid })}
+        />
+      ),
     },
     {
       id: "ativo", accessorKey: "ativo", header: "Estado", size: 100,
@@ -271,6 +288,16 @@ function ColaboradoresTab() {
               <div><Label>Telefone</Label><Input value={form.telefone ?? ""} onChange={(e) => setForm({ ...form, telefone: e.target.value })} /></div>
             </div>
             <div><Label>IBAN</Label><Input value={form.iban ?? ""} onChange={(e) => setForm({ ...form, iban: e.target.value })} /></div>
+            <div>
+              <Label>Participante associado</Label>
+              <ParticipantePicker
+                value={form.pessoa_id ?? null}
+                label={null}
+                onChange={(pid) => { setForm({ ...form, pessoa_id: pid }); }}
+                inline
+              />
+              <p className="text-xs text-muted-foreground mt-1">Liga este colaborador a um participante para que ele veja os seus serviços e pagamentos em "Os meus serviços".</p>
+            </div>
             <div><Label>Notas</Label><Textarea value={form.notas ?? ""} onChange={(e) => setForm({ ...form, notas: e.target.value })} /></div>
             <div className="flex items-center gap-2">
               <Checkbox id="ativo-c" checked={form.ativo ?? true} onCheckedChange={(c) => setForm({ ...form, ativo: !!c })} />
@@ -284,6 +311,134 @@ function ColaboradoresTab() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+// =========================================================
+// PARTICIPANTE PICKER (search + create)
+// =========================================================
+type PessoaLite = { id: string; nome_completo: string; email: string | null };
+
+function ParticipantePicker({
+  value,
+  label,
+  onChange,
+  inline = false,
+}: {
+  value: string | null;
+  label: string | null;
+  onChange: (pessoaId: string | null) => void | Promise<unknown>;
+  inline?: boolean;
+}) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+
+  const { data: current } = useQuery({
+    queryKey: ["pessoa_lite", value],
+    enabled: !!value && !label,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("pessoas").select("id, nome_completo").eq("id", value!).maybeSingle();
+      if (error) throw error;
+      return data as { id: string; nome_completo: string } | null;
+    },
+  });
+
+  const { data: results, isFetching } = useQuery({
+    queryKey: ["pessoas_search", q],
+    enabled: open,
+    queryFn: async () => {
+      let qb = supabase.from("pessoas").select("id, nome_completo, email").eq("status", "ativo").order("nome_completo").limit(20);
+      if (q.trim()) qb = qb.or(`nome_completo.ilike.%${q}%,email.ilike.%${q}%`);
+      const { data, error } = await qb;
+      if (error) throw error;
+      return data as PessoaLite[];
+    },
+  });
+
+  const create = useMutation({
+    mutationFn: async (nome: string) => {
+      const { data, error } = await supabase.from("pessoas").insert({ nome_completo: nome.trim(), status: "ativo" }).select("id, nome_completo").single();
+      if (error) throw error;
+      return data as { id: string; nome_completo: string };
+    },
+    onSuccess: async (p) => {
+      toast.success("Participante criado");
+      qc.invalidateQueries({ queryKey: ["pessoas_search"] });
+      await onChange(p.id);
+      setOpen(false);
+      setQ("");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const displayName = label ?? current?.nome_completo ?? null;
+  const trigger = (
+    <Button
+      type="button"
+      variant={inline ? "outline" : "ghost"}
+      size="sm"
+      className={inline ? "w-full justify-between" : "h-7 px-2 text-xs justify-start max-w-full"}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <span className="truncate">
+        {displayName ?? (value ? "…" : <span className="text-muted-foreground">Sem participante</span>)}
+      </span>
+      {value && (
+        <span
+          role="button"
+          tabIndex={0}
+          aria-label="Desassociar"
+          className="ml-2 inline-flex h-4 w-4 items-center justify-center rounded hover:bg-muted shrink-0"
+          onClick={(e) => { e.stopPropagation(); onChange(null); }}
+        >
+          <X className="h-3 w-3" />
+        </span>
+      )}
+    </Button>
+  );
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+      <PopoverContent className="w-[320px] p-0" align="start" onClick={(e) => e.stopPropagation()}>
+        <Command shouldFilter={false}>
+          <CommandInput placeholder="Pesquisar participante…" value={q} onValueChange={setQ} />
+          <CommandList>
+            {isFetching && <div className="p-2 text-xs text-muted-foreground">A pesquisar…</div>}
+            <CommandEmpty>
+              <div className="p-2 text-sm text-muted-foreground">Sem resultados.</div>
+            </CommandEmpty>
+            <CommandGroup>
+              {(results ?? []).map((p) => (
+                <CommandItem
+                  key={p.id}
+                  value={p.id}
+                  onSelect={async () => { await onChange(p.id); setOpen(false); setQ(""); }}
+                >
+                  <div className="flex flex-col">
+                    <span>{p.nome_completo}</span>
+                    {p.email && <span className="text-xs text-muted-foreground">{p.email}</span>}
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+            {q.trim().length >= 2 && (
+              <CommandGroup heading="Criar">
+                <CommandItem
+                  value={`__new__${q}`}
+                  onSelect={() => create.mutate(q)}
+                  disabled={create.isPending}
+                >
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Criar participante "{q.trim()}"
+                </CommandItem>
+              </CommandGroup>
+            )}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
 
