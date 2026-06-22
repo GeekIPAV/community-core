@@ -324,6 +324,7 @@ export function ServicosCalendarioPage({ embedded = false }: { embedded?: boolea
                 colabMap={colabMap}
                 tipoMap={tipoMap}
                 sessaoMap={sessaoMap}
+                colabs={colabs ?? []}
                 onCreate={openCreate}
               />
             ) : vista === "semana" ? (
@@ -333,6 +334,7 @@ export function ServicosCalendarioPage({ embedded = false }: { embedded?: boolea
                 colabMap={colabMap}
                 tipoMap={tipoMap}
                 sessaoMap={sessaoMap}
+                colabs={colabs ?? []}
                 onCreate={openCreate}
               />
             ) : (
@@ -801,8 +803,8 @@ function SessionDetail({ sessao, records, colabMap, tipoMap, colabs, onClose }: 
 }
 
 // ============ Month view ============
-function MesView({ cursor, rows, colabMap, tipoMap, sessaoMap, onCreate }: {
-  cursor: Date; rows: Registo[]; colabMap: Map<string, Colab>; tipoMap: Map<string, Tipo>; sessaoMap: Map<string, Sessao>; onCreate: (date?: string) => void;
+function MesView({ cursor, rows, colabMap, tipoMap, sessaoMap, colabs, onCreate }: {
+  cursor: Date; rows: Registo[]; colabMap: Map<string, Colab>; tipoMap: Map<string, Tipo>; sessaoMap: Map<string, Sessao>; colabs: Colab[]; onCreate: (date?: string) => void;
 }) {
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
@@ -861,7 +863,7 @@ function MesView({ cursor, rows, colabMap, tipoMap, sessaoMap, onCreate }: {
                   return <>
                     {blocks.slice(0, 2).map((b, bi) =>
                       b.type === "session"
-                        ? <SessionPill key={"s-" + b.sessao.id + "-" + d} sessao={b.sessao} records={b.records} colabMap={colabMap} tipoMap={tipoMap} sessaoMap={sessaoMap} />
+                        ? <SessionPill key={"s-" + b.sessao.id + "-" + d} sessao={b.sessao} records={b.records} colabMap={colabMap} tipoMap={tipoMap} sessaoMap={sessaoMap} colabs={colabs} />
                         : <ServicoPill key={b.record.id + "-" + d} r={b.record} colabMap={colabMap} tipoMap={tipoMap} compact />
                     )}
                     {blocks.length > 2 && (
@@ -875,7 +877,7 @@ function MesView({ cursor, rows, colabMap, tipoMap, sessaoMap, onCreate }: {
                       <div className="text-xs font-semibold mb-1 px-1">{d} {MESES_LONG[month]}</div>
                       {blocks.map((b, bi) =>
                         b.type === "session"
-                          ? <SessionPill key={"sl-" + b.sessao.id} sessao={b.sessao} records={b.records} colabMap={colabMap} tipoMap={tipoMap} sessaoMap={sessaoMap} />
+                          ? <SessionPill key={"sl-" + b.sessao.id} sessao={b.sessao} records={b.records} colabMap={colabMap} tipoMap={tipoMap} sessaoMap={sessaoMap} colabs={colabs} />
                           : <ServicoPill key={b.record.id + "-list"} r={b.record} colabMap={colabMap} tipoMap={tipoMap} />
                       )}
                     </PopoverContent>
@@ -893,8 +895,8 @@ function MesView({ cursor, rows, colabMap, tipoMap, sessaoMap, onCreate }: {
 }
 
 // ============ Week view ============
-function SemanaView({ cursor, rows, colabMap, tipoMap, sessaoMap, onCreate }: {
-  cursor: Date; rows: Registo[]; colabMap: Map<string, Colab>; tipoMap: Map<string, Tipo>; sessaoMap: Map<string, Sessao>; onCreate: (date?: string) => void;
+function SemanaView({ cursor, rows, colabMap, tipoMap, sessaoMap, colabs, onCreate }: {
+  cursor: Date; rows: Registo[]; colabMap: Map<string, Colab>; tipoMap: Map<string, Tipo>; sessaoMap: Map<string, Sessao>; colabs: Colab[]; onCreate: (date?: string) => void;
 }) {
   const start = startOfWeek(cursor);
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
@@ -935,7 +937,7 @@ function SemanaView({ cursor, rows, colabMap, tipoMap, sessaoMap, onCreate }: {
               <div className="flex-1 space-y-1 min-w-0">
                 {groupDayItems(items, sessaoMap).map((b) =>
                   b.type === "session"
-                    ? <SessionPill key={"sw-" + b.sessao.id} sessao={b.sessao} records={b.records} colabMap={colabMap} tipoMap={tipoMap} sessaoMap={sessaoMap} />
+                    ? <SessionPill key={"sw-" + b.sessao.id} sessao={b.sessao} records={b.records} colabMap={colabMap} tipoMap={tipoMap} sessaoMap={sessaoMap} colabs={colabs} />
                     : <ServicoPill key={b.record.id} r={b.record} colabMap={colabMap} tipoMap={tipoMap} compact />
                 )}
               </div>
