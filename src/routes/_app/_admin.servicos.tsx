@@ -288,6 +288,16 @@ function ColaboradoresTab() {
               <div><Label>Telefone</Label><Input value={form.telefone ?? ""} onChange={(e) => setForm({ ...form, telefone: e.target.value })} /></div>
             </div>
             <div><Label>IBAN</Label><Input value={form.iban ?? ""} onChange={(e) => setForm({ ...form, iban: e.target.value })} /></div>
+            <div>
+              <Label>Participante associado</Label>
+              <ParticipantePicker
+                value={form.pessoa_id ?? null}
+                label={null}
+                onChange={(pid) => { setForm({ ...form, pessoa_id: pid }); }}
+                inline
+              />
+              <p className="text-xs text-muted-foreground mt-1">Liga este colaborador a um participante para que ele veja os seus serviços e pagamentos em "Os meus serviços".</p>
+            </div>
             <div><Label>Notas</Label><Textarea value={form.notas ?? ""} onChange={(e) => setForm({ ...form, notas: e.target.value })} /></div>
             <div className="flex items-center gap-2">
               <Checkbox id="ativo-c" checked={form.ativo ?? true} onCheckedChange={(c) => setForm({ ...form, ativo: !!c })} />
