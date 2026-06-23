@@ -1119,15 +1119,19 @@ function RegistosTab() {
   }, [filtered, tipoMap]);
 
   const resumoPorColab = useMemo(() => {
-    const map = new Map<string, number>();
+    const map = new Map<string, { pendente: number; aprovado: number }>();
     for (const r of filtered) {
       if (r.estado === "pago") continue;
       if (r.pagamento_id) continue;
+      if (r.estado !== "pendente" && r.estado !== "aprovado") continue;
       const { total } = calcTotal(r);
-      map.set(r.colaborador_id, (map.get(r.colaborador_id) ?? 0) + total);
+      const cur = map.get(r.colaborador_id) ?? { pendente: 0, aprovado: 0 };
+      if (r.estado === "pendente") cur.pendente += total;
+      else cur.aprovado += total;
+      map.set(r.colaborador_id, cur);
     }
     return Array.from(map.entries())
-      .map(([id, total]) => ({ id, nome: colabMap.get(id) ?? "—", total }))
+      .map(([id, v]) => ({ id, nome: colabMap.get(id) ?? "—", pendente: v.pendente, aprovado: v.aprovado, total: v.pendente + v.aprovado }))
       .filter((x) => x.total > 0)
       .sort((a, b) => b.total - a.total);
   }, [filtered, colabMap, tipoMap]);
@@ -1376,10 +1380,18 @@ function RegistosTab() {
             <p className="text-muted-foreground">Sem valores por pagar no filtro atual.</p>
           ) : (
             <ul className="divide-y">
+              <li className="grid grid-cols-[1fr_auto_auto_auto] gap-x-6 py-1.5 text-xs uppercase tracking-wide text-muted-foreground">
+                <span>Colaboradora</span>
+                <span className="text-right">Pendente</span>
+                <span className="text-right">Aprovado</span>
+                <span className="text-right">Total</span>
+              </li>
               {resumoPorColab.map((r) => (
-                <li key={r.id} className="flex items-center justify-between py-1.5">
-                  <span>{r.nome}</span>
-                  <span className="tabular-nums font-medium">{fmtEUR(r.total)}</span>
+                <li key={r.id} className="grid grid-cols-[1fr_auto_auto_auto] gap-x-6 items-center py-1.5">
+                  <span className="truncate">{r.nome}</span>
+                  <span className="tabular-nums text-right text-amber-600 dark:text-amber-400">{r.pendente > 0 ? fmtEUR(r.pendente) : "—"}</span>
+                  <span className="tabular-nums text-right text-blue-600 dark:text-blue-400">{r.aprovado > 0 ? fmtEUR(r.aprovado) : "—"}</span>
+                  <span className="tabular-nums text-right font-medium">{fmtEUR(r.total)}</span>
                 </li>
               ))}
             </ul>
