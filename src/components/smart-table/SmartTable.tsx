@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   flexRender,
   getCoreRowModel,
@@ -8,6 +8,7 @@ import {
   type ColumnFiltersState,
   type Row,
 } from "@tanstack/react-table";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { ChevronDown, ChevronRight, Inbox } from "lucide-react";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import {
@@ -193,6 +194,25 @@ export function SmartTable<T>({
   const colSpan = visibleLeaf.length || 1;
   const hasEditable = editable.size > 0 && !!onCellEdit;
 
+  // Virtualização: ativada quando há muitas linhas e não estamos a agrupar.
+  // Mantém o markup <table>; apenas insere "spacer rows" no topo/fundo.
+  const VIRTUAL_THRESHOLD = 80;
+  const ROW_HEIGHT = 40; // h-10
+  const shouldVirtualize = !groups && filteredRows.length > VIRTUAL_THRESHOLD;
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const virtualizer = useVirtualizer({
+    count: shouldVirtualize ? filteredRows.length : 0,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 10,
+  });
+  const virtualItems = shouldVirtualize ? virtualizer.getVirtualItems() : [];
+  const totalSize = shouldVirtualize ? virtualizer.getTotalSize() : 0;
+  const paddingTop = virtualItems.length ? virtualItems[0].start : 0;
+  const paddingBottom = virtualItems.length
+    ? totalSize - virtualItems[virtualItems.length - 1].end
+    : 0;
+
   return (
     <div className={cn("relative overflow-hidden rounded-lg border border-border/60 bg-background shadow-sm", className)}>
       {editMode && hasEditable && (
@@ -212,9 +232,15 @@ export function SmartTable<T>({
         hideSearch={hideSearch}
       />
 
-      <div className="w-full overflow-x-auto">
+      <div
+        ref={scrollRef}
+        className={cn(
+          "w-full overflow-x-auto",
+          shouldVirtualize && "max-h-[70vh] overflow-y-auto",
+        )}
+      >
         <Table className="table-fixed">
-          <TableHeader>
+          <TableHeader className={cn(shouldVirtualize && "sticky top-0 z-10 bg-background")}>
             <TableRow className="bg-muted/30 hover:bg-muted/30">
               {table.getHeaderGroups()[0]?.headers.map((header) => {
                 const canSort = header.column.getCanSort();
@@ -313,6 +339,19 @@ export function SmartTable<T>({
                   />
                 );
               })
+            ) : shouldVirtualize ? (
+              <>
+                {paddingTop > 0 && (
+                  <tr aria-hidden style={{ height: paddingTop }} />
+                )}
+                {virtualItems.map((vi) => {
+                  const row = filteredRows[vi.index];
+                  return <DataRow key={row.id} row={row} onRowClick={onRowClick} />;
+                })}
+                {paddingBottom > 0 && (
+                  <tr aria-hidden style={{ height: paddingBottom }} />
+                )}
+              </>
             ) : (
               filteredRows.map((row) => (
                 <DataRow key={row.id} row={row} onRowClick={onRowClick} />
