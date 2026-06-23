@@ -1685,21 +1685,20 @@ function PagamentosTab() {
     mutationFn: async () => {
       if (!form.colaborador_id) throw new Error("Colaborador obrigatório");
       // O total é sempre calculado por trigger a partir dos registos associados.
-      const payload = {
+      const baseFields = {
         colaborador_id: form.colaborador_id,
         data_pagamento: form.data_pagamento || new Date().toISOString().slice(0, 10),
-        total: 0,
         referencia: form.referencia?.trim() || null,
         metodo: form.metodo?.trim() || null,
         notas: form.notas?.trim() || null,
       };
       let pagamentoId: string;
       if (editing) {
-        const { error } = await supabase.from("pagamentos").update(payload).eq("id", editing.id);
+        const { error } = await supabase.from("pagamentos").update(baseFields).eq("id", editing.id);
         if (error) throw error;
         pagamentoId = editing.id;
       } else {
-        const { data: ins, error } = await supabase.from("pagamentos").insert(payload).select("id").single();
+        const { data: ins, error } = await supabase.from("pagamentos").insert({ ...baseFields, total: 0 }).select("id").single();
         if (error) throw error;
         pagamentoId = ins.id;
       }
