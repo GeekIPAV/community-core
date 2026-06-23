@@ -1275,6 +1275,28 @@ function RegistosTab() {
     // Evita refetch completo a cada edição inline (causava lentidão).
   });
 
+  // Ações em massa sobre os registos atualmente filtrados.
+  const bulkSetEstado = useMutation({
+    mutationFn: async ({ ids, novoEstado }: { ids: string[]; novoEstado: Registo["estado"] }) => {
+      if (ids.length === 0) return 0;
+      const { error } = await supabase.from("registos_servico").update({ estado: novoEstado }).in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (count, vars) => {
+      toast.success(`${count} registo(s) marcados como ${vars.novoEstado}`);
+      qc.invalidateQueries({ queryKey: ["registos_servico"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const aprovarPendentes = () => {
+    const ids = filtered.filter((r) => r.estado === "pendente").map((r) => r.id);
+    if (ids.length === 0) return toast.info("Sem registos pendentes no filtro atual");
+    if (!confirm(`Aprovar ${ids.length} registo(s) pendente(s)?`)) return;
+    bulkSetEstado.mutate({ ids, novoEstado: "aprovado" });
+  };
+
   type RegistoRow = Registo & { _colab: string; _tipo: string; _total: number; _unidade: string };
   const rowsData = useMemo<RegistoRow[]>(() => filtered.map((r) => {
     const tipo = tipoMap.get(r.tipo_servico_id);
@@ -1477,6 +1499,16 @@ function RegistosTab() {
           <>
             <Button variant="outline" size="sm" onClick={exportCSV} disabled={filtered.length === 0} className="h-9">
               <Download className="mr-2 h-4 w-4" />Exportar CSV
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={aprovarPendentes}
+              disabled={bulkSetEstado.isPending || !filtered.some((r) => r.estado === "pendente")}
+              className="h-9"
+              title="Aprovar todos os pendentes do filtro atual"
+            >
+              <Check className="mr-2 h-4 w-4" />Aprovar pendentes
             </Button>
             <Button variant="outline" size="sm" onClick={() => setBulkOpen(true)} className="h-9">
               <Upload className="mr-2 h-4 w-4" />Importar em massa
