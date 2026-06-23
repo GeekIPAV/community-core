@@ -55,6 +55,7 @@ export function SmartTableToolbar<T>({
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Pesquisar…"
             className="h-9 pl-8"
+            data-smart-table-search
           />
         </div>
       )}
