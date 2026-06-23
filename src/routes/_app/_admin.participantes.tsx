@@ -51,6 +51,8 @@ import { DataTableViewOptions } from "@/components/data-table-view-options";
 import { DraggableTableHeaders } from "@/components/draggable-table-headers";
 import { useMobileColumnVisibility } from "@/hooks/use-mobile-columns";
 import { personIcon, flagFor } from "@/lib/person-display";
+import { applyOptimisticRowPatch, rollbackOptimisticRows } from "@/lib/optimistic-row-update";
+import { handleSupabaseError } from "@/lib/handle-supabase-error";
 import {
   AlertDialog,
   AlertDialogAction,
