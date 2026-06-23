@@ -1,68 +1,108 @@
-Hoje os indicadores M&A só existem dentro da ficha de cada projeto (`/projetos/:id` → separador "Indicadores"). Não há ainda uma vista global agregada. Proponho criar essa página.
+# Melhorias propostas para a aplicação MEERU
 
-## Nova página `/indicadores`
+Plano focado em três frentes que escolheste, organizado por fases para limitar consumo de créditos e risco. Cada fase é executável de forma independente.
 
-Acessível pela sidebar (grupo "Gestão") com ícone de gráfico, restrita a staff.
+---
 
-### Topo — Resumo geral
-Quatro cartões com os totais cruzados de todos os projetos:
-- Total de indicadores
-- Em execução
-- Concluídos
-- % média de execução global
+## Fase 1 — Performance e robustez
 
-### Filtros
-- Projeto (todos / um específico)
-- Estado (todos / Por iniciar / Em execução / Concluído)
-- Fonte (todas / Manual / Ações / Inscrições / Participantes / Atividades / Total únicos)
-- Pesquisa por nome do indicador
+Objetivo: tornar a app fluida mesmo com milhares de registos e eliminar refetches desnecessários.
 
-### Tabela principal
-Uma linha por indicador, com colunas:
-- Projeto (clicável, leva à ficha do projeto)
-- Indicador
-- Estado (badge)
-- Meta
-- Valor atual (calculado ao vivo, igual à lógica da ficha do projeto)
-- Progresso (barra colorida: vermelho <30 %, amarelo 30–70 %, verde >70 %)
-- Fonte
-- Narrativa (truncada, com tooltip)
+1. **Updates otimistas em todas as tabelas com edição inline**
+   Aplicar o mesmo padrão já usado nos Registos de serviço (`onMutate` + `setQueryData` + rollback no `onError`) em:
+   - Pessoas/Participantes, Famílias, Ações, Parceiros, Projetos, Financiamentos, Localizações, Colaboradoras, Tipos de serviço, Etiquetas.
+   - Resultado: edição de uma célula é instantânea, sem refetch da tabela inteira.
 
-Ordenável por projeto, % execução, estado.
+2. **Virtualização das tabelas grandes**
+   Adicionar `@tanstack/react-virtual` ao `SmartTable` quando o número de linhas ultrapassa um limiar (ex.: 200). Mantém scroll suave em Participantes (>1k), Ações e Registos.
 
-### Agrupamento por projeto
-Toggle "Agrupar por projeto" que dobra a tabela em secções colapsáveis, cada uma com mini-resumo (nº de KPIs, % média do projeto).
+3. **Redução de queries duplicadas**
+   Várias páginas (`servicos`, `colaboradoras/:id`, `acoes`) lançam queries com chaves diferentes para os mesmos dados (`colaboradores_lookup`, `colaboradores_lookup_pag`, `tipos_servico_lookup` em 3 sítios). Unificar chaves para partilhar cache.
 
-### Exportar relatório global
-Botão "Exportar relatório Gulbenkian" que copia para a área de transferência um bloco de texto formatado:
-- Cabeçalho com data
-- Resumo geral
-- Secção por projeto com todos os indicadores (mesmo formato do exportador atual, com barras ASCII)
+4. **Índices em falta na BD**
+   Usar `slow_queries` para identificar consultas lentas e adicionar índices em colunas filtradas/ordenadas com frequência: `registos_servico (colaborador_id, estado, data_inicio)`, `acoes (data_inicio)`, `pessoas (deleted_at, nome_completo)`, `parceiro_interacoes (parceiro_id, data)`, `pagamentos (colaborador_id, data_pagamento)`.
 
-```text
-═════════════════════════════
-RELATÓRIO M&A — MEERU
-Exportado em 22/06/2026
-═════════════════════════════
-Resumo: 19 indicadores · 12 em execução · 1 concluído · 48 % média
+5. **Lazy-load do calendário e gráficos pesados**
+   `recharts` e `react-big-calendar` (se presente) só devem carregar nas rotas que os usam. Já está em rotas separadas, mas o ficheiro `_admin.servicos.tsx` (1876 linhas) importa `recharts` mesmo quando se está noutro tab.
 
-── APROXIMA ──
-Pessoas imigrantes diretamente envolvidas
-Estado: Em execução
-Meta: 200 participantes
-Valor atual: 87 (44 %)
-████░░░░░░ 44 %
-Narrativa: ...
-```
+6. **Tratamento de erros uniforme**
+   Substituir os `toast.error(e.message)` ad hoc por um helper `handleSupabaseError(e)` que reconhece códigos comuns (RLS, FK, unique) e mostra mensagens em PT-PT compreensíveis.
 
-## Detalhes técnicos
+---
 
-Novo ficheiro `src/routes/_app/_admin.indicadores.tsx` que:
-1. Faz `select *` em `projeto_kpis` com join implícito ao nome do projeto (uma query única ordenada por projeto + position).
-2. Reutiliza o hook `useKpiValue` já existente em `_admin.projetos.$projetoId.tsx` — extrai esse hook + tipos (`Kpi`, `KpiFiltro`, `Estado`, `Fonte`, `ESTADO_LABELS`, `FONTE_LABELS`, `CATEGORIAS_ACAO`) para um módulo partilhado `src/lib/kpi.ts` para evitar duplicação.
-3. Cada linha usa o componente `KpiRow` (versão simplificada, só leitura + link para o projeto) que dispara `useKpiValue` individualmente; resultados sobem via callback para o resumo no topo e para o exportador.
-4. Filtros e ordenação ficam em search params (`useNavigate` + `validateSearch`) para serem partilháveis por URL.
-5. Acesso restrito: ficheiro fica em `_app/_admin.*` (já cobre o gating de staff existente).
-6. Sidebar: adicionar item "Indicadores M&A" no grupo apropriado em `sidebar_items` (mesma mecânica dos restantes itens administrativos).
+## Fase 2 — UX e produtividade
 
-Não exige migração de base de dados — toda a info já está em `projeto_kpis` + tabelas referenciadas.
+Objetivo: reduzir cliques e atrito nas tarefas diárias do staff.
+
+1. **Ações em massa**
+   No SmartTable, suportar seleção múltipla (checkbox por linha) e barra de ação flutuante com:
+   - Registos: aprovar / marcar pago / eliminar / alterar estado.
+   - Pessoas: adicionar etiqueta / mover para família / eliminar.
+   - Pagamentos: gerar referência conjunta.
+
+2. **Atalhos de teclado globais**
+   - `Cmd/Ctrl+K` paleta de comandos (navegar, criar novo registo/pessoa/ação).
+   - `N` em qualquer listagem abre o dialog "Novo …".
+   - `E` na linha focada entra em modo edição.
+   - `/` foca o campo de pesquisa global.
+
+3. **Feedback visual de loading/saving**
+   - Linha em estado "a guardar" com ligeiro fade enquanto a mutação otimista corre.
+   - Botão "Guardar" mostra spinner + bloqueia duplo clique.
+   - Skeletons consistentes em todas as tabelas (algumas mostram só "A carregar…").
+
+4. **Acessibilidade dos dialogs**
+   Corrigir os avisos `Missing Description or aria-describedby` que aparecem na consola em vários `DialogContent` (Sessões, Pagamentos, Bulk import).
+
+5. **Pesquisa global**
+   Endpoint único (`rpc search_global`) que devolve resultados de pessoas, ações, parceiros, projetos numa única paleta de comandos.
+
+6. **Vistas guardadas partilhadas**
+   A tabela `vistas_guardadas` já existe — falta UI para marcar uma vista como "partilhada com a equipa" e indicador visual de qual a vista ativa.
+
+---
+
+## Fase 3 — Dashboard e relatórios
+
+Objetivo: passar do dashboard atual (estatísticas genéricas) para um painel operacional acionável.
+
+1. **KPIs operacionais no topo do dashboard**
+   - € por pagar a colaboradoras (pendente + aprovado).
+   - Registos pendentes de aprovação (com link direto).
+   - Próximas sessões nos próximos 7 dias.
+   - Famílias sem contacto há > 30 dias.
+   - Ações sem KPIs preenchidos no mês anterior.
+   - Financiamento: % executado por projeto ativo.
+
+2. **Gráficos comparativos por período**
+   - Seletor de período (mês / trimestre / ano / custom).
+   - Comparação com período homólogo (Δ % e seta).
+   - Séries: novos participantes, ações realizadas, horas de serviço, valor pago.
+
+3. **Relatórios exportáveis em PDF**
+   Endpoints (server functions) que geram PDF via `@react-pdf/renderer`:
+   - Recibo/relatório de pagamento por colaboradora num período.
+   - Relatório por projeto (atividades, participantes, KPIs, financiamento associado).
+   - Relatório por financiamento (projetos cobertos, valor executado, indicadores).
+   Botão "Exportar PDF" nas páginas de detalhe respectivas.
+
+4. **Exportação CSV consistente**
+   Já existe em Registos — replicar em Pessoas, Famílias, Ações, Pagamentos, Parceiros, com escolha das colunas visíveis.
+
+5. **Widgets configuráveis**
+   A tabela `dashboard_config` já existe; usar para deixar cada utilizador escolher e reordenar os widgets do seu dashboard.
+
+---
+
+## Recomendação de ordem
+
+Sugiro começar pela **Fase 1** (impacto imediato e transversal, baixo risco), depois **Fase 2** (multiplica produtividade do staff), e fechar com **Fase 3** (alto valor mas mais visual/cosmético, pode esperar). Cada fase deve ser uma sessão separada para evitar erros acumulados.
+
+## Notas técnicas
+
+- Toda a edição inline otimista deve usar a mesma forma: `onMutate` cancela queries, snapshot do `getQueryData`, `setQueryData` com novo valor, rollback no `onError`, sem `invalidateQueries` no sucesso.
+- A virtualização deve preservar a UX de drag-to-resize, agrupamento e filtros já existentes no `SmartTable`.
+- Os PDFs devem correr em `createServerFn` (não browser) para incluírem dados que dependem de RLS de admin.
+- Antes de adicionar índices, correr `slow_queries` para confirmar quais valem o custo de manutenção.
+
+Diz qual fase queres avançar primeiro (ou se preferes que detalhe apenas um item específico).
