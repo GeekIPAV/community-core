@@ -16,6 +16,8 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ExternalLink, MapPin, Pencil, Plus, Trash2 } from "lucide-react";
 import { SmartTable, type SmartColumnDef } from "@/components/smart-table";
+import { applyOptimisticRowPatch, rollbackOptimisticRows } from "@/lib/optimistic-row-update";
+import { handleSupabaseError } from "@/lib/handle-supabase-error";
 
 export const Route = createFileRoute("/_app/_admin/localizacoes")({
   component: LocalizacoesPage,
@@ -115,8 +117,14 @@ function LocalizacoesPage() {
         .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => invalidate(),
-    onError: (e: Error) => toast.error(e.message),
+    onMutate: async ({ id, field, value }) => {
+      const prev = await applyOptimisticRowPatch<{ id: string }>(qc, ["localizacoes"], id, { [field]: value });
+      return { prev };
+    },
+    onError: (e: Error, _vars, ctx) => {
+      rollbackOptimisticRows(qc, ["localizacoes"], ctx?.prev);
+      handleSupabaseError(e);
+    },
   });
 
   const columns = useMemo<SmartColumnDef<Localizacao>[]>(
