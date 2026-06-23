@@ -1500,6 +1500,16 @@ function RegistosTab() {
             <Button variant="outline" size="sm" onClick={exportCSV} disabled={filtered.length === 0} className="h-9">
               <Download className="mr-2 h-4 w-4" />Exportar CSV
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={aprovarPendentes}
+              disabled={bulkSetEstado.isPending || !filtered.some((r) => r.estado === "pendente")}
+              className="h-9"
+              title="Aprovar todos os pendentes do filtro atual"
+            >
+              <Check className="mr-2 h-4 w-4" />Aprovar pendentes
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setBulkOpen(true)} className="h-9">
               <Upload className="mr-2 h-4 w-4" />Importar em massa
             </Button>
