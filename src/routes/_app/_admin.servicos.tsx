@@ -19,7 +19,7 @@ import {
   Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from "@/components/ui/command";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2, Check, Wallet, Receipt, Users as UsersIcon, Tag, Download, ExternalLink, UserPlus, X, CalendarRange } from "lucide-react";
+import { Pencil, Plus, Trash2, Check, Wallet, Receipt, Users as UsersIcon, Tag, Download, ExternalLink, UserPlus, X, CalendarRange, ChevronRight } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { SmartTable, type SmartColumnDef } from "@/components/smart-table";
 import { InlineMultiSelect } from "@/components/inline-edit";
@@ -1118,6 +1118,21 @@ function RegistosTab() {
     }, { total: 0, pendente: 0, aprovado: 0, pago: 0 });
   }, [filtered, tipoMap]);
 
+  const resumoPorColab = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of filtered) {
+      if (r.estado === "pago") continue;
+      if (r.pagamento_id) continue;
+      const { total } = calcTotal(r);
+      map.set(r.colaborador_id, (map.get(r.colaborador_id) ?? 0) + total);
+    }
+    return Array.from(map.entries())
+      .map(([id, total]) => ({ id, nome: colabMap.get(id) ?? "—", total }))
+      .filter((x) => x.total > 0)
+      .sort((a, b) => b.total - a.total);
+  }, [filtered, colabMap, tipoMap]);
+  const resumoTotal = useMemo(() => resumoPorColab.reduce((s, r) => s + r.total, 0), [resumoPorColab]);
+
   const chartData = useMemo(() => {
     const map = new Map<string, number>();
     const activeSet = new Set((colabs ?? []).filter((c) => c.ativo).map((c) => c.id));
@@ -1345,6 +1360,32 @@ function RegistosTab() {
         <SummaryCard label="Aprovado" value={fmtEUR(totals.aprovado)} variant="info" />
         <SummaryCard label="Pago" value={fmtEUR(totals.pago)} variant="success" />
       </div>
+
+      <details className="rounded-lg border bg-card group">
+        <summary className="flex items-center justify-between gap-3 px-4 py-2.5 cursor-pointer select-none text-sm hover:bg-muted/40 rounded-lg">
+          <span className="flex items-center gap-2">
+            <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" />
+            <span className="font-medium">Resumo a pagar por colaboradora</span>
+            <span className="text-muted-foreground">
+              ({resumoPorColab.length} {resumoPorColab.length === 1 ? "colaboradora" : "colaboradoras"} · {fmtEUR(resumoTotal)})
+            </span>
+          </span>
+        </summary>
+        <div className="px-4 pb-3 pt-1 text-sm">
+          {resumoPorColab.length === 0 ? (
+            <p className="text-muted-foreground">Sem valores por pagar no filtro atual.</p>
+          ) : (
+            <ul className="divide-y">
+              {resumoPorColab.map((r) => (
+                <li key={r.id} className="flex items-center justify-between py-1.5">
+                  <span>{r.nome}</span>
+                  <span className="tabular-nums font-medium">{fmtEUR(r.total)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </details>
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex flex-wrap gap-2">
