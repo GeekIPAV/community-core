@@ -1684,11 +1684,11 @@ function PagamentosTab() {
   const save = useMutation({
     mutationFn: async () => {
       if (!form.colaborador_id) throw new Error("Colaborador obrigatório");
-      const totalNum = totalSelecionado > 0 ? totalSelecionado : Number(form.total) || 0;
+      // O total é sempre calculado por trigger a partir dos registos associados.
       const payload = {
         colaborador_id: form.colaborador_id,
         data_pagamento: form.data_pagamento || new Date().toISOString().slice(0, 10),
-        total: totalNum,
+        total: 0,
         referencia: form.referencia?.trim() || null,
         metodo: form.metodo?.trim() || null,
         notas: form.notas?.trim() || null,
