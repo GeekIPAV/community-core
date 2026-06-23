@@ -8,6 +8,8 @@ import {
   PieChart, Pie, Cell, Legend,
 } from "recharts";
 import { Users, Users2, CalendarDays, HeartHandshake, Briefcase, Activity } from "lucide-react";
+import { Euro, Clock, CalendarClock } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 
 export const Route = createFileRoute("/_app/_admin/dashboard")({
@@ -29,6 +31,42 @@ function DashboardPage() {
       const { data, error } = await supabase.rpc("get_estatisticas_publicas" as any);
       if (error) throw error;
       return data as any;
+    },
+  });
+
+  const { data: ops, isLoading: opsLoading } = useQuery({
+    queryKey: ["dashboard-operacional"],
+    queryFn: async () => {
+      const now = new Date();
+      const in7 = new Date(now.getTime() + 7 * 24 * 3600 * 1000);
+      const [pend, tipos, sess] = await Promise.all([
+        supabase
+          .from("registos_servico")
+          .select("id, quantidade, preco_unitario_override, outros_custos, tipo_servico_id, estado")
+          .in("estado", ["pendente", "aprovado"]),
+        supabase.from("tipos_servico").select("id, preco_unitario"),
+        supabase
+          .from("sessoes_servico")
+          .select("id")
+          .gte("data_inicio", now.toISOString())
+          .lte("data_inicio", in7.toISOString()),
+      ]);
+      const precos = new Map<string, number>((tipos.data ?? []).map((t: any) => [t.id, Number(t.preco_unitario) || 0]));
+      let pendenteTotal = 0;
+      let aprovadoTotal = 0;
+      let countPendente = 0;
+      for (const r of pend.data ?? []) {
+        const p = r.preco_unitario_override != null ? Number(r.preco_unitario_override) : (precos.get(r.tipo_servico_id) ?? 0);
+        const total = p * Number(r.quantidade) + Number(r.outros_custos || 0);
+        if (r.estado === "pendente") { pendenteTotal += total; countPendente++; }
+        else aprovadoTotal += total;
+      }
+      return {
+        pendenteTotal,
+        aprovadoTotal,
+        countPendente,
+        proximasSessoes: sess.data?.length ?? 0,
+      };
     },
   });
 
@@ -99,6 +137,13 @@ function DashboardPage() {
         <h1 className="text-2xl font-semibold">Dashboard</h1>
         <p className="text-sm text-muted-foreground">Visão geral da comunidade.</p>
       </header>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <KpiCard label="Por aprovar (€)" value={ops?.pendenteTotal} icon={Clock} loading={opsLoading} format="eur" to="/servicos" />
+        <KpiCard label="Aprovado por pagar (€)" value={ops?.aprovadoTotal} icon={Euro} loading={opsLoading} format="eur" to="/servicos" />
+        <KpiCard label="Registos pendentes" value={ops?.countPendente} icon={Clock} loading={opsLoading} to="/servicos" />
+        <KpiCard label="Próximas sessões (7d)" value={ops?.proximasSessoes} icon={CalendarClock} loading={opsLoading} to="/servicos/calendario" />
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="Participantes" value={stats?.membros_familias_total} icon={Users} loading={isLoading} />
@@ -194,20 +239,26 @@ function DashboardPage() {
   );
 }
 
-function KpiCard({ label, value, icon: Icon, loading }: { label: string; value: number | undefined; icon: any; loading?: boolean }) {
-  return (
-    <Card>
+function KpiCard({ label, value, icon: Icon, loading, format, to }: { label: string; value: number | undefined; icon: any; loading?: boolean; format?: "eur"; to?: string }) {
+  const display = loading
+    ? null
+    : format === "eur"
+      ? new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value ?? 0)
+      : String(value ?? 0);
+  const inner = (
+    <Card className={to ? "transition hover:border-primary/50 hover:shadow-sm" : undefined}>
       <CardContent className="flex items-center gap-3 p-4">
         <div className="rounded-md bg-primary/10 p-2 text-primary">
           <Icon className="h-5 w-5" />
         </div>
         <div className="min-w-0">
           <p className="text-xs text-muted-foreground">{label}</p>
-          {loading ? <Skeleton className="mt-1 h-6 w-12" /> : <p className="text-xl font-semibold">{value ?? 0}</p>}
+          {loading ? <Skeleton className="mt-1 h-6 w-16" /> : <p className="truncate text-xl font-semibold">{display}</p>}
         </div>
       </CardContent>
     </Card>
   );
+  return to ? <Link to={to}>{inner}</Link> : inner;
 }
 
 function monthKey(d: Date) {
