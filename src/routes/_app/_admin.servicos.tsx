@@ -1118,6 +1118,21 @@ function RegistosTab() {
     }, { total: 0, pendente: 0, aprovado: 0, pago: 0 });
   }, [filtered, tipoMap]);
 
+  const resumoPorColab = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of filtered) {
+      if (r.estado === "pago") continue;
+      if (r.pagamento_id) continue;
+      const { total } = calcTotal(r);
+      map.set(r.colaborador_id, (map.get(r.colaborador_id) ?? 0) + total);
+    }
+    return Array.from(map.entries())
+      .map(([id, total]) => ({ id, nome: colabMap.get(id) ?? "—", total }))
+      .filter((x) => x.total > 0)
+      .sort((a, b) => b.total - a.total);
+  }, [filtered, colabMap, tipoMap]);
+  const resumoTotal = useMemo(() => resumoPorColab.reduce((s, r) => s + r.total, 0), [resumoPorColab]);
+
   const chartData = useMemo(() => {
     const map = new Map<string, number>();
     const activeSet = new Set((colabs ?? []).filter((c) => c.ativo).map((c) => c.id));
