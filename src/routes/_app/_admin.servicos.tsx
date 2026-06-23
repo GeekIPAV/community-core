@@ -1257,8 +1257,22 @@ function RegistosTab() {
       const { error } = await supabase.from("registos_servico").update({ [field]: value } as never).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["registos_servico"] }),
-    onError: (e: Error) => toast.error(e.message),
+    onMutate: async ({ id, field, value }) => {
+      await qc.cancelQueries({ queryKey: ["registos_servico"] });
+      const prev = qc.getQueryData<Registo[]>(["registos_servico"]);
+      if (prev) {
+        qc.setQueryData<Registo[]>(["registos_servico"], prev.map((r) =>
+          r.id === id ? ({ ...r, [field]: value } as Registo) : r
+        ));
+      }
+      return { prev };
+    },
+    onError: (e: Error, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["registos_servico"], ctx.prev);
+      toast.error(e.message);
+    },
+    // Não invalidamos aqui — a cache já reflete o novo valor.
+    // Evita refetch completo a cada edição inline (causava lentidão).
   });
 
   type RegistoRow = Registo & { _colab: string; _tipo: string; _total: number; _unidade: string };
@@ -1701,8 +1715,20 @@ function PagamentosTab() {
       const { error } = await supabase.from("pagamentos").update({ [field]: value } as never).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["pagamentos"] }),
-    onError: (e: Error) => toast.error(e.message),
+    onMutate: async ({ id, field, value }) => {
+      await qc.cancelQueries({ queryKey: ["pagamentos"] });
+      const prev = qc.getQueryData<Pagamento[]>(["pagamentos"]);
+      if (prev) {
+        qc.setQueryData<Pagamento[]>(["pagamentos"], prev.map((p) =>
+          p.id === id ? ({ ...p, [field]: value } as Pagamento) : p
+        ));
+      }
+      return { prev };
+    },
+    onError: (e: Error, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["pagamentos"], ctx.prev);
+      toast.error(e.message);
+    },
   });
 
   type PagRow = Pagamento & { _colab: string };
