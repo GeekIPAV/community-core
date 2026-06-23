@@ -1581,7 +1581,7 @@ function PagamentosTab() {
   const [form, setForm] = useState<Partial<Pagamento> & { liquidar_registos?: string[] }>({});
 
   const { data: colabs } = useQuery({
-    queryKey: ["colaboradores_lookup_pag"],
+    queryKey: ["colaboradores_lookup"],
     queryFn: async () => {
       const { data, error } = await supabase.from("colaboradores").select("id, nome_completo, ativo").order("nome_completo");
       if (error) throw error;
