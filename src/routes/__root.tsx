@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AuthProvider } from "@/lib/auth-context";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { CommandPalette } from "@/components/command-palette";
+import { GlobalShortcuts } from "@/components/global-shortcuts";
 import { ThemeProvider } from "@/lib/theme-provider";
 import "@/lib/i18n";
 
@@ -156,6 +157,7 @@ function RootComponent() {
           </div>
           <MobileBottomNav />
           <CommandPalette />
+          <GlobalShortcuts />
           <Toaster />
         </ThemeProvider>
       </AuthProvider>
