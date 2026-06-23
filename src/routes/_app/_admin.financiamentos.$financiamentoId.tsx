@@ -33,6 +33,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, ClipboardCopy, RefreshCw, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { InlineMultiSelect } from "@/components/inline-edit";
 import {
   ResponsiveContainer,
   BarChart,
@@ -80,6 +81,45 @@ function FinanciamentoDetailPage() {
       if (error) throw error;
       return data as unknown as Financiamento | null;
     },
+  });
+
+  const { data: projetosAll } = useQuery({
+    queryKey: ["projetos", "lista-financiamento-detail"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("projetos").select("id, nome").order("nome");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+  });
+
+  const { data: projetoIds } = useQuery({
+    queryKey: ["financiamento-projetos", financiamentoId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("financiamento_projetos" as any)
+        .select("projeto_id")
+        .eq("financiamento_id", financiamentoId);
+      if (error) throw error;
+      return ((data ?? []) as unknown as { projeto_id: string }[]).map((r) => r.projeto_id);
+    },
+  });
+
+  const saveProjetos = useMutation({
+    mutationFn: async (ids: string[]) => {
+      await supabase.from("financiamento_projetos" as any).delete().eq("financiamento_id", financiamentoId);
+      if (ids.length > 0) {
+        const { error } = await supabase
+          .from("financiamento_projetos" as any)
+          .insert(ids.map((pid) => ({ financiamento_id: financiamentoId, projeto_id: pid })));
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success("Projetos atualizados");
+      qc.invalidateQueries({ queryKey: ["financiamento-projetos", financiamentoId] });
+      qc.invalidateQueries({ queryKey: ["financiamentos"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro"),
   });
 
   const { data: indicadores } = useQuery({
@@ -229,6 +269,15 @@ function FinanciamentoDetailPage() {
         <div className="sm:col-span-3 space-y-1">
           <Label className="text-xs">Notas</Label>
           <TextareaInline value={financiamento.notas ?? ""} onSave={(v) => update.mutate({ notas: v || null })} />
+        </div>
+        <div className="sm:col-span-3 space-y-1">
+          <Label className="text-xs">Projetos associados</Label>
+          <InlineMultiSelect
+            values={projetoIds ?? []}
+            options={(projetosAll ?? []).map((p) => ({ value: p.id, label: p.nome }))}
+            onSave={(v) => saveProjetos.mutate(v)}
+            placeholder="Sem projetos"
+          />
         </div>
       </div>
 
