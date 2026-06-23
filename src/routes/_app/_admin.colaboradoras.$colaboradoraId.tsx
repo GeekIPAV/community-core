@@ -1251,3 +1251,95 @@ function RegistarPagamentoButton({
     </>
   );
 }
+
+// ============ Editar serviço ============
+function EditarServicoDialog({
+  registo, tipos, onClose, onSaved,
+}: {
+  registo: Registo | null;
+  tipos: Tipo[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [form, setForm] = useState<Partial<Registo>>({});
+  useEffect(() => { if (registo) setForm(registo); }, [registo]);
+  const tipoMap = useMemo(() => new Map(tipos.map((t) => [t.id, t])), [tipos]);
+  const preco = form.preco_unitario_override ?? (form.tipo_servico_id ? tipoMap.get(form.tipo_servico_id)?.preco_unitario ?? 0 : 0);
+  const calc = Number(preco) * Number(form.quantidade ?? 1);
+  const total = calc + Number(form.outros_custos ?? 0);
+
+  const save = useMutation({
+    mutationFn: async () => {
+      if (!registo) return;
+      if (!form.tipo_servico_id) throw new Error("Tipo de serviço obrigatório");
+      const { error } = await supabase.from("registos_servico").update({
+        tipo_servico_id: form.tipo_servico_id,
+        data_inicio: form.data_inicio!,
+        data_fim: form.data_fim || null,
+        descricao: form.descricao?.trim() || null,
+        quantidade: Number(form.quantidade) || 1,
+        preco_unitario_override: form.preco_unitario_override != null && (form.preco_unitario_override as unknown as string) !== "" ? Number(form.preco_unitario_override) : null,
+        outros_custos: Number(form.outros_custos) || 0,
+        outros_custos_descricao: form.outros_custos_descricao?.trim() || null,
+        estado: form.estado ?? "pendente",
+        notas_admin: form.notas_admin?.trim() || null,
+      }).eq("id", registo.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Serviço atualizado"); onSaved(); onClose(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const open = !!registo;
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader><DialogTitle>Editar serviço</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <Label>Tipo de serviço *</Label>
+              <Select value={form.tipo_servico_id ?? ""} onValueChange={(v) => setForm({ ...form, tipo_servico_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Escolher…" /></SelectTrigger>
+                <SelectContent>
+                  {tipos.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>{t.nome} — {fmtEUR(t.preco_unitario)}/{t.unidade}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div><Label>Data *</Label><Input type="date" value={form.data_inicio ?? ""} onChange={(e) => setForm({ ...form, data_inicio: e.target.value })} /></div>
+            <div><Label>Data fim</Label><Input type="date" value={form.data_fim ?? ""} onChange={(e) => setForm({ ...form, data_fim: e.target.value })} /></div>
+            <div className="col-span-2"><Label>Descrição</Label><Textarea value={form.descricao ?? ""} onChange={(e) => setForm({ ...form, descricao: e.target.value })} /></div>
+            <div><Label>Quantidade</Label><Input type="number" step="0.01" value={form.quantidade ?? 1} onChange={(e) => setForm({ ...form, quantidade: Number(e.target.value) })} /></div>
+            <div>
+              <Label>Preço unitário (override)</Label>
+              <Input type="number" step="0.01"
+                placeholder={form.tipo_servico_id ? String(tipoMap.get(form.tipo_servico_id)?.preco_unitario ?? "") : "—"}
+                value={form.preco_unitario_override ?? ""}
+                onChange={(e) => setForm({ ...form, preco_unitario_override: e.target.value === "" ? null : Number(e.target.value) })} />
+            </div>
+            <div><Label>Outros custos (€)</Label><Input type="number" step="0.01" value={form.outros_custos ?? 0} onChange={(e) => setForm({ ...form, outros_custos: Number(e.target.value) })} /></div>
+            <div>
+              <Label>Estado</Label>
+              <Select value={form.estado ?? "pendente"} onValueChange={(v) => setForm({ ...form, estado: v as Registo["estado"] })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{ESTADOS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-2"><Label>Notas admin</Label><Textarea rows={2} value={form.notas_admin ?? ""} onChange={(e) => setForm({ ...form, notas_admin: e.target.value })} /></div>
+            <div className="col-span-2 rounded-md border bg-muted/40 p-3 text-sm">
+              <div className="flex justify-between"><span className="text-muted-foreground">{Number(form.quantidade ?? 1)} × {fmtEUR(Number(preco))}</span><span className="tabular-nums">{fmtEUR(calc)}</span></div>
+              {Number(form.outros_custos ?? 0) > 0 && <div className="flex justify-between text-xs text-muted-foreground"><span>Outros custos</span><span className="tabular-nums">{fmtEUR(form.outros_custos)}</span></div>}
+              <div className="flex justify-between font-semibold mt-1 pt-1 border-t"><span>Total</span><span className="tabular-nums">{fmtEUR(total)}</span></div>
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={() => save.mutate()} disabled={save.isPending}>Guardar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
