@@ -19,7 +19,7 @@ import {
   Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from "@/components/ui/command";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2, Check, Wallet, Receipt, Users as UsersIcon, Tag, Download, ExternalLink, UserPlus, X, CalendarRange } from "lucide-react";
+import { Pencil, Plus, Trash2, Check, Wallet, Receipt, Users as UsersIcon, Tag, Download, ExternalLink, UserPlus, X, CalendarRange, ChevronRight } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { SmartTable, type SmartColumnDef } from "@/components/smart-table";
 import { InlineMultiSelect } from "@/components/inline-edit";
