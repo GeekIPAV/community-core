@@ -1119,15 +1119,19 @@ function RegistosTab() {
   }, [filtered, tipoMap]);
 
   const resumoPorColab = useMemo(() => {
-    const map = new Map<string, number>();
+    const map = new Map<string, { pendente: number; aprovado: number }>();
     for (const r of filtered) {
       if (r.estado === "pago") continue;
       if (r.pagamento_id) continue;
+      if (r.estado !== "pendente" && r.estado !== "aprovado") continue;
       const { total } = calcTotal(r);
-      map.set(r.colaborador_id, (map.get(r.colaborador_id) ?? 0) + total);
+      const cur = map.get(r.colaborador_id) ?? { pendente: 0, aprovado: 0 };
+      if (r.estado === "pendente") cur.pendente += total;
+      else cur.aprovado += total;
+      map.set(r.colaborador_id, cur);
     }
     return Array.from(map.entries())
-      .map(([id, total]) => ({ id, nome: colabMap.get(id) ?? "—", total }))
+      .map(([id, v]) => ({ id, nome: colabMap.get(id) ?? "—", pendente: v.pendente, aprovado: v.aprovado, total: v.pendente + v.aprovado }))
       .filter((x) => x.total > 0)
       .sort((a, b) => b.total - a.total);
   }, [filtered, colabMap, tipoMap]);
