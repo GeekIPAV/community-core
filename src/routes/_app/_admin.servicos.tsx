@@ -1876,21 +1876,18 @@ function PagamentosTab() {
               </div>
             )}
 
-            <div className="col-span-2 rounded-md border bg-muted/40 p-3 flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
-                {totalSelecionado > 0 ? "Total dos registos selecionados" : "Total (manual)"}
-              </span>
-              {totalSelecionado > 0 ? (
-                <span className="font-semibold tabular-nums">{fmtEUR(totalSelecionado)}</span>
-              ) : (
-                <Input
-                  type="number"
-                  step="0.01"
-                  className="w-32 text-right"
-                  value={form.total ?? 0}
-                  onChange={(e) => setForm({ ...form, total: Number(e.target.value) })}
-                />
-              )}
+            <div className="col-span-2 rounded-md border bg-muted/40 p-3 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  {editing ? "Total atual (calculado automaticamente)" : "Total dos registos selecionados"}
+                </span>
+                <span className="font-semibold tabular-nums">
+                  {fmtEUR(editing ? Number(editing.total ?? 0) : totalSelecionado)}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                O total é sempre a soma dos serviços associados — não é editável manualmente.
+              </p>
             </div>
           </div>
           <DialogFooter>
