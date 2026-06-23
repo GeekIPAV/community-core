@@ -192,10 +192,56 @@ function ProjetoGeralTab({ projeto }: { projeto: Projeto }) {
     },
   });
 
+  const { data: financiamentos } = useQuery({
+    queryKey: ["projeto-financiamentos", projeto.id],
+    queryFn: async () => {
+      const { data: links, error: e1 } = await supabase
+        .from("financiamento_projetos" as any)
+        .select("financiamento_id")
+        .eq("projeto_id", projeto.id);
+      if (e1) throw e1;
+      const ids = ((links ?? []) as unknown as { financiamento_id: string }[]).map((l) => l.financiamento_id);
+      if (ids.length === 0) return [] as { id: string; nome: string; financiador: string; estado: string }[];
+      const { data, error } = await supabase
+        .from("financiamentos" as any)
+        .select("id, nome, financiador, estado")
+        .in("id", ids);
+      if (error) throw error;
+      return ((data ?? []) as unknown) as { id: string; nome: string; financiador: string; estado: string }[];
+    },
+  });
+
   return (
-    <div className="grid gap-3 sm:grid-cols-3">
-      <StatCard label="Participantes ativos" value={counts?.pessoas ?? 0} />
-      <StatCard label="Ações associadas" value={counts?.acoes ?? 0} />
+    <div className="space-y-6">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <StatCard label="Participantes ativos" value={counts?.pessoas ?? 0} />
+        <StatCard label="Ações associadas" value={counts?.acoes ?? 0} />
+        <StatCard label="Financiamentos" value={financiamentos?.length ?? 0} />
+      </div>
+
+      <div className="space-y-2">
+        <h2 className="text-lg font-semibold">Financiamentos</h2>
+        {(financiamentos ?? []).length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum financiamento associado a este projeto.</p>
+        ) : (
+          <div className="rounded-md border divide-y">
+            {financiamentos!.map((f) => (
+              <Link
+                key={f.id}
+                to="/financiamentos/$financiamentoId"
+                params={{ financiamentoId: f.id }}
+                className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted/50"
+              >
+                <div className="space-y-0.5 min-w-0">
+                  <p className="text-sm font-medium truncate">{f.nome}</p>
+                  <p className="text-xs text-muted-foreground truncate">{f.financiador}</p>
+                </div>
+                <Badge variant="outline" className="font-normal shrink-0">{f.estado}</Badge>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
