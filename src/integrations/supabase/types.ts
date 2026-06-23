@@ -1811,6 +1811,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      recalcular_total_pagamento: {
+        Args: { p_pagamento_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       status_acao: "ativa" | "cancelada" | "concluida"
