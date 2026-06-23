@@ -1715,8 +1715,20 @@ function PagamentosTab() {
       const { error } = await supabase.from("pagamentos").update({ [field]: value } as never).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["pagamentos"] }),
-    onError: (e: Error) => toast.error(e.message),
+    onMutate: async ({ id, field, value }) => {
+      await qc.cancelQueries({ queryKey: ["pagamentos"] });
+      const prev = qc.getQueryData<Pagamento[]>(["pagamentos"]);
+      if (prev) {
+        qc.setQueryData<Pagamento[]>(["pagamentos"], prev.map((p) =>
+          p.id === id ? ({ ...p, [field]: value } as Pagamento) : p
+        ));
+      }
+      return { prev };
+    },
+    onError: (e: Error, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["pagamentos"], ctx.prev);
+      toast.error(e.message);
+    },
   });
 
   type PagRow = Pagamento & { _colab: string };
