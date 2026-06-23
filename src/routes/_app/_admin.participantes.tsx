@@ -231,9 +231,13 @@ function ParticipantesPage() {
 
   const tableColumns = useMemo<ColumnDef<Pessoa>[]>(() => {
     const save = (id: string, field: keyof Pessoa) => async (v: any) => {
+      const prev = await applyOptimisticRowPatch<Pessoa>(qc, ["pessoas"], id, { [field]: v } as Partial<Pessoa>);
       const { error } = await supabase.from("pessoas").update({ [field]: v } as any).eq("id", id);
-      if (error) { toast.error(error.message); throw error; }
-      qc.invalidateQueries({ queryKey: ["pessoas"] });
+      if (error) {
+        rollbackOptimisticRows(qc, ["pessoas"], prev);
+        handleSupabaseError(error);
+        throw error;
+      }
     };
     const muted = (v: any) => <span className="text-muted-foreground">{(v as string) || "—"}</span>;
     const text = (field: keyof Pessoa, type: "text" | "date" = "text") =>
