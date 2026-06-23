@@ -1684,22 +1684,21 @@ function PagamentosTab() {
   const save = useMutation({
     mutationFn: async () => {
       if (!form.colaborador_id) throw new Error("Colaborador obrigatório");
-      const totalNum = totalSelecionado > 0 ? totalSelecionado : Number(form.total) || 0;
-      const payload = {
+      // O total é sempre calculado por trigger a partir dos registos associados.
+      const baseFields = {
         colaborador_id: form.colaborador_id,
         data_pagamento: form.data_pagamento || new Date().toISOString().slice(0, 10),
-        total: totalNum,
         referencia: form.referencia?.trim() || null,
         metodo: form.metodo?.trim() || null,
         notas: form.notas?.trim() || null,
       };
       let pagamentoId: string;
       if (editing) {
-        const { error } = await supabase.from("pagamentos").update(payload).eq("id", editing.id);
+        const { error } = await supabase.from("pagamentos").update(baseFields).eq("id", editing.id);
         if (error) throw error;
         pagamentoId = editing.id;
       } else {
-        const { data: ins, error } = await supabase.from("pagamentos").insert(payload).select("id").single();
+        const { data: ins, error } = await supabase.from("pagamentos").insert({ ...baseFields, total: 0 }).select("id").single();
         if (error) throw error;
         pagamentoId = ins.id;
       }
@@ -1787,7 +1786,7 @@ function PagamentosTab() {
       meta: { label: "Método", filterVariant: "text", editType: "text", hideOnMobile: true },
       cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span> },
     { id: "total", accessorKey: "total", header: "Total", size: 120,
-      meta: { label: "Total", filterVariant: "number", editType: "number" },
+      meta: { label: "Total", filterVariant: "number" },
       cell: ({ getValue }) => <span className="block text-right tabular-nums font-medium">{fmtEUR(Number(getValue() ?? 0))}</span> },
     { id: "_servicos", header: "Serviços", size: 110, enableSorting: false,
       meta: { label: "Serviços", noTruncate: true },
@@ -1815,12 +1814,10 @@ function PagamentosTab() {
         columns={columns}
         data={rows}
         isLoading={isLoading}
-        editableColumns={["referencia", "metodo", "total", "data_pagamento"]}
+        editableColumns={["referencia", "metodo", "data_pagamento"]}
         onRowClick={(p) => openEdit(p)}
         onCellEdit={(rowId, columnId, value) => {
-          let v: unknown = value;
-          if (columnId === "total") v = Number(value) || 0;
-          return updateField.mutateAsync({ id: rowId, field: columnId, value: v });
+          return updateField.mutateAsync({ id: rowId, field: columnId, value });
         }}
         toolbarActions={
           <Button size="sm" onClick={openNew} className="h-9">
@@ -1879,21 +1876,18 @@ function PagamentosTab() {
               </div>
             )}
 
-            <div className="col-span-2 rounded-md border bg-muted/40 p-3 flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
-                {totalSelecionado > 0 ? "Total dos registos selecionados" : "Total (manual)"}
-              </span>
-              {totalSelecionado > 0 ? (
-                <span className="font-semibold tabular-nums">{fmtEUR(totalSelecionado)}</span>
-              ) : (
-                <Input
-                  type="number"
-                  step="0.01"
-                  className="w-32 text-right"
-                  value={form.total ?? 0}
-                  onChange={(e) => setForm({ ...form, total: Number(e.target.value) })}
-                />
-              )}
+            <div className="col-span-2 rounded-md border bg-muted/40 p-3 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  {editing ? "Total atual (calculado automaticamente)" : "Total dos registos selecionados"}
+                </span>
+                <span className="font-semibold tabular-nums">
+                  {fmtEUR(editing ? Number(editing.total ?? 0) : totalSelecionado)}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                O total é sempre a soma dos serviços associados — não é editável manualmente.
+              </p>
             </div>
           </div>
           <DialogFooter>
