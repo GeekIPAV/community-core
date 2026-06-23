@@ -1361,6 +1361,32 @@ function RegistosTab() {
         <SummaryCard label="Pago" value={fmtEUR(totals.pago)} variant="success" />
       </div>
 
+      <details className="rounded-lg border bg-card group">
+        <summary className="flex items-center justify-between gap-3 px-4 py-2.5 cursor-pointer select-none text-sm hover:bg-muted/40 rounded-lg">
+          <span className="flex items-center gap-2">
+            <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" />
+            <span className="font-medium">Resumo a pagar por colaboradora</span>
+            <span className="text-muted-foreground">
+              ({resumoPorColab.length} {resumoPorColab.length === 1 ? "colaboradora" : "colaboradoras"} · {fmtEUR(resumoTotal)})
+            </span>
+          </span>
+        </summary>
+        <div className="px-4 pb-3 pt-1 text-sm">
+          {resumoPorColab.length === 0 ? (
+            <p className="text-muted-foreground">Sem valores por pagar no filtro atual.</p>
+          ) : (
+            <ul className="divide-y">
+              {resumoPorColab.map((r) => (
+                <li key={r.id} className="flex items-center justify-between py-1.5">
+                  <span>{r.nome}</span>
+                  <span className="tabular-nums font-medium">{fmtEUR(r.total)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </details>
+
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex flex-wrap gap-2">
           <Select value={filterEstado} onValueChange={setFilterEstado}>
