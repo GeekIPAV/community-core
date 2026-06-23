@@ -1786,7 +1786,7 @@ function PagamentosTab() {
       meta: { label: "Método", filterVariant: "text", editType: "text", hideOnMobile: true },
       cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span> },
     { id: "total", accessorKey: "total", header: "Total", size: 120,
-      meta: { label: "Total", filterVariant: "number", editType: "number" },
+      meta: { label: "Total", filterVariant: "number" },
       cell: ({ getValue }) => <span className="block text-right tabular-nums font-medium">{fmtEUR(Number(getValue() ?? 0))}</span> },
     { id: "_servicos", header: "Serviços", size: 110, enableSorting: false,
       meta: { label: "Serviços", noTruncate: true },
@@ -1814,7 +1814,7 @@ function PagamentosTab() {
         columns={columns}
         data={rows}
         isLoading={isLoading}
-        editableColumns={["referencia", "metodo", "total", "data_pagamento"]}
+        editableColumns={["referencia", "metodo", "data_pagamento"]}
         onRowClick={(p) => openEdit(p)}
         onCellEdit={(rowId, columnId, value) => {
           let v: unknown = value;
