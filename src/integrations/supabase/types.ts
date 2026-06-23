@@ -683,6 +683,39 @@ export type Database = {
           },
         ]
       }
+      financiamento_projetos: {
+        Row: {
+          created_at: string
+          financiamento_id: string
+          projeto_id: string
+        }
+        Insert: {
+          created_at?: string
+          financiamento_id: string
+          projeto_id: string
+        }
+        Update: {
+          created_at?: string
+          financiamento_id?: string
+          projeto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financiamento_projetos_financiamento_id_fkey"
+            columns: ["financiamento_id"]
+            isOneToOne: false
+            referencedRelation: "financiamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financiamento_projetos_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       financiamentos: {
         Row: {
           created_at: string
