@@ -117,10 +117,17 @@ export function InlineMultiSelect({
         <button
           type="button"
           onClick={(e) => e.stopPropagation()}
-          className="flex h-7 w-full items-center justify-between gap-2 rounded px-1.5 text-left text-sm border border-transparent hover:bg-muted/50 hover:border-border"
+          className="flex h-9 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-background px-3 text-left text-sm hover:bg-muted/50"
         >
-          <span className={labels.length ? "text-foreground" : "text-muted-foreground opacity-60"}>
-            {labels.length ? labels.join(", ") : placeholder}
+          <span
+            className={`min-w-0 flex-1 truncate ${labels.length ? "text-foreground" : "text-muted-foreground"}`}
+            title={labels.join(", ")}
+          >
+            {labels.length === 0
+              ? placeholder
+              : labels.length <= 2
+                ? labels.join(", ")
+                : `${labels[0]} +${labels.length - 1}`}
           </span>
           <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
         </button>
