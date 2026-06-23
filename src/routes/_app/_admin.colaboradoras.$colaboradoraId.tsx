@@ -414,6 +414,7 @@ function ServicosTab({
   const [filterEstado, setFilterEstado] = useState("__all");
   const [filterFrom, setFilterFrom] = useState("");
   const [filterTo, setFilterTo] = useState("");
+  const [editing, setEditing] = useState<Registo | null>(null);
 
   const pagMap = useMemo(() => new Map(pagamentos.map((p) => [p.id, p])), [pagamentos]);
 
@@ -512,10 +513,16 @@ function ServicosTab({
     { id: "_actions", header: "", size: 80, enableSorting: false, enableHiding: false, enableResizing: false,
       meta: { noTruncate: true },
       cell: ({ row }) => (
-        <Button size="icon" variant="ghost" className="h-8 w-8"
-          onClick={() => { if (confirm("Remover registo?")) remove.mutate(row.original.id); }}>
-          <Trash2 className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          <Button size="icon" variant="ghost" className="h-8 w-8"
+            onClick={() => setEditing(row.original)} title="Editar">
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="ghost" className="h-8 w-8"
+            onClick={() => { if (confirm("Remover registo?")) remove.mutate(row.original.id); }} title="Remover">
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       ) },
   ], [pagMap, remove, onJumpToPagamento]);
 
@@ -540,6 +547,7 @@ function ServicosTab({
         tableId={`colab_servicos_${colaboradorId}`}
         columns={columns}
         data={rows}
+        onRowClick={(r) => setEditing(r)}
         toolbarActions={<RegistarServicoButton colaboradorId={colaboradorId} colaboradorName={colaboradorName} tipos={tipos} />}
         emptyMessage="Sem serviços registados"
       />
@@ -552,6 +560,16 @@ function ServicosTab({
           <span>Pendente: <b className="tabular-nums text-amber-600">{fmtEUR(summary.pendente)}</b></span>
         </div>
       )}
+
+      <EditarServicoDialog
+        registo={editing}
+        tipos={tipos}
+        onClose={() => setEditing(null)}
+        onSaved={() => {
+          qc.invalidateQueries({ queryKey: ["colaboradora-servicos", colaboradorId] });
+          qc.invalidateQueries({ queryKey: ["registos_servico"] });
+        }}
+      />
     </div>
   );
 }
