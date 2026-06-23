@@ -34,6 +34,8 @@ import { Card } from "@/components/ui/card";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { InlineText, InlineSelect, InlineMultiSelect } from "@/components/inline-edit";
 import { FamilyDetailDialog } from "@/components/family-detail";
+import { applyOptimisticRowPatch, rollbackOptimisticRows } from "@/lib/optimistic-row-update";
+import { handleSupabaseError } from "@/lib/handle-supabase-error";
 
 const PESSOA_STATUS_OPTS = ["ativo", "suspeito_duplicado", "fundido", "arquivado"];
 const GENERO_OPTS = ["Masculino", "Feminino"];
@@ -210,9 +212,13 @@ function FamiliasPage() {
   const projetosMap = useMemo(() => new Map((projetosList ?? []).map((p) => [p.id, p.nome])), [projetosList]);
 
   const saveFamilia = (id: string, field: string) => async (v: any) => {
+    const prev = await applyOptimisticRowPatch<{ id: string }>(qc, ["familias"], id, { [field]: v });
     const { error } = await supabase.from("familias").update({ [field]: v } as any).eq("id", id);
-    if (error) { toast.error(error.message); throw error; }
-    qc.invalidateQueries({ queryKey: ["familias"] });
+    if (error) {
+      rollbackOptimisticRows(qc, ["familias"], prev);
+      handleSupabaseError(error);
+      throw error;
+    }
   };
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["familias"] });
