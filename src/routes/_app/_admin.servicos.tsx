@@ -1354,13 +1354,14 @@ function RegistosTab() {
               {ESTADOS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Select value={filterColab} onValueChange={setFilterColab}>
-            <SelectTrigger className="w-56 h-9"><SelectValue placeholder="Colaborador" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all">Todos os colaboradores</SelectItem>
-              {(colabs ?? []).filter((c) => c.ativo).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_completo}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <div className="w-64">
+            <InlineMultiSelect
+              values={filterColabs}
+              options={(colabs ?? []).filter((c) => c.ativo || filterColabs.includes(c.id)).map((c) => ({ value: c.id, label: c.nome_completo }))}
+              onSave={(v) => setFilterColabs(v)}
+              placeholder="Todas as colaboradoras"
+            />
+          </div>
           <Select value={filterSessao} onValueChange={(v) => setFilterSessao(v as typeof filterSessao)}>
             <SelectTrigger className="w-44 h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
