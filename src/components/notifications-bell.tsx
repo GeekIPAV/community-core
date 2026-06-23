@@ -18,6 +18,7 @@ type Notif = {
   link: string | null;
   lida: boolean;
   created_at: string;
+  count?: number | null;
 };
 
 export function NotificationsBell() {
@@ -30,9 +31,9 @@ export function NotificationsBell() {
     if (!user) return;
     const { data } = await supabase
       .from("notificacoes" as any)
-      .select("id, tipo, titulo, descricao, link, lida, created_at")
+      .select("id, tipo, titulo, descricao, link, lida, created_at, count")
       .order("created_at", { ascending: false })
-      .limit(30);
+      .limit(100);
     setItems((data as any) ?? []);
   };
 
@@ -106,7 +107,7 @@ export function NotificationsBell() {
             </Button>
           </div>
         </div>
-        <ScrollArea className="max-h-[420px]">
+        <ScrollArea className="h-[420px]">
           {!user ? (
             <div className="px-3 py-8 text-center text-xs text-muted-foreground">Inicia sessão para ver notificações</div>
           ) : items.length === 0 ? (
@@ -123,7 +124,14 @@ export function NotificationsBell() {
                         !n.lida && <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
                       )}
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-medium">{n.titulo}</div>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="text-sm font-medium">{n.titulo}</div>
+                          {(n.count ?? 1) > 1 && (
+                            <Badge variant="secondary" className="h-4 shrink-0 px-1.5 text-[10px]">
+                              {n.count}
+                            </Badge>
+                          )}
+                        </div>
                         {n.descricao && (
                           <div className="truncate text-xs text-muted-foreground">{n.descricao}</div>
                         )}

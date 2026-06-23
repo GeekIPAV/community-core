@@ -848,8 +848,10 @@ export type Database = {
       }
       notificacoes: {
         Row: {
+          count: number
           created_at: string
           descricao: string | null
+          group_key: string | null
           id: string
           lida: boolean
           lida_em: string | null
@@ -857,10 +859,13 @@ export type Database = {
           recipient_auth_id: string
           tipo: string
           titulo: string
+          updated_at: string
         }
         Insert: {
+          count?: number
           created_at?: string
           descricao?: string | null
+          group_key?: string | null
           id?: string
           lida?: boolean
           lida_em?: string | null
@@ -868,10 +873,13 @@ export type Database = {
           recipient_auth_id: string
           tipo: string
           titulo: string
+          updated_at?: string
         }
         Update: {
+          count?: number
           created_at?: string
           descricao?: string | null
+          group_key?: string | null
           id?: string
           lida?: boolean
           lida_em?: string | null
@@ -879,6 +887,7 @@ export type Database = {
           recipient_auth_id?: string
           tipo?: string
           titulo?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1802,15 +1811,26 @@ export type Database = {
         Args: { p_window_days?: number }
         Returns: number
       }
-      notificar_staff: {
-        Args: {
-          p_descricao?: string
-          p_link?: string
-          p_tipo: string
-          p_titulo: string
-        }
-        Returns: undefined
-      }
+      notificar_staff:
+        | {
+            Args: {
+              p_descricao?: string
+              p_link?: string
+              p_tipo: string
+              p_titulo: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_descricao?: string
+              p_group_key?: string
+              p_link?: string
+              p_tipo: string
+              p_titulo: string
+            }
+            Returns: undefined
+          }
       recalcular_total_pagamento: {
         Args: { p_pagamento_id: string }
         Returns: undefined
