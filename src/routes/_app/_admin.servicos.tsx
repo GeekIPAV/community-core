@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { Pencil, Plus, Trash2, Check, Wallet, Receipt, Users as UsersIcon, Tag, Download, ExternalLink, UserPlus, X, CalendarRange } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { SmartTable, type SmartColumnDef } from "@/components/smart-table";
+import { InlineMultiSelect } from "@/components/inline-edit";
 import { BulkImportDialog } from "@/components/servicos/BulkImportDialog";
 import { Upload } from "lucide-react";
 import { RegistoPagamentoCell, PagamentoServicosCell } from "@/components/servicos/PaymentLinkCells";
@@ -1038,7 +1039,7 @@ function RegistosTab() {
   const [editing, setEditing] = useState<Registo | null>(null);
   const [form, setForm] = useState<Partial<Registo>>({});
   const [filterEstado, setFilterEstado] = useState<string>("__all");
-  const [filterColab, setFilterColab] = useState<string>("__all");
+  const [filterColabs, setFilterColabs] = useState<string[]>([]);
   const [filterSessao, setFilterSessao] = useState<"all" | "session" | "individual">("all");
   const [bulkOpen, setBulkOpen] = useState(false);
 
@@ -1097,11 +1098,14 @@ function RegistosTab() {
   const filtered = useMemo(() => {
     let rows = data ?? [];
     if (filterEstado !== "__all") rows = rows.filter((r) => r.estado === filterEstado);
-    if (filterColab !== "__all") rows = rows.filter((r) => r.colaborador_id === filterColab);
+    if (filterColabs.length > 0) {
+      const set = new Set(filterColabs);
+      rows = rows.filter((r) => set.has(r.colaborador_id));
+    }
     if (filterSessao === "session") rows = rows.filter((r) => !!r.sessao_id);
     if (filterSessao === "individual") rows = rows.filter((r) => !r.sessao_id);
     return rows;
-  }, [data, filterEstado, filterColab, filterSessao]);
+  }, [data, filterEstado, filterColabs, filterSessao]);
 
   const totals = useMemo(() => {
     return filtered.reduce((acc, r) => {
@@ -1351,13 +1355,14 @@ function RegistosTab() {
               {ESTADOS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Select value={filterColab} onValueChange={setFilterColab}>
-            <SelectTrigger className="w-56 h-9"><SelectValue placeholder="Colaborador" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all">Todos os colaboradores</SelectItem>
-              {(colabs ?? []).filter((c) => c.ativo).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_completo}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <div className="w-64">
+            <InlineMultiSelect
+              values={filterColabs}
+              options={(colabs ?? []).filter((c) => c.ativo || filterColabs.includes(c.id)).map((c) => ({ value: c.id, label: c.nome_completo }))}
+              onSave={(v) => setFilterColabs(v)}
+              placeholder="Todas as colaboradoras"
+            />
+          </div>
           <Select value={filterSessao} onValueChange={(v) => setFilterSessao(v as typeof filterSessao)}>
             <SelectTrigger className="w-44 h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
