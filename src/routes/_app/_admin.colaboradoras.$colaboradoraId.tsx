@@ -991,7 +991,6 @@ function RegistarServicoButton({
   colaboradorName: string;
   tipos: Tipo[];
 }) {
-  void 0;
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<Registo>>({
