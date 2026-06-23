@@ -352,7 +352,7 @@ function SessoesTab() {
     },
   });
   const { data: tipos } = useQuery({
-    queryKey: ["tipos_servico_lookup_s"],
+    queryKey: ["tipos_servico_lookup"],
     queryFn: async () => {
       const { data, error } = await supabase.from("tipos_servico").select("id, nome, unidade, preco_unitario").order("nome");
       if (error) throw error;
