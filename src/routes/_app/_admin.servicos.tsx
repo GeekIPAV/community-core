@@ -1817,9 +1817,7 @@ function PagamentosTab() {
         editableColumns={["referencia", "metodo", "data_pagamento"]}
         onRowClick={(p) => openEdit(p)}
         onCellEdit={(rowId, columnId, value) => {
-          let v: unknown = value;
-          if (columnId === "total") v = Number(value) || 0;
-          return updateField.mutateAsync({ id: rowId, field: columnId, value: v });
+          return updateField.mutateAsync({ id: rowId, field: columnId, value });
         }}
         toolbarActions={
           <Button size="sm" onClick={openNew} className="h-9">
