@@ -116,7 +116,7 @@ function FinanciamentosListPage() {
       const projMap = new Map<string, { id: string; nome: string }>();
       for (const p of (prj ?? []) as { id: string; nome: string }[]) projMap.set(p.id, p);
       const byFin = new Map<string, { id: string; nome: string }[]>();
-      for (const l of ((links ?? []) as { financiamento_id: string; projeto_id: string }[])) {
+      for (const l of ((links ?? []) as unknown as { financiamento_id: string; projeto_id: string }[])) {
         const p = projMap.get(l.projeto_id);
         if (!p) continue;
         const arr = byFin.get(l.financiamento_id) ?? [];
