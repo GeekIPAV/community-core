@@ -1095,7 +1095,7 @@ function AddPessoasDialog({
   inscritosIds: Set<string>;
 }) {
   const qc = useQueryClient();
-  const [tab, setTab] = useState<"pessoas" | "familias">("pessoas");
+  const [tab, setTab] = useState<"pessoas" | "familias" | "nova">("pessoas");
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -1103,6 +1103,11 @@ function AddPessoasDialog({
   const [cidadeFilter, setCidadeFilter] = useState<string>("__all");
   const [statusPessoaFilter, setStatusPessoaFilter] = useState<string>("ativo");
   const [statusFamiliaFilter, setStatusFamiliaFilter] = useState<string>("__all");
+  const [novoNome, setNovoNome] = useState("");
+  const [novoEmail, setNovoEmail] = useState("");
+  const [novoTelefone, setNovoTelefone] = useState("");
+  const [novoDataNasc, setNovoDataNasc] = useState("");
+  const [novoFamiliaId, setNovoFamiliaId] = useState<string>("__none");
 
   const { data: pessoas, isLoading: loadingPessoas } = useQuery({
     queryKey: ["pessoas-atribuir"],
@@ -1269,6 +1274,45 @@ function AddPessoasDialog({
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const criarEInscrever = useMutation({
+    mutationFn: async () => {
+      const nome = novoNome.trim();
+      if (!nome) throw new Error("Nome é obrigatório");
+      const insertPessoa: any = {
+        nome_completo: nome,
+        status: "ativo",
+      };
+      const email = novoEmail.trim();
+      const telefone = novoTelefone.trim();
+      if (email) insertPessoa.email = email;
+      if (telefone) insertPessoa.telefone = telefone;
+      if (novoDataNasc) insertPessoa.data_nascimento = novoDataNasc;
+      if (novoFamiliaId && novoFamiliaId !== "__none") insertPessoa.familia_id = novoFamiliaId;
+      const { data: pessoa, error: pErr } = await supabase
+        .from("pessoas")
+        .insert(insertPessoa)
+        .select("id")
+        .single();
+      if (pErr) throw pErr;
+      const { error: iErr } = await supabase.from("inscricoes").insert({
+        pessoa_id: pessoa.id,
+        acao_id: acaoId,
+        status: "confirmada" as const,
+        valores_dinamicos: {},
+      } as any);
+      if (iErr) throw iErr;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["inscricoes", acaoId] });
+      qc.invalidateQueries({ queryKey: ["inscricao-counts"] });
+      qc.invalidateQueries({ queryKey: ["pessoas-atribuir"] });
+      toast.success("Pessoa criada e inscrita");
+      setNovoNome(""); setNovoEmail(""); setNovoTelefone(""); setNovoDataNasc(""); setNovoFamiliaId("__none");
+      onOpenChange(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const initials = (nome: string) =>
     nome.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("");
 
@@ -1292,6 +1336,7 @@ function AddPessoasDialog({
           <TabsList className="w-full">
             <TabsTrigger value="pessoas" className="flex-1">Pessoas</TabsTrigger>
             <TabsTrigger value="familias" className="flex-1">Famílias</TabsTrigger>
+            <TabsTrigger value="nova" className="flex-1">Nova pessoa</TabsTrigger>
           </TabsList>
           <TabsContent value="pessoas" className="flex-1 overflow-hidden">
             <div className="flex flex-wrap items-center gap-2 py-2">
