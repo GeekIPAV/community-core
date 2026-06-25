@@ -279,6 +279,7 @@ function FinanciamentosListPage() {
         data={financiamentos}
         isLoading={isLoading}
         defaultGroupBy="estado"
+        defaultCollapsedGroups={["Encerrado"]}
         onRowClick={(r) => navigate({ to: "/financiamentos/$financiamentoId", params: { financiamentoId: r.id } })}
         toolbarActions={
           <Button size="sm" onClick={openNew} className="h-9">
