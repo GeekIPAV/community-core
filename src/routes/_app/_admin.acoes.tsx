@@ -1330,6 +1330,40 @@ function AddPessoasDialog({
   });
 
   const initials = (nome: string) =>
+  const inscreverRapido = useMutation({
+    mutationFn: async () => {
+      const nomes = nomesRapidos
+        .split(/\r?\n|,/)
+        .map((n) => n.trim())
+        .filter((n) => n.length > 0);
+      if (nomes.length === 0) throw new Error("Indica pelo menos um nome");
+      const { data: pessoasCriadas, error: pErr } = await supabase
+        .from("pessoas")
+        .insert(nomes.map((nome_completo) => ({ nome_completo, status: "ativo" as const })))
+        .select("id");
+      if (pErr) throw pErr;
+      const rows = (pessoasCriadas ?? []).map((p: { id: string }) => ({
+        pessoa_id: p.id,
+        acao_id: acaoId,
+        status: "confirmada" as const,
+        valores_dinamicos: {},
+      }));
+      const { error: iErr } = await supabase.from("inscricoes").insert(rows as any);
+      if (iErr) throw iErr;
+      return nomes.length;
+    },
+    onSuccess: (n) => {
+      qc.invalidateQueries({ queryKey: ["inscricoes", acaoId] });
+      qc.invalidateQueries({ queryKey: ["inscricao-counts"] });
+      qc.invalidateQueries({ queryKey: ["pessoas-atribuir"] });
+      toast.success(`${n} pessoa(s) inscritas`);
+      setNomesRapidos("");
+      onOpenChange(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const initials = (nome: string) =>
     nome.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("");
 
   return (
