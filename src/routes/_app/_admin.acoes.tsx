@@ -1095,7 +1095,7 @@ function AddPessoasDialog({
   inscritosIds: Set<string>;
 }) {
   const qc = useQueryClient();
-  const [tab, setTab] = useState<"pessoas" | "familias" | "nova">("pessoas");
+  const [tab, setTab] = useState<"pessoas" | "familias" | "nova" | "rapida">("pessoas");
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -1109,6 +1109,7 @@ function AddPessoasDialog({
   const [novoDataNasc, setNovoDataNasc] = useState("");
   const [novoFamiliaId, setNovoFamiliaId] = useState<string>("__none");
   const [novoTipoUserId, setNovoTipoUserId] = useState<string>("__none");
+  const [nomesRapidos, setNomesRapidos] = useState("");
 
   const { data: pessoas, isLoading: loadingPessoas } = useQuery({
     queryKey: ["pessoas-atribuir"],
@@ -1328,6 +1329,39 @@ function AddPessoasDialog({
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const inscreverRapido = useMutation({
+    mutationFn: async () => {
+      const nomes = nomesRapidos
+        .split(/\r?\n|,/)
+        .map((n) => n.trim())
+        .filter((n) => n.length > 0);
+      if (nomes.length === 0) throw new Error("Indica pelo menos um nome");
+      const { data: pessoasCriadas, error: pErr } = await supabase
+        .from("pessoas")
+        .insert(nomes.map((nome_completo) => ({ nome_completo, status: "ativo" as const })))
+        .select("id");
+      if (pErr) throw pErr;
+      const rows = (pessoasCriadas ?? []).map((p: { id: string }) => ({
+        pessoa_id: p.id,
+        acao_id: acaoId,
+        status: "confirmada" as const,
+        valores_dinamicos: {},
+      }));
+      const { error: iErr } = await supabase.from("inscricoes").insert(rows as any);
+      if (iErr) throw iErr;
+      return nomes.length;
+    },
+    onSuccess: (n) => {
+      qc.invalidateQueries({ queryKey: ["inscricoes", acaoId] });
+      qc.invalidateQueries({ queryKey: ["inscricao-counts"] });
+      qc.invalidateQueries({ queryKey: ["pessoas-atribuir"] });
+      toast.success(`${n} pessoa(s) inscritas`);
+      setNomesRapidos("");
+      onOpenChange(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const initials = (nome: string) =>
     nome.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("");
 
@@ -1352,6 +1386,7 @@ function AddPessoasDialog({
             <TabsTrigger value="pessoas" className="flex-1">Pessoas</TabsTrigger>
             <TabsTrigger value="familias" className="flex-1">Famílias</TabsTrigger>
             <TabsTrigger value="nova" className="flex-1">Nova pessoa</TabsTrigger>
+            <TabsTrigger value="rapida" className="flex-1">Sem registo</TabsTrigger>
           </TabsList>
           <TabsContent value="pessoas" className="flex-1 overflow-hidden">
             <div className="flex flex-wrap items-center gap-2 py-2">
@@ -1548,6 +1583,22 @@ function AddPessoasDialog({
               </div>
             </div>
           </TabsContent>
+          <TabsContent value="rapida" className="flex-1 overflow-auto">
+            <div className="space-y-3 py-2">
+              <p className="text-xs text-muted-foreground">
+                Inscreve várias pessoas de uma só vez indicando apenas o nome. Um nome por linha (ou separados por vírgulas). Os registos ficam sem email, telefone ou família e podem ser completados depois.
+              </p>
+              <Textarea
+                value={nomesRapidos}
+                onChange={(e) => setNomesRapidos(e.target.value)}
+                placeholder={"Ana Silva\nJoão Pereira\nMaria Santos"}
+                className="min-h-[220px] font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                {nomesRapidos.split(/\r?\n|,/).map((n) => n.trim()).filter(Boolean).length} pessoa(s) a inscrever
+              </p>
+            </div>
+          </TabsContent>
         </Tabs>
         <SheetFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
@@ -1557,6 +1608,13 @@ function AddPessoasDialog({
               onClick={() => criarEInscrever.mutate()}
             >
               Criar e inscrever
+            </Button>
+          ) : tab === "rapida" ? (
+            <Button
+              disabled={nomesRapidos.trim().length === 0 || inscreverRapido.isPending}
+              onClick={() => inscreverRapido.mutate()}
+            >
+              Inscrever lista
             </Button>
           ) : (
             <Button
