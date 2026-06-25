@@ -1386,6 +1386,7 @@ function AddPessoasDialog({
             <TabsTrigger value="pessoas" className="flex-1">Pessoas</TabsTrigger>
             <TabsTrigger value="familias" className="flex-1">Famílias</TabsTrigger>
             <TabsTrigger value="nova" className="flex-1">Nova pessoa</TabsTrigger>
+            <TabsTrigger value="rapida" className="flex-1">Sem registo</TabsTrigger>
           </TabsList>
           <TabsContent value="pessoas" className="flex-1 overflow-hidden">
             <div className="flex flex-wrap items-center gap-2 py-2">
@@ -1582,6 +1583,22 @@ function AddPessoasDialog({
               </div>
             </div>
           </TabsContent>
+          <TabsContent value="rapida" className="flex-1 overflow-auto">
+            <div className="space-y-3 py-2">
+              <p className="text-xs text-muted-foreground">
+                Inscreve várias pessoas de uma só vez indicando apenas o nome. Um nome por linha (ou separados por vírgulas). Os registos ficam sem email, telefone ou família e podem ser completados depois.
+              </p>
+              <Textarea
+                value={nomesRapidos}
+                onChange={(e) => setNomesRapidos(e.target.value)}
+                placeholder={"Ana Silva\nJoão Pereira\nMaria Santos"}
+                className="min-h-[220px] font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                {nomesRapidos.split(/\r?\n|,/).map((n) => n.trim()).filter(Boolean).length} pessoa(s) a inscrever
+              </p>
+            </div>
+          </TabsContent>
         </Tabs>
         <SheetFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
@@ -1591,6 +1608,13 @@ function AddPessoasDialog({
               onClick={() => criarEInscrever.mutate()}
             >
               Criar e inscrever
+            </Button>
+          ) : tab === "rapida" ? (
+            <Button
+              disabled={nomesRapidos.trim().length === 0 || inscreverRapido.isPending}
+              onClick={() => inscreverRapido.mutate()}
+            >
+              Inscrever lista
             </Button>
           ) : (
             <Button
