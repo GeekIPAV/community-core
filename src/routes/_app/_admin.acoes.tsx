@@ -1109,6 +1109,10 @@ function AddPessoasDialog({
   const [novoDataNasc, setNovoDataNasc] = useState("");
   const [novoFamiliaId, setNovoFamiliaId] = useState<string>("__none");
   const [novoTipoUserId, setNovoTipoUserId] = useState<string>("__none");
+  const [novoNacionalidade, setNovoNacionalidade] = useState("");
+  const [novoReligiao, setNovoReligiao] = useState("");
+  const [novoNotas, setNovoNotas] = useState("");
+  const [novaFamiliaNome, setNovaFamiliaNome] = useState("");
   const [nomesRapidos, setNomesRapidos] = useState("");
 
   const { data: pessoas, isLoading: loadingPessoas } = useQuery({
@@ -1293,6 +1297,20 @@ function AddPessoasDialog({
     mutationFn: async () => {
       const nome = novoNome.trim();
       if (!nome) throw new Error("Nome é obrigatório");
+      let familiaIdFinal: string | null = null;
+      if (novoFamiliaId === "__new") {
+        const nomeFam = novaFamiliaNome.trim();
+        if (!nomeFam) throw new Error("Nome da nova família é obrigatório");
+        const { data: fam, error: fErr } = await supabase
+          .from("familias")
+          .insert({ nome: nomeFam } as any)
+          .select("id")
+          .single();
+        if (fErr) throw fErr;
+        familiaIdFinal = fam.id;
+      } else if (novoFamiliaId && novoFamiliaId !== "__none") {
+        familiaIdFinal = novoFamiliaId;
+      }
       const insertPessoa: any = {
         nome_completo: nome,
         status: "ativo",
@@ -1302,8 +1320,11 @@ function AddPessoasDialog({
       if (email) insertPessoa.email = email;
       if (telefone) insertPessoa.telefone = telefone;
       if (novoDataNasc) insertPessoa.data_nascimento = novoDataNasc;
-      if (novoFamiliaId && novoFamiliaId !== "__none") insertPessoa.familia_id = novoFamiliaId;
+      if (familiaIdFinal) insertPessoa.familia_id = familiaIdFinal;
       if (novoTipoUserId && novoTipoUserId !== "__none") insertPessoa.tipo_user_id = novoTipoUserId;
+      if (novoNacionalidade.trim()) insertPessoa.nacionalidade = novoNacionalidade.trim();
+      if (novoReligiao.trim()) insertPessoa.religiao = novoReligiao.trim();
+      if (novoNotas.trim()) insertPessoa.notas = novoNotas.trim();
       const { data: pessoa, error: pErr } = await supabase
         .from("pessoas")
         .insert(insertPessoa)
@@ -1322,8 +1343,11 @@ function AddPessoasDialog({
       qc.invalidateQueries({ queryKey: ["inscricoes", acaoId] });
       qc.invalidateQueries({ queryKey: ["inscricao-counts"] });
       qc.invalidateQueries({ queryKey: ["pessoas-atribuir"] });
+      qc.invalidateQueries({ queryKey: ["familias-atribuir"] });
       toast.success("Pessoa criada e inscrita");
-      setNovoNome(""); setNovoEmail(""); setNovoTelefone(""); setNovoDataNasc(""); setNovoFamiliaId("__none"); setNovoTipoUserId("__none");
+      setNovoNome(""); setNovoEmail(""); setNovoTelefone(""); setNovoDataNasc("");
+      setNovoFamiliaId("__none"); setNovoTipoUserId("__none");
+      setNovoNacionalidade(""); setNovoReligiao(""); setNovoNotas(""); setNovaFamiliaNome("");
       onOpenChange(false);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -1562,6 +1586,7 @@ function AddPessoasDialog({
                     <SelectTrigger className="h-9"><SelectValue placeholder="Sem família" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none">Sem família</SelectItem>
+                      <SelectItem value="__new">+ Criar nova família…</SelectItem>
                       {(familias ?? []).slice().sort((a, b) => a.nome.localeCompare(b.nome)).map((f) => (
                         <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
                       ))}
@@ -1569,6 +1594,16 @@ function AddPessoasDialog({
                   </Select>
                 </div>
               </div>
+              {novoFamiliaId === "__new" && (
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Nome da nova família *</label>
+                  <Input
+                    value={novaFamiliaNome}
+                    onChange={(e) => setNovaFamiliaNome(e.target.value)}
+                    placeholder="Ex: Família Silva"
+                  />
+                </div>
+              )}
               <div className="space-y-1">
                 <label className="text-xs font-medium">Tipo de utilizador</label>
                 <Select value={novoTipoUserId} onValueChange={setNovoTipoUserId}>
@@ -1580,6 +1615,33 @@ function AddPessoasDialog({
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Nacionalidade</label>
+                  <Input
+                    value={novoNacionalidade}
+                    onChange={(e) => setNovoNacionalidade(e.target.value)}
+                    placeholder="Ex: Portuguesa"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Religião</label>
+                  <Input
+                    value={novoReligiao}
+                    onChange={(e) => setNovoReligiao(e.target.value)}
+                    placeholder="Ex: Católica"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium">Notas</label>
+                <Textarea
+                  value={novoNotas}
+                  onChange={(e) => setNovoNotas(e.target.value)}
+                  placeholder="Notas adicionais sobre a pessoa"
+                  className="min-h-[80px]"
+                />
               </div>
             </div>
           </TabsContent>
@@ -1604,7 +1666,11 @@ function AddPessoasDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           {tab === "nova" ? (
             <Button
-              disabled={!novoNome.trim() || criarEInscrever.isPending}
+              disabled={
+                !novoNome.trim() ||
+                (novoFamiliaId === "__new" && !novaFamiliaNome.trim()) ||
+                criarEInscrever.isPending
+              }
               onClick={() => criarEInscrever.mutate()}
             >
               Criar e inscrever
