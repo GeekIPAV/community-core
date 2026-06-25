@@ -40,6 +40,8 @@ export interface SmartTableProps<TData> {
   toolbarActions?: React.ReactNode;
   /** Initial group-by column id (user can change it). */
   defaultGroupBy?: string;
+  /** Group values that start collapsed (only when grouping is active). */
+  defaultCollapsedGroups?: string[];
   /** Click handler for a row (ignored when clicking inside an editable cell in edit mode). */
   onRowClick?: (row: TData) => void;
   /** Stable id extractor; defaults to (row as any).id. */
