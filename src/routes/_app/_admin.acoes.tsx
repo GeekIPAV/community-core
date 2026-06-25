@@ -1666,7 +1666,11 @@ function AddPessoasDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           {tab === "nova" ? (
             <Button
-              disabled={!novoNome.trim() || criarEInscrever.isPending}
+              disabled={
+                !novoNome.trim() ||
+                (novoFamiliaId === "__new" && !novaFamiliaNome.trim()) ||
+                criarEInscrever.isPending
+              }
               onClick={() => criarEInscrever.mutate()}
             >
               Criar e inscrever
