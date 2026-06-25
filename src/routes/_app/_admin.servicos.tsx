@@ -413,6 +413,7 @@ function SessoesTab() {
   }, [rows, filterEstado]);
 
   const [editing, setEditing] = useState<SessaoRow | null>(null);
+  const [creating, setCreating] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -421,14 +422,19 @@ function SessoesTab() {
           <h2 className="text-lg font-semibold">Sessões de Grupo</h2>
           <p className="text-sm text-muted-foreground">Eventos partilhados entre várias colaboradoras (workshops, formações, etc.)</p>
         </div>
-        <Select value={filterEstado} onValueChange={setFilterEstado}>
-          <SelectTrigger className="w-48 h-9"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all">Todas</SelectItem>
-            <SelectItem value="pagas">Todas pagas</SelectItem>
-            <SelectItem value="pendentes">Com pendentes</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Select value={filterEstado} onValueChange={setFilterEstado}>
+            <SelectTrigger className="w-48 h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all">Todas</SelectItem>
+              <SelectItem value="pagas">Todas pagas</SelectItem>
+              <SelectItem value="pendentes">Com pendentes</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button onClick={() => setCreating(true)} className="h-9">
+            <Plus className="mr-2 h-4 w-4" />Nova sessão
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -474,6 +480,12 @@ function SessoesTab() {
       )}
 
       <SessaoEditDialog sessao={editing} onClose={() => setEditing(null)} />
+      <NewSessaoDialog
+        open={creating}
+        onClose={() => setCreating(false)}
+        tipos={tipos ?? []}
+        onCreated={(s) => { setCreating(false); setEditing(s); }}
+      />
     </div>
   );
 }
