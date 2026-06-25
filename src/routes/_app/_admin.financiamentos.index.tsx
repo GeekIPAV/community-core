@@ -274,7 +274,7 @@ function FinanciamentosListPage() {
       </div>
 
       <SmartTable
-        tableId="financiamentos"
+        tableId="financiamentos-v2"
         columns={columns}
         data={financiamentos}
         isLoading={isLoading}
