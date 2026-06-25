@@ -1108,6 +1108,7 @@ function AddPessoasDialog({
   const [novoTelefone, setNovoTelefone] = useState("");
   const [novoDataNasc, setNovoDataNasc] = useState("");
   const [novoFamiliaId, setNovoFamiliaId] = useState<string>("__none");
+  const [novoTipoUserId, setNovoTipoUserId] = useState<string>("__none");
 
   const { data: pessoas, isLoading: loadingPessoas } = useQuery({
     queryKey: ["pessoas-atribuir"],
@@ -1131,6 +1132,19 @@ function AddPessoasDialog({
         .select("id, nome, status");
       if (error) throw error;
       return data as Array<{ id: string; nome: string; status: string }>;
+    },
+  });
+
+  const { data: tipos } = useQuery({
+    queryKey: ["tipos-user-atribuir"],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tipos_user")
+        .select("id, nome")
+        .order("nome");
+      if (error) throw error;
+      return data as Array<{ id: string; nome: string }>;
     },
   });
 
@@ -1288,6 +1302,7 @@ function AddPessoasDialog({
       if (telefone) insertPessoa.telefone = telefone;
       if (novoDataNasc) insertPessoa.data_nascimento = novoDataNasc;
       if (novoFamiliaId && novoFamiliaId !== "__none") insertPessoa.familia_id = novoFamiliaId;
+      if (novoTipoUserId && novoTipoUserId !== "__none") insertPessoa.tipo_user_id = novoTipoUserId;
       const { data: pessoa, error: pErr } = await supabase
         .from("pessoas")
         .insert(insertPessoa)
@@ -1307,7 +1322,7 @@ function AddPessoasDialog({
       qc.invalidateQueries({ queryKey: ["inscricao-counts"] });
       qc.invalidateQueries({ queryKey: ["pessoas-atribuir"] });
       toast.success("Pessoa criada e inscrita");
-      setNovoNome(""); setNovoEmail(""); setNovoTelefone(""); setNovoDataNasc(""); setNovoFamiliaId("__none");
+      setNovoNome(""); setNovoEmail(""); setNovoTelefone(""); setNovoDataNasc(""); setNovoFamiliaId("__none"); setNovoTipoUserId("__none");
       onOpenChange(false);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -1518,6 +1533,18 @@ function AddPessoasDialog({
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium">Tipo de utilizador</label>
+                <Select value={novoTipoUserId} onValueChange={setNovoTipoUserId}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Sem tipo" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">Sem tipo</SelectItem>
+                    {(tipos ?? []).map((t) => (
+                      <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </TabsContent>
