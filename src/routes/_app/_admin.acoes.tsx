@@ -1332,7 +1332,7 @@ function AddPessoasDialog({
             className="pl-8"
           />
         </div>
-        <Tabs value={tab} onValueChange={(v) => setTab(v as "pessoas" | "familias")} className="flex flex-1 flex-col overflow-hidden">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as "pessoas" | "familias" | "nova")} className="flex flex-1 flex-col overflow-hidden">
           <TabsList className="w-full">
             <TabsTrigger value="pessoas" className="flex-1">Pessoas</TabsTrigger>
             <TabsTrigger value="familias" className="flex-1">Famílias</TabsTrigger>
@@ -1485,12 +1485,21 @@ function AddPessoasDialog({
         </Tabs>
         <SheetFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button
-            disabled={selected.size === 0 || inscrever.isPending}
-            onClick={() => inscrever.mutate(Array.from(selected))}
-          >
-            Inscrever Selecionados ({selected.size})
-          </Button>
+          {tab === "nova" ? (
+            <Button
+              disabled={!novoNome.trim() || criarEInscrever.isPending}
+              onClick={() => criarEInscrever.mutate()}
+            >
+              Criar e inscrever
+            </Button>
+          ) : (
+            <Button
+              disabled={selected.size === 0 || inscrever.isPending}
+              onClick={() => inscrever.mutate(Array.from(selected))}
+            >
+              Inscrever Selecionados ({selected.size})
+            </Button>
+          )}
         </SheetFooter>
       </SheetContent>
     </Sheet>
