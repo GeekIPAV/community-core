@@ -1329,8 +1329,6 @@ function AddPessoasDialog({
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const initials = (nome: string) =>
-  const inscreverRapido = useMutation({
   const inscreverRapido = useMutation({
     mutationFn: async () => {
       const nomes = nomesRapidos
