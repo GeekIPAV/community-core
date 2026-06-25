@@ -89,6 +89,7 @@ export function SmartTable<T>({
   onCellEdit,
   toolbarActions,
   defaultGroupBy,
+  defaultCollapsedGroups,
   onRowClick,
   getRowId,
   className,
@@ -101,7 +102,11 @@ export function SmartTable<T>({
   const [columnSizing, setColumnSizing] = usePersistedSizing(tableId);
   const [editMode, setEditMode] = usePersistedFlag(tableId, "edit", false);
   const [groupBy, setGroupBy] = usePersistedString(tableId, "groupBy", defaultGroupBy ?? "");
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    for (const g of defaultCollapsedGroups ?? []) init[g] = true;
+    return init;
+  });
   const [globalSearch, setGlobalSearch] = useState("");
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
