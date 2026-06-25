@@ -1095,7 +1095,7 @@ function AddPessoasDialog({
   inscritosIds: Set<string>;
 }) {
   const qc = useQueryClient();
-  const [tab, setTab] = useState<"pessoas" | "familias" | "nova">("pessoas");
+  const [tab, setTab] = useState<"pessoas" | "familias" | "nova" | "rapida">("pessoas");
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -1109,6 +1109,7 @@ function AddPessoasDialog({
   const [novoDataNasc, setNovoDataNasc] = useState("");
   const [novoFamiliaId, setNovoFamiliaId] = useState<string>("__none");
   const [novoTipoUserId, setNovoTipoUserId] = useState<string>("__none");
+  const [nomesRapidos, setNomesRapidos] = useState("");
 
   const { data: pessoas, isLoading: loadingPessoas } = useQuery({
     queryKey: ["pessoas-atribuir"],
