@@ -413,6 +413,7 @@ function SessoesTab() {
   }, [rows, filterEstado]);
 
   const [editing, setEditing] = useState<SessaoRow | null>(null);
+  const [creating, setCreating] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -421,14 +422,19 @@ function SessoesTab() {
           <h2 className="text-lg font-semibold">Sessões de Grupo</h2>
           <p className="text-sm text-muted-foreground">Eventos partilhados entre várias colaboradoras (workshops, formações, etc.)</p>
         </div>
-        <Select value={filterEstado} onValueChange={setFilterEstado}>
-          <SelectTrigger className="w-48 h-9"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all">Todas</SelectItem>
-            <SelectItem value="pagas">Todas pagas</SelectItem>
-            <SelectItem value="pendentes">Com pendentes</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Select value={filterEstado} onValueChange={setFilterEstado}>
+            <SelectTrigger className="w-48 h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all">Todas</SelectItem>
+              <SelectItem value="pagas">Todas pagas</SelectItem>
+              <SelectItem value="pendentes">Com pendentes</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button onClick={() => setCreating(true)} className="h-9">
+            <Plus className="mr-2 h-4 w-4" />Nova sessão
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -474,6 +480,12 @@ function SessoesTab() {
       )}
 
       <SessaoEditDialog sessao={editing} onClose={() => setEditing(null)} />
+      <NewSessaoDialog
+        open={creating}
+        onClose={() => setCreating(false)}
+        tipos={tipos ?? []}
+        onCreated={(s) => { setCreating(false); setEditing(s); }}
+      />
     </div>
   );
 }
@@ -481,6 +493,134 @@ function SessoesTab() {
 // =========================================================
 // SESSAO EDIT DIALOG
 // =========================================================
+function NewSessaoDialog({
+  open, onClose, tipos, onCreated,
+}: {
+  open: boolean;
+  onClose: () => void;
+  tipos: { id: string; nome: string; unidade: string; preco_unitario: number }[];
+  onCreated: (s: SessaoRow) => void;
+}) {
+  const qc = useQueryClient();
+  const [nome, setNome] = useState("");
+  const [dataInicio, setDataInicio] = useState("");
+  const [dataFim, setDataFim] = useState("");
+  const [local, setLocal] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [tipoId, setTipoId] = useState("");
+  const [quantidade, setQuantidade] = useState<number>(1);
+  const [precoOverride, setPrecoOverride] = useState<string>("");
+
+  useEffect(() => {
+    if (open) {
+      setNome(""); setDataInicio(""); setDataFim(""); setLocal("");
+      setDescricao(""); setTipoId(""); setQuantidade(1); setPrecoOverride("");
+    }
+  }, [open]);
+
+  const tipo = tipos.find((t) => t.id === tipoId);
+  const precoUnit = precoOverride !== "" ? Number(precoOverride) : (tipo?.preco_unitario ?? 0);
+  const perColab = precoUnit * (Number(quantidade) || 0);
+
+  const create = useMutation({
+    mutationFn: async () => {
+      if (!nome.trim()) throw new Error("Nome obrigatório");
+      if (!dataInicio) throw new Error("Data obrigatória");
+      if (!tipoId) throw new Error("Tipo de serviço obrigatório");
+      const { data, error } = await supabase
+        .from("sessoes_servico")
+        .insert({
+          nome: nome.trim(),
+          data_inicio: dataInicio,
+          data_fim: dataFim || null,
+          local: local.trim() || null,
+          descricao: descricao.trim() || null,
+          tipo_servico_id: tipoId,
+          quantidade_por_colaborador: Number(quantidade) || 1,
+          preco_unitario_override: precoOverride !== "" ? Number(precoOverride) : null,
+        })
+        .select("id, nome, tipo_servico_id, data_inicio, data_fim, local, descricao, quantidade_por_colaborador, preco_unitario_override")
+        .single();
+      if (error) throw error;
+      return data as SessaoRow;
+    },
+    onSuccess: (s) => {
+      toast.success("Sessão criada. Adiciona colaboradoras.");
+      qc.invalidateQueries({ queryKey: ["sessoes_servico_full"] });
+      qc.invalidateQueries({ queryKey: ["sessoes_cal"] });
+      onCreated(s);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Nova sessão de grupo</DialogTitle>
+          <DialogDescription>Cria a sessão com todos os detalhes. Depois adicionas as colaboradoras.</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-2">
+          <div className="grid gap-2">
+            <Label>Nome *</Label>
+            <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Workshop de cidadania" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-2">
+              <Label>Data início *</Label>
+              <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <Label>Data fim</Label>
+              <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <Label>Local</Label>
+            <Input value={local} onChange={(e) => setLocal(e.target.value)} placeholder="Ex: Sede, Sala 2" />
+          </div>
+          <div className="grid gap-2">
+            <Label>Tipo de serviço *</Label>
+            <Select value={tipoId} onValueChange={setTipoId}>
+              <SelectTrigger><SelectValue placeholder="Escolher tipo…" /></SelectTrigger>
+              <SelectContent>
+                {tipos.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>{t.nome} ({fmtEUR(t.preco_unitario)}/{t.unidade})</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-2">
+              <Label>Quantidade por colaboradora</Label>
+              <Input type="number" min={0} step={0.01} value={quantidade} onChange={(e) => setQuantidade(Number(e.target.value))} />
+            </div>
+            <div className="grid gap-2">
+              <Label>Preço unitário (override)</Label>
+              <Input type="number" min={0} step={0.01} value={precoOverride} onChange={(e) => setPrecoOverride(e.target.value)} placeholder={tipo ? String(tipo.preco_unitario) : ""} />
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <Label>Descrição</Label>
+            <Textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={3} />
+          </div>
+          {tipoId && (
+            <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm">
+              Cada colaboradora: <span className="font-semibold tabular-nums">{fmtEUR(perColab)}</span>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={() => create.mutate()} disabled={create.isPending}>
+            {create.isPending ? "A criar…" : "Criar sessão"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function SessaoEditDialog({ sessao, onClose }: { sessao: SessaoRow | null; onClose: () => void }) {
   const qc = useQueryClient();
   const [nome, setNome] = useState("");
