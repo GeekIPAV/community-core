@@ -63,7 +63,10 @@ function DuplicadosPage() {
       .filter((g) => g.matches.length > 0);
   })();
 
-  const refresh = () => qc.invalidateQueries({ queryKey: ["pessoas", "para-duplicados"] });
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["pessoas", "para-duplicados"] });
+    qc.invalidateQueries({ queryKey: ["sidebar-badge", "count_duplicates"] });
+  };
 
   return (
     <div className="space-y-6">
