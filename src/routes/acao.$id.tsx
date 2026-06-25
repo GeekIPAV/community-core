@@ -1054,6 +1054,57 @@ function LoggedInForm({ acao, pessoa, fields, onDone }: { acao: any; pessoa: any
                   />
                 </div>
               )}
+              {selected[m.id] && acao?.bolsa_transporte && (
+                <div className="pl-6 space-y-2">
+                  <label className="flex items-center gap-2 text-xs">
+                    <Checkbox
+                      id={`v-${m.id}`}
+                      checked={!!(valoresPorPessoa[m.id]?._viatura_propria)}
+                      onCheckedChange={(c) =>
+                        setValoresPorPessoa({
+                          ...valoresPorPessoa,
+                          [m.id]: { ...(valoresPorPessoa[m.id] ?? {}), _viatura_propria: c === true },
+                        })
+                      }
+                    />
+                    <Label htmlFor={`v-${m.id}`} className="text-xs font-normal">Vem na sua viatura própria</Label>
+                  </label>
+                  {valoresPorPessoa[m.id]?._viatura_propria && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Km (por sentido)</Label>
+                        <Input
+                          inputMode="decimal"
+                          placeholder="Ex: 45"
+                          value={valoresPorPessoa[m.id]?._viatura_km ?? ""}
+                          onChange={(e) =>
+                            setValoresPorPessoa({
+                              ...valoresPorPessoa,
+                              [m.id]: { ...(valoresPorPessoa[m.id] ?? {}), _viatura_km: e.target.value },
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Matrícula / grupo</Label>
+                        <Input
+                          placeholder="Ex: AA-00-BB"
+                          value={valoresPorPessoa[m.id]?._viatura_grupo ?? ""}
+                          onChange={(e) =>
+                            setValoresPorPessoa({
+                              ...valoresPorPessoa,
+                              [m.id]: { ...(valoresPorPessoa[m.id] ?? {}), _viatura_grupo: e.target.value },
+                            })
+                          }
+                        />
+                      </div>
+                      <p className="col-span-2 text-[11px] text-muted-foreground">
+                        Pessoas com a mesma matrícula contam como um carro — a bolsa de km é paga uma única vez por carro.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             );
           })}
@@ -1063,29 +1114,55 @@ function LoggedInForm({ acao, pessoa, fields, onDone }: { acao: any; pessoa: any
         (() => {
           const items = (agregado ?? [])
             .filter((m: any) => selected[m.id])
-            .map((m: any) => ({ m, cidade: matchCidade(m.cidade_residencia, cidadesBolsa) }));
-          const elegiveis = items.filter((i) => i.cidade);
-          const total = elegiveis.reduce((s, i) => s + i.cidade!.valor_sentido * 2, 0);
+            .map((m: any) => {
+              const v = parseViatura(valoresPorPessoa[m.id]);
+              return { m, cidade: matchCidade(m.cidade_residencia, cidadesBolsa), v };
+            });
+          // Viatura própria: agrupa por matrícula (uma vez por carro)
+          const viaturas = items.filter((i) => i.v.viatura_propria);
+          const cidadeItems = items.filter((i) => !i.v.viatura_propria);
+          const grupos = new Map<string, { km: number; nomes: string[]; grupoLabel: string }>();
+          viaturas.forEach((i, idx) => {
+            const grupoLabel = i.v.viatura_grupo?.trim() || `(sem matrícula ${idx + 1})`;
+            const key = normalizeGrupo(i.v.viatura_grupo) || `__solo_${i.m.id}`;
+            const cur = grupos.get(key) ?? { km: 0, nomes: [], grupoLabel };
+            cur.km = Math.max(cur.km, Number(i.v.viatura_km ?? 0) || 0);
+            cur.nomes.push(i.m.nome_completo);
+            grupos.set(key, cur);
+          });
+          const totalViaturas = Array.from(grupos.values()).reduce((s, g) => s + g.km * KM_RATE * TRIP_FACTOR, 0);
+          const elegiveis = cidadeItems.filter((i) => i.cidade);
+          const totalCidades = elegiveis.reduce((s, i) => s + i.cidade!.valor_sentido * TRIP_FACTOR, 0);
+          const total = totalCidades + totalViaturas;
+          const temAlgo = items.length > 0;
           return (
             <div className="space-y-2 rounded-md border border-primary/30 bg-primary/5 p-3">
               <p className="text-sm font-semibold">Bolsa de transporte</p>
-              {items.length === 0 ? (
+              {!temAlgo ? (
                 <p className="text-xs text-muted-foreground">Seleciona quem queres inscrever para ver o valor da bolsa.</p>
-              ) : elegiveis.length === 0 ? (
+              ) : elegiveis.length === 0 && grupos.size === 0 ? (
                 <p className="text-xs text-muted-foreground">Esta ação tem bolsa de transporte, mas a tua cidade de residência não consta na lista de cidades elegíveis. Atualiza no teu perfil se for o caso.</p>
               ) : (
                 <>
                   <ul className="space-y-1 text-xs">
-                    {items.map(({ m, cidade }) => (
+                    {cidadeItems.map(({ m, cidade }) => (
                       <li key={m.id} className="flex justify-between gap-2">
                         <span>{m.nome_completo}</span>
                         {cidade ? (
                           <span className="text-muted-foreground">
-                            {cidade.nome} · {formatEuro(cidade.valor_sentido)} × 2 = <span className="font-medium text-foreground">{formatEuro(cidade.valor_sentido * 2)}</span>
+                            {cidade.nome} · {formatEuro(cidade.valor_sentido)} × {TRIP_FACTOR} = <span className="font-medium text-foreground">{formatEuro(cidade.valor_sentido * TRIP_FACTOR)}</span>
                           </span>
                         ) : (
                           <span className="text-muted-foreground italic">sem cidade elegível</span>
                         )}
+                      </li>
+                    ))}
+                    {Array.from(grupos.entries()).map(([key, g]) => (
+                      <li key={`car-${key}`} className="flex justify-between gap-2">
+                        <span>🚗 {g.grupoLabel} <span className="text-muted-foreground">({g.nomes.join(", ")})</span></span>
+                        <span className="text-muted-foreground">
+                          {g.km} km · {formatEuro(KM_RATE)}/km × {TRIP_FACTOR} = <span className="font-medium text-foreground">{formatEuro(g.km * KM_RATE * TRIP_FACTOR)}</span>
+                        </span>
                       </li>
                     ))}
                   </ul>
