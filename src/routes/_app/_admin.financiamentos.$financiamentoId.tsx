@@ -281,6 +281,31 @@ function FinanciamentoDetailPage() {
         </div>
       </div>
 
+      {/* Extra details */}
+      <div className="rounded-md border p-4 grid gap-3 sm:grid-cols-3">
+        <FieldText label="Cluster" value={financiamento.cluster ?? ""} onSave={(v) => update.mutate({ cluster: v || null })} />
+        <FieldText label="Centros de custos" value={financiamento.centros_custos ?? ""} onSave={(v) => update.mutate({ centros_custos: v || null })} />
+        <FieldText label="Status (origem)" value={financiamento.status_externo ?? ""} onSave={(v) => update.mutate({ status_externo: v || null })} />
+        <FieldNumber label="Valor aprovado (€)" value={financiamento.aprovado_valor} onSave={(v) => update.mutate({ aprovado_valor: v })} />
+        <FieldNumber label="Orçamento (€)" value={financiamento.orcamento_valor} onSave={(v) => update.mutate({ orcamento_valor: v })} />
+        <FieldSelect label="Incluído no orçamento" value={financiamento.incluido_orcamento ? "Sim" : "Não"} options={["Sim","Não"]} onSave={(v) => update.mutate({ incluido_orcamento: v === "Sim" })} />
+        <FieldText label="Candidatura (URL)" value={financiamento.candidatura_url ?? ""} onSave={(v) => update.mutate({ candidatura_url: v || null })} />
+        <FieldText label="Contrato (URL)" value={financiamento.contrato_url ?? ""} onSave={(v) => update.mutate({ contrato_url: v || null })} />
+        <FieldText label="Distribuição (URL)" value={financiamento.distribuicao_url ?? ""} onSave={(v) => update.mutate({ distribuicao_url: v || null })} />
+        <div className="sm:col-span-3 space-y-1">
+          <Label className="text-xs">Métricas</Label>
+          <TextareaInline value={financiamento.metricas ?? ""} onSave={(v) => update.mutate({ metricas: v || null })} />
+        </div>
+        <div className="sm:col-span-3 space-y-1">
+          <Label className="text-xs">Obrigações</Label>
+          <TextareaInline value={financiamento.obrigacoes ?? ""} onSave={(v) => update.mutate({ obrigacoes: v || null })} />
+        </div>
+        <div className="sm:col-span-3 space-y-1">
+          <Label className="text-xs">Mais informações</Label>
+          <TextareaInline value={financiamento.mais_informacoes ?? ""} onSave={(v) => update.mutate({ mais_informacoes: v || null })} />
+        </div>
+      </div>
+
       {/* Summary */}
       <div className="grid gap-3 sm:grid-cols-4">
         <StatCard label="Indicadores" value={total} />
