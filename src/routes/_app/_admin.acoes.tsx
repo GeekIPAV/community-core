@@ -1095,7 +1095,7 @@ function AddPessoasDialog({
   inscritosIds: Set<string>;
 }) {
   const qc = useQueryClient();
-  const [tab, setTab] = useState<"pessoas" | "familias">("pessoas");
+  const [tab, setTab] = useState<"pessoas" | "familias" | "nova">("pessoas");
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -1103,6 +1103,11 @@ function AddPessoasDialog({
   const [cidadeFilter, setCidadeFilter] = useState<string>("__all");
   const [statusPessoaFilter, setStatusPessoaFilter] = useState<string>("ativo");
   const [statusFamiliaFilter, setStatusFamiliaFilter] = useState<string>("__all");
+  const [novoNome, setNovoNome] = useState("");
+  const [novoEmail, setNovoEmail] = useState("");
+  const [novoTelefone, setNovoTelefone] = useState("");
+  const [novoDataNasc, setNovoDataNasc] = useState("");
+  const [novoFamiliaId, setNovoFamiliaId] = useState<string>("__none");
 
   const { data: pessoas, isLoading: loadingPessoas } = useQuery({
     queryKey: ["pessoas-atribuir"],
@@ -1269,6 +1274,45 @@ function AddPessoasDialog({
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const criarEInscrever = useMutation({
+    mutationFn: async () => {
+      const nome = novoNome.trim();
+      if (!nome) throw new Error("Nome é obrigatório");
+      const insertPessoa: any = {
+        nome_completo: nome,
+        status: "ativo",
+      };
+      const email = novoEmail.trim();
+      const telefone = novoTelefone.trim();
+      if (email) insertPessoa.email = email;
+      if (telefone) insertPessoa.telefone = telefone;
+      if (novoDataNasc) insertPessoa.data_nascimento = novoDataNasc;
+      if (novoFamiliaId && novoFamiliaId !== "__none") insertPessoa.familia_id = novoFamiliaId;
+      const { data: pessoa, error: pErr } = await supabase
+        .from("pessoas")
+        .insert(insertPessoa)
+        .select("id")
+        .single();
+      if (pErr) throw pErr;
+      const { error: iErr } = await supabase.from("inscricoes").insert({
+        pessoa_id: pessoa.id,
+        acao_id: acaoId,
+        status: "confirmada" as const,
+        valores_dinamicos: {},
+      } as any);
+      if (iErr) throw iErr;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["inscricoes", acaoId] });
+      qc.invalidateQueries({ queryKey: ["inscricao-counts"] });
+      qc.invalidateQueries({ queryKey: ["pessoas-atribuir"] });
+      toast.success("Pessoa criada e inscrita");
+      setNovoNome(""); setNovoEmail(""); setNovoTelefone(""); setNovoDataNasc(""); setNovoFamiliaId("__none");
+      onOpenChange(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const initials = (nome: string) =>
     nome.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("");
 
@@ -1288,10 +1332,11 @@ function AddPessoasDialog({
             className="pl-8"
           />
         </div>
-        <Tabs value={tab} onValueChange={(v) => setTab(v as "pessoas" | "familias")} className="flex flex-1 flex-col overflow-hidden">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as "pessoas" | "familias" | "nova")} className="flex flex-1 flex-col overflow-hidden">
           <TabsList className="w-full">
             <TabsTrigger value="pessoas" className="flex-1">Pessoas</TabsTrigger>
             <TabsTrigger value="familias" className="flex-1">Famílias</TabsTrigger>
+            <TabsTrigger value="nova" className="flex-1">Nova pessoa</TabsTrigger>
           </TabsList>
           <TabsContent value="pessoas" className="flex-1 overflow-hidden">
             <div className="flex flex-wrap items-center gap-2 py-2">
@@ -1437,15 +1482,63 @@ function AddPessoasDialog({
               )}
             </ScrollArea>
           </TabsContent>
+          <TabsContent value="nova" className="flex-1 overflow-auto">
+            <div className="space-y-3 py-2">
+              <p className="text-xs text-muted-foreground">
+                Cria um novo participante na base de dados e inscreve-o automaticamente nesta ação.
+              </p>
+              <div className="space-y-1">
+                <label className="text-xs font-medium">Nome completo *</label>
+                <Input value={novoNome} onChange={(e) => setNovoNome(e.target.value)} placeholder="Nome" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Email</label>
+                  <Input type="email" value={novoEmail} onChange={(e) => setNovoEmail(e.target.value)} placeholder="email@exemplo.com" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Telefone</label>
+                  <Input value={novoTelefone} onChange={(e) => setNovoTelefone(e.target.value)} placeholder="912 345 678" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Data de nascimento</label>
+                  <Input type="date" value={novoDataNasc} onChange={(e) => setNovoDataNasc(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Família</label>
+                  <Select value={novoFamiliaId} onValueChange={setNovoFamiliaId}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Sem família" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">Sem família</SelectItem>
+                      {(familias ?? []).slice().sort((a, b) => a.nome.localeCompare(b.nome)).map((f) => (
+                        <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
         </Tabs>
         <SheetFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button
-            disabled={selected.size === 0 || inscrever.isPending}
-            onClick={() => inscrever.mutate(Array.from(selected))}
-          >
-            Inscrever Selecionados ({selected.size})
-          </Button>
+          {tab === "nova" ? (
+            <Button
+              disabled={!novoNome.trim() || criarEInscrever.isPending}
+              onClick={() => criarEInscrever.mutate()}
+            >
+              Criar e inscrever
+            </Button>
+          ) : (
+            <Button
+              disabled={selected.size === 0 || inscrever.isPending}
+              onClick={() => inscrever.mutate(Array.from(selected))}
+            >
+              Inscrever Selecionados ({selected.size})
+            </Button>
+          )}
         </SheetFooter>
       </SheetContent>
     </Sheet>
