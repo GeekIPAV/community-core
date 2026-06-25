@@ -31,3 +31,29 @@ export function matchCidade(cidadeResidencia: string | null | undefined, cidades
 export function formatEuro(v: number): string {
   return `${v.toFixed(2).replace(".", ",")}€`;
 }
+
+// Valor pago por km percorrido com viatura própria (por sentido).
+export const KM_RATE = 0.36;
+// As bolsas são calculadas para ida e volta.
+export const TRIP_FACTOR = 2;
+
+export type ViaturaInfo = {
+  viatura_propria?: boolean;
+  viatura_km?: number | string | null;
+  viatura_grupo?: string | null;
+};
+
+export function parseViatura(valores: any): ViaturaInfo {
+  if (!valores || typeof valores !== "object") return {};
+  const km = valores._viatura_km;
+  const kmNum = typeof km === "number" ? km : km != null ? Number(String(km).replace(",", ".")) : NaN;
+  return {
+    viatura_propria: !!valores._viatura_propria,
+    viatura_km: Number.isFinite(kmNum) ? kmNum : null,
+    viatura_grupo: valores._viatura_grupo ? String(valores._viatura_grupo) : null,
+  };
+}
+
+export function normalizeGrupo(s: string | null | undefined): string {
+  return (s ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
