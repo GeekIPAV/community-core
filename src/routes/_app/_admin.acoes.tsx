@@ -1482,6 +1482,45 @@ function AddPessoasDialog({
               )}
             </ScrollArea>
           </TabsContent>
+          <TabsContent value="nova" className="flex-1 overflow-auto">
+            <div className="space-y-3 py-2">
+              <p className="text-xs text-muted-foreground">
+                Cria um novo participante na base de dados e inscreve-o automaticamente nesta ação.
+              </p>
+              <div className="space-y-1">
+                <label className="text-xs font-medium">Nome completo *</label>
+                <Input value={novoNome} onChange={(e) => setNovoNome(e.target.value)} placeholder="Nome" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Email</label>
+                  <Input type="email" value={novoEmail} onChange={(e) => setNovoEmail(e.target.value)} placeholder="email@exemplo.com" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Telefone</label>
+                  <Input value={novoTelefone} onChange={(e) => setNovoTelefone(e.target.value)} placeholder="912 345 678" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Data de nascimento</label>
+                  <Input type="date" value={novoDataNasc} onChange={(e) => setNovoDataNasc(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Família</label>
+                  <Select value={novoFamiliaId} onValueChange={setNovoFamiliaId}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Sem família" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">Sem família</SelectItem>
+                      {(familias ?? []).slice().sort((a, b) => a.nome.localeCompare(b.nome)).map((f) => (
+                        <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
         </Tabs>
         <SheetFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
