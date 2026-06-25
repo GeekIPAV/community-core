@@ -1109,6 +1109,10 @@ function AddPessoasDialog({
   const [novoDataNasc, setNovoDataNasc] = useState("");
   const [novoFamiliaId, setNovoFamiliaId] = useState<string>("__none");
   const [novoTipoUserId, setNovoTipoUserId] = useState<string>("__none");
+  const [novoNacionalidade, setNovoNacionalidade] = useState("");
+  const [novoReligiao, setNovoReligiao] = useState("");
+  const [novoNotas, setNovoNotas] = useState("");
+  const [novaFamiliaNome, setNovaFamiliaNome] = useState("");
   const [nomesRapidos, setNomesRapidos] = useState("");
 
   const { data: pessoas, isLoading: loadingPessoas } = useQuery({
