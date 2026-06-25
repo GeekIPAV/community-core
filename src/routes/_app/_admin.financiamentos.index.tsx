@@ -179,41 +179,11 @@ function FinanciamentosListPage() {
       cell: ({ getValue }) => <Badge variant="secondary">{String(getValue() ?? "")}</Badge>,
     },
     {
-      id: "cluster",
-      accessorKey: "cluster",
-      header: "Cluster",
-      size: 160,
-      meta: { label: "Cluster", filterVariant: "text", hideOnMobile: true },
-      cell: ({ getValue }) => (
-        <span className="text-sm">{(getValue() as string) ?? "—"}</span>
-      ),
-    },
-    {
       id: "valor_total",
       accessorKey: "valor_total",
       header: "Valor",
       size: 130,
       meta: { label: "Valor", filterVariant: "number" },
-      cell: ({ getValue }) => (
-        <span className="tabular-nums">{formatEuro(getValue() as number | null)}</span>
-      ),
-    },
-    {
-      id: "aprovado_valor",
-      accessorKey: "aprovado_valor",
-      header: "Aprovado",
-      size: 130,
-      meta: { label: "Aprovado", filterVariant: "number", hideOnMobile: true },
-      cell: ({ getValue }) => (
-        <span className="tabular-nums">{formatEuro(getValue() as number | null)}</span>
-      ),
-    },
-    {
-      id: "orcamento_valor",
-      accessorKey: "orcamento_valor",
-      header: "Orçamento",
-      size: 130,
-      meta: { label: "Orçamento", filterVariant: "number", hideOnMobile: true },
       cell: ({ getValue }) => (
         <span className="tabular-nums">{formatEuro(getValue() as number | null)}</span>
       ),
@@ -239,29 +209,6 @@ function FinanciamentosListPage() {
         const v = getValue() as Financiamento["estado"];
         return <Badge variant={estadoVariant(v)} className="font-normal">{v}</Badge>;
       },
-    },
-    {
-      id: "status_externo",
-      accessorKey: "status_externo",
-      header: "Status (origem)",
-      size: 140,
-      meta: { label: "Status (origem)", filterVariant: "text", hideOnMobile: true },
-      cell: ({ getValue }) => {
-        const v = getValue() as string | null;
-        return v ? <Badge variant="outline" className="font-normal">{v}</Badge> : <span className="text-muted-foreground">—</span>;
-      },
-    },
-    {
-      id: "incluido_orcamento",
-      accessorKey: "incluido_orcamento",
-      header: "No orçamento",
-      size: 110,
-      meta: { label: "No orçamento", hideOnMobile: true },
-      cell: ({ getValue }) => (
-        <Badge variant={(getValue() as boolean) ? "default" : "outline"} className="font-normal">
-          {(getValue() as boolean) ? "Sim" : "Não"}
-        </Badge>
-      ),
     },
     {
       id: "projetos",
@@ -331,6 +278,7 @@ function FinanciamentosListPage() {
         columns={columns}
         data={financiamentos}
         isLoading={isLoading}
+        defaultGroupBy="estado"
         onRowClick={(r) => navigate({ to: "/financiamentos/$financiamentoId", params: { financiamentoId: r.id } })}
         toolbarActions={
           <Button size="sm" onClick={openNew} className="h-9">
