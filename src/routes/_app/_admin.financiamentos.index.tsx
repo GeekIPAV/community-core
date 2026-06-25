@@ -445,36 +445,6 @@ export function FinanciamentoDialog({
             <Label>Responsável</Label>
             <Input value={form.responsavel ?? ""} onChange={(e) => set("responsavel", e.target.value || null)} />
           </div>
-          <div className="space-y-1">
-            <Label>Cluster</Label>
-            <Input value={form.cluster ?? ""} onChange={(e) => set("cluster", e.target.value || null)} />
-          </div>
-          <div className="space-y-1">
-            <Label>Centros de custos</Label>
-            <Input value={form.centros_custos ?? ""} onChange={(e) => set("centros_custos", e.target.value || null)} />
-          </div>
-          <div className="space-y-1">
-            <Label>Valor aprovado (€)</Label>
-            <Input type="number" value={form.aprovado_valor ?? ""} onChange={(e) => set("aprovado_valor", e.target.value ? Number(e.target.value) : null)} />
-          </div>
-          <div className="space-y-1">
-            <Label>Orçamento (€)</Label>
-            <Input type="number" value={form.orcamento_valor ?? ""} onChange={(e) => set("orcamento_valor", e.target.value ? Number(e.target.value) : null)} />
-          </div>
-          <div className="space-y-1">
-            <Label>Status (origem)</Label>
-            <Input value={form.status_externo ?? ""} onChange={(e) => set("status_externo", e.target.value || null)} placeholder="Done, In progress…" />
-          </div>
-          <div className="space-y-1 flex flex-col">
-            <Label>Incluído no orçamento</Label>
-            <Select value={form.incluido_orcamento ? "yes" : "no"} onValueChange={(v) => set("incluido_orcamento", v === "yes")}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="yes">Sim</SelectItem>
-                <SelectItem value="no">Não</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
           <div className="col-span-2 space-y-1">
             <Label>Candidatura (URL)</Label>
             <Input value={form.candidatura_url ?? ""} onChange={(e) => set("candidatura_url", e.target.value || null)} />
@@ -482,10 +452,6 @@ export function FinanciamentoDialog({
           <div className="col-span-2 space-y-1">
             <Label>Contrato (URL)</Label>
             <Input value={form.contrato_url ?? ""} onChange={(e) => set("contrato_url", e.target.value || null)} />
-          </div>
-          <div className="col-span-2 space-y-1">
-            <Label>Distribuição (URL)</Label>
-            <Input value={form.distribuicao_url ?? ""} onChange={(e) => set("distribuicao_url", e.target.value || null)} />
           </div>
           <div className="col-span-2 space-y-1">
             <Label>Métricas</Label>
