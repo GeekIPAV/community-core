@@ -1331,6 +1331,7 @@ function AddPessoasDialog({
 
   const initials = (nome: string) =>
   const inscreverRapido = useMutation({
+  const inscreverRapido = useMutation({
     mutationFn: async () => {
       const nomes = nomesRapidos
         .split(/\r?\n|,/)
