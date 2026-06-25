@@ -718,46 +718,82 @@ export type Database = {
       }
       financiamentos: {
         Row: {
+          aprovado_valor: number | null
+          candidatura_url: string | null
+          centros_custos: string | null
+          cluster: string | null
+          contrato_url: string | null
           created_at: string
           data_fim: string | null
           data_inicio: string | null
+          distribuicao_url: string | null
           estado: string
           financiador: string
           id: string
+          incluido_orcamento: boolean | null
+          mais_informacoes: string | null
+          metricas: string | null
           nome: string
           notas: string | null
+          obrigacoes: string | null
+          orcamento_valor: number | null
           referencia: string | null
           responsavel: string | null
+          status_externo: string | null
           tipo: string
           updated_at: string
           valor_total: number | null
         }
         Insert: {
+          aprovado_valor?: number | null
+          candidatura_url?: string | null
+          centros_custos?: string | null
+          cluster?: string | null
+          contrato_url?: string | null
           created_at?: string
           data_fim?: string | null
           data_inicio?: string | null
+          distribuicao_url?: string | null
           estado?: string
           financiador: string
           id?: string
+          incluido_orcamento?: boolean | null
+          mais_informacoes?: string | null
+          metricas?: string | null
           nome: string
           notas?: string | null
+          obrigacoes?: string | null
+          orcamento_valor?: number | null
           referencia?: string | null
           responsavel?: string | null
+          status_externo?: string | null
           tipo: string
           updated_at?: string
           valor_total?: number | null
         }
         Update: {
+          aprovado_valor?: number | null
+          candidatura_url?: string | null
+          centros_custos?: string | null
+          cluster?: string | null
+          contrato_url?: string | null
           created_at?: string
           data_fim?: string | null
           data_inicio?: string | null
+          distribuicao_url?: string | null
           estado?: string
           financiador?: string
           id?: string
+          incluido_orcamento?: boolean | null
+          mais_informacoes?: string | null
+          metricas?: string | null
           nome?: string
           notas?: string | null
+          obrigacoes?: string | null
+          orcamento_valor?: number | null
           referencia?: string | null
           responsavel?: string | null
+          status_externo?: string | null
           tipo?: string
           updated_at?: string
           valor_total?: number | null
