@@ -1297,6 +1297,20 @@ function AddPessoasDialog({
     mutationFn: async () => {
       const nome = novoNome.trim();
       if (!nome) throw new Error("Nome é obrigatório");
+      let familiaIdFinal: string | null = null;
+      if (novoFamiliaId === "__new") {
+        const nomeFam = novaFamiliaNome.trim();
+        if (!nomeFam) throw new Error("Nome da nova família é obrigatório");
+        const { data: fam, error: fErr } = await supabase
+          .from("familias")
+          .insert({ nome: nomeFam } as any)
+          .select("id")
+          .single();
+        if (fErr) throw fErr;
+        familiaIdFinal = fam.id;
+      } else if (novoFamiliaId && novoFamiliaId !== "__none") {
+        familiaIdFinal = novoFamiliaId;
+      }
       const insertPessoa: any = {
         nome_completo: nome,
         status: "ativo",
@@ -1306,8 +1320,11 @@ function AddPessoasDialog({
       if (email) insertPessoa.email = email;
       if (telefone) insertPessoa.telefone = telefone;
       if (novoDataNasc) insertPessoa.data_nascimento = novoDataNasc;
-      if (novoFamiliaId && novoFamiliaId !== "__none") insertPessoa.familia_id = novoFamiliaId;
+      if (familiaIdFinal) insertPessoa.familia_id = familiaIdFinal;
       if (novoTipoUserId && novoTipoUserId !== "__none") insertPessoa.tipo_user_id = novoTipoUserId;
+      if (novoNacionalidade.trim()) insertPessoa.nacionalidade = novoNacionalidade.trim();
+      if (novoReligiao.trim()) insertPessoa.religiao = novoReligiao.trim();
+      if (novoNotas.trim()) insertPessoa.notas = novoNotas.trim();
       const { data: pessoa, error: pErr } = await supabase
         .from("pessoas")
         .insert(insertPessoa)
@@ -1326,8 +1343,11 @@ function AddPessoasDialog({
       qc.invalidateQueries({ queryKey: ["inscricoes", acaoId] });
       qc.invalidateQueries({ queryKey: ["inscricao-counts"] });
       qc.invalidateQueries({ queryKey: ["pessoas-atribuir"] });
+      qc.invalidateQueries({ queryKey: ["familias-atribuir"] });
       toast.success("Pessoa criada e inscrita");
-      setNovoNome(""); setNovoEmail(""); setNovoTelefone(""); setNovoDataNasc(""); setNovoFamiliaId("__none"); setNovoTipoUserId("__none");
+      setNovoNome(""); setNovoEmail(""); setNovoTelefone(""); setNovoDataNasc("");
+      setNovoFamiliaId("__none"); setNovoTipoUserId("__none");
+      setNovoNacionalidade(""); setNovoReligiao(""); setNovoNotas(""); setNovaFamiliaNome("");
       onOpenChange(false);
     },
     onError: (e: Error) => toast.error(e.message),
