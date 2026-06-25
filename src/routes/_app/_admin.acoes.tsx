@@ -1586,6 +1586,7 @@ function AddPessoasDialog({
                     <SelectTrigger className="h-9"><SelectValue placeholder="Sem família" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none">Sem família</SelectItem>
+                      <SelectItem value="__new">+ Criar nova família…</SelectItem>
                       {(familias ?? []).slice().sort((a, b) => a.nome.localeCompare(b.nome)).map((f) => (
                         <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
                       ))}
@@ -1593,6 +1594,16 @@ function AddPessoasDialog({
                   </Select>
                 </div>
               </div>
+              {novoFamiliaId === "__new" && (
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Nome da nova família *</label>
+                  <Input
+                    value={novaFamiliaNome}
+                    onChange={(e) => setNovaFamiliaNome(e.target.value)}
+                    placeholder="Ex: Família Silva"
+                  />
+                </div>
+              )}
               <div className="space-y-1">
                 <label className="text-xs font-medium">Tipo de utilizador</label>
                 <Select value={novoTipoUserId} onValueChange={setNovoTipoUserId}>
@@ -1604,6 +1615,33 @@ function AddPessoasDialog({
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Nacionalidade</label>
+                  <Input
+                    value={novoNacionalidade}
+                    onChange={(e) => setNovoNacionalidade(e.target.value)}
+                    placeholder="Ex: Portuguesa"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Religião</label>
+                  <Input
+                    value={novoReligiao}
+                    onChange={(e) => setNovoReligiao(e.target.value)}
+                    placeholder="Ex: Católica"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium">Notas</label>
+                <Textarea
+                  value={novoNotas}
+                  onChange={(e) => setNovoNotas(e.target.value)}
+                  placeholder="Notas adicionais sobre a pessoa"
+                  className="min-h-[80px]"
+                />
               </div>
             </div>
           </TabsContent>
