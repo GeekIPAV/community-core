@@ -98,7 +98,9 @@ function BolsasTransportePage() {
         <div>
           <h1 className="text-2xl font-semibold">Bolsa de Transporte</h1>
           <p className="text-sm text-muted-foreground">
-            Valor por sentido (€) pago a cada participante de uma ação elegível. O total na inscrição é calculado como <span className="font-medium">valor × 2 × nº de pessoas</span>.
+            Valor por sentido (€) pago a cada participante de uma ação elegível — total = <span className="font-medium">valor × 2 × nº de pessoas</span>.
+            <br />
+            Em alternativa, quem vier na sua viatura própria recebe <span className="font-medium">0,36€/km × 2</span> (ida e volta), pago <span className="font-medium">uma vez por carro</span> (agrupado por matrícula).
           </p>
         </div>
         <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) setForm({ nome: "", valor: "", ativo: true }); }}>

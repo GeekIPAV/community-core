@@ -34,7 +34,7 @@ import { AdvancedTableFilters, advancedFilterFn, type ColumnFilterMeta } from "@
 import { DataTableViewOptions } from "@/components/data-table-view-options";
 import { DraggableTableHeaders } from "@/components/draggable-table-headers";
 import { useMobileColumnVisibility } from "@/hooks/use-mobile-columns";
-import { matchCidade, formatEuro, type CidadeBolsa } from "@/lib/bolsa-transporte";
+import { matchCidade, formatEuro, type CidadeBolsa, KM_RATE, TRIP_FACTOR, parseViatura, normalizeGrupo } from "@/lib/bolsa-transporte";
 import { ChevronDown } from "lucide-react";
 import { AcoesPlaneamento } from "@/components/acoes-planeamento";
 import { useServerFn } from "@tanstack/react-start";
@@ -1714,7 +1714,7 @@ function BolsaTab({ acaoId }: { acaoId: string }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("inscricoes")
-        .select("id, status, pessoa:pessoas(id, nome_completo, cidade_residencia, familia:familias!pessoas_familia_id_fkey(id, nome))")
+        .select("id, status, valores_dinamicos, pessoa:pessoas(id, nome_completo, cidade_residencia, familia:familias!pessoas_familia_id_fkey(id, nome))")
         .eq("acao_id", acaoId)
         .neq("status", "cancelada");
       if (error) throw error;
@@ -1725,8 +1725,9 @@ function BolsaTab({ acaoId }: { acaoId: string }) {
   if (isLoading || !cidades) return <Skeleton className="h-40 w-full" />;
 
   const rows = (inscricoes ?? []).map((r: any) => {
-    const cidade = matchCidade(r.pessoa?.cidade_residencia, cidades);
-    const valor = cidade ? cidade.valor_sentido * 2 : 0;
+    const v = parseViatura(r.valores_dinamicos);
+    const cidade = v.viatura_propria ? null : matchCidade(r.pessoa?.cidade_residencia, cidades);
+    const valor = cidade ? cidade.valor_sentido * TRIP_FACTOR : 0;
     return {
       id: r.id,
       nome: r.pessoa?.nome_completo ?? "—",
@@ -1734,11 +1735,26 @@ function BolsaTab({ acaoId }: { acaoId: string }) {
       cidadeResidencia: r.pessoa?.cidade_residencia ?? "",
       cidade,
       valor,
+      viatura: v,
     };
   });
 
   const elegiveis = rows.filter((r) => r.cidade);
-  const total = elegiveis.reduce((s, r) => s + r.valor, 0);
+  // Viaturas próprias agrupadas por matrícula → uma vez por carro
+  const viaturaRows = rows.filter((r) => r.viatura.viatura_propria);
+  const grupos = new Map<string, { km: number; nomes: string[]; grupoLabel: string; ids: string[] }>();
+  viaturaRows.forEach((r, idx) => {
+    const grupoLabel = r.viatura.viatura_grupo?.trim() || `(sem matrícula ${idx + 1})`;
+    const key = normalizeGrupo(r.viatura.viatura_grupo) || `__solo_${r.id}`;
+    const cur = grupos.get(key) ?? { km: 0, nomes: [], grupoLabel, ids: [] };
+    cur.km = Math.max(cur.km, Number(r.viatura.viatura_km ?? 0) || 0);
+    cur.nomes.push(r.nome);
+    cur.ids.push(r.id);
+    grupos.set(key, cur);
+  });
+  const totalViaturas = Array.from(grupos.values()).reduce((s, g) => s + g.km * KM_RATE * TRIP_FACTOR, 0);
+  const totalCidades = elegiveis.reduce((s, r) => s + r.valor, 0);
+  const total = totalCidades + totalViaturas;
   const porCidade = new Map<string, { count: number; total: number }>();
   for (const r of elegiveis) {
     const key = r.cidade!.nome;
@@ -1763,10 +1779,31 @@ function BolsaTab({ acaoId }: { acaoId: string }) {
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-3">
-        <Card><CardHeader className="pb-2"><CardDescription>Elegíveis</CardDescription><CardTitle className="text-2xl">{elegiveis.length}</CardTitle></CardHeader></Card>
+        <Card><CardHeader className="pb-2"><CardDescription>Elegíveis (cidade)</CardDescription><CardTitle className="text-2xl">{elegiveis.length}</CardTitle></CardHeader></Card>
         <Card><CardHeader className="pb-2"><CardDescription>Total inscritos</CardDescription><CardTitle className="text-2xl">{rows.length}</CardTitle></CardHeader></Card>
         <Card><CardHeader className="pb-2"><CardDescription>Total a pagar</CardDescription><CardTitle className="text-2xl">{formatEuro(total)}</CardTitle></CardHeader></Card>
       </div>
+
+      {grupos.size > 0 && (
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Viaturas próprias</CardTitle><CardDescription>{formatEuro(KM_RATE)}/km · ida e volta · pago uma vez por carro</CardDescription></CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader><TableRow><TableHead>Matrícula / grupo</TableHead><TableHead>Ocupantes</TableHead><TableHead className="text-right">Km</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {Array.from(grupos.entries()).map(([key, g]) => (
+                  <TableRow key={key}>
+                    <TableCell className="font-medium">{g.grupoLabel}</TableCell>
+                    <TableCell className="text-muted-foreground">{g.nomes.join(", ")}</TableCell>
+                    <TableCell className="text-right">{g.km}</TableCell>
+                    <TableCell className="text-right font-medium">{formatEuro(g.km * KM_RATE * TRIP_FACTOR)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       {porCidade.size > 0 && (
         <Card>
