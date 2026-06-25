@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Car } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/_admin/bolsas-transporte")({
@@ -99,8 +100,6 @@ function BolsasTransportePage() {
           <h1 className="text-2xl font-semibold">Bolsa de Transporte</h1>
           <p className="text-sm text-muted-foreground">
             Valor por sentido (€) pago a cada participante de uma ação elegível — total = <span className="font-medium">valor × 2 × nº de pessoas</span>.
-            <br />
-            Em alternativa, quem vier na sua viatura própria recebe <span className="font-medium">0,36€/km × 2</span> (ida e volta), pago <span className="font-medium">uma vez por carro</span> (agrupado por matrícula).
           </p>
         </div>
         <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) setForm({ nome: "", valor: "", ativo: true }); }}>
@@ -125,6 +124,16 @@ function BolsasTransportePage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+      </div>
+
+      <div className="flex items-start gap-3 rounded-md border border-primary/20 bg-primary/5 p-4 text-sm">
+        <Car className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+        <div>
+          <p className="font-medium">Viatura própria</p>
+          <p className="text-muted-foreground">
+            Quem vier na sua viatura própria recebe <span className="font-medium text-foreground">0,36€/km × 2</span> (ida e volta), pago <span className="font-medium text-foreground">uma vez por carro</span> — pessoas com a mesma matrícula contam como um único carro.
+          </p>
+        </div>
       </div>
 
       {isLoading ? (
