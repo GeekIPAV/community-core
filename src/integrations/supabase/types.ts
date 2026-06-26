@@ -2234,6 +2234,7 @@ export type Database = {
       convite_validar: { Args: { p_token: string }; Returns: Json }
       count_casos_novos: { Args: never; Returns: number }
       count_duplicates: { Args: never; Returns: number }
+      count_relatorios_pendentes: { Args: never; Returns: number }
       current_user_familia_id: { Args: never; Returns: string }
       current_user_pessoa_id: { Args: never; Returns: string }
       fundir_perfis: {
