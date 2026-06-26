@@ -423,6 +423,39 @@ function TituloInline({ value, onSave }: { value: string; onSave: (v: string) =>
   );
 }
 
+function ProjetosEditor({
+  relatorio, onPatch,
+}: { relatorio: Relatorio; onPatch: (p: Partial<Relatorio>) => void }) {
+  const { data: projetos } = useQuery({
+    queryKey: ["projetos-lista-min"],
+    queryFn: async () => {
+      const { data } = await supabase.from("projetos").select("id, nome").order("nome");
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+  });
+  const ids = relatorio.projeto_ids?.length ? relatorio.projeto_ids : (relatorio.projeto_id ? [relatorio.projeto_id] : []);
+  return (
+    <div className="rounded-lg border bg-card/40 p-3 flex flex-wrap items-center gap-3" data-print-hide="true">
+      <div className="flex-1 min-w-[220px]">
+        <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Projetos abrangidos</Label>
+        <InlineMultiSelect
+          values={relatorio.geral ? [] : ids}
+          options={(projetos ?? []).map((p) => ({ value: p.id, label: p.nome }))}
+          onSave={(v) => onPatch({ projeto_ids: v, projeto_id: v[0] ?? null, geral: false } as any)}
+          placeholder={relatorio.geral ? "Todos os projetos da organização" : "Sem projetos"}
+        />
+      </div>
+      <label className="flex items-center gap-2 text-xs">
+        <Checkbox
+          checked={relatorio.geral}
+          onCheckedChange={(v) => onPatch({ geral: !!v, projeto_ids: v ? [] : ids, projeto_id: v ? null : (ids[0] ?? null) } as any)}
+        />
+        Relatório geral (toda a organização)
+      </label>
+    </div>
+  );
+}
+
 function SavingIndicator({ saving }: { saving: boolean }) {
   if (saving) {
     return (
