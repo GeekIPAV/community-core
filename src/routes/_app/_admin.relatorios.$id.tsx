@@ -274,6 +274,11 @@ function RelatorioEditorPage() {
               {relatorio.data_submissao_prevista && (
                 <span>· Submissão prevista: {fmtDate(relatorio.data_submissao_prevista)}</span>
               )}
+              {relatorio.geral
+                ? <Badge variant="default" className="font-normal">Geral — toda a organização</Badge>
+                : relProjetoIds.length > 0
+                  ? <Badge variant="outline" className="font-normal">{relProjetoIds.length} projeto(s)</Badge>
+                  : <Badge variant="outline" className="font-normal text-muted-foreground">Sem projetos</Badge>}
             </div>
           </div>
 
@@ -317,6 +322,7 @@ function RelatorioEditorPage() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_18rem] gap-6">
         {/* DOCUMENTO */}
         <div data-relatorio-doc className="space-y-2">
+          <ProjetosEditor relatorio={relatorio} onPatch={(p) => patchRelatorio.mutate(p)} />
           {orderedSecoes.length === 0 && (
             <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
               Este relatório ainda não tem secções.
@@ -333,6 +339,7 @@ function RelatorioEditorPage() {
                 index={idx}
                 total={orderedSecoes.length}
                 relatorio={relatorio}
+                relProjetoIds={relProjetoIds}
                 onPatch={(patch) => patchSecao.mutate({ secaoId: s.id, patch })}
                 onDelete={() => deleteSecao.mutate(s.id)}
                 onDuplicate={() => duplicateSecao.mutate(s)}
@@ -350,7 +357,12 @@ function RelatorioEditorPage() {
 
         {/* DATA PANEL */}
         <div className="lg:sticky lg:top-24 lg:self-start">
-          <RelatorioDataPanel inicio={relatorio.periodo_inicio} fim={relatorio.periodo_fim} />
+          <RelatorioDataPanel
+            inicio={relatorio.periodo_inicio}
+            fim={relatorio.periodo_fim}
+            projetoIds={relProjetoIds}
+            geral={relatorio.geral}
+          />
         </div>
       </div>
 
