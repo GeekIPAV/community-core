@@ -475,7 +475,8 @@ export function FamilyDetailDialog({
 
   const { data: acoesFamilia, isLoading: loadingAcoesFamilia } = useQuery({
     queryKey: ["familias", "acoes", family?.id],
-    enabled: !!family && !!membros,
+    enabled: !!family && membros !== undefined,
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const ids = (membros ?? []).map((m) => m.id);
       if (ids.length === 0)
