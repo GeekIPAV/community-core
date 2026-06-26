@@ -31,9 +31,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, ClipboardCopy, RefreshCw, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, ClipboardCopy, RefreshCw, Plus, Trash2, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { InlineMultiSelect } from "@/components/inline-edit";
+import { RelatorioNovoSheet } from "@/components/relatorios/relatorio-novo-sheet";
 import {
   ResponsiveContainer,
   BarChart,
@@ -145,6 +146,7 @@ function FinanciamentoDetailPage() {
   });
 
   const [values, setValues] = useState<Record<string, number>>({});
+  const [novoRelatorioOpen, setNovoRelatorioOpen] = useState(false);
   const handleComputed = (id: string, v: number) =>
     setValues((p) => (p[id] === v ? p : { ...p, [id]: v }));
 
@@ -249,11 +251,25 @@ function FinanciamentoDetailPage() {
             {financiamento.financiador} · {formatPeriodo(financiamento.data_inicio, financiamento.data_fim)}
           </p>
         </div>
-        <Button onClick={exportar} disabled={total === 0}>
-          <ClipboardCopy className="me-2 h-4 w-4" />
-          Exportar relatório para {financiamento.financiador}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => setNovoRelatorioOpen(true)}>
+            <FileText className="me-2 h-4 w-4" />
+            Gerar relatório
+          </Button>
+          <Button onClick={exportar} disabled={total === 0}>
+            <ClipboardCopy className="me-2 h-4 w-4" />
+            Exportar resumo
+          </Button>
+        </div>
       </div>
+
+      <RelatorioNovoSheet
+        open={novoRelatorioOpen}
+        onOpenChange={setNovoRelatorioOpen}
+        projetoIdsDefault={projetoIds ?? []}
+        financiadorDefault={financiamento.financiador}
+        tituloDefault={`Relatório — ${financiamento.nome}`}
+      />
 
       {/* General data – inline editable */}
       <div className="rounded-md border p-4 grid gap-3 sm:grid-cols-3">

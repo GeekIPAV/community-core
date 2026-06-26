@@ -24,15 +24,27 @@ type Props = {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   projetoIdDefault?: string | null;
+  projetoIdsDefault?: string[];
+  financiadorDefault?: string;
+  tituloDefault?: string;
 };
 
-export function RelatorioNovoSheet({ open, onOpenChange, projetoIdDefault = null }: Props) {
+export function RelatorioNovoSheet({
+  open,
+  onOpenChange,
+  projetoIdDefault = null,
+  projetoIdsDefault,
+  financiadorDefault,
+  tituloDefault,
+}: Props) {
   const navigate = useNavigate();
   const qc = useQueryClient();
 
   const [titulo, setTitulo] = useState("");
   const [financiador, setFinanciador] = useState("");
-  const [projetoIds, setProjetoIds] = useState<string[]>(projetoIdDefault ? [projetoIdDefault] : []);
+  const [projetoIds, setProjetoIds] = useState<string[]>(
+    projetoIdsDefault?.length ? projetoIdsDefault : projetoIdDefault ? [projetoIdDefault] : [],
+  );
   const [geral, setGeral] = useState<boolean>(false);
   const [tipo, setTipo] = useState<RelatorioTipo>("Intercalar");
   const [estado, setEstado] = useState<RelatorioEstado>("Rascunho");
@@ -43,9 +55,11 @@ export function RelatorioNovoSheet({ open, onOpenChange, projetoIdDefault = null
 
   useEffect(() => {
     if (open) {
-      setTitulo("");
-      setFinanciador("");
-      setProjetoIds(projetoIdDefault ? [projetoIdDefault] : []);
+      setTitulo(tituloDefault ?? "");
+      setFinanciador(financiadorDefault ?? "");
+      setProjetoIds(
+        projetoIdsDefault?.length ? projetoIdsDefault : projetoIdDefault ? [projetoIdDefault] : [],
+      );
       setGeral(false);
       setTipo("Intercalar");
       setEstado("Rascunho");
@@ -56,7 +70,7 @@ export function RelatorioNovoSheet({ open, onOpenChange, projetoIdDefault = null
       setDataPrevista("");
       setTemplate(null);
     }
-  }, [open, projetoIdDefault]);
+  }, [open, projetoIdDefault, projetoIdsDefault, financiadorDefault, tituloDefault]);
 
   const { data: projetos } = useQuery({
     queryKey: ["projetos-lista-min"],
