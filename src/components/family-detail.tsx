@@ -1046,9 +1046,12 @@ export function FamilyDetailDialog({
                                   variant="ghost"
                                   className="text-destructive hover:text-destructive"
                                   onClick={() => {
-                                    if (confirm(`Remover o projeto "${info.nome}" de todos os membros desta família?`)) {
-                                      bulkAssignProjeto.mutate({ projetoId: pid, action: "remove" });
-                                    }
+                                    setConfirmState({
+                                      open: true,
+                                      title: "Remover projeto",
+                                      description: `Remover o projeto "${info.nome}" de todos os membros desta família?`,
+                                      onConfirm: () => bulkAssignProjeto.mutate({ projetoId: pid, action: "remove" }),
+                                    });
                                   }}
                                   disabled={bulkAssignProjeto.isPending}
                                 >
