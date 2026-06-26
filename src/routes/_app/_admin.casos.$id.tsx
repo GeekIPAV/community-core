@@ -347,7 +347,7 @@ function CasoDetailPage() {
               </div>
               {verComoPessoa && (
                 <div className="rounded-md border border-blue-300 bg-blue-50 dark:bg-blue-950/20 p-2 text-xs text-blue-900 dark:text-blue-200">
-                  Estás a ver o que {caso.pessoa?.nome_completo} vê.
+                  Estás a ver o que {caso.pessoa?.nome_completo ?? `a família ${caso.familia?.nome ?? ""}`} vê.
                 </div>
               )}
               <div className="space-y-3">
