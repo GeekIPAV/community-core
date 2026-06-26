@@ -1682,6 +1682,163 @@ export type Database = {
           },
         ]
       }
+      relatorio_secoes: {
+        Row: {
+          config: Json
+          conteudo_texto: string | null
+          created_at: string
+          id: string
+          position: number
+          relatorio_id: string
+          tipo: string
+          titulo: string | null
+        }
+        Insert: {
+          config?: Json
+          conteudo_texto?: string | null
+          created_at?: string
+          id?: string
+          position?: number
+          relatorio_id: string
+          tipo: string
+          titulo?: string | null
+        }
+        Update: {
+          config?: Json
+          conteudo_texto?: string | null
+          created_at?: string
+          id?: string
+          position?: number
+          relatorio_id?: string
+          tipo?: string
+          titulo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relatorio_secoes_relatorio_id_fkey"
+            columns: ["relatorio_id"]
+            isOneToOne: false
+            referencedRelation: "relatorios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      relatorio_snapshots: {
+        Row: {
+          criado_em: string
+          criado_por_id: string | null
+          dados: Json
+          id: string
+          relatorio_id: string
+        }
+        Insert: {
+          criado_em?: string
+          criado_por_id?: string | null
+          dados?: Json
+          id?: string
+          relatorio_id: string
+        }
+        Update: {
+          criado_em?: string
+          criado_por_id?: string | null
+          dados?: Json
+          id?: string
+          relatorio_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relatorio_snapshots_criado_por_id_fkey"
+            columns: ["criado_por_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relatorio_snapshots_criado_por_id_fkey"
+            columns: ["criado_por_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relatorio_snapshots_relatorio_id_fkey"
+            columns: ["relatorio_id"]
+            isOneToOne: false
+            referencedRelation: "relatorios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      relatorios: {
+        Row: {
+          created_at: string
+          criado_por_id: string | null
+          data_submissao_prevista: string | null
+          data_submissao_real: string | null
+          estado: string
+          financiador: string
+          id: string
+          periodo_fim: string
+          periodo_inicio: string
+          projeto_id: string | null
+          tipo: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por_id?: string | null
+          data_submissao_prevista?: string | null
+          data_submissao_real?: string | null
+          estado?: string
+          financiador: string
+          id?: string
+          periodo_fim: string
+          periodo_inicio: string
+          projeto_id?: string | null
+          tipo?: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          criado_por_id?: string | null
+          data_submissao_prevista?: string | null
+          data_submissao_real?: string | null
+          estado?: string
+          financiador?: string
+          id?: string
+          periodo_fim?: string
+          periodo_inicio?: string
+          projeto_id?: string | null
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relatorios_criado_por_id_fkey"
+            columns: ["criado_por_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relatorios_criado_por_id_fkey"
+            columns: ["criado_por_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relatorios_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       security_finding_events: {
         Row: {
           actor_id: string | null

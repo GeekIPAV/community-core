@@ -1,87 +1,98 @@
-# Acompanhamento (Casos de Apoio) — módulo novo
+## Objetivo
+Criar um módulo **Relatórios** que permite à equipa MEERU compor relatórios de impacto para financiadores, combinando dados vivos da plataforma com texto narrativo, com snapshots de auditoria e exportação (clipboard / Word / impressão).
 
-**Importante**: módulo **novo e independente**. O módulo existente "Atividades" mantém-se sem alterações. Este novo módulo chama-se **Acompanhamento** e gere **Casos de Apoio**: cada caso tem mediadora atribuída, registo cronológico estruturado, objetivos, transferências, e pode ser aberto por staff ou pela própria pessoa.
+## Part 1 — Base de dados (migration única)
+Tabelas em `public` com grants (`authenticated`, `service_role`) e RLS por staff (`is_admin_or_staff()` já existente):
 
-## 1. Base de dados (1 migração)
+- **`relatorios`** — campos pedidos. FK `projeto_id → projetos`, `criado_por_id → pessoas`. Trigger `updated_at`.
+- **`relatorio_secoes`** — `relatorio_id` ON DELETE CASCADE, `tipo` CHECK in (`texto|indicadores|atividades|participantes|casos|citacao|separador`), `position int`.
+- **`relatorio_snapshots`** — `dados jsonb`, `criado_em`, `criado_por_id`.
 
-**Tabelas novas** (todas com GRANT + RLS + trigger updated_at):
+RLS: staff (admin/equipa) faz tudo; sem acesso anon.
 
-- `casos_apoio` — `numero` (CASO-YYYY-NNNN, gerado por trigger via sequence anual), `pessoa_id`, `familia_id` (auto-preenchido por trigger a partir de `pessoa`), `mediadora_id`, `area`, `titulo`, `descricao`, `estado` (default 'Novo'), `prioridade`, `origem` ('Mediadora'|'Auto-pedido'), `objetivo`, `resultado_final`, `data_abertura`, `data_conclusao`, `data_prevista_conclusao`, `created_by_auth_id`.
-- `caso_registos` — `caso_id`, `autor_id`, `tipo`, `titulo`, `conteudo`, `visivel_para_pessoa`, `estado_anterior`, `estado_novo`, `data`. Trigger atualiza `casos_apoio.updated_at`.
-- `caso_objetivos` — `caso_id`, `descricao`, `estado`, `prazo`, `notas`, `position`.
-- `caso_transferencias` — `caso_id`, `mediadora_saida_id`, `mediadora_entrada_id`, `data`, `motivo`, `notas_transicao` (NOT NULL).
+## Part 2 — Sidebar + rotas
+- Inserir item `Relatórios` em `sidebar_items` no grupo "Projetos & Comunidade", após Projetos (`page="relatorios"`, ícone `FileBarChart`).
+- Rotas TanStack:
+  - `src/routes/_app/_admin.relatorios.tsx` (layout `<Outlet/>`)
+  - `_admin.relatorios.index.tsx` (lista)
+  - `_admin.relatorios.$id.tsx` (editor)
+- Badge no item via query (`em_revisao` ou `prevista <= today+14`).
+- Adicionar ao `command-palette.tsx`.
 
-**RLS** via `is_current_user_staff()` / `current_user_pessoa_id()`:
-- Staff/admin: tudo.
-- Pessoa autenticada não-staff: SELECT casos próprios; INSERT auto-pedido; SELECT/INSERT em `caso_registos` próprios e visíveis (`Resposta da pessoa`); sem acesso a objetivos/transferências.
+## Part 3 — Página de lista
+- 4 SummaryCards (Rascunhos / Em revisão / A submeter 14d / Submetidos no ano).
+- Alert banner vermelho se prazo < 7 dias.
+- Toolbar: pesquisa + filtros (financiador, tipo, estado, projeto) + "Novo relatório".
+- `SmartTable` com colunas pedidas, badges coloridos por estado, célula "Submissão prevista" com `Atrasado`/contagem decrescente/data.
+- Agrupável por financiador/tipo/estado/projeto. Row click → editor.
+- **Sheet "Novo relatório"** (max-w-lg) com campos pedidos + datalist de financiadores + passo seguinte de **template** (3 cards): Gulbenkian IGI Intercalar, BPI Solidário Final, Genérico, ou "em branco". Ao gravar: cria `relatorios` + seed das secções do template (ou uma secção `texto`/"Introdução") → navigate.
 
-**RPC** `count_casos_novos()` para badge.
+## Part 4 — Editor `/relatorios/$id`
+- Breadcrumb + top bar sticky (título inline editável, badges, estado dropdown, "Guardar" indicator, dropdown Exportar, botão Submeter se `Aprovado`).
+- Layout 2 colunas: **Documento** (flex-1) + **Data panel** (w-72 sticky).
+- Render ordenado de secções (drag-and-drop com `@dnd-kit` já instalado, ou setas se ausente — verificar).
+- Cada secção: handle (`GripVertical` no hover), menu ⋮ (mover/duplicar/eliminar), badge de tipo.
+- Entre secções: botão "+ Adicionar secção" com popover (7 tipos).
 
-## 2. Sidebar e rotas
+### Componentes por tipo
+- **`SecaoTexto`** — heading editável + `RichTextEditor` existente, autosave debounce 1s.
+- **`SecaoIndicadores`** — config (multi-select KPIs do projeto, toggles meta/progresso) + grid 2 cols de cards KPI com barra de progresso (verde/azul/âmbar conforme %).
+- **`SecaoAtividades`** — config (projeto, datas, group by) + sumário X ações/Y participações/Z únicos + tabela compacta (data, nome, local, participantes).
+- **`SecaoParticipantes`** — config (projetos, breakdown) + top stats + tabela breakdown + barras CSS horizontais.
+- **`SecaoCasos`** — config (áreas, estados) + sumário + tabela por área (abertos/concluídos/em curso).
+- **`SecaoCitacao`** — bloco grande com `"texto"` + `— autor`, ambos inline editáveis.
+- **`SecaoSeparador`** — `<hr>` + label opcional editável; page-break em print.
 
-- Insert em `sidebar_items` para **"Acompanhamento"** no grupo "Gestão de Participantes" depois de Projetos (ícone `FolderOpen`, url `/casos`, badge `count_casos_novos`). **Não toca** no item "Atividades" existente.
-- Rotas novas:
-  - `src/routes/_app/_admin.casos.tsx` (layout `<Outlet />`)
-  - `src/routes/_app/_admin.casos.index.tsx` (lista)
-  - `src/routes/_app/_admin.casos.$id.tsx` (detalhe)
-- Adicionar "Acompanhamento" ao `CommandPalette`.
+Hook `useRelatorioSecaoMutation` para PATCH/insert/delete + invalidação otimista.
 
-## 3. Lista `/casos`
+## Part 5 — Data panel direito
+Hook `useRelatorioPeriodData(periodo_inicio, periodo_fim, projeto_ids?)` que faz queries paralelas para:
+- pessoas apoiadas / famílias / novos registos
+- ações realizadas / participações / únicos
+- casos abertos/concluídos
+Stats compactos + breakdowns colapsáveis (por projeto / nacionalidade top 5 / área). Botão "Atualizar dados" → `invalidateQueries`.
 
-4 cards (Novos, Em curso, Alta prioridade, Auto-pedidos pendentes), banner âmbar para casos sem mediadora, toolbar com filtros multi + "Novo caso", `SmartTable` (Nº, Pessoa/Família, Área, Título, Mediadora com popover "Atribuir", Prioridade, Estado, Origem, #Registos, Abertura), agrupável.
+## Part 6 — Exportação
+- **Copiar texto** — função pura que serializa secções → string formatada (regras dadas) → `navigator.clipboard.writeText`.
+- **Exportar Word** — usa `docx` (instalar `bun add docx file-saver`). Gera `.docx` no cliente com letterhead MEERU, título, secções (H2, tabelas DXA, blockquotes, hr). Nome: `[financiador]-[tipo]-[periodo_inicio].docx`.
+- **Imprimir** — `window.print()` + CSS `@media print` global (em `src/styles.css`): esconde `.no-print` (sidebar, toolbar, menus); `.page-break-before` em separadores.
+- **Submeter** — `AlertDialog` confirmação → update estado/data_submissao_real → insert `relatorio_snapshots` com payload do data panel → toast + invalidate.
 
-## 4. Detalhe `/casos/$id`
+## Part 7 — Templates
+Constante `REPORT_TEMPLATES` em `src/lib/relatorios/templates.ts` com as 3 estruturas pedidas. Aplicação cria secções com `position` sequencial e `config` inicial.
 
-Layout 2 colunas:
-- **Sidebar `w-80` sticky**: identidade (titulo inline-editable, badges com selects inline), pessoa (clica abre `FamilyDetailDialog`), info do caso (mediadora, datas), objetivo, progresso de objetivos, ações (Adicionar registo, Transferir, Concluir, Arquivar).
-- **Tabs**: Registos (default) | Objetivos | Timeline | Transferências.
+## Part 8 — Tab no projeto
+Em `_admin.projetos.$projetoId.tsx`: nova tab "Relatórios" listando `relatorios WHERE projeto_id = $id` em cards compactos + botão "Novo relatório" que abre o Sheet com `projeto_id` pré-preenchido (reaproveita componente extraído).
 
-**Tab Registos**:
-- Toggle "Ver como a pessoa vê".
-- Cards com bordas distintivas (Nota interna âmbar, Resposta azul), EyeOff para ocultos, toggle de visibilidade por card (staff).
-- Compose box **sempre visível** no fundo: select tipo + textarea + switch "Visível para a pessoa" + botão.
+## Detalhes técnicos
+- **Estado**: TanStack Query, optimistic updates ao estilo do resto da app (Participantes/Famílias).
+- **Drag & drop**: usar `@dnd-kit/core` + `@dnd-kit/sortable` se já instalados; caso contrário `bun add`. Fallback de setas no menu ⋮.
+- **Autosave indicator**: contexto local no editor, mostra "Guardado ✓" / "A guardar…" baseado em `isPending` de mutações ativas.
+- **Print CSS**: regras em `src/styles.css` (root); o editor envolve documento em `.relatorio-print-area`.
+- **Tipos**: estender `Database` via `as any` nos componentes (tipo regenerado depois da migration).
+- **Snapshot payload**: serializa o resultado de `useRelatorioPeriodData` + config das secções no momento da submissão.
 
-**Tab Objetivos**: lista inline-editável, drag-reorder por `position`.
+## Ficheiros criados/alterados
+**Novos**
+- `supabase/migrations/*_relatorios.sql` (via tool)
+- `src/routes/_app/_admin.relatorios.tsx`, `.index.tsx`, `.$id.tsx`
+- `src/components/relatorios/relatorio-novo-sheet.tsx`
+- `src/components/relatorios/secao-*.tsx` (7 tipos)
+- `src/components/relatorios/secao-add-popover.tsx`
+- `src/components/relatorios/data-panel.tsx`
+- `src/components/relatorios/relatorio-top-bar.tsx`
+- `src/components/relatorios/projeto-relatorios-tab.tsx`
+- `src/lib/relatorios/templates.ts`
+- `src/lib/relatorios/export-texto.ts`
+- `src/lib/relatorios/export-docx.ts`
+- `src/lib/relatorios/use-periodo-dados.ts`
 
-**Tab Timeline**: vista cronológica unificada com filtro.
+**Alterados**
+- `src/components/command-palette.tsx` (+ Relatórios)
+- `src/components/app-sidebar.tsx` (mapeamento ícone `FileBarChart` para `page="relatorios"`)
+- `src/styles.css` (regras `@media print`)
+- `src/routes/_app/_admin.projetos.$projetoId.tsx` (nova tab)
+- `sidebar_items` (insert via tool de dados)
 
-**Tab Transferências**: lista de handovers.
-
-**Sheets**:
-- Transferir: nova mediadora, motivo, notas obrigatórias → cria transferência + update mediadora + registo `Atualização de estado` invisível.
-- Concluir: resultado final, data, estado final, checkboxes para fechar objetivos restantes.
-
-## 5. Novo Caso Sheet
-
-Usado em: lista, FamilyDetailDialog, perfil da pessoa.
-Campos: pessoa (combobox staff / pré-preenchido pessoa), área (toggle icons), título (auto-sugestão), descrição, objetivo, prioridade (staff), mediadora (staff opcional → estado Novo/Em análise), objetivos específicos.
-
-Staff: cria com `origem='Mediadora'` + registo "Caso aberto" + objetivos + navega.
-Pessoa: cria `Auto-pedido` Novo sem mediadora + registo `Resposta da pessoa` visível + notifica staff (`novo_auto_pedido`) + sucesso inline.
-
-## 6. Perfil — "O Meu Apoio"
-
-Secção em `src/routes/_app.perfil.tsx` visível só a não-staff:
-- "Pedir apoio" (CTA) abre o Novo Caso Sheet em modo auto-pedido.
-- Cards dos casos próprios: área, título, estado, mediadora ou "A aguardar atribuição", últimos 2 registos visíveis com expand, caixa "Responder" (cria registo `Resposta da pessoa` + notifica mediadora `resposta_pessoa`).
-- Linguagem calorosa: "o teu pedido", "a tua mediadora", "a equipa MEERU vai responder em breve".
-
-## 7. FamilyDetailDialog
-
-Nova tab "Casos" depois de "Atividades" (não substitui Atividades): lista compacta dos casos dos membros + botão "Novo caso" com família pré-contextualizada.
-
-## 8. Notificações
-
-Em `NotificationsBell` mapear `novo_auto_pedido` (FolderOpen azul, para staff), `resposta_pessoa` (MessageCircle, para mediadora), `caso_sem_mediadora` (AlertCircle âmbar). Usar `notificar_staff()` com `group_key` para deduplicação.
-
-## Notas técnicas
-
-- `numero`: trigger BEFORE INSERT usa sequence anual criada on-the-fly.
-- `familia_id` auto-preenchido por trigger se NULL.
-- Trigger em `caso_registos` toca `casos_apoio.updated_at`.
-- Mudança de `casos_apoio.estado` cria automaticamente registo `Atualização de estado` para garantir histórico.
-- Optimistic updates em mudanças inline.
-- Reutiliza `SmartTable`, `InlineMultiSelect`, `InlineEdit`, padrões existentes.
-- **Não modifica** `atividades_catalogo`, `familia_atividades`, nem a página `/atividades`.
-
-Confirma para avançar.
+## Confirmação
+Avanço com a migration primeiro (precisa de aprovação), depois construo lista, editor, painel, export, templates e tab do projeto numa única sessão. Confirmas?
