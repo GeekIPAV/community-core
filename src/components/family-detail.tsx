@@ -675,15 +675,20 @@ export function FamilyDetailDialog({
     mutationFn: async ({ projetoId, action }: { projetoId: string; action: "add" | "remove" }) => {
       const lista = membros ?? [];
       if (lista.length === 0) throw new Error("Sem membros");
-      const updates = lista.map(async (m) => {
-        const atuais = new Set<string>(m.projeto_ids ?? []);
-        if (action === "add") atuais.add(projetoId);
-        else atuais.delete(projetoId);
-        const novos = Array.from(atuais);
-        const { error } = await supabase.from("pessoas").update({ projeto_ids: novos } as any).eq("id", m.id);
-        if (error) throw error;
-      });
-      await Promise.all(updates);
+      const batchSize = 5;
+      for (let i = 0; i < lista.length; i += batchSize) {
+        const batch = lista.slice(i, i + batchSize);
+        await Promise.all(batch.map(async (m) => {
+          const atuais = new Set<string>(m.projeto_ids ?? []);
+          if (action === "add") atuais.add(projetoId);
+          else atuais.delete(projetoId);
+          const { error } = await supabase
+            .from("pessoas")
+            .update({ projeto_ids: Array.from(atuais) } as any)
+            .eq("id", m.id);
+          if (error) throw error;
+        }));
+      }
     },
     onSuccess: (_d, vars) => {
       toast.success(vars.action === "add" ? "Projeto atribuído a todos os membros" : "Projeto removido de todos os membros");
