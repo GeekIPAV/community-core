@@ -35,6 +35,7 @@ export const AREAS = [
 ] as const;
 
 type Pessoa = { id: string; nome_completo: string; familia_id: string | null };
+type Familia = { id: string; nome: string; membros: number };
 
 export function CasoNovoSheet({
   open, onOpenChange, mode = "staff", lockedPessoaId, familiaId, onCreated,
@@ -50,7 +51,9 @@ export function CasoNovoSheet({
   const qc = useQueryClient();
   const navigate = useNavigate();
 
+  const [alvo, setAlvo] = useState<"pessoa" | "familia">("pessoa");
   const [pessoaId, setPessoaId] = useState<string | "">("");
+  const [familiaIdSel, setFamiliaIdSel] = useState<string | "">("");
   const [area, setArea] = useState<string>("");
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
@@ -60,15 +63,19 @@ export function CasoNovoSheet({
   const [objetivos, setObjetivos] = useState<string[]>([]);
   const [novoObjetivo, setNovoObjetivo] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [familiaPickerOpen, setFamiliaPickerOpen] = useState(false);
   const [pesquisa, setPesquisa] = useState("");
+  const [pesquisaFam, setPesquisaFam] = useState("");
 
   useEffect(() => {
     if (open) {
+      setAlvo("pessoa");
       setPessoaId(lockedPessoaId ?? "");
+      setFamiliaIdSel(lockedPessoaId ? "" : (familiaId ?? ""));
       setArea(""); setTitulo(""); setDescricao(""); setObjetivo("");
       setPrioridade("Normal"); setMediadoraId(""); setObjetivos([]); setNovoObjetivo("");
     }
-  }, [open, lockedPessoaId]);
+  }, [open, lockedPessoaId, familiaId]);
 
   const { data: pessoas } = useQuery({
     enabled: open && mode === "staff" && pesquisa.length >= 1,
@@ -118,23 +125,61 @@ export function CasoNovoSheet({
 
   const pessoaSelecionada = pessoas?.find((p) => p.id === pessoaId) ?? pessoaLocked ?? null;
 
+  const { data: familias } = useQuery({
+    enabled: open && mode === "staff" && alvo === "familia" && pesquisaFam.length >= 1,
+    queryKey: ["caso-novo-familias", pesquisaFam],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("familias")
+        .select("id, nome, pessoas(count)")
+        .ilike("nome", `%${pesquisaFam}%`)
+        .order("nome").limit(20);
+      if (error) throw error;
+      return ((data ?? []) as any[]).map((f) => ({
+        id: f.id as string, nome: f.nome as string, membros: f.pessoas?.[0]?.count ?? 0,
+      })) as Familia[];
+    },
+  });
+
+  const { data: familiaSelecionada } = useQuery({
+    enabled: open && mode === "staff" && alvo === "familia" && !!familiaIdSel,
+    queryKey: ["caso-novo-familia-sel", familiaIdSel],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("familias")
+        .select("id, nome, pessoas(count)")
+        .eq("id", familiaIdSel).maybeSingle();
+      if (error) throw error;
+      if (!data) return null;
+      return { id: (data as any).id, nome: (data as any).nome, membros: (data as any).pessoas?.[0]?.count ?? 0 } as Familia;
+    },
+  });
+
   // Auto-suggest titulo
   useEffect(() => {
-    if (!titulo && area && pessoaSelecionada?.nome_completo) {
-      setTitulo(`${area} — ${pessoaSelecionada.nome_completo}`);
+    if (!titulo && area) {
+      if (alvo === "pessoa" && pessoaSelecionada?.nome_completo) {
+        setTitulo(`${area} — ${pessoaSelecionada.nome_completo}`);
+      } else if (alvo === "familia" && familiaSelecionada?.nome) {
+        setTitulo(`${area} — Família ${familiaSelecionada.nome}`);
+      }
     }
-  }, [area, pessoaSelecionada?.nome_completo]); // eslint-disable-line
+  }, [area, alvo, pessoaSelecionada?.nome_completo, familiaSelecionada?.nome]); // eslint-disable-line
 
   const createMut = useMutation({
     mutationFn: async () => {
       const isAuto = mode === "auto";
-      const finalPessoaId = isAuto ? ctxPessoa?.id : pessoaId;
-      if (!finalPessoaId) throw new Error("Selecione uma pessoa");
+      const isFamilia = !isAuto && alvo === "familia";
+      const finalPessoaId = isAuto ? ctxPessoa?.id : (isFamilia ? null : pessoaId);
+      const finalFamiliaId = isFamilia ? (familiaIdSel || null) : null;
+      if (!isFamilia && !finalPessoaId) throw new Error("Selecione uma pessoa");
+      if (isFamilia && !finalFamiliaId) throw new Error("Selecione uma família");
       if (!area) throw new Error("Selecione uma área");
       if (!titulo.trim()) throw new Error("Indique um título");
 
       const payload: any = {
         pessoa_id: finalPessoaId,
+        familia_id: finalFamiliaId,
         area,
         titulo: titulo.trim(),
         descricao: descricao.trim() || null,
