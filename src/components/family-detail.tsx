@@ -379,14 +379,32 @@ export function FamilyDetailDialog({
   const [detailTab, setDetailTab] = useState<"dados" | "membros" | "projetos" | "acoes" | "atividades" | "casos" | "contexto">(defaultTab);
   const [editing, setEditing] = useState<Familia | null>(family);
 
-  // When the selected family changes reset editing state
+  // When the selected family changes reset editing state. Only reset the active
+  // tab on the first open (not on prev/next sibling navigation).
+  const prevFamilyId = useRef<string | null>(null);
   useEffect(() => {
-    if (family) {
-      setEditing({ ...family });
+    if (!family) return;
+    setEditing({ ...family });
+    if (prevFamilyId.current === null) {
       setDetailTab(defaultTab);
     }
+    prevFamilyId.current = family.id;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [family?.id]);
+
+  useEffect(() => {
+    if (!open) {
+      prevFamilyId.current = null;
+    }
+  }, [open]);
+
+  // ── shared confirm dialog state ───────────────────────────────────────────
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({ open: false, title: "", description: "", onConfirm: () => {} });
 
   // ── sub-dialog states ─────────────────────────────────────────────────────
   const [addMembroOpen, setAddMembroOpen] = useState(false);
