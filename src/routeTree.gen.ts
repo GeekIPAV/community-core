@@ -35,17 +35,20 @@ import { Route as AppAdminEliminadosRouteImport } from './routes/_app/_admin.eli
 import { Route as AppAdminDuplicadosRouteImport } from './routes/_app/_admin.duplicados'
 import { Route as AppAdminDashboardRouteImport } from './routes/_app/_admin.dashboard'
 import { Route as AppAdminCurriculosRouteImport } from './routes/_app/_admin.curriculos'
+import { Route as AppAdminCasosRouteImport } from './routes/_app/_admin.casos'
 import { Route as AppAdminBolsasTransporteRouteImport } from './routes/_app/_admin.bolsas-transporte'
 import { Route as AppAdminAtividadesRouteImport } from './routes/_app/_admin.atividades'
 import { Route as AppAdminAcoesRouteImport } from './routes/_app/_admin.acoes'
 import { Route as AppAdminProjetosIndexRouteImport } from './routes/_app/_admin.projetos.index'
 import { Route as AppAdminParceirosIndexRouteImport } from './routes/_app/_admin.parceiros.index'
 import { Route as AppAdminFinanciamentosIndexRouteImport } from './routes/_app/_admin.financiamentos.index'
+import { Route as AppAdminCasosIndexRouteImport } from './routes/_app/_admin.casos.index'
 import { Route as AppAdminServicosCalendarioRouteImport } from './routes/_app/_admin.servicos.calendario'
 import { Route as AppAdminProjetosProjetoIdRouteImport } from './routes/_app/_admin.projetos.$projetoId'
 import { Route as AppAdminParceirosParceiroIdRouteImport } from './routes/_app/_admin.parceiros.$parceiroId'
 import { Route as AppAdminFinanciamentosFinanciamentoIdRouteImport } from './routes/_app/_admin.financiamentos.$financiamentoId'
 import { Route as AppAdminColaboradorasColaboradoraIdRouteImport } from './routes/_app/_admin.colaboradoras.$colaboradoraId'
+import { Route as AppAdminCasosIdRouteImport } from './routes/_app/_admin.casos.$id'
 import { Route as AppAdminServicosColaboradorIdRouteImport } from './routes/_app/_admin.servicos.colaborador.$id'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -176,6 +179,11 @@ const AppAdminCurriculosRoute = AppAdminCurriculosRouteImport.update({
   path: '/curriculos',
   getParentRoute: () => AppAdminRoute,
 } as any)
+const AppAdminCasosRoute = AppAdminCasosRouteImport.update({
+  id: '/casos',
+  path: '/casos',
+  getParentRoute: () => AppAdminRoute,
+} as any)
 const AppAdminBolsasTransporteRoute =
   AppAdminBolsasTransporteRouteImport.update({
     id: '/bolsas-transporte',
@@ -208,6 +216,11 @@ const AppAdminFinanciamentosIndexRoute =
     path: '/financiamentos/',
     getParentRoute: () => AppAdminRoute,
   } as any)
+const AppAdminCasosIndexRoute = AppAdminCasosIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppAdminCasosRoute,
+} as any)
 const AppAdminServicosCalendarioRoute =
   AppAdminServicosCalendarioRouteImport.update({
     id: '/calendario',
@@ -238,6 +251,11 @@ const AppAdminColaboradorasColaboradoraIdRoute =
     path: '/colaboradoras/$colaboradoraId',
     getParentRoute: () => AppAdminRoute,
   } as any)
+const AppAdminCasosIdRoute = AppAdminCasosIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppAdminCasosRoute,
+} as any)
 const AppAdminServicosColaboradorIdRoute =
   AppAdminServicosColaboradorIdRouteImport.update({
     id: '/colaborador/$id',
@@ -257,6 +275,7 @@ export interface FileRoutesByFullPath {
   '/acoes': typeof AppAdminAcoesRoute
   '/atividades': typeof AppAdminAtividadesRoute
   '/bolsas-transporte': typeof AppAdminBolsasTransporteRoute
+  '/casos': typeof AppAdminCasosRouteWithChildren
   '/curriculos': typeof AppAdminCurriculosRoute
   '/dashboard': typeof AppAdminDashboardRoute
   '/duplicados': typeof AppAdminDuplicadosRoute
@@ -273,11 +292,13 @@ export interface FileRoutesByFullPath {
   '/servicos': typeof AppAdminServicosRouteWithChildren
   '/style-guide': typeof AppAdminStyleGuideRoute
   '/tipos-user': typeof AppAdminTiposUserRoute
+  '/casos/$id': typeof AppAdminCasosIdRoute
   '/colaboradoras/$colaboradoraId': typeof AppAdminColaboradorasColaboradoraIdRoute
   '/financiamentos/$financiamentoId': typeof AppAdminFinanciamentosFinanciamentoIdRoute
   '/parceiros/$parceiroId': typeof AppAdminParceirosParceiroIdRoute
   '/projetos/$projetoId': typeof AppAdminProjetosProjetoIdRoute
   '/servicos/calendario': typeof AppAdminServicosCalendarioRoute
+  '/casos/': typeof AppAdminCasosIndexRoute
   '/financiamentos/': typeof AppAdminFinanciamentosIndexRoute
   '/parceiros/': typeof AppAdminParceirosIndexRoute
   '/projetos/': typeof AppAdminProjetosIndexRoute
@@ -309,11 +330,13 @@ export interface FileRoutesByTo {
   '/servicos': typeof AppAdminServicosRouteWithChildren
   '/style-guide': typeof AppAdminStyleGuideRoute
   '/tipos-user': typeof AppAdminTiposUserRoute
+  '/casos/$id': typeof AppAdminCasosIdRoute
   '/colaboradoras/$colaboradoraId': typeof AppAdminColaboradorasColaboradoraIdRoute
   '/financiamentos/$financiamentoId': typeof AppAdminFinanciamentosFinanciamentoIdRoute
   '/parceiros/$parceiroId': typeof AppAdminParceirosParceiroIdRoute
   '/projetos/$projetoId': typeof AppAdminProjetosProjetoIdRoute
   '/servicos/calendario': typeof AppAdminServicosCalendarioRoute
+  '/casos': typeof AppAdminCasosIndexRoute
   '/financiamentos': typeof AppAdminFinanciamentosIndexRoute
   '/parceiros': typeof AppAdminParceirosIndexRoute
   '/projetos': typeof AppAdminProjetosIndexRoute
@@ -334,6 +357,7 @@ export interface FileRoutesById {
   '/_app/_admin/acoes': typeof AppAdminAcoesRoute
   '/_app/_admin/atividades': typeof AppAdminAtividadesRoute
   '/_app/_admin/bolsas-transporte': typeof AppAdminBolsasTransporteRoute
+  '/_app/_admin/casos': typeof AppAdminCasosRouteWithChildren
   '/_app/_admin/curriculos': typeof AppAdminCurriculosRoute
   '/_app/_admin/dashboard': typeof AppAdminDashboardRoute
   '/_app/_admin/duplicados': typeof AppAdminDuplicadosRoute
@@ -350,11 +374,13 @@ export interface FileRoutesById {
   '/_app/_admin/servicos': typeof AppAdminServicosRouteWithChildren
   '/_app/_admin/style-guide': typeof AppAdminStyleGuideRoute
   '/_app/_admin/tipos-user': typeof AppAdminTiposUserRoute
+  '/_app/_admin/casos/$id': typeof AppAdminCasosIdRoute
   '/_app/_admin/colaboradoras/$colaboradoraId': typeof AppAdminColaboradorasColaboradoraIdRoute
   '/_app/_admin/financiamentos/$financiamentoId': typeof AppAdminFinanciamentosFinanciamentoIdRoute
   '/_app/_admin/parceiros/$parceiroId': typeof AppAdminParceirosParceiroIdRoute
   '/_app/_admin/projetos/$projetoId': typeof AppAdminProjetosProjetoIdRoute
   '/_app/_admin/servicos/calendario': typeof AppAdminServicosCalendarioRoute
+  '/_app/_admin/casos/': typeof AppAdminCasosIndexRoute
   '/_app/_admin/financiamentos/': typeof AppAdminFinanciamentosIndexRoute
   '/_app/_admin/parceiros/': typeof AppAdminParceirosIndexRoute
   '/_app/_admin/projetos/': typeof AppAdminProjetosIndexRoute
@@ -374,6 +400,7 @@ export interface FileRouteTypes {
     | '/acoes'
     | '/atividades'
     | '/bolsas-transporte'
+    | '/casos'
     | '/curriculos'
     | '/dashboard'
     | '/duplicados'
@@ -390,11 +417,13 @@ export interface FileRouteTypes {
     | '/servicos'
     | '/style-guide'
     | '/tipos-user'
+    | '/casos/$id'
     | '/colaboradoras/$colaboradoraId'
     | '/financiamentos/$financiamentoId'
     | '/parceiros/$parceiroId'
     | '/projetos/$projetoId'
     | '/servicos/calendario'
+    | '/casos/'
     | '/financiamentos/'
     | '/parceiros/'
     | '/projetos/'
@@ -426,11 +455,13 @@ export interface FileRouteTypes {
     | '/servicos'
     | '/style-guide'
     | '/tipos-user'
+    | '/casos/$id'
     | '/colaboradoras/$colaboradoraId'
     | '/financiamentos/$financiamentoId'
     | '/parceiros/$parceiroId'
     | '/projetos/$projetoId'
     | '/servicos/calendario'
+    | '/casos'
     | '/financiamentos'
     | '/parceiros'
     | '/projetos'
@@ -450,6 +481,7 @@ export interface FileRouteTypes {
     | '/_app/_admin/acoes'
     | '/_app/_admin/atividades'
     | '/_app/_admin/bolsas-transporte'
+    | '/_app/_admin/casos'
     | '/_app/_admin/curriculos'
     | '/_app/_admin/dashboard'
     | '/_app/_admin/duplicados'
@@ -466,11 +498,13 @@ export interface FileRouteTypes {
     | '/_app/_admin/servicos'
     | '/_app/_admin/style-guide'
     | '/_app/_admin/tipos-user'
+    | '/_app/_admin/casos/$id'
     | '/_app/_admin/colaboradoras/$colaboradoraId'
     | '/_app/_admin/financiamentos/$financiamentoId'
     | '/_app/_admin/parceiros/$parceiroId'
     | '/_app/_admin/projetos/$projetoId'
     | '/_app/_admin/servicos/calendario'
+    | '/_app/_admin/casos/'
     | '/_app/_admin/financiamentos/'
     | '/_app/_admin/parceiros/'
     | '/_app/_admin/projetos/'
@@ -671,6 +705,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminCurriculosRouteImport
       parentRoute: typeof AppAdminRoute
     }
+    '/_app/_admin/casos': {
+      id: '/_app/_admin/casos'
+      path: '/casos'
+      fullPath: '/casos'
+      preLoaderRoute: typeof AppAdminCasosRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
     '/_app/_admin/bolsas-transporte': {
       id: '/_app/_admin/bolsas-transporte'
       path: '/bolsas-transporte'
@@ -713,6 +754,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminFinanciamentosIndexRouteImport
       parentRoute: typeof AppAdminRoute
     }
+    '/_app/_admin/casos/': {
+      id: '/_app/_admin/casos/'
+      path: '/'
+      fullPath: '/casos/'
+      preLoaderRoute: typeof AppAdminCasosIndexRouteImport
+      parentRoute: typeof AppAdminCasosRoute
+    }
     '/_app/_admin/servicos/calendario': {
       id: '/_app/_admin/servicos/calendario'
       path: '/calendario'
@@ -748,6 +796,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminColaboradorasColaboradoraIdRouteImport
       parentRoute: typeof AppAdminRoute
     }
+    '/_app/_admin/casos/$id': {
+      id: '/_app/_admin/casos/$id'
+      path: '/$id'
+      fullPath: '/casos/$id'
+      preLoaderRoute: typeof AppAdminCasosIdRouteImport
+      parentRoute: typeof AppAdminCasosRoute
+    }
     '/_app/_admin/servicos/colaborador/$id': {
       id: '/_app/_admin/servicos/colaborador/$id'
       path: '/colaborador/$id'
@@ -757,6 +812,20 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AppAdminCasosRouteChildren {
+  AppAdminCasosIdRoute: typeof AppAdminCasosIdRoute
+  AppAdminCasosIndexRoute: typeof AppAdminCasosIndexRoute
+}
+
+const AppAdminCasosRouteChildren: AppAdminCasosRouteChildren = {
+  AppAdminCasosIdRoute: AppAdminCasosIdRoute,
+  AppAdminCasosIndexRoute: AppAdminCasosIndexRoute,
+}
+
+const AppAdminCasosRouteWithChildren = AppAdminCasosRoute._addFileChildren(
+  AppAdminCasosRouteChildren,
+)
 
 interface AppAdminParceirosRouteChildren {
   AppAdminParceirosParceiroIdRoute: typeof AppAdminParceirosParceiroIdRoute
@@ -801,6 +870,7 @@ interface AppAdminRouteChildren {
   AppAdminAcoesRoute: typeof AppAdminAcoesRoute
   AppAdminAtividadesRoute: typeof AppAdminAtividadesRoute
   AppAdminBolsasTransporteRoute: typeof AppAdminBolsasTransporteRoute
+  AppAdminCasosRoute: typeof AppAdminCasosRouteWithChildren
   AppAdminCurriculosRoute: typeof AppAdminCurriculosRoute
   AppAdminDashboardRoute: typeof AppAdminDashboardRoute
   AppAdminDuplicadosRoute: typeof AppAdminDuplicadosRoute
@@ -826,6 +896,7 @@ const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminAcoesRoute: AppAdminAcoesRoute,
   AppAdminAtividadesRoute: AppAdminAtividadesRoute,
   AppAdminBolsasTransporteRoute: AppAdminBolsasTransporteRoute,
+  AppAdminCasosRoute: AppAdminCasosRouteWithChildren,
   AppAdminCurriculosRoute: AppAdminCurriculosRoute,
   AppAdminDashboardRoute: AppAdminDashboardRoute,
   AppAdminDuplicadosRoute: AppAdminDuplicadosRoute,

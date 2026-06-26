@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, Check, Trash2, AlertTriangle } from "lucide-react";
+import { Bell, Check, Trash2, AlertTriangle, FolderOpen, MessageCircle } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -119,6 +119,12 @@ export function NotificationsBell() {
                   <div className={`px-3 py-2.5 transition-colors hover:bg-accent ${n.lida ? "opacity-60" : ""}`}>
                     <div className="flex items-start gap-2">
                       {n.tipo === "servicos_por_pagar" ? (
+                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                      ) : n.tipo === "novo_auto_pedido" ? (
+                        <FolderOpen className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
+                      ) : n.tipo === "resposta_pessoa" ? (
+                        <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      ) : n.tipo === "caso_sem_mediadora" ? (
                         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
                       ) : (
                         !n.lida && <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />

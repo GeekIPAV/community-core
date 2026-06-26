@@ -205,6 +205,282 @@ export type Database = {
         }
         Relationships: []
       }
+      caso_objetivos: {
+        Row: {
+          caso_id: string
+          created_at: string
+          descricao: string
+          estado: string
+          id: string
+          notas: string | null
+          position: number
+          prazo: string | null
+        }
+        Insert: {
+          caso_id: string
+          created_at?: string
+          descricao: string
+          estado?: string
+          id?: string
+          notas?: string | null
+          position?: number
+          prazo?: string | null
+        }
+        Update: {
+          caso_id?: string
+          created_at?: string
+          descricao?: string
+          estado?: string
+          id?: string
+          notas?: string | null
+          position?: number
+          prazo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "caso_objetivos_caso_id_fkey"
+            columns: ["caso_id"]
+            isOneToOne: false
+            referencedRelation: "casos_apoio"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      caso_registos: {
+        Row: {
+          autor_id: string | null
+          caso_id: string
+          conteudo: string
+          created_at: string
+          data: string
+          estado_anterior: string | null
+          estado_novo: string | null
+          id: string
+          tipo: string
+          titulo: string | null
+          visivel_para_pessoa: boolean
+        }
+        Insert: {
+          autor_id?: string | null
+          caso_id: string
+          conteudo: string
+          created_at?: string
+          data?: string
+          estado_anterior?: string | null
+          estado_novo?: string | null
+          id?: string
+          tipo: string
+          titulo?: string | null
+          visivel_para_pessoa?: boolean
+        }
+        Update: {
+          autor_id?: string | null
+          caso_id?: string
+          conteudo?: string
+          created_at?: string
+          data?: string
+          estado_anterior?: string | null
+          estado_novo?: string | null
+          id?: string
+          tipo?: string
+          titulo?: string | null
+          visivel_para_pessoa?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "caso_registos_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caso_registos_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caso_registos_caso_id_fkey"
+            columns: ["caso_id"]
+            isOneToOne: false
+            referencedRelation: "casos_apoio"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      caso_transferencias: {
+        Row: {
+          caso_id: string
+          created_at: string
+          data: string
+          id: string
+          mediadora_entrada_id: string | null
+          mediadora_saida_id: string | null
+          motivo: string | null
+          notas_transicao: string
+        }
+        Insert: {
+          caso_id: string
+          created_at?: string
+          data?: string
+          id?: string
+          mediadora_entrada_id?: string | null
+          mediadora_saida_id?: string | null
+          motivo?: string | null
+          notas_transicao: string
+        }
+        Update: {
+          caso_id?: string
+          created_at?: string
+          data?: string
+          id?: string
+          mediadora_entrada_id?: string | null
+          mediadora_saida_id?: string | null
+          motivo?: string | null
+          notas_transicao?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "caso_transferencias_caso_id_fkey"
+            columns: ["caso_id"]
+            isOneToOne: false
+            referencedRelation: "casos_apoio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caso_transferencias_mediadora_entrada_id_fkey"
+            columns: ["mediadora_entrada_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caso_transferencias_mediadora_entrada_id_fkey"
+            columns: ["mediadora_entrada_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caso_transferencias_mediadora_saida_id_fkey"
+            columns: ["mediadora_saida_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caso_transferencias_mediadora_saida_id_fkey"
+            columns: ["mediadora_saida_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      casos_apoio: {
+        Row: {
+          area: string
+          created_at: string
+          created_by_auth_id: string | null
+          data_abertura: string
+          data_conclusao: string | null
+          data_prevista_conclusao: string | null
+          descricao: string | null
+          estado: string
+          familia_id: string | null
+          id: string
+          mediadora_id: string | null
+          numero: string | null
+          objetivo: string | null
+          origem: string
+          pessoa_id: string
+          prioridade: string
+          resultado_final: string | null
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          area: string
+          created_at?: string
+          created_by_auth_id?: string | null
+          data_abertura?: string
+          data_conclusao?: string | null
+          data_prevista_conclusao?: string | null
+          descricao?: string | null
+          estado?: string
+          familia_id?: string | null
+          id?: string
+          mediadora_id?: string | null
+          numero?: string | null
+          objetivo?: string | null
+          origem: string
+          pessoa_id: string
+          prioridade?: string
+          resultado_final?: string | null
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          area?: string
+          created_at?: string
+          created_by_auth_id?: string | null
+          data_abertura?: string
+          data_conclusao?: string | null
+          data_prevista_conclusao?: string | null
+          descricao?: string | null
+          estado?: string
+          familia_id?: string | null
+          id?: string
+          mediadora_id?: string | null
+          numero?: string | null
+          objetivo?: string | null
+          origem?: string
+          pessoa_id?: string
+          prioridade?: string
+          resultado_final?: string | null
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "casos_apoio_familia_id_fkey"
+            columns: ["familia_id"]
+            isOneToOne: false
+            referencedRelation: "familias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "casos_apoio_mediadora_id_fkey"
+            columns: ["mediadora_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "casos_apoio_mediadora_id_fkey"
+            columns: ["mediadora_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "casos_apoio_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "casos_apoio_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       colaboradores: {
         Row: {
           ativo: boolean
@@ -1799,6 +2075,7 @@ export type Database = {
         Returns: Json
       }
       convite_validar: { Args: { p_token: string }; Returns: Json }
+      count_casos_novos: { Args: never; Returns: number }
       count_duplicates: { Args: never; Returns: number }
       current_user_familia_id: { Args: never; Returns: string }
       current_user_pessoa_id: { Args: never; Returns: string }
@@ -1839,6 +2116,17 @@ export type Database = {
           }
       is_current_user_admin: { Args: never; Returns: boolean }
       is_current_user_staff: { Args: never; Returns: boolean }
+      notificar_mediadora: {
+        Args: {
+          p_descricao?: string
+          p_group_key?: string
+          p_link?: string
+          p_mediadora_id: string
+          p_tipo: string
+          p_titulo: string
+        }
+        Returns: undefined
+      }
       notificar_nova_entrada_pendente: {
         Args: { p_colaborador_id: string }
         Returns: number
