@@ -1,4 +1,5 @@
-import type { ColumnDef, ColumnMeta } from "@tanstack/react-table";
+import type { ColumnDef, ColumnMeta, SortingState, VisibilityState } from "@tanstack/react-table";
+import type { ReactNode } from "react";
 
 export type SmartEditType = "text" | "number" | "date" | "select";
 
@@ -37,7 +38,7 @@ export interface SmartTableProps<TData> {
   /** Called when an editable cell is committed. */
   onCellEdit?: (rowId: string, columnId: string, value: unknown) => void | Promise<void>;
   /** Extra buttons rendered on the right of the toolbar. */
-  toolbarActions?: React.ReactNode;
+  toolbarActions?: ReactNode;
   /** Initial group-by column id (user can change it). */
   defaultGroupBy?: string;
   /** Group values that start collapsed (only when grouping is active). */
@@ -52,4 +53,26 @@ export interface SmartTableProps<TData> {
   hideSearch?: boolean;
   /** Override the empty-state message. */
   emptyMessage?: string;
+  /** Override the empty-state icon. */
+  emptyIcon?: ReactNode;
+  /** Placeholder for the global search input (default: "Pesquisar…"). */
+  searchPlaceholder?: string;
+  /**
+   * Explicit list of columns offered in the "Agrupar" menu. When omitted,
+   * SmartTable falls back to every visible accessor column.
+   */
+  groupByOptions?: { value: string; label: string }[];
+  /** Initial sorting state (only applied on the very first render). */
+  defaultSortBy?: SortingState;
+  /** Initial column visibility state (only applied on the very first render). */
+  defaultColumnVisibility?: VisibilityState;
+  /** Extra className per row, based on the underlying record. */
+  getRowClassName?: (row: TData) => string | undefined;
+  /**
+   * Page size for the optional pagination footer. Pass `null` (or omit) to
+   * disable pagination and show every row at once (the historical default).
+   */
+  pageSize?: number | null;
+  /** Enable the SavedViews component when set; value is the storage namespace. */
+  savedViewsKey?: string;
 }
