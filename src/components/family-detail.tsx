@@ -1075,6 +1075,14 @@ export function FamilyDetailDialog({
 
             {/* ── Ações ── */}
             <TabsContent value="acoes" className="pt-4 flex-1 min-h-0 overflow-hidden">
+              {loadingMembros ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-10 w-full" />
+                  ))}
+                </div>
+              ) : (
+              <>
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm text-muted-foreground">Inscrições dos membros desta família</span>
                 <Button
@@ -1118,6 +1126,8 @@ export function FamilyDetailDialog({
                   </TableBody>
                 </Table>
               </div>
+              </>
+              )}
             </TabsContent>
 
             {/* ── Atividades ── */}
