@@ -48,6 +48,7 @@ import { Route as AppAdminProjetosProjetoIdRouteImport } from './routes/_app/_ad
 import { Route as AppAdminParceirosParceiroIdRouteImport } from './routes/_app/_admin.parceiros.$parceiroId'
 import { Route as AppAdminFinanciamentosFinanciamentoIdRouteImport } from './routes/_app/_admin.financiamentos.$financiamentoId'
 import { Route as AppAdminColaboradorasColaboradoraIdRouteImport } from './routes/_app/_admin.colaboradoras.$colaboradoraId'
+import { Route as AppAdminCasosIdRouteImport } from './routes/_app/_admin.casos.$id'
 import { Route as AppAdminServicosColaboradorIdRouteImport } from './routes/_app/_admin.servicos.colaborador.$id'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -250,6 +251,11 @@ const AppAdminColaboradorasColaboradoraIdRoute =
     path: '/colaboradoras/$colaboradoraId',
     getParentRoute: () => AppAdminRoute,
   } as any)
+const AppAdminCasosIdRoute = AppAdminCasosIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppAdminCasosRoute,
+} as any)
 const AppAdminServicosColaboradorIdRoute =
   AppAdminServicosColaboradorIdRouteImport.update({
     id: '/colaborador/$id',
@@ -286,6 +292,7 @@ export interface FileRoutesByFullPath {
   '/servicos': typeof AppAdminServicosRouteWithChildren
   '/style-guide': typeof AppAdminStyleGuideRoute
   '/tipos-user': typeof AppAdminTiposUserRoute
+  '/casos/$id': typeof AppAdminCasosIdRoute
   '/colaboradoras/$colaboradoraId': typeof AppAdminColaboradorasColaboradoraIdRoute
   '/financiamentos/$financiamentoId': typeof AppAdminFinanciamentosFinanciamentoIdRoute
   '/parceiros/$parceiroId': typeof AppAdminParceirosParceiroIdRoute
@@ -323,6 +330,7 @@ export interface FileRoutesByTo {
   '/servicos': typeof AppAdminServicosRouteWithChildren
   '/style-guide': typeof AppAdminStyleGuideRoute
   '/tipos-user': typeof AppAdminTiposUserRoute
+  '/casos/$id': typeof AppAdminCasosIdRoute
   '/colaboradoras/$colaboradoraId': typeof AppAdminColaboradorasColaboradoraIdRoute
   '/financiamentos/$financiamentoId': typeof AppAdminFinanciamentosFinanciamentoIdRoute
   '/parceiros/$parceiroId': typeof AppAdminParceirosParceiroIdRoute
@@ -366,6 +374,7 @@ export interface FileRoutesById {
   '/_app/_admin/servicos': typeof AppAdminServicosRouteWithChildren
   '/_app/_admin/style-guide': typeof AppAdminStyleGuideRoute
   '/_app/_admin/tipos-user': typeof AppAdminTiposUserRoute
+  '/_app/_admin/casos/$id': typeof AppAdminCasosIdRoute
   '/_app/_admin/colaboradoras/$colaboradoraId': typeof AppAdminColaboradorasColaboradoraIdRoute
   '/_app/_admin/financiamentos/$financiamentoId': typeof AppAdminFinanciamentosFinanciamentoIdRoute
   '/_app/_admin/parceiros/$parceiroId': typeof AppAdminParceirosParceiroIdRoute
@@ -408,6 +417,7 @@ export interface FileRouteTypes {
     | '/servicos'
     | '/style-guide'
     | '/tipos-user'
+    | '/casos/$id'
     | '/colaboradoras/$colaboradoraId'
     | '/financiamentos/$financiamentoId'
     | '/parceiros/$parceiroId'
@@ -445,6 +455,7 @@ export interface FileRouteTypes {
     | '/servicos'
     | '/style-guide'
     | '/tipos-user'
+    | '/casos/$id'
     | '/colaboradoras/$colaboradoraId'
     | '/financiamentos/$financiamentoId'
     | '/parceiros/$parceiroId'
@@ -487,6 +498,7 @@ export interface FileRouteTypes {
     | '/_app/_admin/servicos'
     | '/_app/_admin/style-guide'
     | '/_app/_admin/tipos-user'
+    | '/_app/_admin/casos/$id'
     | '/_app/_admin/colaboradoras/$colaboradoraId'
     | '/_app/_admin/financiamentos/$financiamentoId'
     | '/_app/_admin/parceiros/$parceiroId'
@@ -784,6 +796,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminColaboradorasColaboradoraIdRouteImport
       parentRoute: typeof AppAdminRoute
     }
+    '/_app/_admin/casos/$id': {
+      id: '/_app/_admin/casos/$id'
+      path: '/$id'
+      fullPath: '/casos/$id'
+      preLoaderRoute: typeof AppAdminCasosIdRouteImport
+      parentRoute: typeof AppAdminCasosRoute
+    }
     '/_app/_admin/servicos/colaborador/$id': {
       id: '/_app/_admin/servicos/colaborador/$id'
       path: '/colaborador/$id'
@@ -795,10 +814,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppAdminCasosRouteChildren {
+  AppAdminCasosIdRoute: typeof AppAdminCasosIdRoute
   AppAdminCasosIndexRoute: typeof AppAdminCasosIndexRoute
 }
 
 const AppAdminCasosRouteChildren: AppAdminCasosRouteChildren = {
+  AppAdminCasosIdRoute: AppAdminCasosIdRoute,
   AppAdminCasosIndexRoute: AppAdminCasosIndexRoute,
 }
 
