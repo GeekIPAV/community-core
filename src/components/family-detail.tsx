@@ -93,6 +93,7 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
   const [novaOpen, setNovaOpen] = useState(false);
   const [novaNome, setNovaNome] = useState("");
   const [novaCategoria, setNovaCategoria] = useState<string>("");
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
 
   const { data: catalogo } = useQuery({
     queryKey: ["atividades-catalogo"],
