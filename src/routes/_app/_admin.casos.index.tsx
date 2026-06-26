@@ -17,9 +17,12 @@ export const Route = createFileRoute("/_app/_admin/casos/")({
 type CasoRow = {
   id: string;
   numero: string;
-  pessoa_id: string;
-  pessoa_nome: string;
+  pessoa_id: string | null;
+  familia_id: string | null;
+  pessoa_nome: string | null;
   familia_nome: string | null;
+  familia_membros: number;
+  alvo_familia: boolean;
   area: string;
   titulo: string;
   mediadora_id: string | null;
@@ -56,8 +59,9 @@ function CasosListPage() {
       const { data, error } = await supabase
         .from("casos_apoio" as any)
         .select(`
-          id, numero, pessoa_id, area, titulo, mediadora_id, prioridade, estado, origem, data_abertura,
+          id, numero, pessoa_id, familia_id, area, titulo, mediadora_id, prioridade, estado, origem, data_abertura,
           pessoa:pessoas!casos_apoio_pessoa_id_fkey(nome_completo, familia:familias(nome)),
+          familia:familias!casos_apoio_familia_id_fkey(nome, pessoas(count)),
           mediadora:pessoas!casos_apoio_mediadora_id_fkey(nome_completo),
           caso_registos(count)
         `)
@@ -67,8 +71,11 @@ function CasosListPage() {
         id: c.id,
         numero: c.numero,
         pessoa_id: c.pessoa_id,
-        pessoa_nome: c.pessoa?.nome_completo ?? "—",
-        familia_nome: c.pessoa?.familia?.nome ?? null,
+        familia_id: c.familia_id,
+        pessoa_nome: c.pessoa?.nome_completo ?? null,
+        familia_nome: c.pessoa?.familia?.nome ?? c.familia?.nome ?? null,
+        familia_membros: c.familia?.pessoas?.[0]?.count ?? 0,
+        alvo_familia: !c.pessoa_id && !!c.familia_id,
         area: c.area,
         titulo: c.titulo,
         mediadora_id: c.mediadora_id,
@@ -104,9 +111,23 @@ function CasosListPage() {
       meta: { label: "Pessoa", filterVariant: "text" },
       cell: ({ row }) => (
         <div className="min-w-0">
-          <div className="font-medium truncate">{row.original.pessoa_nome}</div>
-          {row.original.familia_nome && (
-            <div className="text-xs text-muted-foreground truncate">{row.original.familia_nome}</div>
+          {row.original.alvo_familia ? (
+            <>
+              <div className="font-medium truncate flex items-center gap-1.5">
+                <UsersIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                Família {row.original.familia_nome ?? "—"}
+              </div>
+              <div className="text-xs text-muted-foreground truncate">
+                Apoia {row.original.familia_membros} pessoa(s)
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="font-medium truncate">{row.original.pessoa_nome ?? "—"}</div>
+              {row.original.familia_nome && (
+                <div className="text-xs text-muted-foreground truncate">{row.original.familia_nome}</div>
+              )}
+            </>
           )}
         </div>
       ),

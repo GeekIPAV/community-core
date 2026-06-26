@@ -395,7 +395,7 @@ export type Database = {
           numero: string | null
           objetivo: string | null
           origem: string
-          pessoa_id: string
+          pessoa_id: string | null
           prioridade: string
           resultado_final: string | null
           titulo: string
@@ -416,7 +416,7 @@ export type Database = {
           numero?: string | null
           objetivo?: string | null
           origem: string
-          pessoa_id: string
+          pessoa_id?: string | null
           prioridade?: string
           resultado_final?: string | null
           titulo: string
@@ -437,7 +437,7 @@ export type Database = {
           numero?: string | null
           objetivo?: string | null
           origem?: string
-          pessoa_id?: string
+          pessoa_id?: string | null
           prioridade?: string
           resultado_final?: string | null
           titulo?: string

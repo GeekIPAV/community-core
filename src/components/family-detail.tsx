@@ -1512,7 +1512,7 @@ function CasosFamiliaTab({ familiaId }: { familiaId: string }) {
               </TableCell>
               <TableCell className="font-medium">{c.titulo}</TableCell>
               <TableCell><Badge variant="outline">{c.area}</Badge></TableCell>
-              <TableCell>{c.pessoa?.nome_completo ?? "—"}</TableCell>
+              <TableCell>{c.pessoa?.nome_completo ?? <Badge variant="outline" className="font-normal">Família</Badge>}</TableCell>
               <TableCell>{c.mediadora?.nome_completo ?? <span className="text-muted-foreground">—</span>}</TableCell>
               <TableCell><Badge variant="secondary">{c.estado}</Badge></TableCell>
               <TableCell className="text-xs text-muted-foreground">{formatDateBR(c.data_abertura)}</TableCell>

@@ -65,6 +65,7 @@ function CasoDetailPage() {
         .select(`
           *,
           pessoa:pessoas!casos_apoio_pessoa_id_fkey(id, nome_completo, telefone, email, familia:familias(id, nome)),
+          familia:familias!casos_apoio_familia_id_fkey(id, nome, pessoas(id, nome_completo, telefone, email)),
           mediadora:pessoas!casos_apoio_mediadora_id_fkey(id, nome_completo)
         `)
         .eq("id", id).maybeSingle();
@@ -202,19 +203,49 @@ function CasoDetailPage() {
           </Card>
 
           <Card className="p-4 space-y-3 text-sm">
-            <div className="font-medium">{caso.pessoa?.nome_completo}</div>
-            {caso.pessoa?.familia?.nome && (
-              <div className="text-xs text-muted-foreground">{caso.pessoa.familia.nome}</div>
-            )}
-            {caso.pessoa?.telefone && (
-              <a href={`tel:${caso.pessoa.telefone}`} className="flex items-center gap-2 text-xs hover:underline">
-                <Phone className="h-3.5 w-3.5" /> {caso.pessoa.telefone}
-              </a>
-            )}
-            {caso.pessoa?.email && (
-              <a href={`mailto:${caso.pessoa.email}`} className="flex items-center gap-2 text-xs hover:underline">
-                <Mail className="h-3.5 w-3.5" /> {caso.pessoa.email}
-              </a>
+            {caso.pessoa ? (
+              <>
+                <div className="font-medium">{caso.pessoa?.nome_completo}</div>
+                {caso.pessoa?.familia?.nome && (
+                  <div className="text-xs text-muted-foreground">{caso.pessoa.familia.nome}</div>
+                )}
+                {caso.pessoa?.telefone && (
+                  <a href={`tel:${caso.pessoa.telefone}`} className="flex items-center gap-2 text-xs hover:underline">
+                    <Phone className="h-3.5 w-3.5" /> {caso.pessoa.telefone}
+                  </a>
+                )}
+                {caso.pessoa?.email && (
+                  <a href={`mailto:${caso.pessoa.email}`} className="flex items-center gap-2 text-xs hover:underline">
+                    <Mail className="h-3.5 w-3.5" /> {caso.pessoa.email}
+                  </a>
+                )}
+              </>
+            ) : caso.familia ? (
+              <>
+                <div className="flex items-center gap-2 font-medium">
+                  <UsersIcon className="h-4 w-4 text-muted-foreground" />
+                  Família {caso.familia.nome}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Apoio a {caso.familia.pessoas?.length ?? 0} pessoa(s)
+                </div>
+                {(caso.familia.pessoas ?? []).length > 0 && (
+                  <ul className="space-y-1 pt-1 border-t">
+                    {(caso.familia.pessoas as any[]).map((m) => (
+                      <li key={m.id} className="flex items-center justify-between text-xs">
+                        <span className="truncate">{m.nome_completo}</span>
+                        {m.telefone && (
+                          <a href={`tel:${m.telefone}`} className="text-muted-foreground hover:underline ml-2 shrink-0">
+                            {m.telefone}
+                          </a>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
+            ) : (
+              <div className="text-xs text-muted-foreground">Sem alvo associado</div>
             )}
           </Card>
 
@@ -316,7 +347,7 @@ function CasoDetailPage() {
               </div>
               {verComoPessoa && (
                 <div className="rounded-md border border-blue-300 bg-blue-50 dark:bg-blue-950/20 p-2 text-xs text-blue-900 dark:text-blue-200">
-                  Estás a ver o que {caso.pessoa?.nome_completo} vê.
+                  Estás a ver o que {caso.pessoa?.nome_completo ?? `a família ${caso.familia?.nome ?? ""}`} vê.
                 </div>
               )}
               <div className="space-y-3">
