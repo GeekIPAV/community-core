@@ -64,8 +64,8 @@ function CasoDetailPage() {
         .from("casos_apoio" as any)
         .select(`
           *,
-          pessoa:pessoas!casos_apoio_pessoa_id_fkey(id, nome_completo, telefone, email, familia:familias(id, nome)),
-          familia:familias!casos_apoio_familia_id_fkey(id, nome, pessoas(id, nome_completo, telefone, email)),
+          pessoa:pessoas!casos_apoio_pessoa_id_fkey(id, nome_completo, telefone, email, familia:familias!pessoas_familia_id_fkey(id, nome)),
+          familia:familias!casos_apoio_familia_id_fkey(id, nome, pessoas:pessoas!pessoas_familia_id_fkey(id, nome_completo, telefone, email)),
           mediadora:pessoas!casos_apoio_mediadora_id_fkey(id, nome_completo)
         `)
         .eq("id", id).maybeSingle();
