@@ -234,7 +234,7 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
                         size="icon"
                         variant="ghost"
                         title="Remover"
-                        onClick={() => { if (confirm("Remover esta atividade?")) remove.mutate(r.id); }}
+                        onClick={() => setConfirmRemoveId(r.id)}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
