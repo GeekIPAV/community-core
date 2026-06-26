@@ -926,9 +926,12 @@ export function FamilyDetailDialog({
                                     variant="ghost"
                                     title="Remover da família"
                                     onClick={() => {
-                                      if (confirm(`Remover ${m.nome_completo} desta família? O utilizador continua a existir.`)) {
-                                        removeFromFamilia.mutate(m.id);
-                                      }
+                                      setConfirmState({
+                                        open: true,
+                                        title: "Remover da família",
+                                        description: `Remover ${m.nome_completo} desta família? O utilizador continua a existir.`,
+                                        onConfirm: () => removeFromFamilia.mutate(m.id),
+                                      });
                                     }}
                                   >
                                     <UserMinus className="h-4 w-4" />
@@ -938,9 +941,12 @@ export function FamilyDetailDialog({
                                     variant="ghost"
                                     title="Apagar utilizador"
                                     onClick={() => {
-                                      if (confirm(`Apagar ${m.nome_completo} definitivamente? Esta ação não pode ser desfeita.`)) {
-                                        deletePessoa.mutate(m.id);
-                                      }
+                                      setConfirmState({
+                                        open: true,
+                                        title: "Apagar utilizador",
+                                        description: `Apagar ${m.nome_completo} definitivamente? Esta ação não pode ser desfeita.`,
+                                        onConfirm: () => deletePessoa.mutate(m.id),
+                                      });
                                     }}
                                   >
                                     <Trash2 className="h-4 w-4 text-destructive" />
