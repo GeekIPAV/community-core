@@ -12,7 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Plus, Trash2, UserMinus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Trash2, UserMinus, FolderOpen } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { formatDateBR } from "@/lib/utils";
 import { InlineText, InlineSelect, InlineMultiSelect } from "@/components/inline-edit";
 import { personIcon, flagFor } from "@/lib/person-display";
@@ -1462,6 +1463,63 @@ function ContextoRelacionalTab({ familiaId }: { familiaId: string }) {
       <div className="flex justify-end pt-2">
         <Button onClick={saveAll}>Guardar contexto</Button>
       </div>
+    </div>
+  );
+}
+
+function CasosFamiliaTab({ familiaId }: { familiaId: string }) {
+  const { data: casos = [], isLoading } = useQuery({
+    queryKey: ["familia-casos", familiaId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("casos_apoio" as any)
+        .select("id, numero, titulo, area, estado, prioridade, data_abertura, pessoa:pessoas!casos_apoio_pessoa_id_fkey(nome_completo), mediadora:pessoas!casos_apoio_mediadora_id_fkey(nome_completo)")
+        .eq("familia_id", familiaId)
+        .order("data_abertura", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  if (isLoading) return <div className="text-sm text-muted-foreground">A carregar…</div>;
+  if (casos.length === 0) {
+    return (
+      <div className="rounded-md border p-8 text-center space-y-2">
+        <FolderOpen className="h-8 w-8 text-muted-foreground/40 mx-auto" />
+        <p className="text-sm text-muted-foreground">Sem casos de apoio para esta família.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-md border overflow-hidden">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Número</TableHead>
+            <TableHead>Título</TableHead>
+            <TableHead>Área</TableHead>
+            <TableHead>Pessoa</TableHead>
+            <TableHead>Mediadora</TableHead>
+            <TableHead>Estado</TableHead>
+            <TableHead>Abertura</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {casos.map((c) => (
+            <TableRow key={c.id} className="cursor-pointer hover:bg-muted/40" onClick={() => window.open(`/casos/${c.id}`, "_self")}>
+              <TableCell className="font-mono text-xs">
+                <Link to="/casos/$id" params={{ id: c.id }} className="text-primary hover:underline">{c.numero}</Link>
+              </TableCell>
+              <TableCell className="font-medium">{c.titulo}</TableCell>
+              <TableCell><Badge variant="outline">{c.area}</Badge></TableCell>
+              <TableCell>{c.pessoa?.nome_completo ?? "—"}</TableCell>
+              <TableCell>{c.mediadora?.nome_completo ?? <span className="text-muted-foreground">—</span>}</TableCell>
+              <TableCell><Badge variant="secondary">{c.estado}</Badge></TableCell>
+              <TableCell className="text-xs text-muted-foreground">{formatDateBR(c.data_abertura)}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }
