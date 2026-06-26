@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { CurriculoSection } from "@/components/curriculo-section";
 import { FamilyDetailDialog } from "@/components/family-detail";
 import type { Familia } from "@/components/family-detail";
+import { MeuApoioSection } from "@/components/meu-apoio-section";
 import {
   Mail, Phone, MapPin, Cake, Briefcase, Globe, HeartHandshake, Users, IdCard,
   ShieldCheck, Heart, Pencil, Save, X, Calendar,
@@ -164,6 +165,9 @@ function PerfilPage() {
           <TabsTrigger value="dados">Dados</TabsTrigger>
           <TabsTrigger value="familia">Agregado familiar</TabsTrigger>
           <TabsTrigger value="atividades">Ações e Atividades</TabsTrigger>
+          {!isEquipa && (
+            <TabsTrigger value="apoio">O Meu Apoio</TabsTrigger>
+          )}
           {(calcIdade(pessoa.data_nascimento) ?? 0) >= 18 && (
             <TabsTrigger value="curriculo">Currículo</TabsTrigger>
           )}
@@ -183,6 +187,11 @@ function PerfilPage() {
         <TabsContent value="atividades" className="mt-6">
           <AtividadesSection pessoaId={pessoa.id} />
         </TabsContent>
+        {!isEquipa && (
+          <TabsContent value="apoio" className="mt-6">
+            <MeuApoioSection pessoaId={pessoa.id} />
+          </TabsContent>
+        )}
         {(calcIdade(pessoa.data_nascimento) ?? 0) >= 18 && (
           <TabsContent value="curriculo" className="mt-6">
             <CurriculoSection pessoaId={pessoa.id} />
