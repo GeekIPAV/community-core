@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import {
   Users, Users2, Briefcase, CalendarDays, Activity, AlertTriangle,
-  BarChart3, Globe, User, MapPin, Bus, UserCog, Trash2, LayoutDashboard, FolderOpen,
+  BarChart3, Globe, User, MapPin, Bus, UserCog, Trash2, LayoutDashboard, FolderOpen, FileBarChart,
 } from "lucide-react";
 
 const NAV = [
@@ -25,6 +25,7 @@ const NAV = [
   { label: "Participantes", to: "/participantes", icon: Users, admin: true },
   { label: "Famílias", to: "/familias", icon: Users2, admin: true },
   { label: "Projetos", to: "/projetos", icon: Briefcase, admin: true },
+  { label: "Relatórios", to: "/relatorios", icon: FileBarChart, admin: true },
   { label: "Acompanhamento", to: "/casos", icon: FolderOpen, admin: true },
   { label: "Ações", to: "/acoes", icon: CalendarDays, admin: true },
   { label: "Atividades", to: "/atividades", icon: Activity, admin: true },
