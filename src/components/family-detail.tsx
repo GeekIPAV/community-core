@@ -967,15 +967,15 @@ export function FamilyDetailDialog({
                         <Plus className="mr-2 h-4 w-4" /> Adicionar membro
                       </Button>
                     </div>
-                    <Tabs defaultValue="membros" className="flex flex-col flex-1 min-h-0">
+                    <Tabs defaultValue="membros-inner" className="flex flex-col flex-1 min-h-0">
                       <TabsList className="w-full">
-                        <TabsTrigger value="membros" className="flex-1">Membros ({membrosNormais.length})</TabsTrigger>
-                        <TabsTrigger value="voluntarios" className="flex-1">Voluntários ({voluntarios.length})</TabsTrigger>
+                        <TabsTrigger value="membros-inner" className="flex-1">Membros ({membrosNormais.length})</TabsTrigger>
+                        <TabsTrigger value="voluntarios-inner" className="flex-1">Voluntários ({voluntarios.length})</TabsTrigger>
                       </TabsList>
-                      <TabsContent value="membros" className="pt-3 flex-1 min-h-0">
+                      <TabsContent value="membros-inner" className="pt-3 flex-1 min-h-0">
                         {renderTable(membrosNormais, "Sem membros")}
                       </TabsContent>
-                      <TabsContent value="voluntarios" className="pt-3 flex-1 min-h-0">
+                      <TabsContent value="voluntarios-inner" className="pt-3 flex-1 min-h-0">
                         {renderTable(voluntarios, "Sem voluntários")}
                       </TabsContent>
                     </Tabs>
