@@ -233,6 +233,8 @@ export function CasoNovoSheet({
     onSuccess: (caso) => {
       qc.invalidateQueries({ queryKey: ["casos"] });
       qc.invalidateQueries({ queryKey: ["meus-casos"] });
+      qc.invalidateQueries({ queryKey: ["meus-acompanhamentos"] });
+      qc.invalidateQueries({ queryKey: ["familia-casos"] });
       qc.invalidateQueries({ queryKey: ["sidebar-badge", "count_casos_novos"] });
       onOpenChange(false);
       if (mode === "auto") {
