@@ -21,10 +21,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Plus } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { SmartTable, type SmartColumnDef } from "@/components/smart-table";
 import { InlineMultiSelect } from "@/components/inline-edit";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_app/_admin/financiamentos/")({
   component: FinanciamentosListPage,
@@ -113,6 +123,7 @@ function FinanciamentosListPage() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<FinanciamentoRow | null>(null);
+  const [deleting, setDeleting] = useState<FinanciamentoRow | null>(null);
 
   const { data: financiamentos, isLoading } = useQuery({
     queryKey: ["financiamentos", "with-projetos"],
@@ -144,6 +155,20 @@ function FinanciamentosListPage() {
 
   const openNew = () => { setEditing(null); setOpen(true); };
   const openEdit = (f: FinanciamentoRow) => { setEditing(f); setOpen(true); };
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await supabase.from("financiamento_projetos" as any).delete().eq("financiamento_id", id);
+      const { error } = await supabase.from("financiamentos" as any).delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Financiamento eliminado");
+      qc.invalidateQueries({ queryKey: ["financiamentos"] });
+      setDeleting(null);
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao eliminar"),
+  });
 
   const columns = useMemo<SmartColumnDef<FinanciamentoRow>[]>(() => [
     {
@@ -257,6 +282,14 @@ function FinanciamentosListPage() {
           >
             <Pencil className="h-4 w-4" />
           </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={(e) => { e.stopPropagation(); setDeleting(row.original); }}
+            title="Eliminar"
+          >
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
         </div>
       ),
     },
@@ -295,6 +328,27 @@ function FinanciamentosListPage() {
         editing={editing}
         onSaved={() => qc.invalidateQueries({ queryKey: ["financiamentos"] })}
       />
+
+      <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar financiamento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação é irreversível. O financiamento "{deleting?.nome}" e as suas ligações a projetos serão eliminados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); if (deleting) deleteMutation.mutate(deleting.id); }}
+              disabled={deleteMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? "A eliminar…" : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
