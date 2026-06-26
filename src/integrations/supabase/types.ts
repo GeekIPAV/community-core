@@ -1777,10 +1777,12 @@ export type Database = {
           data_submissao_real: string | null
           estado: string
           financiador: string
+          geral: boolean
           id: string
           periodo_fim: string
           periodo_inicio: string
           projeto_id: string | null
+          projeto_ids: string[]
           tipo: string
           titulo: string
           updated_at: string
@@ -1792,10 +1794,12 @@ export type Database = {
           data_submissao_real?: string | null
           estado?: string
           financiador: string
+          geral?: boolean
           id?: string
           periodo_fim: string
           periodo_inicio: string
           projeto_id?: string | null
+          projeto_ids?: string[]
           tipo?: string
           titulo: string
           updated_at?: string
@@ -1807,10 +1811,12 @@ export type Database = {
           data_submissao_real?: string | null
           estado?: string
           financiador?: string
+          geral?: boolean
           id?: string
           periodo_fim?: string
           periodo_inicio?: string
           projeto_id?: string | null
+          projeto_ids?: string[]
           tipo?: string
           titulo?: string
           updated_at?: string
