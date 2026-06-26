@@ -470,6 +470,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
   const [bulkEditValue, setBulkEditValue] = useState<any>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [groupByFamilia, setGroupByFamilia] = useState(false);
+  const [globalFilter, setGlobalFilter] = useState("");
   
   const { data, isLoading } = useQuery({
     queryKey: ["inscricoes", acaoId],
@@ -612,7 +613,25 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
         </Select>
       ),
     },
-    { id: "nome", header: "Nome", accessorFn: (r) => r.pessoa?.nome_completo ?? "", filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nome" } satisfies ColumnFilterMeta },
+    {
+      id: "nome",
+      header: "Nome",
+      accessorFn: (r) => r.pessoa?.nome_completo ?? "",
+      filterFn: advancedFilterFn as any,
+      meta: { filterVariant: "text", label: "Nome" } satisfies ColumnFilterMeta,
+      cell: ({ row }) => {
+        const p = row.original.pessoa;
+        const semRegisto = !!p && !p.email && !p.telefone && !p.familia_id;
+        return (
+          <div className="flex items-center gap-2">
+            <span>{p?.nome_completo ?? "—"}</span>
+            {semRegisto && (
+              <Badge variant="outline" className="text-[10px] px-1 py-0">Sem registo</Badge>
+            )}
+          </div>
+        );
+      },
+    },
     { id: "email", header: "Email", accessorFn: (r) => r.pessoa?.email ?? "", filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Email" } satisfies ColumnFilterMeta },
     { id: "telefone", header: "Telefone", accessorFn: (r) => r.pessoa?.telefone ?? "", filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Telefone" } satisfies ColumnFilterMeta },
     { id: "data_nascimento", header: "Data nasc.", accessorFn: (r) => r.pessoa?.data_nascimento ?? "", filterFn: advancedFilterFn as any, meta: { filterVariant: "date", label: "Data nascimento" } satisfies ColumnFilterMeta },
@@ -676,10 +695,21 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
     defaultColumn: { minSize: 60, size: 160, maxSize: 800 },
     data: baseRows,
     columns,
-    state: { sorting, columnVisibility, columnOrder },
+    state: { sorting, columnVisibility, columnOrder, globalFilter },
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnOrderChange: setColumnOrder,
+    onGlobalFilterChange: setGlobalFilter,
+    globalFilterFn: (row, _id, value) => {
+      const q = String(value ?? "").trim().toLowerCase();
+      if (!q) return true;
+      const p = (row.original as InscricaoRow).pessoa;
+      const hay = [
+        p?.nome_completo, p?.email, p?.telefone, p?.nif,
+        p?.cidade_residencia, p?.familia?.nome,
+      ].filter(Boolean).join(" ").toLowerCase();
+      return hay.includes(q);
+    },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -720,6 +750,15 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
         <div className="rounded-md border px-3 py-2">
           <p className="text-xs text-muted-foreground">Presentes</p>
           <p className="text-xl font-semibold">{presentes}</p>
+        </div>
+        <div className="relative min-w-[220px] flex-1 max-w-sm">
+          <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Pesquisar nome, email, telefone, família…"
+            value={globalFilter}
+            onChange={(e) => setGlobalFilter(e.target.value)}
+            className="pl-8 h-9"
+          />
         </div>
         <div className="ml-auto">
           <AdvancedTableFilters table={table} />
