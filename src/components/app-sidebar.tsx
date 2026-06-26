@@ -71,6 +71,7 @@ const FALLBACK_ITEMS: SidebarItemRow[] = [
   { id:"i10", group_id:"g3", key:"atividades", label:"Atividades", url:"/atividades", icon:"Activity", position:2, is_visible:true, visible_to:["admin","staff"], badge_query:null, sub_group:null },
   { id:"i11", group_id:"g3", key:"servicos-painel", label:"Serviços & Pagamentos", url:"/servicos", icon:"Wallet", position:3, is_visible:true, visible_to:["admin","staff"], badge_query:null, sub_group:null },
   { id:"i14", group_id:"g3", key:"curriculos", label:"Currículos", url:"/curriculos", icon:"FileText", position:4, is_visible:true, visible_to:["admin","staff"], badge_query:null, sub_group:null },
+  { id:"i14b", group_id:"g3", key:"relatorios", label:"Relatórios", url:"/relatorios", icon:"FileBarChart", position:14, is_visible:true, visible_to:["admin","staff"], badge_query:"count_relatorios_pendentes", sub_group:null },
   { id:"i12", group_id:"g5", key:"dashboard", label:"Painel", url:"/dashboard", icon:"LayoutDashboard", position:1, is_visible:true, visible_to:["admin","staff"], badge_query:null, sub_group:null },
   { id:"i13", group_id:"g5", key:"menu", label:"Gestão do Menu", url:"/menu", icon:"Settings2", position:6, is_visible:true, visible_to:["admin"], badge_query:null, sub_group:null },
 ];

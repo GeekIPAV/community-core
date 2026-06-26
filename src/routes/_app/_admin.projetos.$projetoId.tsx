@@ -28,6 +28,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, ClipboardCopy, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { InlineText } from "@/components/inline-edit";
+import { ProjetoRelatoriosTab } from "@/components/relatorios/projeto-relatorios-tab";
 
 export const Route = createFileRoute("/_app/_admin/projetos/$projetoId")({
   component: ProjetoDetailPage,
@@ -155,6 +156,7 @@ function ProjetoDetailPage() {
           <TabsTrigger value="geral">Geral</TabsTrigger>
           <TabsTrigger value="indicadores">Indicadores</TabsTrigger>
           <TabsTrigger value="acoes">Ações</TabsTrigger>
+          <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
         </TabsList>
         <TabsContent value="geral" className="mt-6">
           <ProjetoGeralTab projeto={projeto} />
@@ -164,6 +166,9 @@ function ProjetoDetailPage() {
         </TabsContent>
         <TabsContent value="acoes" className="mt-6">
           <AcoesProjetoTab projeto={projeto} />
+        </TabsContent>
+        <TabsContent value="relatorios" className="mt-6">
+          <ProjetoRelatoriosTab projetoId={projeto.id} />
         </TabsContent>
       </Tabs>
     </div>
