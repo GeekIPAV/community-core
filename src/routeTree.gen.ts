@@ -42,6 +42,7 @@ import { Route as AppAdminAcoesRouteImport } from './routes/_app/_admin.acoes'
 import { Route as AppAdminProjetosIndexRouteImport } from './routes/_app/_admin.projetos.index'
 import { Route as AppAdminParceirosIndexRouteImport } from './routes/_app/_admin.parceiros.index'
 import { Route as AppAdminFinanciamentosIndexRouteImport } from './routes/_app/_admin.financiamentos.index'
+import { Route as AppAdminCasosIndexRouteImport } from './routes/_app/_admin.casos.index'
 import { Route as AppAdminServicosCalendarioRouteImport } from './routes/_app/_admin.servicos.calendario'
 import { Route as AppAdminProjetosProjetoIdRouteImport } from './routes/_app/_admin.projetos.$projetoId'
 import { Route as AppAdminParceirosParceiroIdRouteImport } from './routes/_app/_admin.parceiros.$parceiroId'
@@ -214,6 +215,11 @@ const AppAdminFinanciamentosIndexRoute =
     path: '/financiamentos/',
     getParentRoute: () => AppAdminRoute,
   } as any)
+const AppAdminCasosIndexRoute = AppAdminCasosIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppAdminCasosRoute,
+} as any)
 const AppAdminServicosCalendarioRoute =
   AppAdminServicosCalendarioRouteImport.update({
     id: '/calendario',
@@ -263,7 +269,7 @@ export interface FileRoutesByFullPath {
   '/acoes': typeof AppAdminAcoesRoute
   '/atividades': typeof AppAdminAtividadesRoute
   '/bolsas-transporte': typeof AppAdminBolsasTransporteRoute
-  '/casos': typeof AppAdminCasosRoute
+  '/casos': typeof AppAdminCasosRouteWithChildren
   '/curriculos': typeof AppAdminCurriculosRoute
   '/dashboard': typeof AppAdminDashboardRoute
   '/duplicados': typeof AppAdminDuplicadosRoute
@@ -285,6 +291,7 @@ export interface FileRoutesByFullPath {
   '/parceiros/$parceiroId': typeof AppAdminParceirosParceiroIdRoute
   '/projetos/$projetoId': typeof AppAdminProjetosProjetoIdRoute
   '/servicos/calendario': typeof AppAdminServicosCalendarioRoute
+  '/casos/': typeof AppAdminCasosIndexRoute
   '/financiamentos/': typeof AppAdminFinanciamentosIndexRoute
   '/parceiros/': typeof AppAdminParceirosIndexRoute
   '/projetos/': typeof AppAdminProjetosIndexRoute
@@ -302,7 +309,6 @@ export interface FileRoutesByTo {
   '/acoes': typeof AppAdminAcoesRoute
   '/atividades': typeof AppAdminAtividadesRoute
   '/bolsas-transporte': typeof AppAdminBolsasTransporteRoute
-  '/casos': typeof AppAdminCasosRoute
   '/curriculos': typeof AppAdminCurriculosRoute
   '/dashboard': typeof AppAdminDashboardRoute
   '/duplicados': typeof AppAdminDuplicadosRoute
@@ -322,6 +328,7 @@ export interface FileRoutesByTo {
   '/parceiros/$parceiroId': typeof AppAdminParceirosParceiroIdRoute
   '/projetos/$projetoId': typeof AppAdminProjetosProjetoIdRoute
   '/servicos/calendario': typeof AppAdminServicosCalendarioRoute
+  '/casos': typeof AppAdminCasosIndexRoute
   '/financiamentos': typeof AppAdminFinanciamentosIndexRoute
   '/parceiros': typeof AppAdminParceirosIndexRoute
   '/projetos': typeof AppAdminProjetosIndexRoute
@@ -342,7 +349,7 @@ export interface FileRoutesById {
   '/_app/_admin/acoes': typeof AppAdminAcoesRoute
   '/_app/_admin/atividades': typeof AppAdminAtividadesRoute
   '/_app/_admin/bolsas-transporte': typeof AppAdminBolsasTransporteRoute
-  '/_app/_admin/casos': typeof AppAdminCasosRoute
+  '/_app/_admin/casos': typeof AppAdminCasosRouteWithChildren
   '/_app/_admin/curriculos': typeof AppAdminCurriculosRoute
   '/_app/_admin/dashboard': typeof AppAdminDashboardRoute
   '/_app/_admin/duplicados': typeof AppAdminDuplicadosRoute
@@ -364,6 +371,7 @@ export interface FileRoutesById {
   '/_app/_admin/parceiros/$parceiroId': typeof AppAdminParceirosParceiroIdRoute
   '/_app/_admin/projetos/$projetoId': typeof AppAdminProjetosProjetoIdRoute
   '/_app/_admin/servicos/calendario': typeof AppAdminServicosCalendarioRoute
+  '/_app/_admin/casos/': typeof AppAdminCasosIndexRoute
   '/_app/_admin/financiamentos/': typeof AppAdminFinanciamentosIndexRoute
   '/_app/_admin/parceiros/': typeof AppAdminParceirosIndexRoute
   '/_app/_admin/projetos/': typeof AppAdminProjetosIndexRoute
@@ -405,6 +413,7 @@ export interface FileRouteTypes {
     | '/parceiros/$parceiroId'
     | '/projetos/$projetoId'
     | '/servicos/calendario'
+    | '/casos/'
     | '/financiamentos/'
     | '/parceiros/'
     | '/projetos/'
@@ -422,7 +431,6 @@ export interface FileRouteTypes {
     | '/acoes'
     | '/atividades'
     | '/bolsas-transporte'
-    | '/casos'
     | '/curriculos'
     | '/dashboard'
     | '/duplicados'
@@ -442,6 +450,7 @@ export interface FileRouteTypes {
     | '/parceiros/$parceiroId'
     | '/projetos/$projetoId'
     | '/servicos/calendario'
+    | '/casos'
     | '/financiamentos'
     | '/parceiros'
     | '/projetos'
@@ -483,6 +492,7 @@ export interface FileRouteTypes {
     | '/_app/_admin/parceiros/$parceiroId'
     | '/_app/_admin/projetos/$projetoId'
     | '/_app/_admin/servicos/calendario'
+    | '/_app/_admin/casos/'
     | '/_app/_admin/financiamentos/'
     | '/_app/_admin/parceiros/'
     | '/_app/_admin/projetos/'
@@ -732,6 +742,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminFinanciamentosIndexRouteImport
       parentRoute: typeof AppAdminRoute
     }
+    '/_app/_admin/casos/': {
+      id: '/_app/_admin/casos/'
+      path: '/'
+      fullPath: '/casos/'
+      preLoaderRoute: typeof AppAdminCasosIndexRouteImport
+      parentRoute: typeof AppAdminCasosRoute
+    }
     '/_app/_admin/servicos/calendario': {
       id: '/_app/_admin/servicos/calendario'
       path: '/calendario'
@@ -777,6 +794,18 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppAdminCasosRouteChildren {
+  AppAdminCasosIndexRoute: typeof AppAdminCasosIndexRoute
+}
+
+const AppAdminCasosRouteChildren: AppAdminCasosRouteChildren = {
+  AppAdminCasosIndexRoute: AppAdminCasosIndexRoute,
+}
+
+const AppAdminCasosRouteWithChildren = AppAdminCasosRoute._addFileChildren(
+  AppAdminCasosRouteChildren,
+)
+
 interface AppAdminParceirosRouteChildren {
   AppAdminParceirosParceiroIdRoute: typeof AppAdminParceirosParceiroIdRoute
   AppAdminParceirosIndexRoute: typeof AppAdminParceirosIndexRoute
@@ -820,7 +849,7 @@ interface AppAdminRouteChildren {
   AppAdminAcoesRoute: typeof AppAdminAcoesRoute
   AppAdminAtividadesRoute: typeof AppAdminAtividadesRoute
   AppAdminBolsasTransporteRoute: typeof AppAdminBolsasTransporteRoute
-  AppAdminCasosRoute: typeof AppAdminCasosRoute
+  AppAdminCasosRoute: typeof AppAdminCasosRouteWithChildren
   AppAdminCurriculosRoute: typeof AppAdminCurriculosRoute
   AppAdminDashboardRoute: typeof AppAdminDashboardRoute
   AppAdminDuplicadosRoute: typeof AppAdminDuplicadosRoute
@@ -846,7 +875,7 @@ const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminAcoesRoute: AppAdminAcoesRoute,
   AppAdminAtividadesRoute: AppAdminAtividadesRoute,
   AppAdminBolsasTransporteRoute: AppAdminBolsasTransporteRoute,
-  AppAdminCasosRoute: AppAdminCasosRoute,
+  AppAdminCasosRoute: AppAdminCasosRouteWithChildren,
   AppAdminCurriculosRoute: AppAdminCurriculosRoute,
   AppAdminDashboardRoute: AppAdminDashboardRoute,
   AppAdminDuplicadosRoute: AppAdminDuplicadosRoute,
