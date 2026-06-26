@@ -456,12 +456,13 @@ function EstadoDropdown({ value, onChange }: { value: RelatorioEstado; onChange:
 }
 
 function SecaoCard({
-  secao, index, total, relatorio, onPatch, onDelete, onDuplicate, onMove, onDataReady,
+  secao, index, total, relatorio, relProjetoIds, onPatch, onDelete, onDuplicate, onMove, onDataReady,
 }: {
   secao: Secao;
   index: number;
   total: number;
   relatorio: Relatorio;
+  relProjetoIds: string[];
   onPatch: (patch: Partial<Pick<Secao, "titulo" | "conteudo_texto" | "config">>) => void;
   onDelete: () => void;
   onDuplicate: () => void;
@@ -481,7 +482,7 @@ function SecaoCard({
           secao={secao}
           relPeriodoInicio={relatorio.periodo_inicio}
           relPeriodoFim={relatorio.periodo_fim}
-          relProjetoId={relatorio.projeto_id}
+          relProjetoId={relProjetoIds[0] ?? null}
           onPatch={onPatch}
           onDataReady={onDataReady}
         />
@@ -508,7 +509,7 @@ function SecaoCard({
         secao={secao}
         relPeriodoInicio={relatorio.periodo_inicio}
         relPeriodoFim={relatorio.periodo_fim}
-        relProjetoId={relatorio.projeto_id}
+        relProjetoId={relProjetoIds[0] ?? null}
         onPatch={onPatch}
         onDataReady={onDataReady}
       />
