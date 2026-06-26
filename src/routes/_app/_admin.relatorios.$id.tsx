@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { InlineMultiSelect } from "@/components/inline-edit";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
@@ -29,6 +32,13 @@ import { RelatorioDataPanel } from "@/components/relatorios/data-panel";
 import { relatorioToTexto } from "@/lib/relatorios/export-texto";
 import { exportRelatorioDocx, type ExportSnapshot } from "@/lib/relatorios/export-docx";
 import { fetchPeriodoDados } from "@/lib/relatorios/use-periodo-dados";
+
+function effectiveProjetoIds(r: Relatorio): string[] {
+  if (r.geral) return [];
+  if (r.projeto_ids && r.projeto_ids.length > 0) return r.projeto_ids;
+  if (r.projeto_id) return [r.projeto_id];
+  return [];
+}
 
 export const Route = createFileRoute("/_app/_admin/relatorios/$id")({
   component: RelatorioEditorPage,
@@ -207,7 +217,12 @@ function RelatorioEditorPage() {
       if (!relatorio) return;
       const today = new Date().toISOString().slice(0, 10);
       // 1. Snapshot
-      const dados = await fetchPeriodoDados(relatorio.periodo_inicio, relatorio.periodo_fim, null);
+      const ids = effectiveProjetoIds(relatorio);
+      const dados = await fetchPeriodoDados(
+        relatorio.periodo_inicio,
+        relatorio.periodo_fim,
+        ids.length > 0 ? ids : null,
+      );
       await supabase.from("relatorio_snapshots" as any).insert({
         relatorio_id: relatorio.id,
         dados: { quick_stats: dados, por_secao: snapshotRef.current.porSecao },
@@ -237,6 +252,8 @@ function RelatorioEditorPage() {
   if (isLoading || !relatorio) {
     return <div className="space-y-3"><Skeleton className="h-8 w-1/3" /><Skeleton className="h-32 w-full" /></div>;
   }
+
+  const relProjetoIds = effectiveProjetoIds(relatorio);
 
   return (
     <div className="space-y-4">
