@@ -29,11 +29,16 @@ export function NotificationsBell() {
 
   const fetchItems = async () => {
     if (!user) return;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("notificacoes" as any)
       .select("id, tipo, titulo, descricao, link, lida, created_at, count")
+      .eq("recipient_auth_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(100);
+      .limit(50);
+    if (error) {
+      console.error("Notifications fetch error:", error);
+      return;
+    }
     setItems((data as any) ?? []);
   };
 
@@ -45,7 +50,7 @@ export function NotificationsBell() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "notificacoes", filter: `recipient_auth_id=eq.${user.id}` },
-        () => fetchItems(),
+        () => { fetchItems().catch(console.error); },
       )
       .subscribe();
     return () => {
@@ -170,6 +175,11 @@ export function NotificationsBell() {
                 );
               })}
             </ul>
+          )}
+          {user && items.length >= 50 && (
+            <div className="border-t px-3 py-2 text-center text-[10px] text-muted-foreground">
+              A mostrar as 50 mais recentes
+            </div>
           )}
         </ScrollArea>
       </PopoverContent>
