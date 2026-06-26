@@ -1,98 +1,62 @@
-## Objetivo
-Criar um módulo **Relatórios** que permite à equipa MEERU compor relatórios de impacto para financiadores, combinando dados vivos da plataforma com texto narrativo, com snapshots de auditoria e exportação (clipboard / Word / impressão).
+## Contexto
 
-## Part 1 — Base de dados (migration única)
-Tabelas em `public` com grants (`authenticated`, `service_role`) e RLS por staff (`is_admin_or_staff()` já existente):
+Já existe `src/components/smart-table/` em uso em ~10 páginas (Participantes, Famílias, Ações, Projetos, Tipos de utilizador, Localizações, Casos, Financiamentos, Colaboradoras, Serviços, Relatórios). A arquitectura actual usa virtualização própria, grouping manual em memória e estado persistido fatiado em vários hooks. O pedido reescreve este wrapper com o modelo nativo da TanStack Table (`getGroupedRowModel`, `getPaginationRowModel`, `getExpandedRowModel`) e divide-o em ficheiros mais pequenos, mantendo as definições de colunas e fetching das páginas inalterados.
 
-- **`relatorios`** — campos pedidos. FK `projeto_id → projetos`, `criado_por_id → pessoas`. Trigger `updated_at`.
-- **`relatorio_secoes`** — `relatorio_id` ON DELETE CASCADE, `tipo` CHECK in (`texto|indicadores|atividades|participantes|casos|citacao|separador`), `position int`.
-- **`relatorio_snapshots`** — `dados jsonb`, `criado_em`, `criado_por_id`.
+## O que vou construir
 
-RLS: staff (admin/equipa) faz tudo; sem acesso anon.
+### 1. Reescrever `src/components/smart-table/`
 
-## Part 2 — Sidebar + rotas
-- Inserir item `Relatórios` em `sidebar_items` no grupo "Projetos & Comunidade", após Projetos (`page="relatorios"`, ícone `FileBarChart`).
-- Rotas TanStack:
-  - `src/routes/_app/_admin.relatorios.tsx` (layout `<Outlet/>`)
-  - `_admin.relatorios.index.tsx` (lista)
-  - `_admin.relatorios.$id.tsx` (editor)
-- Badge no item via query (`em_revisao` ou `prevista <= today+14`).
-- Adicionar ao `command-palette.tsx`.
+```text
+SmartTable.tsx          (orquestrador + wrapColumnsForEditMode + paginação)
+SmartTableToolbar.tsx   (search, AdvancedFilters, GroupBy, SavedViews, Cols, Editar, ações)
+SmartTableBody.tsx      (loading skeletons, empty, linhas, células editáveis)
+SmartTableGroupRow.tsx  (linha de cabeçalho de grupo expansível)
+useSmartTableState.ts   (sort/cols/sizing/group persistidos em localStorage)
+index.ts                (exports públicos)
+```
 
-## Part 3 — Página de lista
-- 4 SummaryCards (Rascunhos / Em revisão / A submeter 14d / Submetidos no ano).
-- Alert banner vermelho se prazo < 7 dias.
-- Toolbar: pesquisa + filtros (financiador, tipo, estado, projeto) + "Novo relatório".
-- `SmartTable` com colunas pedidas, badges coloridos por estado, célula "Submissão prevista" com `Atrasado`/contagem decrescente/data.
-- Agrupável por financiador/tipo/estado/projeto. Row click → editor.
-- **Sheet "Novo relatório"** (max-w-lg) com campos pedidos + datalist de financiadores + passo seguinte de **template** (3 cards): Gulbenkian IGI Intercalar, BPI Solidário Final, Genérico, ou "em branco". Ao gravar: cria `relatorios` + seed das secções do template (ou uma secção `texto`/"Introdução") → navigate.
+- Hook auxiliar `src/hooks/use-local-storage.ts` (não existe ainda).
+- Substituir as variantes `usePersistedFlag/Sorting/Sizing/...` actuais por `useSmartTableState`.
+- Manter `SmartTableCell.tsx` como helper interno de edição (`InlineText`/`InlineSelect`) — reusado pelo wrapper.
+- Manter os tipos em `types.ts` mas alinhados aos novos props (campos novos: `groupByOptions`, `editableColumns`, `onCellEdit`, `pageSize`, `savedViewsKey`, `defaultSortBy`, `defaultColumnVisibility`, `getRowClassName`, `searchPlaceholder`, `emptyIcon`).
 
-## Part 4 — Editor `/relatorios/$id`
-- Breadcrumb + top bar sticky (título inline editável, badges, estado dropdown, "Guardar" indicator, dropdown Exportar, botão Submeter se `Aprovado`).
-- Layout 2 colunas: **Documento** (flex-1) + **Data panel** (w-72 sticky).
-- Render ordenado de secções (drag-and-drop com `@dnd-kit` já instalado, ou setas se ausente — verificar).
-- Cada secção: handle (`GripVertical` no hover), menu ⋮ (mover/duplicar/eliminar), badge de tipo.
-- Entre secções: botão "+ Adicionar secção" com popover (7 tipos).
+### 2. Comportamentos
 
-### Componentes por tipo
-- **`SecaoTexto`** — heading editável + `RichTextEditor` existente, autosave debounce 1s.
-- **`SecaoIndicadores`** — config (multi-select KPIs do projeto, toggles meta/progresso) + grid 2 cols de cards KPI com barra de progresso (verde/azul/âmbar conforme %).
-- **`SecaoAtividades`** — config (projeto, datas, group by) + sumário X ações/Y participações/Z únicos + tabela compacta (data, nome, local, participantes).
-- **`SecaoParticipantes`** — config (projetos, breakdown) + top stats + tabela breakdown + barras CSS horizontais.
-- **`SecaoCasos`** — config (áreas, estados) + sumário + tabela por área (abertos/concluídos/em curso).
-- **`SecaoCitacao`** — bloco grande com `"texto"` + `— autor`, ambos inline editáveis.
-- **`SecaoSeparador`** — `<hr>` + label opcional editável; page-break em print.
+- Search global via `globalFilterFn` em todas as células string.
+- Grouping nativo TanStack (`getGroupedRowModel` + `getExpandedRowModel`) — substitui o agrupamento manual actual.
+- Paginação opcional (`pageSize` default 50; `undefined` = sem paginação, com virtualização opcional preservada quando o dataset for grande — para já uso paginação simples como pedido).
+- Modo de edição: barra âmbar no topo, botão `Editar/Bloquear edição`, células com `ring` âmbar. `wrapColumnsForEditMode` injecta `InlineText`/`InlineSelect` apenas em modo edição.
+- Resize de colunas (`columnResizeMode: "onChange"`) e drag de headers — reuso do `DraggableTableHeaders` já existente, com indicador de sort (ArrowUp/Down/UpDown).
+- `SavedViews` só renderiza se `savedViewsKey` for passado (componente já existe).
+- `AdvancedTableFilters` mantém-se integrado.
 
-Hook `useRelatorioSecaoMutation` para PATCH/insert/delete + invalidação otimista.
+### 3. Atualizar `DraggableTableHeaders`
 
-## Part 5 — Data panel direito
-Hook `useRelatorioPeriodData(periodo_inicio, periodo_fim, projeto_ids?)` que faz queries paralelas para:
-- pessoas apoiadas / famílias / novos registos
-- ações realizadas / participações / únicos
-- casos abertos/concluídos
-Stats compactos + breakdowns colapsáveis (por projeto / nacionalidade top 5 / área). Botão "Atualizar dados" → `invalidateQueries`.
+Adicionar ícones de sort e estilo `uppercase tracking-wide muted-foreground` consistente. Manter funcionalidade de drag/resize.
 
-## Part 6 — Exportação
-- **Copiar texto** — função pura que serializa secções → string formatada (regras dadas) → `navigator.clipboard.writeText`.
-- **Exportar Word** — usa `docx` (instalar `bun add docx file-saver`). Gera `.docx` no cliente com letterhead MEERU, título, secções (H2, tabelas DXA, blockquotes, hr). Nome: `[financiador]-[tipo]-[periodo_inicio].docx`.
-- **Imprimir** — `window.print()` + CSS `@media print` global (em `src/styles.css`): esconde `.no-print` (sidebar, toolbar, menus); `.page-break-before` em separadores.
-- **Submeter** — `AlertDialog` confirmação → update estado/data_submissao_real → insert `relatorio_snapshots` com payload do data panel → toast + invalidate.
+### 4. Migrar páginas existentes
 
-## Part 7 — Templates
-Constante `REPORT_TEMPLATES` em `src/lib/relatorios/templates.ts` com as 3 estruturas pedidas. Aplicação cria secções com `position` sequencial e `config` inicial.
+As páginas já usam SmartTable. Vou:
 
-## Part 8 — Tab no projeto
-Em `_admin.projetos.$projetoId.tsx`: nova tab "Relatórios" listando `relatorios WHERE projeto_id = $id` em cards compactos + botão "Novo relatório" que abre o Sheet com `projeto_id` pré-preenchido (reaproveita componente extraído).
+1. Alinhar props ao novo contrato (renomear/ajustar onde necessário: `defaultCollapsedGroups` deixa de existir — passa a depender do estado de expansão nativo; `hideSearch` mantém-se).
+2. Adicionar `groupByOptions`, `editableColumns`, `onCellEdit`, `savedViewsKey` conforme indicado no pedido para:
+   - Participantes (`pessoas`)
+   - Famílias (`familias`)
+   - Ações (`acoes`)
+   - + manter funcionamento de Localizações, Projetos, Casos, Financiamentos, Colaboradoras, Serviços, Relatórios sem regressão (apenas adaptar tipos onde mudaram).
+3. Remover qualquer state manual residual que tenha ficado nas páginas.
 
-## Detalhes técnicos
-- **Estado**: TanStack Query, optimistic updates ao estilo do resto da app (Participantes/Famílias).
-- **Drag & drop**: usar `@dnd-kit/core` + `@dnd-kit/sortable` se já instalados; caso contrário `bun add`. Fallback de setas no menu ⋮.
-- **Autosave indicator**: contexto local no editor, mostra "Guardado ✓" / "A guardar…" baseado em `isPending` de mutações ativas.
-- **Print CSS**: regras em `src/styles.css` (root); o editor envolve documento em `.relatorio-print-area`.
-- **Tipos**: estender `Database` via `as any` nos componentes (tipo regenerado depois da migration).
-- **Snapshot payload**: serializa o resultado de `useRelatorioPeriodData` + config das secções no momento da submissão.
+### 5. Não vou mexer
 
-## Ficheiros criados/alterados
-**Novos**
-- `supabase/migrations/*_relatorios.sql` (via tool)
-- `src/routes/_app/_admin.relatorios.tsx`, `.index.tsx`, `.$id.tsx`
-- `src/components/relatorios/relatorio-novo-sheet.tsx`
-- `src/components/relatorios/secao-*.tsx` (7 tipos)
-- `src/components/relatorios/secao-add-popover.tsx`
-- `src/components/relatorios/data-panel.tsx`
-- `src/components/relatorios/relatorio-top-bar.tsx`
-- `src/components/relatorios/projeto-relatorios-tab.tsx`
-- `src/lib/relatorios/templates.ts`
-- `src/lib/relatorios/export-texto.ts`
-- `src/lib/relatorios/export-docx.ts`
-- `src/lib/relatorios/use-periodo-dados.ts`
+- Column definitions de cada página.
+- Queries / mutations / fetching.
+- Lógica de negócio dos diálogos e ações.
+- `AdvancedTableFilters`, `SavedViews`, `DataTableViewOptions` (apenas consumo).
 
-**Alterados**
-- `src/components/command-palette.tsx` (+ Relatórios)
-- `src/components/app-sidebar.tsx` (mapeamento ícone `FileBarChart` para `page="relatorios"`)
-- `src/styles.css` (regras `@media print`)
-- `src/routes/_app/_admin.projetos.$projetoId.tsx` (nova tab)
-- `sidebar_items` (insert via tool de dados)
+## Pontos a confirmar antes de avançar
 
-## Confirmação
-Avanço com a migration primeiro (precisa de aprovação), depois construo lista, editor, painel, export, templates e tab do projeto numa única sessão. Confirmas?
+1. **Substituir o agrupamento manual actual pelo nativo da TanStack Table** muda subtilmente a UI: deixo de ter `defaultCollapsedGroups` (que está em uso em `Financiamentos` com `ENCERRADO` colapsado por defeito). Posso preservar este comportamento via estado inicial de `expanded` — confirmas que sim?
+2. **Virtualização**: o SmartTable actual usa `@tanstack/react-virtual` para datasets grandes (Participantes >1k linhas). O novo modelo do pedido é paginação (50/pág.). Proponho: paginação por defeito conforme pedido, e remover virtualização. OK?
+3. **Edição inline**: nas páginas indicadas (Participantes/Famílias) a edição actual passa por diálogos. Vou adicionar `editableColumns`/`onCellEdit` como camada extra (botão "Editar" no toolbar) sem remover os diálogos existentes. OK?
+
+Se confirmares estes três pontos, avanço e entrego tudo numa só sessão.
