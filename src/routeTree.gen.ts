@@ -39,6 +39,7 @@ import { Route as AppAdminCasosRouteImport } from './routes/_app/_admin.casos'
 import { Route as AppAdminBolsasTransporteRouteImport } from './routes/_app/_admin.bolsas-transporte'
 import { Route as AppAdminAtividadesRouteImport } from './routes/_app/_admin.atividades'
 import { Route as AppAdminAcoesRouteImport } from './routes/_app/_admin.acoes'
+import { Route as AppAdminRelatoriosIndexRouteImport } from './routes/_app/_admin.relatorios.index'
 import { Route as AppAdminProjetosIndexRouteImport } from './routes/_app/_admin.projetos.index'
 import { Route as AppAdminParceirosIndexRouteImport } from './routes/_app/_admin.parceiros.index'
 import { Route as AppAdminFinanciamentosIndexRouteImport } from './routes/_app/_admin.financiamentos.index'
@@ -200,6 +201,11 @@ const AppAdminAcoesRoute = AppAdminAcoesRouteImport.update({
   path: '/acoes',
   getParentRoute: () => AppAdminRoute,
 } as any)
+const AppAdminRelatoriosIndexRoute = AppAdminRelatoriosIndexRouteImport.update({
+  id: '/relatorios/',
+  path: '/relatorios/',
+  getParentRoute: () => AppAdminRoute,
+} as any)
 const AppAdminProjetosIndexRoute = AppAdminProjetosIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -302,6 +308,7 @@ export interface FileRoutesByFullPath {
   '/financiamentos/': typeof AppAdminFinanciamentosIndexRoute
   '/parceiros/': typeof AppAdminParceirosIndexRoute
   '/projetos/': typeof AppAdminProjetosIndexRoute
+  '/relatorios/': typeof AppAdminRelatoriosIndexRoute
   '/servicos/colaborador/$id': typeof AppAdminServicosColaboradorIdRoute
 }
 export interface FileRoutesByTo {
@@ -340,6 +347,7 @@ export interface FileRoutesByTo {
   '/financiamentos': typeof AppAdminFinanciamentosIndexRoute
   '/parceiros': typeof AppAdminParceirosIndexRoute
   '/projetos': typeof AppAdminProjetosIndexRoute
+  '/relatorios': typeof AppAdminRelatoriosIndexRoute
   '/servicos/colaborador/$id': typeof AppAdminServicosColaboradorIdRoute
 }
 export interface FileRoutesById {
@@ -384,6 +392,7 @@ export interface FileRoutesById {
   '/_app/_admin/financiamentos/': typeof AppAdminFinanciamentosIndexRoute
   '/_app/_admin/parceiros/': typeof AppAdminParceirosIndexRoute
   '/_app/_admin/projetos/': typeof AppAdminProjetosIndexRoute
+  '/_app/_admin/relatorios/': typeof AppAdminRelatoriosIndexRoute
   '/_app/_admin/servicos/colaborador/$id': typeof AppAdminServicosColaboradorIdRoute
 }
 export interface FileRouteTypes {
@@ -427,6 +436,7 @@ export interface FileRouteTypes {
     | '/financiamentos/'
     | '/parceiros/'
     | '/projetos/'
+    | '/relatorios/'
     | '/servicos/colaborador/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -465,6 +475,7 @@ export interface FileRouteTypes {
     | '/financiamentos'
     | '/parceiros'
     | '/projetos'
+    | '/relatorios'
     | '/servicos/colaborador/$id'
   id:
     | '__root__'
@@ -508,6 +519,7 @@ export interface FileRouteTypes {
     | '/_app/_admin/financiamentos/'
     | '/_app/_admin/parceiros/'
     | '/_app/_admin/projetos/'
+    | '/_app/_admin/relatorios/'
     | '/_app/_admin/servicos/colaborador/$id'
   fileRoutesById: FileRoutesById
 }
@@ -733,6 +745,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminAcoesRouteImport
       parentRoute: typeof AppAdminRoute
     }
+    '/_app/_admin/relatorios/': {
+      id: '/_app/_admin/relatorios/'
+      path: '/relatorios'
+      fullPath: '/relatorios/'
+      preLoaderRoute: typeof AppAdminRelatoriosIndexRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
     '/_app/_admin/projetos/': {
       id: '/_app/_admin/projetos/'
       path: '/'
@@ -890,6 +909,7 @@ interface AppAdminRouteChildren {
   AppAdminColaboradorasColaboradoraIdRoute: typeof AppAdminColaboradorasColaboradoraIdRoute
   AppAdminFinanciamentosFinanciamentoIdRoute: typeof AppAdminFinanciamentosFinanciamentoIdRoute
   AppAdminFinanciamentosIndexRoute: typeof AppAdminFinanciamentosIndexRoute
+  AppAdminRelatoriosIndexRoute: typeof AppAdminRelatoriosIndexRoute
 }
 
 const AppAdminRouteChildren: AppAdminRouteChildren = {
@@ -918,6 +938,7 @@ const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminFinanciamentosFinanciamentoIdRoute:
     AppAdminFinanciamentosFinanciamentoIdRoute,
   AppAdminFinanciamentosIndexRoute: AppAdminFinanciamentosIndexRoute,
+  AppAdminRelatoriosIndexRoute: AppAdminRelatoriosIndexRoute,
 }
 
 const AppAdminRouteWithChildren = AppAdminRoute._addFileChildren(
