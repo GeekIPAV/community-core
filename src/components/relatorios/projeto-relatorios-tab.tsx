@@ -22,7 +22,7 @@ export function ProjetoRelatoriosTab({ projetoId }: { projetoId: string }) {
       const { data, error } = await supabase
         .from("relatorios" as any)
         .select("*")
-        .eq("projeto_id", projetoId)
+        .or(`projeto_id.eq.${projetoId},projeto_ids.cs.{${projetoId}}`)
         .order("updated_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as unknown as Relatorio[];

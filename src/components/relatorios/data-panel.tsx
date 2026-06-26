@@ -34,10 +34,11 @@ function MiniBar({ label, count, max }: { label: string; count: number; max: num
 }
 
 export function RelatorioDataPanel({
-  inicio, fim,
-}: { inicio: string; fim: string }) {
+  inicio, fim, projetoIds, geral,
+}: { inicio: string; fim: string; projetoIds?: string[]; geral?: boolean }) {
   const qc = useQueryClient();
-  const { data, isLoading } = useRelatorioPeriodData(inicio, fim);
+  const filter = !geral && projetoIds && projetoIds.length > 0 ? projetoIds : null;
+  const { data, isLoading } = useRelatorioPeriodData(inicio, fim, filter);
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["relatorio-periodo"] });
@@ -48,6 +49,9 @@ export function RelatorioDataPanel({
       <div>
         <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Período</div>
         <div className="text-xs font-medium mt-0.5">{fmt(inicio)} → {fmt(fim)}</div>
+        <div className="text-[10px] mt-1 text-muted-foreground">
+          {geral ? "Âmbito: toda a organização" : filter ? `Âmbito: ${filter.length} projeto(s)` : "Âmbito: sem filtro de projeto"}
+        </div>
       </div>
 
       {isLoading || !data ? (

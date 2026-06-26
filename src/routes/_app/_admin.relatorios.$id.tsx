@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { InlineMultiSelect } from "@/components/inline-edit";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
@@ -29,6 +32,13 @@ import { RelatorioDataPanel } from "@/components/relatorios/data-panel";
 import { relatorioToTexto } from "@/lib/relatorios/export-texto";
 import { exportRelatorioDocx, type ExportSnapshot } from "@/lib/relatorios/export-docx";
 import { fetchPeriodoDados } from "@/lib/relatorios/use-periodo-dados";
+
+function effectiveProjetoIds(r: Relatorio): string[] {
+  if (r.geral) return [];
+  if (r.projeto_ids && r.projeto_ids.length > 0) return r.projeto_ids;
+  if (r.projeto_id) return [r.projeto_id];
+  return [];
+}
 
 export const Route = createFileRoute("/_app/_admin/relatorios/$id")({
   component: RelatorioEditorPage,
@@ -207,7 +217,12 @@ function RelatorioEditorPage() {
       if (!relatorio) return;
       const today = new Date().toISOString().slice(0, 10);
       // 1. Snapshot
-      const dados = await fetchPeriodoDados(relatorio.periodo_inicio, relatorio.periodo_fim, null);
+      const ids = effectiveProjetoIds(relatorio);
+      const dados = await fetchPeriodoDados(
+        relatorio.periodo_inicio,
+        relatorio.periodo_fim,
+        ids.length > 0 ? ids : null,
+      );
       await supabase.from("relatorio_snapshots" as any).insert({
         relatorio_id: relatorio.id,
         dados: { quick_stats: dados, por_secao: snapshotRef.current.porSecao },
@@ -238,6 +253,8 @@ function RelatorioEditorPage() {
     return <div className="space-y-3"><Skeleton className="h-8 w-1/3" /><Skeleton className="h-32 w-full" /></div>;
   }
 
+  const relProjetoIds = effectiveProjetoIds(relatorio);
+
   return (
     <div className="space-y-4">
       {/* Breadcrumb */}
@@ -257,6 +274,11 @@ function RelatorioEditorPage() {
               {relatorio.data_submissao_prevista && (
                 <span>· Submissão prevista: {fmtDate(relatorio.data_submissao_prevista)}</span>
               )}
+              {relatorio.geral
+                ? <Badge variant="default" className="font-normal">Geral — toda a organização</Badge>
+                : relProjetoIds.length > 0
+                  ? <Badge variant="outline" className="font-normal">{relProjetoIds.length} projeto(s)</Badge>
+                  : <Badge variant="outline" className="font-normal text-muted-foreground">Sem projetos</Badge>}
             </div>
           </div>
 
@@ -300,6 +322,7 @@ function RelatorioEditorPage() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_18rem] gap-6">
         {/* DOCUMENTO */}
         <div data-relatorio-doc className="space-y-2">
+          <ProjetosEditor relatorio={relatorio} onPatch={(p) => patchRelatorio.mutate(p)} />
           {orderedSecoes.length === 0 && (
             <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
               Este relatório ainda não tem secções.
@@ -316,6 +339,7 @@ function RelatorioEditorPage() {
                 index={idx}
                 total={orderedSecoes.length}
                 relatorio={relatorio}
+                relProjetoIds={relProjetoIds}
                 onPatch={(patch) => patchSecao.mutate({ secaoId: s.id, patch })}
                 onDelete={() => deleteSecao.mutate(s.id)}
                 onDuplicate={() => duplicateSecao.mutate(s)}
@@ -333,7 +357,12 @@ function RelatorioEditorPage() {
 
         {/* DATA PANEL */}
         <div className="lg:sticky lg:top-24 lg:self-start">
-          <RelatorioDataPanel inicio={relatorio.periodo_inicio} fim={relatorio.periodo_fim} />
+          <RelatorioDataPanel
+            inicio={relatorio.periodo_inicio}
+            fim={relatorio.periodo_fim}
+            projetoIds={relProjetoIds}
+            geral={relatorio.geral}
+          />
         </div>
       </div>
 
@@ -394,6 +423,39 @@ function TituloInline({ value, onSave }: { value: string; onSave: (v: string) =>
   );
 }
 
+function ProjetosEditor({
+  relatorio, onPatch,
+}: { relatorio: Relatorio; onPatch: (p: Partial<Relatorio>) => void }) {
+  const { data: projetos } = useQuery({
+    queryKey: ["projetos-lista-min"],
+    queryFn: async () => {
+      const { data } = await supabase.from("projetos").select("id, nome").order("nome");
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+  });
+  const ids = relatorio.projeto_ids?.length ? relatorio.projeto_ids : (relatorio.projeto_id ? [relatorio.projeto_id] : []);
+  return (
+    <div className="rounded-lg border bg-card/40 p-3 flex flex-wrap items-center gap-3" data-print-hide="true">
+      <div className="flex-1 min-w-[220px]">
+        <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Projetos abrangidos</Label>
+        <InlineMultiSelect
+          values={relatorio.geral ? [] : ids}
+          options={(projetos ?? []).map((p) => ({ value: p.id, label: p.nome }))}
+          onSave={(v) => onPatch({ projeto_ids: v, projeto_id: v[0] ?? null, geral: false } as any)}
+          placeholder={relatorio.geral ? "Todos os projetos da organização" : "Sem projetos"}
+        />
+      </div>
+      <label className="flex items-center gap-2 text-xs">
+        <Checkbox
+          checked={relatorio.geral}
+          onCheckedChange={(v) => onPatch({ geral: !!v, projeto_ids: v ? [] : ids, projeto_id: v ? null : (ids[0] ?? null) } as any)}
+        />
+        Relatório geral (toda a organização)
+      </label>
+    </div>
+  );
+}
+
 function SavingIndicator({ saving }: { saving: boolean }) {
   if (saving) {
     return (
@@ -427,12 +489,13 @@ function EstadoDropdown({ value, onChange }: { value: RelatorioEstado; onChange:
 }
 
 function SecaoCard({
-  secao, index, total, relatorio, onPatch, onDelete, onDuplicate, onMove, onDataReady,
+  secao, index, total, relatorio, relProjetoIds, onPatch, onDelete, onDuplicate, onMove, onDataReady,
 }: {
   secao: Secao;
   index: number;
   total: number;
   relatorio: Relatorio;
+  relProjetoIds: string[];
   onPatch: (patch: Partial<Pick<Secao, "titulo" | "conteudo_texto" | "config">>) => void;
   onDelete: () => void;
   onDuplicate: () => void;
@@ -452,7 +515,7 @@ function SecaoCard({
           secao={secao}
           relPeriodoInicio={relatorio.periodo_inicio}
           relPeriodoFim={relatorio.periodo_fim}
-          relProjetoId={relatorio.projeto_id}
+          relProjetoId={relProjetoIds[0] ?? null}
           onPatch={onPatch}
           onDataReady={onDataReady}
         />
@@ -479,7 +542,7 @@ function SecaoCard({
         secao={secao}
         relPeriodoInicio={relatorio.periodo_inicio}
         relPeriodoFim={relatorio.periodo_fim}
-        relProjetoId={relatorio.projeto_id}
+        relProjetoId={relProjetoIds[0] ?? null}
         onPatch={onPatch}
         onDataReady={onDataReady}
       />

@@ -48,7 +48,13 @@ function RelatoriosListPage() {
       if (error) throw error;
       const arr = (rels ?? []) as unknown as Relatorio[];
 
-      const projIds = Array.from(new Set(arr.map((r) => r.projeto_id).filter(Boolean) as string[]));
+      const projIds = Array.from(new Set(
+        arr.flatMap((r) => {
+          if (r.geral) return [];
+          if (r.projeto_ids?.length) return r.projeto_ids;
+          return r.projeto_id ? [r.projeto_id] : [];
+        }),
+      ));
       const pessoaIds = Array.from(new Set(arr.map((r) => r.criado_por_id).filter(Boolean) as string[]));
       const [pj, ps] = await Promise.all([
         projIds.length
@@ -60,11 +66,20 @@ function RelatoriosListPage() {
       ]);
       const pjMap = new Map<string, string>(((pj as any).data ?? []).map((p: any) => [p.id, p.nome]));
       const psMap = new Map<string, string>(((ps as any).data ?? []).map((p: any) => [p.id, p.nome_completo]));
-      return arr.map<Row>((r) => ({
-        ...r,
-        projeto_nome: r.projeto_id ? pjMap.get(r.projeto_id) ?? null : null,
-        criador_nome: r.criado_por_id ? psMap.get(r.criado_por_id) ?? null : null,
-      }));
+      return arr.map<Row>((r) => {
+        let nome: string | null = null;
+        if (r.geral) nome = "Geral — toda a organização";
+        else {
+          const ids = r.projeto_ids?.length ? r.projeto_ids : (r.projeto_id ? [r.projeto_id] : []);
+          const nomes = ids.map((id) => pjMap.get(id)).filter(Boolean) as string[];
+          nome = nomes.length === 0 ? null : nomes.length === 1 ? nomes[0] : `${nomes[0]} +${nomes.length - 1}`;
+        }
+        return {
+          ...r,
+          projeto_nome: nome,
+          criador_nome: r.criado_por_id ? psMap.get(r.criado_por_id) ?? null : null,
+        };
+      });
     },
   });
 
