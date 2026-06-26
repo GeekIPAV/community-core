@@ -1,10 +1,11 @@
-import { Search, Group, Pencil, Lock, Layers } from "lucide-react";
+import { Search, Group, Pencil, Lock, Layers, X } from "lucide-react";
 import type { Table } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AdvancedTableFilters } from "@/components/advanced-table-filters";
 import { DataTableViewOptions } from "@/components/data-table-view-options";
+import { SavedViews } from "@/components/saved-views";
 import { cn } from "@/lib/utils";
 import type { SmartColumnMeta } from "./types";
 
@@ -28,6 +29,9 @@ export function SmartTableToolbar<T>({
   rowCount,
   toolbarActions,
   hideSearch,
+  searchPlaceholder = "Pesquisar…",
+  groupByOptions,
+  savedViewsKey,
 }: {
   table: Table<T>;
   search: string;
@@ -40,10 +44,20 @@ export function SmartTableToolbar<T>({
   rowCount: number;
   toolbarActions?: React.ReactNode;
   hideSearch?: boolean;
+  searchPlaceholder?: string;
+  groupByOptions?: { value: string; label: string }[];
+  savedViewsKey?: string;
 }) {
-  const groupable = table
-    .getAllLeafColumns()
-    .filter((c) => typeof c.accessorFn !== "undefined" && c.getIsVisible());
+  const groupable =
+    groupByOptions ??
+    table
+      .getAllLeafColumns()
+      .filter((c) => typeof c.accessorFn !== "undefined" && c.getIsVisible())
+      .map((c) => ({ value: c.id, label: labelOf(c) }));
+
+  const activeGroupLabel = groupBy
+    ? groupable.find((o) => o.value === groupBy)?.label ?? groupBy
+    : null;
 
   return (
     <div className="flex flex-wrap items-center gap-2 border-b border-border/60 bg-background px-4 py-3">
@@ -53,10 +67,20 @@ export function SmartTableToolbar<T>({
           <Input
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Pesquisar…"
-            className="h-9 pl-8"
+            placeholder={searchPlaceholder}
+            className="h-9 pl-8 pr-7"
             data-smart-table-search
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => onSearchChange("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground"
+              aria-label="Limpar pesquisa"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       )}
 
@@ -64,14 +88,13 @@ export function SmartTableToolbar<T>({
 
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" className="h-9 gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn("h-9 gap-2", groupBy && "border-primary text-primary")}
+          >
             <Layers className="h-4 w-4" />
-            Agrupar
-            {groupBy && (
-              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium">
-                {labelOf(table.getColumn(groupBy))}
-              </span>
-            )}
+            {activeGroupLabel ?? "Agrupar"}
           </Button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-64 p-2">
@@ -90,23 +113,24 @@ export function SmartTableToolbar<T>({
             Sem agrupamento
           </button>
           <div className="my-1 h-px bg-border/60" />
-          {groupable.map((col) => (
+          {groupable.map((opt) => (
             <button
-              key={col.id}
+              key={opt.value}
               type="button"
-              onClick={() => onGroupByChange(col.id)}
+              onClick={() => onGroupByChange(opt.value)}
               className={cn(
                 "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-muted",
-                groupBy === col.id && "bg-muted",
+                groupBy === opt.value && "bg-muted",
               )}
             >
-              {labelOf(col)}
+              {opt.label}
             </button>
           ))}
         </PopoverContent>
       </Popover>
 
       <div className="flex flex-wrap items-center gap-2">
+        {savedViewsKey && <SavedViews table={table} storageKey={savedViewsKey} />}
         {hasEditableColumns && (
           <Button
             variant={editMode ? "default" : "outline"}
