@@ -181,3 +181,38 @@ thead th {
 tbody tr:hover {
   background-color: var(--muted) !important;
 }
+
+/* ─── Relatórios — print styles ─────────────────────────────── */
+@media print {
+  /* Hide everything except the report content */
+  [data-sidebar],
+  [data-sidebar="sidebar"],
+  header,
+  nav,
+  .no-print,
+  [data-print-hide="true"],
+  [data-relatorio-toolbar],
+  [data-relatorio-side] {
+    display: none !important;
+  }
+  body, html { background: white !important; }
+  [data-relatorio-doc] {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+  }
+  [data-relatorio-section] {
+    page-break-inside: avoid;
+    border: none !important;
+    box-shadow: none !important;
+    background: white !important;
+    padding: 1rem 0 !important;
+  }
+  [data-relatorio-section][data-tipo="separador"] {
+    page-break-before: always;
+  }
+  [data-relatorio-section-menu],
+  [data-relatorio-drag] { display: none !important; }
+  .prose { max-width: none !important; }
+}
