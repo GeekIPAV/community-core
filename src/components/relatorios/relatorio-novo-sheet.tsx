@@ -13,6 +13,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { InlineMultiSelect } from "@/components/inline-edit";
 import { cn } from "@/lib/utils";
 import { ESTADOS_RELATORIO, FINANCIADORES_SUGESTOES, TIPOS_RELATORIO } from "@/lib/relatorios/types";
 import type { RelatorioEstado, RelatorioTipo } from "@/lib/relatorios/types";
@@ -30,7 +32,8 @@ export function RelatorioNovoSheet({ open, onOpenChange, projetoIdDefault = null
 
   const [titulo, setTitulo] = useState("");
   const [financiador, setFinanciador] = useState("");
-  const [projetoId, setProjetoId] = useState<string | null>(projetoIdDefault);
+  const [projetoIds, setProjetoIds] = useState<string[]>(projetoIdDefault ? [projetoIdDefault] : []);
+  const [geral, setGeral] = useState<boolean>(false);
   const [tipo, setTipo] = useState<RelatorioTipo>("Intercalar");
   const [estado, setEstado] = useState<RelatorioEstado>("Rascunho");
   const [periodoInicio, setPeriodoInicio] = useState("");
@@ -42,7 +45,8 @@ export function RelatorioNovoSheet({ open, onOpenChange, projetoIdDefault = null
     if (open) {
       setTitulo("");
       setFinanciador("");
-      setProjetoId(projetoIdDefault);
+      setProjetoIds(projetoIdDefault ? [projetoIdDefault] : []);
+      setGeral(false);
       setTipo("Intercalar");
       setEstado("Rascunho");
       const today = new Date();
@@ -69,7 +73,9 @@ export function RelatorioNovoSheet({ open, onOpenChange, projetoIdDefault = null
         .insert({
           titulo,
           financiador,
-          projeto_id: projetoId,
+          projeto_id: !geral && projetoIds.length === 1 ? projetoIds[0] : null,
+          projeto_ids: geral ? [] : projetoIds,
+          geral,
           tipo,
           estado,
           periodo_inicio: periodoInicio,
@@ -137,19 +143,17 @@ export function RelatorioNovoSheet({ open, onOpenChange, projetoIdDefault = null
           </div>
 
           <div className="space-y-1">
-            <Label>Projeto associado</Label>
-            <Select
-              value={projetoId ?? "__none"}
-              onValueChange={(v) => setProjetoId(v === "__none" ? null : v)}
-            >
-              <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none">— Nenhum —</SelectItem>
-                {(projetos ?? []).map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label>Projetos associados</Label>
+            <InlineMultiSelect
+              values={projetoIds}
+              options={(projetos ?? []).map((p) => ({ value: p.id, label: p.nome }))}
+              onSave={(v) => setProjetoIds(v)}
+              placeholder={geral ? "Todos os projetos" : "Nenhum"}
+            />
+            <label className="flex items-center gap-2 pt-1 text-xs text-muted-foreground">
+              <Checkbox checked={geral} onCheckedChange={(v) => { setGeral(!!v); if (v) setProjetoIds([]); }} />
+              Relatório geral — todas as atividades da organização no período
+            </label>
           </div>
 
           <div className="space-y-1">
