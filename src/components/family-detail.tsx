@@ -328,7 +328,7 @@ export interface FamilyDetailDialogProps {
   /** Called after any successful mutation so the parent can refresh its queries */
   onUpdate?: () => void;
   /** Which tab to open first (defaults to "membros") */
-  defaultTab?: "dados" | "membros" | "projetos" | "acoes" | "atividades" | "contexto";
+ defaultTab?: "dados" | "membros" | "projetos" | "acoes" | "atividades" | "casos" | "contexto";
 }
 
 export function FamilyDetailDialog({
@@ -343,7 +343,7 @@ export function FamilyDetailDialog({
   const qc = useQueryClient();
 
   // ── tab + editing state ───────────────────────────────────────────────────
-  const [detailTab, setDetailTab] = useState<"dados" | "membros" | "projetos" | "acoes" | "atividades" | "contexto">(defaultTab);
+  const [detailTab, setDetailTab] = useState<"dados" | "membros" | "projetos" | "acoes" | "atividades" | "casos" | "contexto">(defaultTab);
   const [editing, setEditing] = useState<Familia | null>(family);
 
   // When the selected family changes reset editing state
@@ -718,6 +718,7 @@ export function FamilyDetailDialog({
               <TabsTrigger value="projetos" className="flex-1">Projetos</TabsTrigger>
               <TabsTrigger value="acoes" className="flex-1">Ações</TabsTrigger>
               <TabsTrigger value="atividades" className="flex-1">Atividades</TabsTrigger>
+              <TabsTrigger value="casos" className="flex-1">Casos</TabsTrigger>
               <TabsTrigger value="contexto" className="flex-1">
                 {family ? <ContextoTabLabel familiaId={family.id} /> : "Contexto"}
               </TabsTrigger>
