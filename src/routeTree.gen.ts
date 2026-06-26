@@ -18,7 +18,6 @@ import { Route as ConviteTokenRouteImport } from './routes/convite.$token'
 import { Route as AcaoIdRouteImport } from './routes/acao.$id'
 import { Route as AppPerfilRouteImport } from './routes/_app.perfil'
 import { Route as AppMeusServicosRouteImport } from './routes/_app.meus-servicos'
-import { Route as AppMeusAcompanhamentosRouteImport } from './routes/_app/meus-acompanhamentos'
 import { Route as AppAdminRouteImport } from './routes/_app/_admin'
 import { Route as AppAdminTiposUserRouteImport } from './routes/_app/_admin.tipos-user'
 import { Route as AppAdminStyleGuideRouteImport } from './routes/_app/_admin.style-guide'
@@ -96,11 +95,6 @@ const AppPerfilRoute = AppPerfilRouteImport.update({
 const AppMeusServicosRoute = AppMeusServicosRouteImport.update({
   id: '/meus-servicos',
   path: '/meus-servicos',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppMeusAcompanhamentosRoute = AppMeusAcompanhamentosRouteImport.update({
-  id: '/meus-acompanhamentos',
-  path: '/meus-acompanhamentos',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAdminRoute = AppAdminRouteImport.update({
@@ -286,7 +280,6 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/resultados': typeof ResultadosRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/meus-acompanhamentos': typeof AppMeusAcompanhamentosRoute
   '/meus-servicos': typeof AppMeusServicosRoute
   '/perfil': typeof AppPerfilRoute
   '/acao/$id': typeof AcaoIdRoute
@@ -330,7 +323,6 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/resultados': typeof ResultadosRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/meus-acompanhamentos': typeof AppMeusAcompanhamentosRoute
   '/meus-servicos': typeof AppMeusServicosRoute
   '/perfil': typeof AppPerfilRoute
   '/acao/$id': typeof AcaoIdRoute
@@ -374,7 +366,6 @@ export interface FileRoutesById {
   '/resultados': typeof ResultadosRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_app/_admin': typeof AppAdminRouteWithChildren
-  '/_app/meus-acompanhamentos': typeof AppMeusAcompanhamentosRoute
   '/_app/meus-servicos': typeof AppMeusServicosRoute
   '/_app/perfil': typeof AppPerfilRoute
   '/acao/$id': typeof AcaoIdRoute
@@ -420,7 +411,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/resultados'
     | '/sitemap.xml'
-    | '/meus-acompanhamentos'
     | '/meus-servicos'
     | '/perfil'
     | '/acao/$id'
@@ -464,7 +454,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/resultados'
     | '/sitemap.xml'
-    | '/meus-acompanhamentos'
     | '/meus-servicos'
     | '/perfil'
     | '/acao/$id'
@@ -507,7 +496,6 @@ export interface FileRouteTypes {
     | '/resultados'
     | '/sitemap.xml'
     | '/_app/_admin'
-    | '/_app/meus-acompanhamentos'
     | '/_app/meus-servicos'
     | '/_app/perfil'
     | '/acao/$id'
@@ -620,13 +608,6 @@ declare module '@tanstack/react-router' {
       path: '/meus-servicos'
       fullPath: '/meus-servicos'
       preLoaderRoute: typeof AppMeusServicosRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/meus-acompanhamentos': {
-      id: '/_app/meus-acompanhamentos'
-      path: '/meus-acompanhamentos'
-      fullPath: '/meus-acompanhamentos'
-      preLoaderRoute: typeof AppMeusAcompanhamentosRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/_admin': {
@@ -987,14 +968,12 @@ const AppAdminRouteWithChildren = AppAdminRoute._addFileChildren(
 
 interface AppRouteChildren {
   AppAdminRoute: typeof AppAdminRouteWithChildren
-  AppMeusAcompanhamentosRoute: typeof AppMeusAcompanhamentosRoute
   AppMeusServicosRoute: typeof AppMeusServicosRoute
   AppPerfilRoute: typeof AppPerfilRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAdminRoute: AppAdminRouteWithChildren,
-  AppMeusAcompanhamentosRoute: AppMeusAcompanhamentosRoute,
   AppMeusServicosRoute: AppMeusServicosRoute,
   AppPerfilRoute: AppPerfilRoute,
 }
