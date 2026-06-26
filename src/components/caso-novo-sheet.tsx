@@ -260,14 +260,32 @@ export function CasoNovoSheet({
 
         <div className="mt-4 space-y-5">
           {mode === "staff" && (
-            <div className="space-y-2">
-              <Label>Pessoa <span className="text-destructive">*</span></Label>
-              {lockedPessoaId ? (
-                <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm">
-                  {pessoaSelecionada?.nome_completo ?? "—"}
+            <div className="space-y-3">
+              {!lockedPessoaId && (
+                <div className="space-y-2">
+                  <Label>Alvo do caso <span className="text-destructive">*</span></Label>
+                  <RadioGroup value={alvo} onValueChange={(v) => setAlvo(v as "pessoa" | "familia")} className="flex gap-4">
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="pessoa" id="alvo-pessoa" />
+                      <Label htmlFor="alvo-pessoa" className="font-normal">Pessoa</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="familia" id="alvo-familia" />
+                      <Label htmlFor="alvo-familia" className="font-normal">Família (apoio a vários)</Label>
+                    </div>
+                  </RadioGroup>
                 </div>
-              ) : (
-                <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+              )}
+
+              {(lockedPessoaId || alvo === "pessoa") && (
+                <div className="space-y-2">
+                  <Label>Pessoa <span className="text-destructive">*</span></Label>
+                  {lockedPessoaId ? (
+                    <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm">
+                      {pessoaSelecionada?.nome_completo ?? "—"}
+                    </div>
+                  ) : (
+                    <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full justify-start font-normal">
                       {pessoaSelecionada?.nome_completo ?? "Pesquisar pessoa…"}
@@ -292,6 +310,49 @@ export function CasoNovoSheet({
                     </Command>
                   </PopoverContent>
                 </Popover>
+                  )}
+                </div>
+              )}
+
+              {!lockedPessoaId && alvo === "familia" && (
+                <div className="space-y-2">
+                  <Label>Família <span className="text-destructive">*</span></Label>
+                  <Popover open={familiaPickerOpen} onOpenChange={setFamiliaPickerOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start font-normal">
+                        {familiaSelecionada?.nome
+                          ? `${familiaSelecionada.nome} · ${familiaSelecionada.membros} pessoa(s)`
+                          : "Pesquisar família…"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[420px] p-0" align="start">
+                      <Command shouldFilter={false}>
+                        <CommandInput placeholder="Pesquisar família…" value={pesquisaFam} onValueChange={setPesquisaFam} />
+                        <CommandList>
+                          <CommandEmpty>
+                            {pesquisaFam.length < 1 ? "Escreve para pesquisar" : "Sem resultados"}
+                          </CommandEmpty>
+                          <CommandGroup>
+                            {(familias ?? []).map((f) => (
+                              <CommandItem key={f.id} value={f.id}
+                                onSelect={() => { setFamiliaIdSel(f.id); setFamiliaPickerOpen(false); }}>
+                                <div className="flex w-full items-center justify-between">
+                                  <span>{f.nome}</span>
+                                  <span className="text-xs text-muted-foreground">{f.membros} pessoa(s)</span>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  {familiaSelecionada && (
+                    <p className="text-xs text-muted-foreground">
+                      Este caso conta como apoio a {familiaSelecionada.membros} pessoa(s) da família.
+                    </p>
+                  )}
+                </div>
               )}
             </div>
           )}
