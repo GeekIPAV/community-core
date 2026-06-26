@@ -1,108 +1,87 @@
-# Melhorias propostas para a aplicação MEERU
+# Acompanhamento (Casos de Apoio) — módulo novo
 
-Plano focado em três frentes que escolheste, organizado por fases para limitar consumo de créditos e risco. Cada fase é executável de forma independente.
+**Importante**: módulo **novo e independente**. O módulo existente "Atividades" mantém-se sem alterações. Este novo módulo chama-se **Acompanhamento** e gere **Casos de Apoio**: cada caso tem mediadora atribuída, registo cronológico estruturado, objetivos, transferências, e pode ser aberto por staff ou pela própria pessoa.
 
----
+## 1. Base de dados (1 migração)
 
-## Fase 1 — Performance e robustez
+**Tabelas novas** (todas com GRANT + RLS + trigger updated_at):
 
-Objetivo: tornar a app fluida mesmo com milhares de registos e eliminar refetches desnecessários.
+- `casos_apoio` — `numero` (CASO-YYYY-NNNN, gerado por trigger via sequence anual), `pessoa_id`, `familia_id` (auto-preenchido por trigger a partir de `pessoa`), `mediadora_id`, `area`, `titulo`, `descricao`, `estado` (default 'Novo'), `prioridade`, `origem` ('Mediadora'|'Auto-pedido'), `objetivo`, `resultado_final`, `data_abertura`, `data_conclusao`, `data_prevista_conclusao`, `created_by_auth_id`.
+- `caso_registos` — `caso_id`, `autor_id`, `tipo`, `titulo`, `conteudo`, `visivel_para_pessoa`, `estado_anterior`, `estado_novo`, `data`. Trigger atualiza `casos_apoio.updated_at`.
+- `caso_objetivos` — `caso_id`, `descricao`, `estado`, `prazo`, `notas`, `position`.
+- `caso_transferencias` — `caso_id`, `mediadora_saida_id`, `mediadora_entrada_id`, `data`, `motivo`, `notas_transicao` (NOT NULL).
 
-1. **Updates otimistas em todas as tabelas com edição inline**
-   Aplicar o mesmo padrão já usado nos Registos de serviço (`onMutate` + `setQueryData` + rollback no `onError`) em:
-   - Pessoas/Participantes, Famílias, Ações, Parceiros, Projetos, Financiamentos, Localizações, Colaboradoras, Tipos de serviço, Etiquetas.
-   - Resultado: edição de uma célula é instantânea, sem refetch da tabela inteira.
+**RLS** via `is_current_user_staff()` / `current_user_pessoa_id()`:
+- Staff/admin: tudo.
+- Pessoa autenticada não-staff: SELECT casos próprios; INSERT auto-pedido; SELECT/INSERT em `caso_registos` próprios e visíveis (`Resposta da pessoa`); sem acesso a objetivos/transferências.
 
-2. **Virtualização das tabelas grandes**
-   Adicionar `@tanstack/react-virtual` ao `SmartTable` quando o número de linhas ultrapassa um limiar (ex.: 200). Mantém scroll suave em Participantes (>1k), Ações e Registos.
+**RPC** `count_casos_novos()` para badge.
 
-3. **Redução de queries duplicadas**
-   Várias páginas (`servicos`, `colaboradoras/:id`, `acoes`) lançam queries com chaves diferentes para os mesmos dados (`colaboradores_lookup`, `colaboradores_lookup_pag`, `tipos_servico_lookup` em 3 sítios). Unificar chaves para partilhar cache.
+## 2. Sidebar e rotas
 
-4. **Índices em falta na BD**
-   Usar `slow_queries` para identificar consultas lentas e adicionar índices em colunas filtradas/ordenadas com frequência: `registos_servico (colaborador_id, estado, data_inicio)`, `acoes (data_inicio)`, `pessoas (deleted_at, nome_completo)`, `parceiro_interacoes (parceiro_id, data)`, `pagamentos (colaborador_id, data_pagamento)`.
+- Insert em `sidebar_items` para **"Acompanhamento"** no grupo "Gestão de Participantes" depois de Projetos (ícone `FolderOpen`, url `/casos`, badge `count_casos_novos`). **Não toca** no item "Atividades" existente.
+- Rotas novas:
+  - `src/routes/_app/_admin.casos.tsx` (layout `<Outlet />`)
+  - `src/routes/_app/_admin.casos.index.tsx` (lista)
+  - `src/routes/_app/_admin.casos.$id.tsx` (detalhe)
+- Adicionar "Acompanhamento" ao `CommandPalette`.
 
-5. **Lazy-load do calendário e gráficos pesados**
-   `recharts` e `react-big-calendar` (se presente) só devem carregar nas rotas que os usam. Já está em rotas separadas, mas o ficheiro `_admin.servicos.tsx` (1876 linhas) importa `recharts` mesmo quando se está noutro tab.
+## 3. Lista `/casos`
 
-6. **Tratamento de erros uniforme**
-   Substituir os `toast.error(e.message)` ad hoc por um helper `handleSupabaseError(e)` que reconhece códigos comuns (RLS, FK, unique) e mostra mensagens em PT-PT compreensíveis.
+4 cards (Novos, Em curso, Alta prioridade, Auto-pedidos pendentes), banner âmbar para casos sem mediadora, toolbar com filtros multi + "Novo caso", `SmartTable` (Nº, Pessoa/Família, Área, Título, Mediadora com popover "Atribuir", Prioridade, Estado, Origem, #Registos, Abertura), agrupável.
 
----
+## 4. Detalhe `/casos/$id`
 
-## Fase 2 — UX e produtividade
+Layout 2 colunas:
+- **Sidebar `w-80` sticky**: identidade (titulo inline-editable, badges com selects inline), pessoa (clica abre `FamilyDetailDialog`), info do caso (mediadora, datas), objetivo, progresso de objetivos, ações (Adicionar registo, Transferir, Concluir, Arquivar).
+- **Tabs**: Registos (default) | Objetivos | Timeline | Transferências.
 
-Objetivo: reduzir cliques e atrito nas tarefas diárias do staff.
+**Tab Registos**:
+- Toggle "Ver como a pessoa vê".
+- Cards com bordas distintivas (Nota interna âmbar, Resposta azul), EyeOff para ocultos, toggle de visibilidade por card (staff).
+- Compose box **sempre visível** no fundo: select tipo + textarea + switch "Visível para a pessoa" + botão.
 
-1. **Ações em massa**
-   No SmartTable, suportar seleção múltipla (checkbox por linha) e barra de ação flutuante com:
-   - Registos: aprovar / marcar pago / eliminar / alterar estado.
-   - Pessoas: adicionar etiqueta / mover para família / eliminar.
-   - Pagamentos: gerar referência conjunta.
+**Tab Objetivos**: lista inline-editável, drag-reorder por `position`.
 
-2. **Atalhos de teclado globais**
-   - `Cmd/Ctrl+K` paleta de comandos (navegar, criar novo registo/pessoa/ação).
-   - `N` em qualquer listagem abre o dialog "Novo …".
-   - `E` na linha focada entra em modo edição.
-   - `/` foca o campo de pesquisa global.
+**Tab Timeline**: vista cronológica unificada com filtro.
 
-3. **Feedback visual de loading/saving**
-   - Linha em estado "a guardar" com ligeiro fade enquanto a mutação otimista corre.
-   - Botão "Guardar" mostra spinner + bloqueia duplo clique.
-   - Skeletons consistentes em todas as tabelas (algumas mostram só "A carregar…").
+**Tab Transferências**: lista de handovers.
 
-4. **Acessibilidade dos dialogs**
-   Corrigir os avisos `Missing Description or aria-describedby` que aparecem na consola em vários `DialogContent` (Sessões, Pagamentos, Bulk import).
+**Sheets**:
+- Transferir: nova mediadora, motivo, notas obrigatórias → cria transferência + update mediadora + registo `Atualização de estado` invisível.
+- Concluir: resultado final, data, estado final, checkboxes para fechar objetivos restantes.
 
-5. **Pesquisa global**
-   Endpoint único (`rpc search_global`) que devolve resultados de pessoas, ações, parceiros, projetos numa única paleta de comandos.
+## 5. Novo Caso Sheet
 
-6. **Vistas guardadas partilhadas**
-   A tabela `vistas_guardadas` já existe — falta UI para marcar uma vista como "partilhada com a equipa" e indicador visual de qual a vista ativa.
+Usado em: lista, FamilyDetailDialog, perfil da pessoa.
+Campos: pessoa (combobox staff / pré-preenchido pessoa), área (toggle icons), título (auto-sugestão), descrição, objetivo, prioridade (staff), mediadora (staff opcional → estado Novo/Em análise), objetivos específicos.
 
----
+Staff: cria com `origem='Mediadora'` + registo "Caso aberto" + objetivos + navega.
+Pessoa: cria `Auto-pedido` Novo sem mediadora + registo `Resposta da pessoa` visível + notifica staff (`novo_auto_pedido`) + sucesso inline.
 
-## Fase 3 — Dashboard e relatórios
+## 6. Perfil — "O Meu Apoio"
 
-Objetivo: passar do dashboard atual (estatísticas genéricas) para um painel operacional acionável.
+Secção em `src/routes/_app.perfil.tsx` visível só a não-staff:
+- "Pedir apoio" (CTA) abre o Novo Caso Sheet em modo auto-pedido.
+- Cards dos casos próprios: área, título, estado, mediadora ou "A aguardar atribuição", últimos 2 registos visíveis com expand, caixa "Responder" (cria registo `Resposta da pessoa` + notifica mediadora `resposta_pessoa`).
+- Linguagem calorosa: "o teu pedido", "a tua mediadora", "a equipa MEERU vai responder em breve".
 
-1. **KPIs operacionais no topo do dashboard**
-   - € por pagar a colaboradoras (pendente + aprovado).
-   - Registos pendentes de aprovação (com link direto).
-   - Próximas sessões nos próximos 7 dias.
-   - Famílias sem contacto há > 30 dias.
-   - Ações sem KPIs preenchidos no mês anterior.
-   - Financiamento: % executado por projeto ativo.
+## 7. FamilyDetailDialog
 
-2. **Gráficos comparativos por período**
-   - Seletor de período (mês / trimestre / ano / custom).
-   - Comparação com período homólogo (Δ % e seta).
-   - Séries: novos participantes, ações realizadas, horas de serviço, valor pago.
+Nova tab "Casos" depois de "Atividades" (não substitui Atividades): lista compacta dos casos dos membros + botão "Novo caso" com família pré-contextualizada.
 
-3. **Relatórios exportáveis em PDF**
-   Endpoints (server functions) que geram PDF via `@react-pdf/renderer`:
-   - Recibo/relatório de pagamento por colaboradora num período.
-   - Relatório por projeto (atividades, participantes, KPIs, financiamento associado).
-   - Relatório por financiamento (projetos cobertos, valor executado, indicadores).
-   Botão "Exportar PDF" nas páginas de detalhe respectivas.
+## 8. Notificações
 
-4. **Exportação CSV consistente**
-   Já existe em Registos — replicar em Pessoas, Famílias, Ações, Pagamentos, Parceiros, com escolha das colunas visíveis.
-
-5. **Widgets configuráveis**
-   A tabela `dashboard_config` já existe; usar para deixar cada utilizador escolher e reordenar os widgets do seu dashboard.
-
----
-
-## Recomendação de ordem
-
-Sugiro começar pela **Fase 1** (impacto imediato e transversal, baixo risco), depois **Fase 2** (multiplica produtividade do staff), e fechar com **Fase 3** (alto valor mas mais visual/cosmético, pode esperar). Cada fase deve ser uma sessão separada para evitar erros acumulados.
+Em `NotificationsBell` mapear `novo_auto_pedido` (FolderOpen azul, para staff), `resposta_pessoa` (MessageCircle, para mediadora), `caso_sem_mediadora` (AlertCircle âmbar). Usar `notificar_staff()` com `group_key` para deduplicação.
 
 ## Notas técnicas
 
-- Toda a edição inline otimista deve usar a mesma forma: `onMutate` cancela queries, snapshot do `getQueryData`, `setQueryData` com novo valor, rollback no `onError`, sem `invalidateQueries` no sucesso.
-- A virtualização deve preservar a UX de drag-to-resize, agrupamento e filtros já existentes no `SmartTable`.
-- Os PDFs devem correr em `createServerFn` (não browser) para incluírem dados que dependem de RLS de admin.
-- Antes de adicionar índices, correr `slow_queries` para confirmar quais valem o custo de manutenção.
+- `numero`: trigger BEFORE INSERT usa sequence anual criada on-the-fly.
+- `familia_id` auto-preenchido por trigger se NULL.
+- Trigger em `caso_registos` toca `casos_apoio.updated_at`.
+- Mudança de `casos_apoio.estado` cria automaticamente registo `Atualização de estado` para garantir histórico.
+- Optimistic updates em mudanças inline.
+- Reutiliza `SmartTable`, `InlineMultiSelect`, `InlineEdit`, padrões existentes.
+- **Não modifica** `atividades_catalogo`, `familia_atividades`, nem a página `/atividades`.
 
-Diz qual fase queres avançar primeiro (ou se preferes que detalhe apenas um item específico).
+Confirma para avançar.
