@@ -5,12 +5,16 @@ import {
   getFilteredRowModel,
   getSortedRowModel,
   useReactTable,
-  type ColumnFiltersState,
   type Row,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ChevronDown, ChevronRight, Inbox } from "lucide-react";
-import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import {
   Table,
   TableBody,
@@ -19,18 +23,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { advancedFilterFn } from "@/components/advanced-table-filters";
 import { SmartTableToolbar } from "./SmartTableToolbar";
+import { SmartTableBody } from "./SmartTableBody";
 import { EditableCell } from "./SmartTableCell";
-import {
-  usePersistedFlag,
-  usePersistedSizing,
-  usePersistedSorting,
-  usePersistedString,
-  usePersistedVisibility,
-} from "./use-persisted-table-state";
+import { useSmartTableState } from "./useSmartTableState";
 import type { SmartColumnMeta, SmartTableProps } from "./types";
 
 const MOBILE_QUERY = "(max-width: 767px)";
@@ -95,20 +101,33 @@ export function SmartTable<T>({
   className,
   hideSearch,
   emptyMessage,
+  emptyIcon,
+  searchPlaceholder,
+  groupByOptions,
+  defaultSortBy,
+  defaultColumnVisibility,
+  getRowClassName,
+  pageSize = null,
+  savedViewsKey,
 }: SmartTableProps<T>) {
   const isMobile = useIsMobile();
-  const [sorting, setSorting] = usePersistedSorting(tableId);
-  const [columnVisibility, setColumnVisibility] = usePersistedVisibility(tableId);
-  const [columnSizing, setColumnSizing] = usePersistedSizing(tableId);
-  const [editMode, setEditMode] = usePersistedFlag(tableId, "edit", false);
-  const [groupBy, setGroupBy] = usePersistedString(tableId, "groupBy", defaultGroupBy ?? "");
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
-    const init: Record<string, boolean> = {};
-    for (const g of defaultCollapsedGroups ?? []) init[g] = true;
-    return init;
+  const {
+    sorting, setSorting,
+    columnVisibility, setColumnVisibility,
+    columnSizing, setColumnSizing,
+    editMode, setEditMode,
+    groupBy, setGroupBy,
+    collapsedGroups, setCollapsedGroups,
+    globalSearch, setGlobalSearch,
+    columnFilters, setColumnFilters,
+    pageIndex, setPageIndex,
+    pageSize: stPageSize, setPageSize: setStPageSize,
+  } = useSmartTableState(tableId, {
+    defaultGroupBy,
+    defaultSortBy,
+    defaultColumnVisibility,
+    defaultCollapsedGroups,
   });
-  const [globalSearch, setGlobalSearch] = useState("");
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
   const editable = new Set(editableColumns ?? []);
 
@@ -200,10 +219,27 @@ export function SmartTable<T>({
   const hasEditable = editable.size > 0 && !!onCellEdit;
 
   // Virtualização: ativada quando há muitas linhas e não estamos a agrupar.
-  // Mantém o markup <table>; apenas insere "spacer rows" no topo/fundo.
+  const paginationActive =
+    !groups && typeof pageSize === "number" && pageSize > 0;
+  const effectivePageSize = paginationActive ? (stPageSize || pageSize!) : 0;
+  const totalPages = paginationActive
+    ? Math.max(1, Math.ceil(filteredRows.length / effectivePageSize))
+    : 1;
+
+  useEffect(() => {
+    setPageIndex(0);
+  }, [globalSearch, columnFilters, groupBy, setPageIndex]);
+
+  const paginatedRows = useMemo(() => {
+    if (!paginationActive) return filteredRows;
+    const start = pageIndex * effectivePageSize;
+    return filteredRows.slice(start, start + effectivePageSize);
+  }, [paginationActive, filteredRows, pageIndex, effectivePageSize]);
+
   const VIRTUAL_THRESHOLD = 80;
   const ROW_HEIGHT = 40; // h-10
-  const shouldVirtualize = !groups && filteredRows.length > VIRTUAL_THRESHOLD;
+  const shouldVirtualize =
+    !groups && !paginationActive && filteredRows.length > VIRTUAL_THRESHOLD;
   const scrollRef = useRef<HTMLDivElement>(null);
   const virtualizer = useVirtualizer({
     count: shouldVirtualize ? filteredRows.length : 0,
@@ -235,6 +271,9 @@ export function SmartTable<T>({
         rowCount={filteredRows.length}
         toolbarActions={toolbarActions}
         hideSearch={hideSearch}
+        searchPlaceholder={searchPlaceholder}
+        groupByOptions={groupByOptions}
+        savedViewsKey={savedViewsKey}
       />
 
       <div
@@ -302,79 +341,128 @@ export function SmartTable<T>({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={`sk-${i}`} className="h-10">
-                  {visibleLeaf.map((c) => (
-                    <TableCell key={c.id} className="px-3 py-2">
-                      <Skeleton className="h-4 w-3/4" />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : filteredRows.length === 0 ? (
-              <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={colSpan} className="py-10 text-center text-sm text-muted-foreground">
-                  <div className="flex flex-col items-center gap-2">
-                    <Inbox className="h-6 w-6 opacity-40" />
-                    <span>
-                      {globalSearch.trim()
-                        ? `Sem resultados para "${globalSearch.trim()}"`
-                        : (emptyMessage ?? "Sem resultados")}
-                    </span>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : groups ? (
-              groups.map(([groupKey, gRows]) => {
-                const isCollapsed = !!collapsed[groupKey];
-                return (
-                  <GroupRows
-                    key={groupKey}
-                    label={labelOf(groupCol!)}
-                    value={groupKey}
-                    count={gRows.length}
-                    collapsed={isCollapsed}
-                    onToggle={() =>
-                      setCollapsed((p) => ({ ...p, [groupKey]: !p[groupKey] }))
-                    }
-                    colSpan={colSpan}
-                    rows={gRows}
-                    onRowClick={onRowClick}
-                  />
-                );
-              })
-            ) : shouldVirtualize ? (
+            {shouldVirtualize ? (
               <>
                 {paddingTop > 0 && (
                   <tr aria-hidden style={{ height: paddingTop }} />
                 )}
                 {virtualItems.map((vi) => {
                   const row = filteredRows[vi.index];
-                  return <DataRow key={row.id} row={row} onRowClick={onRowClick} />;
+                  return (
+                    <DataRow
+                      key={row.id}
+                      row={row}
+                      onRowClick={onRowClick}
+                      getRowClassName={getRowClassName}
+                    />
+                  );
                 })}
                 {paddingBottom > 0 && (
                   <tr aria-hidden style={{ height: paddingBottom }} />
                 )}
               </>
             ) : (
-              filteredRows.map((row) => (
-                <DataRow key={row.id} row={row} onRowClick={onRowClick} />
-              ))
+              <SmartTableBody
+                isLoading={isLoading}
+                emptyMessage={emptyMessage ?? "Sem resultados"}
+                emptyIcon={emptyIcon}
+                search={globalSearch}
+                colSpan={colSpan}
+                rows={paginatedRows}
+                groups={
+                  groups
+                    ? { label: labelOf(groupCol!), entries: groups }
+                    : null
+                }
+                collapsedGroups={collapsedGroups}
+                onToggleGroup={(k) =>
+                  setCollapsedGroups((p) => ({ ...p, [k]: !p[k] }))
+                }
+                onRowClick={onRowClick}
+                getRowClassName={getRowClassName}
+              />
             )}
           </TableBody>
         </Table>
       </div>
+
+      {paginationActive && (
+        <div className="flex items-center justify-between border-t border-border/60 bg-muted/20 px-4 py-2 text-xs text-muted-foreground">
+          <span>
+            {filteredRows.length === 0
+              ? "0"
+              : `${pageIndex * effectivePageSize + 1}–${Math.min(
+                  (pageIndex + 1) * effectivePageSize,
+                  filteredRows.length,
+                )}`}{" "}
+            de {filteredRows.length} resultados
+          </span>
+          <div className="flex items-center gap-1">
+            <Select
+              value={String(effectivePageSize)}
+              onValueChange={(v) => {
+                setStPageSize(Number(v));
+                setPageIndex(0);
+              }}
+            >
+              <SelectTrigger className="h-7 w-24 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[25, 50, 100, 200].map((s) => (
+                  <SelectItem key={s} value={String(s)}>
+                    {s} / pág.
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              disabled={pageIndex === 0}
+              onClick={() => setPageIndex(Math.max(0, pageIndex - 1))}
+              aria-label="Página anterior"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="px-1">
+              Pág. {pageIndex + 1} / {totalPages}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              disabled={pageIndex >= totalPages - 1}
+              onClick={() =>
+                setPageIndex(Math.min(totalPages - 1, pageIndex + 1))
+              }
+              aria-label="Página seguinte"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function DataRow<T>({ row, onRowClick }: { row: Row<T>; onRowClick?: (r: T) => void }) {
+function DataRow<T>({
+  row,
+  onRowClick,
+  getRowClassName,
+}: {
+  row: Row<T>;
+  onRowClick?: (r: T) => void;
+  getRowClassName?: (r: T) => string | undefined;
+}) {
   return (
     <TableRow
       className={cn(
         "h-10 border-b border-border/40 text-sm text-foreground hover:bg-muted/40",
         onRowClick && "cursor-pointer",
+        getRowClassName?.(row.original),
       )}
       onClick={onRowClick ? () => onRowClick(row.original) : undefined}
     >
@@ -398,52 +486,5 @@ function DataRow<T>({ row, onRowClick }: { row: Row<T>; onRowClick?: (r: T) => v
         );
       })}
     </TableRow>
-  );
-}
-
-function GroupRows<T>({
-  label,
-  value,
-  count,
-  collapsed,
-  onToggle,
-  colSpan,
-  rows,
-  onRowClick,
-}: {
-  label: string;
-  value: string;
-  count: number;
-  collapsed: boolean;
-  onToggle: () => void;
-  colSpan: number;
-  rows: Row<T>[];
-  onRowClick?: (r: T) => void;
-}) {
-  return (
-    <>
-      <TableRow className="bg-muted/20 hover:bg-muted/30">
-        <TableCell
-          colSpan={colSpan}
-          className="cursor-pointer px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
-          onClick={onToggle}
-        >
-          <span className="inline-flex items-center gap-2">
-            {collapsed ? (
-              <ChevronRight className="h-3.5 w-3.5" />
-            ) : (
-              <ChevronDown className="h-3.5 w-3.5" />
-            )}
-            <span className="text-muted-foreground/80 normal-case">{label}:</span>
-            <span className="text-foreground normal-case">{value}</span>
-            <span className="text-muted-foreground/70 normal-case">
-              ({count} {count === 1 ? "registo" : "registos"})
-            </span>
-          </span>
-        </TableCell>
-      </TableRow>
-      {!collapsed &&
-        rows.map((row) => <DataRow key={row.id} row={row} onRowClick={onRowClick} />)}
-    </>
   );
 }
