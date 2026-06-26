@@ -10,6 +10,7 @@ export type PageKey =
   | "security"
   | "style-guide"
   | "duplicados"
+  | "casos"
   | "projetos"
   | "indicadores"
   | "financiamentos"
@@ -22,6 +23,7 @@ export const AVAILABLE_PAGES: { key: PageKey; label: string; path: string }[] = 
   { key: "dashboard", label: "Dashboard", path: "/dashboard" },
   { key: "participantes", label: "Gestão de Participantes", path: "/participantes" },
   { key: "familias", label: "Gestão de Famílias", path: "/familias" },
+  { key: "casos", label: "Acompanhamento", path: "/casos" },
   { key: "acoes", label: "Gestão de Ações", path: "/acoes" },
   { key: "atividades", label: "Atividades", path: "/atividades" },
   { key: "curriculos", label: "Currículos", path: "/curriculos" },
