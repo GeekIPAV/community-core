@@ -60,8 +60,8 @@ function CasosListPage() {
         .from("casos_apoio" as any)
         .select(`
           id, numero, pessoa_id, familia_id, area, titulo, mediadora_id, prioridade, estado, origem, data_abertura,
-          pessoa:pessoas!casos_apoio_pessoa_id_fkey(nome_completo, familia:familias(nome)),
-          familia:familias!casos_apoio_familia_id_fkey(nome, pessoas(count)),
+          pessoa:pessoas!casos_apoio_pessoa_id_fkey(nome_completo, familia:familias!pessoas_familia_id_fkey(nome)),
+          familia:familias!casos_apoio_familia_id_fkey(nome, pessoas:pessoas!pessoas_familia_id_fkey(count)),
           mediadora:pessoas!casos_apoio_mediadora_id_fkey(nome_completo),
           caso_registos(count)
         `)
