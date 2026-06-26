@@ -826,9 +826,12 @@ export function FamilyDetailDialog({
                     <Button
                       variant="destructive"
                       onClick={() => {
-                        if (confirm(`Eliminar a família "${editing.nome}"? Os membros ficarão sem família e as atividades associadas serão removidas. Esta ação não pode ser desfeita.`)) {
-                          deleteFamilia.mutate(editing.id);
-                        }
+                        setConfirmState({
+                          open: true,
+                          title: "Eliminar família",
+                          description: `Eliminar "${editing.nome}"? Os membros ficarão sem família e as atividades associadas serão removidas. Esta ação não pode ser desfeita.`,
+                          onConfirm: () => deleteFamilia.mutate(editing.id),
+                        });
                       }}
                       disabled={deleteFamilia.isPending}
                     >
