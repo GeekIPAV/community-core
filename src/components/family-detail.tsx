@@ -1305,6 +1305,29 @@ export function FamilyDetailDialog({
           </Tabs>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={confirmState.open}
+        onOpenChange={(o) => !o && setConfirmState((s) => ({ ...s, open: false }))}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmState.title}</AlertDialogTitle>
+            <AlertDialogDescription>{confirmState.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                confirmState.onConfirm();
+                setConfirmState((s) => ({ ...s, open: false }));
+              }}
+            >
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
