@@ -6,6 +6,8 @@ export type Relatorio = {
   titulo: string;
   financiador: string;
   projeto_id: string | null;
+  projeto_ids: string[];
+  geral: boolean;
   periodo_inicio: string;
   periodo_fim: string;
   tipo: RelatorioTipo;
