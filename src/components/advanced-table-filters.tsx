@@ -134,7 +134,12 @@ function sameDay(a: Date | null, b: Date | null): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
-function uid() { return Math.random().toString(36).slice(2, 10); }
+function uid(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+}
 
 function getMeta(col: Column<any, any>): ColumnFilterMeta {
   return (col.columnDef.meta as ColumnFilterMeta) ?? {};

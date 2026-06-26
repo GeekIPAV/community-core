@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,17 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, Plus, Trash2, UserMinus, FolderOpen } from "lucide-react";
 import { Link } from "@tanstack/react-router";
@@ -82,6 +93,7 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
   const [novaOpen, setNovaOpen] = useState(false);
   const [novaNome, setNovaNome] = useState("");
   const [novaCategoria, setNovaCategoria] = useState<string>("");
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
 
   const { data: catalogo } = useQuery({
     queryKey: ["atividades-catalogo"],
@@ -222,7 +234,7 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
                         size="icon"
                         variant="ghost"
                         title="Remover"
-                        onClick={() => { if (confirm("Remover esta atividade?")) remove.mutate(r.id); }}
+                        onClick={() => setConfirmRemoveId(r.id)}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
@@ -312,6 +324,26 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!confirmRemoveId} onOpenChange={(o) => !o && setConfirmRemoveId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover atividade</AlertDialogTitle>
+            <AlertDialogDescription>Remover esta atividade do registo da família?</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (confirmRemoveId) remove.mutate(confirmRemoveId);
+                setConfirmRemoveId(null);
+              }}
+            >
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -347,14 +379,32 @@ export function FamilyDetailDialog({
   const [detailTab, setDetailTab] = useState<"dados" | "membros" | "projetos" | "acoes" | "atividades" | "casos" | "contexto">(defaultTab);
   const [editing, setEditing] = useState<Familia | null>(family);
 
-  // When the selected family changes reset editing state
+  // When the selected family changes reset editing state. Only reset the active
+  // tab on the first open (not on prev/next sibling navigation).
+  const prevFamilyId = useRef<string | null>(null);
   useEffect(() => {
-    if (family) {
-      setEditing({ ...family });
+    if (!family) return;
+    setEditing({ ...family });
+    if (prevFamilyId.current === null) {
       setDetailTab(defaultTab);
     }
+    prevFamilyId.current = family.id;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [family?.id]);
+
+  useEffect(() => {
+    if (!open) {
+      prevFamilyId.current = null;
+    }
+  }, [open]);
+
+  // ── shared confirm dialog state ───────────────────────────────────────────
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({ open: false, title: "", description: "", onConfirm: () => {} });
 
   // ── sub-dialog states ─────────────────────────────────────────────────────
   const [addMembroOpen, setAddMembroOpen] = useState(false);
@@ -425,7 +475,8 @@ export function FamilyDetailDialog({
 
   const { data: acoesFamilia, isLoading: loadingAcoesFamilia } = useQuery({
     queryKey: ["familias", "acoes", family?.id],
-    enabled: !!family && !!membros,
+    enabled: !!family && membros !== undefined,
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const ids = (membros ?? []).map((m) => m.id);
       if (ids.length === 0)
@@ -624,15 +675,20 @@ export function FamilyDetailDialog({
     mutationFn: async ({ projetoId, action }: { projetoId: string; action: "add" | "remove" }) => {
       const lista = membros ?? [];
       if (lista.length === 0) throw new Error("Sem membros");
-      const updates = lista.map(async (m) => {
-        const atuais = new Set<string>(m.projeto_ids ?? []);
-        if (action === "add") atuais.add(projetoId);
-        else atuais.delete(projetoId);
-        const novos = Array.from(atuais);
-        const { error } = await supabase.from("pessoas").update({ projeto_ids: novos } as any).eq("id", m.id);
-        if (error) throw error;
-      });
-      await Promise.all(updates);
+      const batchSize = 5;
+      for (let i = 0; i < lista.length; i += batchSize) {
+        const batch = lista.slice(i, i + batchSize);
+        await Promise.all(batch.map(async (m) => {
+          const atuais = new Set<string>(m.projeto_ids ?? []);
+          if (action === "add") atuais.add(projetoId);
+          else atuais.delete(projetoId);
+          const { error } = await supabase
+            .from("pessoas")
+            .update({ projeto_ids: Array.from(atuais) } as any)
+            .eq("id", m.id);
+          if (error) throw error;
+        }));
+      }
     },
     onSuccess: (_d, vars) => {
       toast.success(vars.action === "add" ? "Projeto atribuído a todos os membros" : "Projeto removido de todos os membros");
@@ -770,9 +826,12 @@ export function FamilyDetailDialog({
                     <Button
                       variant="destructive"
                       onClick={() => {
-                        if (confirm(`Eliminar a família "${editing.nome}"? Os membros ficarão sem família e as atividades associadas serão removidas. Esta ação não pode ser desfeita.`)) {
-                          deleteFamilia.mutate(editing.id);
-                        }
+                        setConfirmState({
+                          open: true,
+                          title: "Eliminar família",
+                          description: `Eliminar "${editing.nome}"? Os membros ficarão sem família e as atividades associadas serão removidas. Esta ação não pode ser desfeita.`,
+                          onConfirm: () => deleteFamilia.mutate(editing.id),
+                        });
                       }}
                       disabled={deleteFamilia.isPending}
                     >
@@ -867,9 +926,12 @@ export function FamilyDetailDialog({
                                     variant="ghost"
                                     title="Remover da família"
                                     onClick={() => {
-                                      if (confirm(`Remover ${m.nome_completo} desta família? O utilizador continua a existir.`)) {
-                                        removeFromFamilia.mutate(m.id);
-                                      }
+                                      setConfirmState({
+                                        open: true,
+                                        title: "Remover da família",
+                                        description: `Remover ${m.nome_completo} desta família? O utilizador continua a existir.`,
+                                        onConfirm: () => removeFromFamilia.mutate(m.id),
+                                      });
                                     }}
                                   >
                                     <UserMinus className="h-4 w-4" />
@@ -879,9 +941,12 @@ export function FamilyDetailDialog({
                                     variant="ghost"
                                     title="Apagar utilizador"
                                     onClick={() => {
-                                      if (confirm(`Apagar ${m.nome_completo} definitivamente? Esta ação não pode ser desfeita.`)) {
-                                        deletePessoa.mutate(m.id);
-                                      }
+                                      setConfirmState({
+                                        open: true,
+                                        title: "Apagar utilizador",
+                                        description: `Apagar ${m.nome_completo} definitivamente? Esta ação não pode ser desfeita.`,
+                                        onConfirm: () => deletePessoa.mutate(m.id),
+                                      });
                                     }}
                                   >
                                     <Trash2 className="h-4 w-4 text-destructive" />
@@ -902,15 +967,15 @@ export function FamilyDetailDialog({
                         <Plus className="mr-2 h-4 w-4" /> Adicionar membro
                       </Button>
                     </div>
-                    <Tabs defaultValue="membros" className="flex flex-col flex-1 min-h-0">
+                    <Tabs defaultValue="membros-inner" className="flex flex-col flex-1 min-h-0">
                       <TabsList className="w-full">
-                        <TabsTrigger value="membros" className="flex-1">Membros ({membrosNormais.length})</TabsTrigger>
-                        <TabsTrigger value="voluntarios" className="flex-1">Voluntários ({voluntarios.length})</TabsTrigger>
+                        <TabsTrigger value="membros-inner" className="flex-1">Membros ({membrosNormais.length})</TabsTrigger>
+                        <TabsTrigger value="voluntarios-inner" className="flex-1">Voluntários ({voluntarios.length})</TabsTrigger>
                       </TabsList>
-                      <TabsContent value="membros" className="pt-3 flex-1 min-h-0">
+                      <TabsContent value="membros-inner" className="pt-3 flex-1 min-h-0">
                         {renderTable(membrosNormais, "Sem membros")}
                       </TabsContent>
-                      <TabsContent value="voluntarios" className="pt-3 flex-1 min-h-0">
+                      <TabsContent value="voluntarios-inner" className="pt-3 flex-1 min-h-0">
                         {renderTable(voluntarios, "Sem voluntários")}
                       </TabsContent>
                     </Tabs>
@@ -981,9 +1046,12 @@ export function FamilyDetailDialog({
                                   variant="ghost"
                                   className="text-destructive hover:text-destructive"
                                   onClick={() => {
-                                    if (confirm(`Remover o projeto "${info.nome}" de todos os membros desta família?`)) {
-                                      bulkAssignProjeto.mutate({ projetoId: pid, action: "remove" });
-                                    }
+                                    setConfirmState({
+                                      open: true,
+                                      title: "Remover projeto",
+                                      description: `Remover o projeto "${info.nome}" de todos os membros desta família?`,
+                                      onConfirm: () => bulkAssignProjeto.mutate({ projetoId: pid, action: "remove" }),
+                                    });
                                   }}
                                   disabled={bulkAssignProjeto.isPending}
                                 >
@@ -1007,6 +1075,14 @@ export function FamilyDetailDialog({
 
             {/* ── Ações ── */}
             <TabsContent value="acoes" className="pt-4 flex-1 min-h-0 overflow-hidden">
+              {loadingMembros ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-10 w-full" />
+                  ))}
+                </div>
+              ) : (
+              <>
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm text-muted-foreground">Inscrições dos membros desta família</span>
                 <Button
@@ -1050,6 +1126,8 @@ export function FamilyDetailDialog({
                   </TableBody>
                 </Table>
               </div>
+              </>
+              )}
             </TabsContent>
 
             {/* ── Atividades ── */}
@@ -1227,6 +1305,29 @@ export function FamilyDetailDialog({
           </Tabs>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={confirmState.open}
+        onOpenChange={(o) => !o && setConfirmState((s) => ({ ...s, open: false }))}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmState.title}</AlertDialogTitle>
+            <AlertDialogDescription>{confirmState.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                confirmState.onConfirm();
+                setConfirmState((s) => ({ ...s, open: false }));
+              }}
+            >
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

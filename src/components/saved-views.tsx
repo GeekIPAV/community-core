@@ -52,7 +52,8 @@ export function SavedViews<T>({
   onExtraChange?: (e: Record<string, any>) => void;
   defaultViewName?: string;
 }) {
-  const { realIsAdmin } = useAuth();
+  const { realIsAdmin, session } = useAuth();
+  const currentUserId = session?.user?.id;
   const [views, setViews] = useState<SavedView[]>([]);
   const [activeId, setActiveId] = useState<string>(ALL_KEY);
   const [saveOpen, setSaveOpen] = useState(false);
@@ -76,8 +77,10 @@ export function SavedViews<T>({
   };
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       const loaded = await loadViews();
+      if (cancelled) return;
       let savedId: string | null = null;
       try {
         savedId = localStorage.getItem(activeLocalKey);
@@ -97,6 +100,7 @@ export function SavedViews<T>({
         }
       }
     })();
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
 
@@ -231,7 +235,9 @@ export function SavedViews<T>({
 
   const activeView = views.find((v) => v.id === activeId) ?? null;
   const canEditActive =
-    !!activeView && (realIsAdmin || activeView.is_admin_view === false);
+    !!activeView &&
+    (realIsAdmin ||
+      (activeView.is_admin_view === false && activeView.created_by === currentUserId));
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
