@@ -723,6 +723,131 @@ export type Database = {
         }
         Relationships: []
       }
+      email_pedidos_ajuda: {
+        Row: {
+          atribuido_a: string | null
+          body_text: string | null
+          caso_id: string | null
+          created_at: string
+          estado: string
+          familia_id: string | null
+          from_email: string | null
+          from_name: string | null
+          gmail_message_id: string
+          gmail_thread_id: string | null
+          id: string
+          idioma: string | null
+          motivos: string | null
+          notas: string | null
+          pessoa_id: string | null
+          received_at: string | null
+          resumo: string | null
+          score: number
+          snippet: string | null
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          atribuido_a?: string | null
+          body_text?: string | null
+          caso_id?: string | null
+          created_at?: string
+          estado?: string
+          familia_id?: string | null
+          from_email?: string | null
+          from_name?: string | null
+          gmail_message_id: string
+          gmail_thread_id?: string | null
+          id?: string
+          idioma?: string | null
+          motivos?: string | null
+          notas?: string | null
+          pessoa_id?: string | null
+          received_at?: string | null
+          resumo?: string | null
+          score?: number
+          snippet?: string | null
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          atribuido_a?: string | null
+          body_text?: string | null
+          caso_id?: string | null
+          created_at?: string
+          estado?: string
+          familia_id?: string | null
+          from_email?: string | null
+          from_name?: string | null
+          gmail_message_id?: string
+          gmail_thread_id?: string | null
+          id?: string
+          idioma?: string | null
+          motivos?: string | null
+          notas?: string | null
+          pessoa_id?: string | null
+          received_at?: string | null
+          resumo?: string | null
+          score?: number
+          snippet?: string | null
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_pedidos_ajuda_caso_id_fkey"
+            columns: ["caso_id"]
+            isOneToOne: false
+            referencedRelation: "casos_apoio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_pedidos_ajuda_familia_id_fkey"
+            columns: ["familia_id"]
+            isOneToOne: false
+            referencedRelation: "familias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_pedidos_ajuda_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_pedidos_ajuda_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_sync_state: {
+        Row: {
+          id: number
+          last_error: string | null
+          last_history_id: string | null
+          last_message_internal_date: number | null
+          last_synced_at: string | null
+        }
+        Insert: {
+          id?: number
+          last_error?: string | null
+          last_history_id?: string | null
+          last_message_internal_date?: number | null
+          last_synced_at?: string | null
+        }
+        Update: {
+          id?: number
+          last_error?: string | null
+          last_history_id?: string | null
+          last_message_internal_date?: number | null
+          last_synced_at?: string | null
+        }
+        Relationships: []
+      }
       email_templates: {
         Row: {
           assunto: string
