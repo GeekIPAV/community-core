@@ -8,9 +8,11 @@ import {
   PieChart, Pie, Cell, Legend,
 } from "recharts";
 import { Users, Users2, CalendarDays, HeartHandshake, Briefcase, Activity } from "lucide-react";
-import { Euro, Clock, CalendarClock } from "lucide-react";
+import { Euro, Clock, CalendarClock, Pencil } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { FamilyDetailDialog, type Familia } from "@/components/family-detail";
 
 export const Route = createFileRoute("/_app/_admin/dashboard")({
   head: () => ({
@@ -156,6 +158,8 @@ function DashboardPage() {
         <KpiCard label="Atividades registadas" value={stats?.atividades_total} icon={Activity} loading={isLoading} />
       </div>
 
+      <NovasFamiliasSection />
+
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -264,6 +268,101 @@ function KpiCard({ label, value, icon: Icon, loading, format, to }: { label: str
 function monthKey(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
+
+function NovasFamiliasSection() {
+  const [selected, setSelected] = useState<Familia | null>(null);
+  const [open, setOpen] = useState(false);
+
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["dashboard", "novas-familias"],
+    queryFn: async () => {
+      const desde = new Date();
+      desde.setMonth(desde.getMonth() - 1);
+      const { data: fams, error } = await supabase
+        .from("familias")
+        .select("id, nome, notas, status, contacto_meeru_id, updated_at, created_at")
+        .is("deleted_at", null)
+        .gte("created_at", desde.toISOString())
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      const ids = (fams ?? []).map((f: any) => f.id);
+      let membrosByFam = new Map<string, { id: string; nome_completo: string }[]>();
+      if (ids.length) {
+        const { data: ps } = await supabase
+          .from("pessoas")
+          .select("id, nome_completo, familia_id")
+          .in("familia_id", ids)
+          .eq("status", "ativo");
+        for (const p of ps ?? []) {
+          const arr = membrosByFam.get((p as any).familia_id) ?? [];
+          arr.push({ id: (p as any).id, nome_completo: (p as any).nome_completo });
+          membrosByFam.set((p as any).familia_id, arr);
+        }
+      }
+      return (fams ?? []).map((f: any) => ({ ...f, membros: membrosByFam.get(f.id) ?? [] }));
+    },
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Novas famílias inscritas</CardTitle>
+        <CardDescription>Famílias registadas no último mês — clica para editar dados e membros</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        ) : (data?.length ?? 0) === 0 ? (
+          <p className="text-sm text-muted-foreground">Sem novas famílias no último mês.</p>
+        ) : (
+          <ul className="divide-y">
+            {data!.map((f: any) => (
+              <li key={f.id} className="flex items-center justify-between gap-3 py-2">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">{f.nome}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {new Date(f.created_at).toLocaleDateString("pt-PT")} ·{" "}
+                    {f.membros.length === 0
+                      ? "Sem membros"
+                      : f.membros.map((m: any) => m.nome_completo).join(", ")}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setSelected({
+                      id: f.id,
+                      nome: f.nome,
+                      notas: f.notas,
+                      status: f.status,
+                      contacto_meeru_id: f.contacto_meeru_id,
+                      updated_at: f.updated_at,
+                    });
+                    setOpen(true);
+                  }}
+                >
+                  <Pencil className="mr-1 h-3.5 w-3.5" /> Editar
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+      <FamilyDetailDialog
+        family={selected}
+        open={open}
+        onClose={() => setOpen(false)}
+        onUpdate={() => refetch()}
+        defaultTab="membros"
+      />
+    </Card>
+  );
+}
+
 function buildMeses(n: number) {
   const out: { key: string; label: string }[] = [];
   const d = new Date();
