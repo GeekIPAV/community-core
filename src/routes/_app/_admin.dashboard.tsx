@@ -377,3 +377,61 @@ function buildMeses(n: number) {
   }
   return out;
 }
+
+function NovasPessoasSemFamiliaSection() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["dashboard", "novas-pessoas-sem-familia"],
+    queryFn: async () => {
+      const desde = new Date();
+      desde.setDate(desde.getDate() - 14);
+      const { data, error } = await supabase
+        .from("pessoas")
+        .select("id, nome_completo, email, telefone, created_at")
+        .is("familia_id", null)
+        .eq("status", "ativo")
+        .gte("created_at", desde.toISOString())
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Novas pessoas sem família</CardTitle>
+        <CardDescription>Inscritas nas últimas 2 semanas e ainda sem família associada</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        ) : (data?.length ?? 0) === 0 ? (
+          <p className="text-sm text-muted-foreground">Sem novas pessoas sem família.</p>
+        ) : (
+          <ul className="divide-y">
+            {data!.map((p: any) => (
+              <li key={p.id} className="flex items-center justify-between gap-3 py-2">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">{p.nome_completo}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {new Date(p.created_at).toLocaleDateString("pt-PT")}
+                    {p.email ? ` · ${p.email}` : ""}
+                    {p.telefone ? ` · ${p.telefone}` : ""}
+                  </p>
+                </div>
+                <Button asChild size="sm" variant="outline">
+                  <Link to="/participantes" search={{ q: p.nome_completo } as any}>
+                    <Pencil className="mr-1 h-3.5 w-3.5" /> Abrir
+                  </Link>
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
