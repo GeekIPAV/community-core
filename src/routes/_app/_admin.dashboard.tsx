@@ -8,9 +8,11 @@ import {
   PieChart, Pie, Cell, Legend,
 } from "recharts";
 import { Users, Users2, CalendarDays, HeartHandshake, Briefcase, Activity } from "lucide-react";
-import { Euro, Clock, CalendarClock } from "lucide-react";
+import { Euro, Clock, CalendarClock, Pencil } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { FamilyDetailDialog, type Familia } from "@/components/family-detail";
 
 export const Route = createFileRoute("/_app/_admin/dashboard")({
   head: () => ({
@@ -155,6 +157,8 @@ function DashboardPage() {
         <KpiCard label="Inscrições em projetos" value={stats?.participantes_projetos_total} icon={Briefcase} loading={isLoading} />
         <KpiCard label="Atividades registadas" value={stats?.atividades_total} icon={Activity} loading={isLoading} />
       </div>
+
+      <NovasFamiliasSection />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
