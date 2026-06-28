@@ -13,6 +13,7 @@ import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FamilyDetailDialog, type Familia } from "@/components/family-detail";
+import { EmailPedidosAjudaSection } from "@/components/email-pedidos-ajuda-section";
 
 export const Route = createFileRoute("/_app/_admin/dashboard")({
   head: () => ({
@@ -161,6 +162,8 @@ function DashboardPage() {
       <NovasFamiliasSection />
 
       <NovasPessoasSemFamiliaSection />
+
+      <EmailPedidosAjudaSection />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
