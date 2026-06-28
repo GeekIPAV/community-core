@@ -1,30 +1,21 @@
-# Bug Fix Pass — 10 fixes across 4 files
+## Ligar a tua conta Gmail à plataforma
 
-I'll apply all 10 fixes exactly as specified, in one pass, with no UI/feature changes beyond what's listed.
+Vou ligar o **conector Gmail da Lovable** ao projeto. Isto autoriza a TUA caixa Gmail (uma só conta — a da owner MEERU) para a plataforma poder ler e/ou enviar emails a partir dela.
 
-## Files touched
+### Passos
 
-- `src/components/notifications-bell.tsx` — Bugs 1, 10
-- `src/components/family-detail.tsx` — Bugs 2, 3, 5, 6, 8, 9
-- `src/components/saved-views.tsx` — Bug 4
-- `src/components/advanced-table-filters.tsx` — Bug 7
+1. **Abrir o diálogo de ligação Gmail** (escolhes a conta Google e os scopes: ler, enviar, modificar, etc.).
+2. Após autorizares, a chave da ligação fica disponível como variável de ambiente no backend (`GOOGLE_MAIL_API_KEY`) — nunca exposta no frontend.
+3. **Confirmar a ligação** com uma chamada de teste à API Gmail (ex.: listar 1 email recente da inbox) para validar que tudo funciona.
 
-## Changes per bug
+### Importante saberes antes de avançar
 
-1. **notifications-bell**: add `.eq("recipient_auth_id", user.id)`, raise limit to 50, add error handling, show "A mostrar as 50 mais recentes" footer when `items.length >= 50`.
-2. **family-detail / acoesFamilia**: switch `enabled` to `!!family && membros !== undefined`, verify empty-array early return, add `placeholderData: keepPreviousData` (import from `@tanstack/react-query`).
-3. **family-detail / bulkAssignProjeto**: replace single `Promise.all` with batches of 5.
-4. **saved-views**: add `cancelled` flag + cleanup in the `loadViews` effect; tighten `canEditActive` to check `created_by === currentUserId` using `useAuth()` session.
-5. **family-detail / tab reset**: use `useRef` (`prevFamilyId`) so `defaultTab` only applies on first open; reset ref when dialog closes.
-6. **family-detail / confirms**: replace all 5 `window.confirm()` calls with a single reusable `AlertDialog` driven by `confirmState`.
-7. **advanced-table-filters / uid()**: prefer `crypto.randomUUID()` with fallback.
-8. **family-detail / inner Tabs**: rename inner values to `membros-inner` / `voluntarios-inner` (and matching `defaultValue`) to avoid collision with outer `value="membros"`.
-9. **family-detail / Ações loading**: show `Skeleton` placeholders while `loadingMembros` is true.
-10. **notifications-bell / realtime cb**: wrap `fetchItems()` with `.catch(console.error)`.
+- Liga **a tua conta** (owner). Não serve para cada utilizador da plataforma ligar o Gmail dele — para isso seria preciso OAuth próprio (não está no scope).
+- Os emails ficam **acessíveis a quem tiver acesso ao backend** da plataforma.
+- Por agora **só configuro a ligação**. Não vou criar UI nem fluxos automáticos (ex.: "enviar relatório por email", "ler caixa de apoio") — dizes-me depois o que queres fazer com o acesso e construo nessa altura.
 
-## Verification
+### Próximo passo após aprovação
 
-- After edits, rely on the automatic typecheck/build to confirm everything compiles.
-- No DB migrations, no schema/query changes beyond Bug 1's added filter.
+Decides quais permissões dar ao autorizar (recomendo no mínimo `gmail.readonly` + `gmail.send` se quiseres ler **e** enviar; só `gmail.send` se for apenas para envio).
 
-Confirm to proceed.
+Confirma para eu abrir a janela de autorização.
