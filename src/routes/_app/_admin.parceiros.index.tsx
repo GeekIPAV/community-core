@@ -68,6 +68,7 @@ function ParceirosPage() {
   const [estados, setEstados] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Parceiro | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   const { data: parceiros, isLoading } = useQuery({
     queryKey: ["parceiros"],
@@ -124,6 +125,7 @@ function ParceirosPage() {
           <p className="text-sm text-muted-foreground">{parceiros?.length ?? 0} parceiros</p>
         </div>
         <Button onClick={openNew}><Plus className="me-2 h-4 w-4" /> Novo parceiro</Button>
+        <Button variant="outline" onClick={() => setImportOpen(true)}>Importar (colar)</Button>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -219,6 +221,11 @@ function ParceirosPage() {
         onOpenChange={setOpen}
         editing={editing}
         onSaved={() => qc.invalidateQueries({ queryKey: ["parceiros"] })}
+      />
+      <ParceirosImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImported={() => qc.invalidateQueries({ queryKey: ["parceiros"] })}
       />
     </div>
   );
@@ -375,4 +382,121 @@ export function ParceiroDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+function ParceirosImportDialog({
+  open,
+  onOpenChange,
+  onImported,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  onImported: () => void;
+}) {
+  const [text, setText] = useState("");
+
+  const parsed = useMemo(() => parsePastedParceiros(text), [text]);
+
+  const importMut = useMutation({
+    mutationFn: async () => {
+      if (parsed.rows.length === 0) throw new Error("Nada para importar");
+      const { error } = await supabase.from("parceiros").insert(parsed.rows);
+      if (error) throw error;
+      return parsed.rows.length;
+    },
+    onSuccess: (n) => {
+      toast.success(`${n} parceiro(s) importado(s)`);
+      setText("");
+      onImported();
+      onOpenChange(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Importar parceiros (colar)</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Cola dados de uma folha de cálculo ou texto. Colunas suportadas (separadas por tab, vírgula ou ponto-e-vírgula):
+            <span className="font-mono"> nome, tipo, estado, contacto, email, notas</span>. Se só houver uma coluna, é usada como nome.
+            A primeira linha pode ser cabeçalho.
+          </p>
+          <Textarea
+            rows={10}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder={"Nome\tTipo\tEstado\tContacto\tEmail\nACME\tInstitucional\tAtiva\tJoão\tjoao@acme.pt"}
+            className="font-mono text-xs"
+          />
+          <div className="text-xs text-muted-foreground">
+            {parsed.rows.length} linha(s) válida(s)
+            {parsed.skipped > 0 ? ` · ${parsed.skipped} ignorada(s)` : ""}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={() => importMut.mutate()} disabled={parsed.rows.length === 0 || importMut.isPending}>
+            {importMut.isPending ? "A importar…" : `Importar ${parsed.rows.length}`}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function parsePastedParceiros(text: string): {
+  rows: Array<Omit<Parceiro, "id">>;
+  skipped: number;
+} {
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (lines.length === 0) return { rows: [], skipped: 0 };
+
+  const splitLine = (l: string): string[] => {
+    if (l.includes("\t")) return l.split("\t").map((s) => s.trim());
+    if (l.includes(";")) return l.split(";").map((s) => s.trim());
+    if (l.includes(",")) return l.split(",").map((s) => s.trim());
+    return [l.trim()];
+  };
+
+  const header = splitLine(lines[0]).map((h) => h.toLowerCase());
+  const known = ["nome", "tipo", "estado", "contacto", "pessoa_contacto", "email", "email_contacto", "notas"];
+  const hasHeader = header.some((h) => known.includes(h));
+  const startIdx = hasHeader ? 1 : 0;
+
+  const map = (key: string) => header.findIndex((h) => h === key);
+  const idx = hasHeader
+    ? {
+        nome: map("nome"),
+        tipo: map("tipo"),
+        estado: map("estado"),
+        contacto: Math.max(map("contacto"), map("pessoa_contacto")),
+        email: Math.max(map("email"), map("email_contacto")),
+        notas: map("notas"),
+      }
+    : { nome: 0, tipo: 1, estado: 2, contacto: 3, email: 4, notas: 5 };
+
+  const rows: Array<Omit<Parceiro, "id">> = [];
+  let skipped = 0;
+  for (let i = startIdx; i < lines.length; i++) {
+    const cols = splitLine(lines[i]);
+    const nome = idx.nome >= 0 ? cols[idx.nome] : cols[0];
+    if (!nome || !nome.trim()) { skipped++; continue; }
+    const tipoRaw = idx.tipo >= 0 ? cols[idx.tipo] : undefined;
+    const estadoRaw = idx.estado >= 0 ? cols[idx.estado] : undefined;
+    const tipo = tipoRaw && TIPOS_PARCEIRO.find((t) => t.toLowerCase() === tipoRaw.toLowerCase()) || null;
+    const estado = (estadoRaw && ESTADOS_PARCEIRO.find((t) => t.toLowerCase() === estadoRaw.toLowerCase())) || "Ativa";
+    rows.push({
+      nome: nome.trim(),
+      tipo,
+      estado,
+      pessoa_contacto: (idx.contacto >= 0 ? cols[idx.contacto] : "")?.trim() || null,
+      email_contacto: (idx.email >= 0 ? cols[idx.email] : "")?.trim() || null,
+      notas: (idx.notas >= 0 ? cols[idx.notas] : "")?.trim() || null,
+    });
+  }
+  return { rows, skipped };
 }
