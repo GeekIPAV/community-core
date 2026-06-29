@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -21,11 +20,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Inbox, Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { InlineMultiSelect } from "@/components/inline-edit";
+import { SmartTable, type SmartColumnDef } from "@/components/smart-table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_app/_admin/parceiros/")({
   component: ParceirosPage,
@@ -63,12 +72,10 @@ export function estadoBadgeClass(estado: string) {
 
 function ParceirosPage() {
   const qc = useQueryClient();
-  const [search, setSearch] = useState("");
-  const [tipos, setTipos] = useState<string[]>([]);
-  const [estados, setEstados] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Parceiro | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [bulkDeleteIds, setBulkDeleteIds] = useState<string[] | null>(null);
 
   const { data: parceiros, isLoading } = useQuery({
     queryKey: ["parceiros"],
@@ -95,16 +102,6 @@ function ParceirosPage() {
     },
   });
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return (parceiros ?? []).filter((p) => {
-      if (q && !p.nome.toLowerCase().includes(q) && !(p.pessoa_contacto ?? "").toLowerCase().includes(q) && !(p.email_contacto ?? "").toLowerCase().includes(q)) return false;
-      if (tipos.length > 0 && !tipos.includes(p.tipo ?? "")) return false;
-      if (estados.length > 0 && !estados.includes(p.estado)) return false;
-      return true;
-    });
-  }, [parceiros, search, tipos, estados]);
-
   const remove = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("parceiros").delete().eq("id", id);
@@ -117,6 +114,145 @@ function ParceirosPage() {
   const openNew = () => { setEditing(null); setOpen(true); };
   const openEdit = (p: Parceiro) => { setEditing(p); setOpen(true); };
 
+  const columns = useMemo<SmartColumnDef<Parceiro>[]>(() => [
+    {
+      id: "nome",
+      accessorKey: "nome",
+      header: "Nome",
+      size: 240,
+      meta: { label: "Nome", filterVariant: "text", editType: "text" },
+      cell: ({ row }) => (
+        <Link
+          to="/parceiros/$parceiroId"
+          params={{ parceiroId: row.original.id }}
+          className="font-medium hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {row.original.nome}
+        </Link>
+      ),
+    },
+    {
+      id: "tipo",
+      accessorKey: "tipo",
+      header: "Tipo",
+      size: 140,
+      meta: {
+        label: "Tipo",
+        filterVariant: "select",
+        filterOptions: TIPOS_PARCEIRO,
+        editType: "select",
+        editSelectOptions: TIPOS_PARCEIRO.map((t) => ({ value: t, label: t })),
+      },
+      cell: ({ getValue }) => {
+        const v = getValue() as string | null;
+        return v ? <Badge variant="outline" className={tipoBadgeClass(v)}>{v}</Badge> : <span className="text-muted-foreground">—</span>;
+      },
+    },
+    {
+      id: "estado",
+      accessorKey: "estado",
+      header: "Estado",
+      size: 140,
+      meta: {
+        label: "Estado",
+        filterVariant: "select",
+        filterOptions: ESTADOS_PARCEIRO,
+        editType: "select",
+        editSelectOptions: ESTADOS_PARCEIRO.map((t) => ({ value: t, label: t })),
+      },
+      cell: ({ getValue }) => {
+        const v = getValue() as string;
+        return <Badge variant="outline" className={estadoBadgeClass(v)}>{v}</Badge>;
+      },
+    },
+    {
+      id: "pessoa_contacto",
+      accessorKey: "pessoa_contacto",
+      header: "Contacto",
+      size: 180,
+      meta: { label: "Contacto", filterVariant: "text", editType: "text" },
+      cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) ?? "—"}</span>,
+    },
+    {
+      id: "email_contacto",
+      accessorKey: "email_contacto",
+      header: "Email",
+      size: 220,
+      meta: { label: "Email", filterVariant: "text", editType: "text" },
+      cell: ({ getValue }) => {
+        const v = getValue() as string | null;
+        return v ? (
+          <a href={`mailto:${v}`} onClick={(e) => e.stopPropagation()} className="text-primary hover:underline">{v}</a>
+        ) : <span className="text-muted-foreground">—</span>;
+      },
+    },
+    {
+      id: "projetos",
+      header: "Projetos",
+      size: 100,
+      enableSorting: true,
+      accessorFn: (r) => counts?.get(r.id) ?? 0,
+      meta: { label: "Projetos", filterVariant: "number" },
+      cell: ({ getValue }) => (
+        <span className="inline-flex h-6 min-w-8 items-center justify-center rounded-full bg-muted px-2 text-xs font-medium tabular-nums">
+          {(getValue() as number) ?? 0}
+        </span>
+      ),
+    },
+    {
+      id: "_actions",
+      header: "",
+      size: 80,
+      enableSorting: false,
+      enableHiding: false,
+      enableResizing: false,
+      meta: { label: "Ações", noTruncate: true },
+      cell: ({ row }) => (
+        <div className="flex justify-end">
+          <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); openEdit(row.original); }} title="Editar">
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={(e) => { e.stopPropagation(); if (confirm(`Remover "${row.original.nome}"?`)) remove.mutate(row.original.id); }}
+            title="Eliminar"
+          >
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
+        </div>
+      ),
+    },
+  ], [counts, remove]);
+
+  const handleCellEdit = async (rowId: string, columnId: string, value: unknown) => {
+    const { error } = await supabase
+      .from("parceiros")
+      .update({ [columnId]: value === "" ? null : value })
+      .eq("id", rowId);
+    if (error) { toast.error(error.message); return; }
+    qc.invalidateQueries({ queryKey: ["parceiros"] });
+  };
+
+  const handleBulkEdit = async (ids: string[], patch: Record<string, unknown>) => {
+    const clean: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(patch)) clean[k] = v === "" ? null : v;
+    const { error } = await supabase.from("parceiros").update(clean).in("id", ids);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`${ids.length} parceiro(s) atualizados`);
+    qc.invalidateQueries({ queryKey: ["parceiros"] });
+  };
+
+  const confirmBulkDelete = async () => {
+    if (!bulkDeleteIds) return;
+    const { error } = await supabase.from("parceiros").delete().in("id", bulkDeleteIds);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`${bulkDeleteIds.length} parceiro(s) eliminados`);
+    qc.invalidateQueries({ queryKey: ["parceiros"] });
+    setBulkDeleteIds(null);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -124,97 +260,31 @@ function ParceirosPage() {
           <h1 className="text-2xl font-semibold">Parceiros</h1>
           <p className="text-sm text-muted-foreground">{parceiros?.length ?? 0} parceiros</p>
         </div>
-        <Button onClick={openNew}><Plus className="me-2 h-4 w-4" /> Novo parceiro</Button>
-        <Button variant="outline" onClick={() => setImportOpen(true)}>Importar (colar)</Button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Pesquisar parceiros..."
-          className="max-w-xs"
-        />
-        <InlineMultiSelect
-          values={tipos}
-          options={TIPOS_PARCEIRO.map((t) => ({ value: t, label: t }))}
-          onSave={(v) => setTipos(v)}
-          placeholder="Tipo"
-        />
-        <InlineMultiSelect
-          values={estados}
-          options={ESTADOS_PARCEIRO.map((t) => ({ value: t, label: t }))}
-          onSave={(v) => setEstados(v)}
-          placeholder="Estado"
-        />
-      </div>
-
-      {isLoading ? (
-        <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
-      ) : filtered.length === 0 ? (
-        <div className="rounded-md border border-dashed py-16 text-center text-sm text-muted-foreground">
-          <Inbox className="mx-auto mb-2 h-8 w-8 opacity-50" />
-          Sem parceiros
-        </div>
-      ) : (
-        <div className="rounded-md border overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Contacto</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Projetos</TableHead>
-                <TableHead className="w-24"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell>
-                    <Link
-                      to="/parceiros/$parceiroId"
-                      params={{ parceiroId: p.id }}
-                      className="font-medium hover:underline"
-                    >
-                      {p.nome}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    {p.tipo ? <Badge variant="outline" className={tipoBadgeClass(p.tipo)}>{p.tipo}</Badge> : <span className="text-muted-foreground">—</span>}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={estadoBadgeClass(p.estado)}>{p.estado}</Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{p.pessoa_contacto ?? "—"}</TableCell>
-                  <TableCell>
-                    {p.email_contacto ? (
-                      <a href={`mailto:${p.email_contacto}`} className="text-primary hover:underline">{p.email_contacto}</a>
-                    ) : <span className="text-muted-foreground">—</span>}
-                  </TableCell>
-                  <TableCell>
-                    <span className="inline-flex h-6 min-w-8 items-center justify-center rounded-full bg-muted px-2 text-xs font-medium tabular-nums">
-                      {counts?.get(p.id) ?? 0}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" onClick={() => openEdit(p)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" onClick={() => { if (confirm(`Remover "${p.nome}"?`)) remove.mutate(p.id); }}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+      <SmartTable
+        tableId="parceiros-v1"
+        columns={columns}
+        data={parceiros}
+        isLoading={isLoading}
+        editableColumns={["nome", "tipo", "estado", "pessoa_contacto", "email_contacto"]}
+        onCellEdit={handleCellEdit}
+        enableSelection
+        onBulkEdit={handleBulkEdit}
+        onBulkDelete={(ids) => setBulkDeleteIds(ids)}
+        exportFilename="parceiros"
+        emptyMessage="Sem parceiros"
+        toolbarActions={
+          <>
+            <Button size="sm" variant="outline" className="h-9" onClick={() => setImportOpen(true)}>
+              Importar (colar)
+            </Button>
+            <Button size="sm" onClick={openNew} className="h-9">
+              <Plus className="mr-2 h-4 w-4" /> Novo parceiro
+            </Button>
+          </>
+        }
+      />
 
       <ParceiroDialog
         open={open}
@@ -227,6 +297,26 @@ function ParceirosPage() {
         onOpenChange={setImportOpen}
         onImported={() => qc.invalidateQueries({ queryKey: ["parceiros"] })}
       />
+
+      <AlertDialog open={!!bulkDeleteIds} onOpenChange={(o) => !o && setBulkDeleteIds(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar {bulkDeleteIds?.length ?? 0} parceiros?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação é irreversível.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); confirmBulkDelete(); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
