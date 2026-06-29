@@ -1,4 +1,4 @@
-import { Search, Group, Pencil, Lock, Layers, X } from "lucide-react";
+import { Search, Group, Pencil, Lock, Layers, X, Download, Trash2, PencilLine } from "lucide-react";
 import type { Table } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,16 @@ export function SmartTableToolbar<T>({
   searchPlaceholder = "Pesquisar…",
   groupByOptions,
   savedViewsKey,
+  selectedCount = 0,
+  onClearSelection,
+  onExport,
+  onExportSelected,
+  onBulkEditClick,
+  onBulkDeleteClick,
+  bulkActionsNode,
+  hasBulkEdit,
+  hasBulkDelete,
+  disableExport,
 }: {
   table: Table<T>;
   search: string;
@@ -47,110 +57,158 @@ export function SmartTableToolbar<T>({
   searchPlaceholder?: string;
   groupByOptions?: { value: string; label: string }[];
   savedViewsKey?: string;
+  selectedCount?: number;
+  onClearSelection?: () => void;
+  onExport?: () => void;
+  onExportSelected?: () => void;
+  onBulkEditClick?: () => void;
+  onBulkDeleteClick?: () => void;
+  bulkActionsNode?: React.ReactNode;
+  hasBulkEdit?: boolean;
+  hasBulkDelete?: boolean;
+  disableExport?: boolean;
 }) {
   const groupable =
     groupByOptions ??
     table
       .getAllLeafColumns()
-      .filter((c) => typeof c.accessorFn !== "undefined" && c.getIsVisible())
+      .filter((c) => typeof c.accessorFn !== "undefined" && c.getIsVisible() && c.id !== "__select")
       .map((c) => ({ value: c.id, label: labelOf(c) }));
 
   const activeGroupLabel = groupBy
     ? groupable.find((o) => o.value === groupBy)?.label ?? groupBy
     : null;
 
+  const hasSelection = selectedCount > 0;
+
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-border/60 bg-background px-4 py-3">
-      {!hideSearch && (
-        <div className="relative w-64 max-w-full">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder={searchPlaceholder}
-            className="h-9 pl-8 pr-7"
-            data-smart-table-search
-          />
-          {search && (
-            <button
-              type="button"
-              onClick={() => onSearchChange("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground"
-              aria-label="Limpar pesquisa"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
-      )}
-
-      <AdvancedTableFilters table={table} />
-
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className={cn("h-9 gap-2", groupBy && "border-primary text-primary")}
-          >
-            <Layers className="h-4 w-4" />
-            {activeGroupLabel ?? "Agrupar"}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent align="start" className="w-64 p-2">
-          <div className="mb-2 px-1 text-xs font-medium text-muted-foreground">
-            Agrupar por…
-          </div>
-          <button
-            type="button"
-            onClick={() => onGroupByChange(null)}
-            className={cn(
-              "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-muted",
-              !groupBy && "bg-muted",
+    <>
+      <div className="flex flex-wrap items-center gap-2 border-b border-border/60 bg-background px-4 py-3">
+        {!hideSearch && (
+          <div className="relative w-64 max-w-full">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder={searchPlaceholder}
+              className="h-9 pl-8 pr-7"
+              data-smart-table-search
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => onSearchChange("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground"
+                aria-label="Limpar pesquisa"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
             )}
-          >
-            <Group className="h-3.5 w-3.5 text-muted-foreground" />
-            Sem agrupamento
-          </button>
-          <div className="my-1 h-px bg-border/60" />
-          {groupable.map((opt) => (
+          </div>
+        )}
+
+        <AdvancedTableFilters table={table} />
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn("h-9 gap-2", groupBy && "border-primary text-primary")}
+            >
+              <Layers className="h-4 w-4" />
+              {activeGroupLabel ?? "Agrupar"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-64 p-2">
+            <div className="mb-2 px-1 text-xs font-medium text-muted-foreground">Agrupar por…</div>
             <button
-              key={opt.value}
               type="button"
-              onClick={() => onGroupByChange(opt.value)}
+              onClick={() => onGroupByChange(null)}
               className={cn(
                 "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-muted",
-                groupBy === opt.value && "bg-muted",
+                !groupBy && "bg-muted",
               )}
             >
-              {opt.label}
+              <Group className="h-3.5 w-3.5 text-muted-foreground" />
+              Sem agrupamento
             </button>
-          ))}
-        </PopoverContent>
-      </Popover>
+            <div className="my-1 h-px bg-border/60" />
+            {groupable.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onGroupByChange(opt.value)}
+                className={cn(
+                  "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-muted",
+                  groupBy === opt.value && "bg-muted",
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </PopoverContent>
+        </Popover>
 
-      <div className="flex flex-wrap items-center gap-2">
-        {savedViewsKey && <SavedViews table={table} storageKey={savedViewsKey} />}
-        {hasEditableColumns && (
-          <Button
-            variant={editMode ? "default" : "outline"}
-            size="sm"
-            onClick={() => onEditModeChange(!editMode)}
-            className={cn(
-              "h-9 gap-2",
-              editMode && "bg-amber-500 text-white hover:bg-amber-600",
-            )}
-          >
-            {editMode ? <Lock className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
-            {editMode ? "Bloquear edição" : "Editar"}
-          </Button>
-        )}
-        <DataTableViewOptions table={table} />
-        {toolbarActions}
-        <span className="text-xs text-muted-foreground whitespace-nowrap">
-          {rowCount} resultados
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          {savedViewsKey && <SavedViews table={table} storageKey={savedViewsKey} />}
+          {hasEditableColumns && (
+            <Button
+              variant={editMode ? "default" : "outline"}
+              size="sm"
+              onClick={() => onEditModeChange(!editMode)}
+              className={cn("h-9 gap-2", editMode && "bg-amber-500 text-white hover:bg-amber-600")}
+            >
+              {editMode ? <Lock className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+              {editMode ? "Bloquear edição" : "Editar"}
+            </Button>
+          )}
+          <DataTableViewOptions table={table} />
+          {!disableExport && onExport && (
+            <Button variant="outline" size="sm" className="h-9 gap-2" onClick={onExport} title="Exportar CSV">
+              <Download className="h-4 w-4" />
+              CSV
+            </Button>
+          )}
+          {toolbarActions}
+          <span className="text-xs text-muted-foreground whitespace-nowrap">{rowCount} resultados</span>
+        </div>
       </div>
-    </div>
+      {hasSelection && (
+        <div className="flex flex-wrap items-center gap-2 border-b border-primary/40 bg-primary/5 px-4 py-2">
+          <span className="text-sm font-medium">{selectedCount} selecionadas</span>
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            {bulkActionsNode}
+            {hasBulkEdit && (
+              <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={onBulkEditClick}>
+                <PencilLine className="h-3.5 w-3.5" />
+                Editar em massa
+              </Button>
+            )}
+            {onExportSelected && (
+              <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={onExportSelected}>
+                <Download className="h-3.5 w-3.5" />
+                Exportar
+              </Button>
+            )}
+            {hasBulkDelete && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1.5 text-destructive hover:text-destructive"
+                onClick={onBulkDeleteClick}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Eliminar
+              </Button>
+            )}
+            <Button size="sm" variant="ghost" className="h-8 gap-1.5" onClick={onClearSelection}>
+              <X className="h-3.5 w-3.5" />
+              Limpar
+            </Button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
