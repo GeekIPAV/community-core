@@ -257,8 +257,8 @@ function ParceirosPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Parceiros</h1>
-          <p className="text-sm text-muted-foreground">{parceiros?.length ?? 0} parceiros</p>
+          <h1 className="text-2xl font-semibold">Entidades</h1>
+          <p className="text-sm text-muted-foreground">{parceiros?.length ?? 0} entidades</p>
         </div>
       </div>
 
@@ -273,7 +273,7 @@ function ParceirosPage() {
         onBulkEdit={handleBulkEdit}
         onBulkDelete={(ids) => setBulkDeleteIds(ids)}
         exportFilename="parceiros"
-        emptyMessage="Sem parceiros"
+        emptyMessage="Sem entidades"
         toolbarActions={
           <>
             <Button size="sm" variant="outline" className="h-9" onClick={() => setImportOpen(true)}>
