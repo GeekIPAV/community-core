@@ -68,6 +68,7 @@ function ParceirosPage() {
   const [estados, setEstados] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Parceiro | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   const { data: parceiros, isLoading } = useQuery({
     queryKey: ["parceiros"],
@@ -124,6 +125,7 @@ function ParceirosPage() {
           <p className="text-sm text-muted-foreground">{parceiros?.length ?? 0} parceiros</p>
         </div>
         <Button onClick={openNew}><Plus className="me-2 h-4 w-4" /> Novo parceiro</Button>
+        <Button variant="outline" onClick={() => setImportOpen(true)}>Importar (colar)</Button>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -219,6 +221,11 @@ function ParceirosPage() {
         onOpenChange={setOpen}
         editing={editing}
         onSaved={() => qc.invalidateQueries({ queryKey: ["parceiros"] })}
+      />
+      <ParceirosImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImported={() => qc.invalidateQueries({ queryKey: ["parceiros"] })}
       />
     </div>
   );
