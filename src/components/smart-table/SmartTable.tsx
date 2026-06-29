@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   flexRender,
   getCoreRowModel,
@@ -31,12 +31,25 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { advancedFilterFn } from "@/components/advanced-table-filters";
 import { SmartTableToolbar } from "./SmartTableToolbar";
 import { SmartTableBody } from "./SmartTableBody";
 import { EditableCell } from "./SmartTableCell";
 import { useSmartTableState } from "./useSmartTableState";
+import { BulkEditDialog } from "./BulkEditDialog";
+import { downloadCSV } from "@/lib/download-csv";
 import type { SmartColumnMeta, SmartTableProps } from "./types";
 
 const MOBILE_QUERY = "(max-width: 767px)";
@@ -109,6 +122,12 @@ export function SmartTable<T>({
   getRowClassName,
   pageSize = null,
   savedViewsKey,
+  enableSelection,
+  onBulkEdit,
+  onBulkDelete,
+  bulkActions,
+  exportFilename,
+  disableExport,
 }: SmartTableProps<T>) {
   const isMobile = useIsMobile();
   const {
@@ -129,11 +148,16 @@ export function SmartTable<T>({
     defaultCollapsedGroups,
   });
 
+  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [busyBulk, setBusyBulk] = useState(false);
+
   const editable = new Set(editableColumns ?? []);
 
   // Inject sizing/edit wrapper on columns.
   const enhancedColumns = useMemo(() => {
-    return columns.map((c) => {
+    const mapped = columns.map((c) => {
       const out: any = { enableResizing: true, enableSorting: true, ...c };
       out.minSize = (c as any).minSize ?? 60;
       out.size = (c as any).size ?? 160;
@@ -156,16 +180,54 @@ export function SmartTable<T>({
       }
       return out;
     });
-  }, [columns, editMode, editable, onCellEdit]);
+    if (enableSelection) {
+      const selCol: any = {
+        id: "__select",
+        enableSorting: false,
+        enableResizing: false,
+        enableHiding: false,
+        enableColumnFilter: false,
+        size: 40,
+        minSize: 40,
+        header: ({ table }: any) => (
+          <Checkbox
+            checked={
+              table.getIsAllPageRowsSelected()
+                ? true
+                : table.getIsSomePageRowsSelected()
+                  ? "indeterminate"
+                  : false
+            }
+            onCheckedChange={(v) => table.toggleAllPageRowsSelected(!!v)}
+            aria-label="Selecionar tudo"
+          />
+        ),
+        cell: ({ row }: any) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            <Checkbox
+              checked={row.getIsSelected()}
+              onCheckedChange={(v) => row.toggleSelected(!!v)}
+              aria-label="Selecionar linha"
+            />
+          </div>
+        ),
+        meta: { noTruncate: true },
+      };
+      return [selCol, ...mapped];
+    }
+    return mapped;
+  }, [columns, editMode, editable, onCellEdit, enableSelection]);
 
   const table = useReactTable({
     data: data ?? [],
     columns: enhancedColumns,
-    state: { sorting, columnVisibility, columnSizing, columnFilters },
+    state: { sorting, columnVisibility, columnSizing, columnFilters, rowSelection },
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnSizingChange: setColumnSizing,
     onColumnFiltersChange: setColumnFilters,
+    onRowSelectionChange: setRowSelection,
+    enableRowSelection: !!enableSelection,
     enableMultiSort: true,
     isMultiSortEvent: (e: any) => e?.shiftKey === true,
     columnResizeMode: "onChange",
@@ -217,6 +279,65 @@ export function SmartTable<T>({
   const visibleLeaf = table.getVisibleLeafColumns();
   const colSpan = visibleLeaf.length || 1;
   const hasEditable = editable.size > 0 && !!onCellEdit;
+
+  const selectedIds = useMemo(() => Object.keys(rowSelection).filter((k) => rowSelection[k]), [rowSelection]);
+  const clearSelection = useCallback(() => setRowSelection({}), []);
+
+  const buildCsvRow = useCallback(
+    (r: Row<T>) => {
+      const out: Record<string, unknown> = {};
+      for (const col of table.getVisibleLeafColumns()) {
+        if (col.id === "__select") continue;
+        if (typeof (col as any).accessorFn === "undefined") continue;
+        const meta = (col.columnDef.meta ?? {}) as SmartColumnMeta;
+        const label = meta.label ?? (typeof col.columnDef.header === "string" ? col.columnDef.header : col.id);
+        let v: unknown;
+        if (meta.textValue) {
+          try { v = meta.textValue(r.original); } catch { v = ""; }
+        } else {
+          v = r.getValue(col.id);
+        }
+        if (v instanceof Date) v = v.toISOString();
+        else if (v && typeof v === "object") v = JSON.stringify(v);
+        out[String(label)] = v ?? "";
+      }
+      return out;
+    },
+    [table],
+  );
+
+  const doExport = useCallback(
+    (rows: Row<T>[]) => {
+      if (rows.length === 0) return;
+      const data = rows.map(buildCsvRow);
+      const cols = Object.keys(data[0] ?? {});
+      downloadCSV(`${exportFilename ?? tableId}.csv`, data, cols);
+    },
+    [buildCsvRow, exportFilename, tableId],
+  );
+
+  const handleBulkEdit = async (patch: Record<string, unknown>) => {
+    if (!onBulkEdit) return;
+    setBusyBulk(true);
+    try {
+      await onBulkEdit(selectedIds, patch);
+      clearSelection();
+    } finally {
+      setBusyBulk(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!onBulkDelete) return;
+    setBusyBulk(true);
+    try {
+      await onBulkDelete(selectedIds);
+      clearSelection();
+      setBulkDeleteOpen(false);
+    } finally {
+      setBusyBulk(false);
+    }
+  };
 
   // Virtualização: ativada quando há muitas linhas e não estamos a agrupar.
   const paginationActive =
@@ -274,6 +395,20 @@ export function SmartTable<T>({
         searchPlaceholder={searchPlaceholder}
         groupByOptions={groupByOptions}
         savedViewsKey={savedViewsKey}
+        selectedCount={selectedIds.length}
+        onClearSelection={clearSelection}
+        onExport={disableExport ? undefined : () => doExport(filteredRows)}
+        onExportSelected={
+          disableExport || selectedIds.length === 0
+            ? undefined
+            : () => doExport(filteredRows.filter((r) => rowSelection[r.id]))
+        }
+        hasBulkEdit={!!onBulkEdit && hasEditable}
+        hasBulkDelete={!!onBulkDelete}
+        onBulkEditClick={() => setBulkEditOpen(true)}
+        onBulkDeleteClick={() => setBulkDeleteOpen(true)}
+        bulkActionsNode={bulkActions ? bulkActions(selectedIds, clearSelection) : null}
+        disableExport={disableExport}
       />
 
       <div
@@ -443,6 +578,34 @@ export function SmartTable<T>({
             </Button>
           </div>
         </div>
+      )}
+      {enableSelection && onBulkEdit && (
+        <BulkEditDialog
+          open={bulkEditOpen}
+          onOpenChange={setBulkEditOpen}
+          table={table}
+          editableColumns={editableColumns ?? []}
+          selectedIds={selectedIds}
+          onConfirm={handleBulkEdit}
+        />
+      )}
+      {enableSelection && onBulkDelete && (
+        <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Eliminar {selectedIds.length} linhas?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação não pode ser revertida.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={busyBulk}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleBulkDelete} disabled={busyBulk}>
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
     </div>
   );
