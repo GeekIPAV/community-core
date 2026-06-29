@@ -400,12 +400,25 @@ export function FinanciamentoDialog({
     },
   });
 
+  const { data: entidades } = useQuery({
+    queryKey: ["parceiros", "lista-financiador"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("parceiros")
+        .select("id, nome, tipo")
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string; tipo: string | null }[];
+    },
+  });
+
   useEffect(() => {
     if (!open) return;
     if (editing) {
       setForm({
         nome: editing.nome,
         financiador: editing.financiador,
+        financiador_id: editing.financiador_id ?? null,
         tipo: editing.tipo,
         valor_total: editing.valor_total,
         data_inicio: editing.data_inicio,
@@ -429,7 +442,7 @@ export function FinanciamentoDialog({
       });
       setProjetoIds(editing.projetos.map((p) => p.id));
     } else {
-      setForm({ tipo: "Grant", estado: "Candidatura submetida", incluido_orcamento: false });
+      setForm({ tipo: "Grant", estado: "Candidatura submetida", incluido_orcamento: false, financiador_id: null });
       setProjetoIds([]);
     }
   }, [open, editing]);
@@ -483,7 +496,28 @@ export function FinanciamentoDialog({
           </div>
           <div className="space-y-1">
             <Label>Financiador</Label>
-            <Input value={form.financiador ?? ""} onChange={(e) => set("financiador", e.target.value)} />
+            <Select
+              value={form.financiador_id ?? "__none"}
+              onValueChange={(v) => {
+                if (v === "__none") {
+                  set("financiador_id", null);
+                } else {
+                  const ent = (entidades ?? []).find((e) => e.id === v);
+                  set("financiador_id", v);
+                  if (ent) set("financiador", ent.nome);
+                }
+              }}
+            >
+              <SelectTrigger><SelectValue placeholder="Selecionar entidade…" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none">— sem entidade —</SelectItem>
+                {(entidades ?? []).map((e) => (
+                  <SelectItem key={e.id} value={e.id}>
+                    {e.nome}{e.tipo ? ` · ${e.tipo}` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1">
             <Label>Tipo</Label>
@@ -558,7 +592,7 @@ export function FinanciamentoDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={() => save.mutate()} disabled={!form.nome || !form.financiador || save.isPending}>
+          <Button onClick={() => save.mutate()} disabled={!form.nome || save.isPending}>
             {save.isPending ? "A guardar…" : editing ? "Guardar" : "Criar"}
           </Button>
         </DialogFooter>
