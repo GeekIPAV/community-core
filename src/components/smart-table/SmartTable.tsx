@@ -122,7 +122,7 @@ export function SmartTable<T>({
   getRowClassName,
   pageSize = null,
   savedViewsKey,
-  enableSelection,
+  enableSelection = true,
   onBulkEdit,
   onBulkDelete,
   bulkActions,
