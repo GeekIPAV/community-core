@@ -1130,6 +1130,7 @@ export type Database = {
           distribuicao_url: string | null
           estado: string
           financiador: string
+          financiador_id: string | null
           id: string
           incluido_orcamento: boolean | null
           mais_informacoes: string | null
@@ -1157,6 +1158,7 @@ export type Database = {
           distribuicao_url?: string | null
           estado?: string
           financiador: string
+          financiador_id?: string | null
           id?: string
           incluido_orcamento?: boolean | null
           mais_informacoes?: string | null
@@ -1184,6 +1186,7 @@ export type Database = {
           distribuicao_url?: string | null
           estado?: string
           financiador?: string
+          financiador_id?: string | null
           id?: string
           incluido_orcamento?: boolean | null
           mais_informacoes?: string | null
@@ -1199,7 +1202,15 @@ export type Database = {
           updated_at?: string
           valor_total?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "financiamentos_financiador_id_fkey"
+            columns: ["financiador_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       inscricoes: {
         Row: {
