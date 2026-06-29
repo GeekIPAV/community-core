@@ -75,4 +75,17 @@ export interface SmartTableProps<TData> {
   pageSize?: number | null;
   /** Enable the SavedViews component when set; value is the storage namespace. */
   savedViewsKey?: string;
+  /** Enable per-row checkboxes and bulk action bar. */
+  enableSelection?: boolean;
+  /** Called when "Editar em massa" is confirmed. */
+  onBulkEdit?: (ids: string[], patch: Record<string, unknown>) => Promise<void> | void;
+  /** Called when "Eliminar selecionadas" is confirmed. */
+  onBulkDelete?: (ids: string[]) => Promise<void> | void;
+  /** Extra bulk action buttons rendered when rows are selected. Receives the
+   * selected row ids and a callback to clear the selection. */
+  bulkActions?: (ids: string[], clear: () => void) => ReactNode;
+  /** Base name for the CSV export file (no extension). Defaults to tableId. */
+  exportFilename?: string;
+  /** Hide the "Exportar CSV" button. */
+  disableExport?: boolean;
 }

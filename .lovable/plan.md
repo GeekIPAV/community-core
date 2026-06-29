@@ -1,58 +1,68 @@
-# Detecção de pedidos de ajuda via Gmail
+# SmartTable v2 — features universais + migração das tabelas restantes
 
-Ler periodicamente a caixa Gmail ligada, detetar emails que pareçam pedidos de ajuda de famílias migrantes, e mostrá-los no painel para triagem (atribuir a uma família existente / criar caso de apoio / ignorar).
+## Estado atual
 
-## 1. Base de dados
+Já em SmartTable:
+- Serviços, Financiamentos, Casos, Relatórios, Localizações, Meus Serviços
 
-Nova tabela `email_pedidos_ajuda`:
-- `id`, `gmail_message_id` (único), `gmail_thread_id`
-- `from_email`, `from_name`, `subject`, `snippet`, `body_text`, `received_at`
-- `score` (0-100) e `motivos` (texto: porque foi sinalizado)
-- `idioma` detetado
-- `estado`: `novo` | `atribuido` | `ignorado` | `arquivado`
-- `pessoa_id` (FK pessoas, opcional), `familia_id` (FK familias, opcional), `caso_id` (FK casos_apoio, opcional)
-- `atribuido_a` (auth.uid), `notas`, `created_at`, `updated_at`
+Ainda usam `<Table>` cru ou `useReactTable` direto:
+- Famílias, Participantes, Ações, Tipos de utilizador, Eliminados, Indicadores, Projetos (lista), Parceiros (lista), Currículos, Duplicados, Emails, Bolsas de transporte, Pedidos de ajuda
 
-RLS: apenas equipa (staff/admin) lê e edita. GRANTs para `authenticated` e `service_role`.
+O SmartTable já tem: edição inline, agrupar, filtrar (avançado), ordenar, redimensionar, mostrar/esconder colunas, vistas guardadas, paginação, search global, persistência em localStorage.
 
-Tabela auxiliar `email_sync_state` (1 linha): `last_history_id`, `last_synced_at` — para sync incremental do Gmail.
+Falta: **seleção de linhas (checkboxes), ações em massa, edição em massa, exportar CSV.**
 
-## 2. Backend — sync + classificação
+## Fase 1 — Estender o SmartTable (uma vez, serve todas as tabelas)
 
-Server function `syncGmailPedidos` (auth, role staff):
-- Lê via gateway Gmail: `GET /users/me/messages?q=newer_than:30d -in:sent -from:me` (na 1ª run) ou usa `history.list` com `last_history_id` (incremental).
-- Para cada mensagem nova: busca `format=full`, extrai cabeçalhos + texto.
-- Classifica com Lovable AI (gemini-2.5-flash) com prompt que devolve JSON `{ is_help_request, score, motivos, idioma, resumo }`. Heurísticas: palavras-chave (ajuda, apoio, refugiado, asilo, documentos, SEF/AIMA, habitação, alimentar, escola, saúde, emprego, tradução, intérprete, em PT/EN/UK/RU/AR/FR).
-- Insere em `email_pedidos_ajuda` se `score >= 40`. Dedupe por `gmail_message_id`.
-- Atualiza `email_sync_state.last_history_id`.
+1. **Seleção de linhas**
+   - Coluna virtual `__select` com checkbox no header (toggle de página) e por linha.
+   - Estado `rowSelection` ligado ao TanStack Table (`enableRowSelection: true`).
+   - Toolbar mostra "N selecionadas" + botão "Limpar seleção".
 
-Server route pública `/api/public/cron/gmail-sync` (HMAC com `GMAIL_SYNC_SECRET`) para agendar via pg_cron de 15 em 15 min.
+2. **Barra de ações em massa**
+   - Quando `rowSelection` > 0 a toolbar mostra um bloco de ações:
+     - **Editar em massa** (abre diálogo com os campos `editableColumns` — aplica o mesmo valor a todas as selecionadas via `onBulkEdit(ids, patch)`).
+     - **Eliminar** (se for passado `onBulkDelete(ids)`).
+     - **Exportar selecionadas** (CSV apenas das linhas marcadas).
+     - Slot `bulkActions` para botões custom por tabela.
 
-Server fns auxiliares: `listPedidosAjuda(filtros)`, `updatePedidoAjuda(id, { estado, pessoa_id, familia_id, caso_id, notas })`, `criarCasoApoioDePedido(id, dados)`.
+3. **Exportar CSV**
+   - Botão "Exportar CSV" sempre presente (exporta linhas filtradas/visíveis).
+   - Usa colunas visíveis na ordem atual; respeita `meta.label` e `meta.textValue`.
+   - Reutiliza `src/lib/csv.ts` (cria `downloadCSV(filename, rows)` se ainda não existir).
 
-## 3. UI — painel
+4. **Novos props no `SmartTableProps`** (todos opcionais — retro-compatível):
+   ```ts
+   enableSelection?: boolean;
+   onBulkEdit?: (ids: string[], patch: Record<string, unknown>) => Promise<void> | void;
+   onBulkDelete?: (ids: string[]) => Promise<void> | void;
+   bulkActions?: (ids: string[], clear: () => void) => ReactNode;
+   exportFilename?: string;        // default: `${tableId}.csv`
+   disableExport?: boolean;
+   ```
 
-Nova secção no Dashboard "Pedidos de ajuda por email" (cartão colapsável, top da página):
-- Lista os `novo` com badge de score, remetente, assunto, snippet, idioma, data.
-- Botão **Abrir** → diálogo com email completo, resumo IA, motivos, e ações:
-  - Atribuir a pessoa/família existente (autocomplete).
-  - **Criar caso de apoio** (abre formulário pré-preenchido).
-  - **Ignorar** / **Arquivar**.
-- Filtros: estado, score mínimo, intervalo de datas.
+## Fase 2 — Migrar as tabelas restantes
 
-Nova página `/pedidos-ajuda` em Gestão com SmartTable completa (histórico, filtros, edição).
+Para cada uma:
+- Definir `columns: SmartColumnDef<Row>[]` com `meta.label`, `meta.filterVariant`, `meta.editType` quando aplicável.
+- Substituir o `<Table>` manual por `<SmartTable tableId="..." columns={...} data={...} enableSelection ... />`.
+- Onde já há mutações de update, ligar `onCellEdit` e `onBulkEdit` à mesma função (reutiliza `applyOptimisticRowPatch`).
+- Preservar comportamentos especiais (linhas com cor, ações por linha, navegação ao clicar).
 
-Notificação no sino quando entram novos pedidos com score ≥ 70.
+Ordem de migração (das mais simples às mais complexas):
+1. Tipos de utilizador, Localizações (já feita), Eliminados, Duplicados, Emails — listas simples.
+2. Pedidos de ajuda, Bolsas de transporte, Currículos — listas de leitura + ação.
+3. Indicadores, Projetos, Parceiros — leitura + agrupamento.
+4. Famílias, Participantes, Ações — as mais densas, com edição inline já parcialmente em uso.
 
-## 4. Cron
+## Detalhes técnicos
 
-`pg_cron` job de 15 em 15 min a chamar `/api/public/cron/gmail-sync` com header HMAC.
+- A coluna `__select` tem `size: 40`, sem sort, sem resize, sem filter, sem hide.
+- `onBulkEdit` recebe o `patch` num único objeto; o componente decide se é UPDATE em loop ou em bulk no Supabase (cada call site escolhe — o SmartTable não impõe).
+- O export ignora a coluna `__select` e qualquer coluna sem `accessorKey`/`accessorFn` (ex. ações).
+- O `EditBulkDialog` é renderizado dentro do SmartTable; usa os mesmos `editableColumns` declarados nas colunas, lendo `meta.editType` / `meta.editSelectOptions`.
+- Não toco em ficheiros auto-gerados nem em rotas de auth.
 
-## Notas técnicas
+## Entrega
 
-- Gmail chamado via gateway `https://connector-gateway.lovable.dev/google_mail/gmail/v1/...` com `Authorization: Bearer $LOVABLE_API_KEY` + `X-Connection-Api-Key: $GOOGLE_MAIL_API_KEY`.
-- Lê apenas (`gmail.readonly` já concedido). Não modifica/envia.
-- Score e motivos guardados para o utilizador poder calibrar.
-- Privacidade: emails ficam armazenados na BD; só staff acede via RLS.
-
-Confirmas para avançar?
+Single pass, sem confirmação intermédia. No fim faço um build + smoke check às tabelas migradas. O resultado: toda a plataforma usa SmartTable com os mesmos super-poderes (selecionar, agrupar, filtrar, editar inline, editar em massa, exportar CSV, vistas guardadas).
