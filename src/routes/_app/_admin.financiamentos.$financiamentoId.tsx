@@ -93,6 +93,27 @@ function FinanciamentoDetailPage() {
     },
   });
 
+  const { data: entidades } = useQuery({
+    queryKey: ["parceiros", "lista-financiador-detail"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("parceiros")
+        .select("id, nome, tipo")
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string; tipo: string | null }[];
+    },
+  });
+
+  const entidadeNome = useMemo(() => {
+    if (!financiamento) return "";
+    if (financiamento.financiador_id) {
+      const e = (entidades ?? []).find((x) => x.id === financiamento.financiador_id);
+      if (e) return e.nome;
+    }
+    return financiamento.financiador ?? "";
+  }, [financiamento, entidades]);
+
   const { data: projetoIds } = useQuery({
     queryKey: ["financiamento-projetos", financiamentoId],
     queryFn: async () => {
@@ -204,7 +225,7 @@ function FinanciamentoDetailPage() {
     const lines: string[] = [];
     lines.push("═════════════════════════════════════");
     lines.push(`RELATÓRIO — ${financiamento.nome.toUpperCase()}`);
-    lines.push(`Financiador: ${financiamento.financiador}`);
+    lines.push(`Financiador: ${entidadeNome}`);
     lines.push(`Período: ${formatPeriodo(financiamento.data_inicio, financiamento.data_fim)}`);
     lines.push(`Valor total: ${formatEuro(financiamento.valor_total)}`);
     lines.push(`Estado: ${financiamento.estado}`);
@@ -227,7 +248,7 @@ function FinanciamentoDetailPage() {
       lines.push("");
     }
     navigator.clipboard.writeText(lines.join("\n"));
-    toast.success(`Relatório copiado para ${financiamento.financiador} ✓`);
+    toast.success(`Relatório copiado para ${entidadeNome} ✓`);
   };
 
   if (!financiamento) {
@@ -248,7 +269,14 @@ function FinanciamentoDetailPage() {
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold">{financiamento.nome}</h1>
           <p className="text-sm text-muted-foreground">
-            {financiamento.financiador} · {formatPeriodo(financiamento.data_inicio, financiamento.data_fim)}
+            {financiamento.financiador_id ? (
+              <Link to="/parceiros/$parceiroId" params={{ parceiroId: financiamento.financiador_id }} className="hover:underline">
+                {entidadeNome}
+              </Link>
+            ) : (
+              entidadeNome || "Sem entidade"
+            )}
+            {" · "}{formatPeriodo(financiamento.data_inicio, financiamento.data_fim)}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -267,14 +295,40 @@ function FinanciamentoDetailPage() {
         open={novoRelatorioOpen}
         onOpenChange={setNovoRelatorioOpen}
         projetoIdsDefault={projetoIds ?? []}
-        financiadorDefault={financiamento.financiador}
+        financiadorDefault={entidadeNome}
         tituloDefault={`Relatório — ${financiamento.nome}`}
       />
 
       {/* General data – inline editable */}
       <div className="rounded-md border p-4 grid gap-3 sm:grid-cols-3">
         <FieldText label="Nome" value={financiamento.nome} onSave={(v) => update.mutate({ nome: v })} />
-        <FieldText label="Financiador" value={financiamento.financiador} onSave={(v) => update.mutate({ financiador: v })} />
+        <div className="space-y-1">
+          <Label className="text-xs">Financiador (entidade)</Label>
+          <Select
+            value={financiamento.financiador_id ?? "__none"}
+            onValueChange={(v) => {
+              if (v === "__none") {
+                update.mutate({ financiador_id: null } as Partial<Financiamento>);
+              } else {
+                const ent = (entidades ?? []).find((e) => e.id === v);
+                update.mutate({
+                  financiador_id: v,
+                  financiador: ent?.nome ?? financiamento.financiador,
+                } as Partial<Financiamento>);
+              }
+            }}
+          >
+            <SelectTrigger><SelectValue placeholder="Selecionar entidade…" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none">— sem entidade —</SelectItem>
+              {(entidades ?? []).map((e) => (
+                <SelectItem key={e.id} value={e.id}>
+                  {e.nome}{e.tipo ? ` · ${e.tipo}` : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <FieldText label="Referência" value={financiamento.referencia ?? ""} onSave={(v) => update.mutate({ referencia: v || null })} />
         <FieldSelect label="Tipo" value={financiamento.tipo} options={TIPOS} onSave={(v) => update.mutate({ tipo: v as Financiamento["tipo"] })} />
         <FieldSelect label="Estado" value={financiamento.estado} options={ESTADOS} onSave={(v) => update.mutate({ estado: v as Financiamento["estado"] })} />

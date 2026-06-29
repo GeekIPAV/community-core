@@ -44,6 +44,7 @@ export type Financiamento = {
   id: string;
   nome: string;
   financiador: string;
+  financiador_id: string | null;
   tipo: "Grant" | "Prémio" | "Contrato" | "Donativo";
   valor_total: number | null;
   data_inicio: string | null;
@@ -74,6 +75,7 @@ export type Financiamento = {
 
 export type FinanciamentoRow = Financiamento & {
   projetos: { id: string; nome: string }[];
+  financiador_nome: string;
 };
 
 export const TIPOS: Financiamento["tipo"][] = ["Grant", "Prémio", "Contrato", "Donativo"];
@@ -128,16 +130,20 @@ function FinanciamentosListPage() {
   const { data: financiamentos, isLoading } = useQuery({
     queryKey: ["financiamentos", "with-projetos"],
     queryFn: async () => {
-      const [{ data: fin, error: e1 }, { data: links, error: e2 }, { data: prj, error: e3 }] = await Promise.all([
+      const [{ data: fin, error: e1 }, { data: links, error: e2 }, { data: prj, error: e3 }, { data: ent, error: e4 }] = await Promise.all([
         supabase.from("financiamentos" as any).select("*").order("data_inicio", { ascending: false }),
         supabase.from("financiamento_projetos" as any).select("financiamento_id, projeto_id"),
         supabase.from("projetos").select("id, nome"),
+        supabase.from("parceiros").select("id, nome"),
       ]);
       if (e1) throw e1;
       if (e2) throw e2;
       if (e3) throw e3;
+      if (e4) throw e4;
       const projMap = new Map<string, { id: string; nome: string }>();
       for (const p of (prj ?? []) as { id: string; nome: string }[]) projMap.set(p.id, p);
+      const entMap = new Map<string, string>();
+      for (const p of (ent ?? []) as { id: string; nome: string }[]) entMap.set(p.id, p.nome);
       const byFin = new Map<string, { id: string; nome: string }[]>();
       for (const l of ((links ?? []) as unknown as { financiamento_id: string; projeto_id: string }[])) {
         const p = projMap.get(l.projeto_id);
@@ -149,6 +155,7 @@ function FinanciamentosListPage() {
       return ((fin ?? []) as unknown as Financiamento[]).map((f) => ({
         ...f,
         projetos: (byFin.get(f.id) ?? []).sort((a, b) => a.nome.localeCompare(b.nome)),
+        financiador_nome: (f.financiador_id && entMap.get(f.financiador_id)) || f.financiador || "—",
       })) as FinanciamentoRow[];
     },
   });
@@ -190,10 +197,26 @@ function FinanciamentosListPage() {
     },
     {
       id: "financiador",
-      accessorKey: "financiador",
+      accessorFn: (r) => r.financiador_nome,
       header: "Financiador",
       size: 200,
       meta: { label: "Financiador", filterVariant: "text" },
+      cell: ({ row }) => {
+        const r = row.original;
+        if (r.financiador_id) {
+          return (
+            <Link
+              to="/parceiros/$parceiroId"
+              params={{ parceiroId: r.financiador_id }}
+              className="hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {r.financiador_nome}
+            </Link>
+          );
+        }
+        return <span>{r.financiador_nome}</span>;
+      },
     },
     {
       id: "tipo",
@@ -377,12 +400,25 @@ export function FinanciamentoDialog({
     },
   });
 
+  const { data: entidades } = useQuery({
+    queryKey: ["parceiros", "lista-financiador"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("parceiros")
+        .select("id, nome, tipo")
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string; tipo: string | null }[];
+    },
+  });
+
   useEffect(() => {
     if (!open) return;
     if (editing) {
       setForm({
         nome: editing.nome,
         financiador: editing.financiador,
+        financiador_id: editing.financiador_id ?? null,
         tipo: editing.tipo,
         valor_total: editing.valor_total,
         data_inicio: editing.data_inicio,
@@ -406,7 +442,7 @@ export function FinanciamentoDialog({
       });
       setProjetoIds(editing.projetos.map((p) => p.id));
     } else {
-      setForm({ tipo: "Grant", estado: "Candidatura submetida", incluido_orcamento: false });
+      setForm({ tipo: "Grant", estado: "Candidatura submetida", incluido_orcamento: false, financiador_id: null });
       setProjetoIds([]);
     }
   }, [open, editing]);
@@ -460,7 +496,28 @@ export function FinanciamentoDialog({
           </div>
           <div className="space-y-1">
             <Label>Financiador</Label>
-            <Input value={form.financiador ?? ""} onChange={(e) => set("financiador", e.target.value)} />
+            <Select
+              value={form.financiador_id ?? "__none"}
+              onValueChange={(v) => {
+                if (v === "__none") {
+                  set("financiador_id", null);
+                } else {
+                  const ent = (entidades ?? []).find((e) => e.id === v);
+                  set("financiador_id", v);
+                  if (ent) set("financiador", ent.nome);
+                }
+              }}
+            >
+              <SelectTrigger><SelectValue placeholder="Selecionar entidade…" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none">— sem entidade —</SelectItem>
+                {(entidades ?? []).map((e) => (
+                  <SelectItem key={e.id} value={e.id}>
+                    {e.nome}{e.tipo ? ` · ${e.tipo}` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1">
             <Label>Tipo</Label>
@@ -535,7 +592,7 @@ export function FinanciamentoDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={() => save.mutate()} disabled={!form.nome || !form.financiador || save.isPending}>
+          <Button onClick={() => save.mutate()} disabled={!form.nome || save.isPending}>
             {save.isPending ? "A guardar…" : editing ? "Guardar" : "Criar"}
           </Button>
         </DialogFooter>
