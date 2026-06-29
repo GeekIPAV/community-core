@@ -229,7 +229,7 @@ function ParceirosPage() {
   const handleCellEdit = async (rowId: string, columnId: string, value: unknown) => {
     const { error } = await supabase
       .from("parceiros")
-      .update({ [columnId]: value === "" ? null : value })
+      .update({ [columnId]: value === "" ? null : value } as any)
       .eq("id", rowId);
     if (error) { toast.error(error.message); return; }
     qc.invalidateQueries({ queryKey: ["parceiros"] });
@@ -238,7 +238,7 @@ function ParceirosPage() {
   const handleBulkEdit = async (ids: string[], patch: Record<string, unknown>) => {
     const clean: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(patch)) clean[k] = v === "" ? null : v;
-    const { error } = await supabase.from("parceiros").update(clean).in("id", ids);
+    const { error } = await supabase.from("parceiros").update(clean as any).in("id", ids);
     if (error) { toast.error(error.message); return; }
     toast.success(`${ids.length} parceiro(s) atualizados`);
     qc.invalidateQueries({ queryKey: ["parceiros"] });
