@@ -505,11 +505,10 @@ function ParticipantesPage() {
       };
       const { data: inserted, error } = await supabase.from("pessoas").insert(payload).select("id").single();
       if (error) throw error;
-      const extras = tipoIds.filter((id) => id !== primaryTipo);
-      if (extras.length && inserted?.id) {
+      if (tipoIds.length && inserted?.id) {
         const { error: eT } = await supabase
           .from("pessoa_tipos")
-          .insert(extras.map((tipo_user_id) => ({ pessoa_id: inserted.id, tipo_user_id })));
+          .insert(tipoIds.map((tipo_user_id) => ({ pessoa_id: inserted.id, tipo_user_id })));
         if (eT) throw eT;
       }
     },
