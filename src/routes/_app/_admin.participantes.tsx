@@ -404,7 +404,7 @@ function ParticipantesPage() {
         },
         filterFn: advancedFilterFn as any, meta: { filterVariant: "date", label: "Última edição" } satisfies ColumnFilterMeta },
     ];
-  }, [familias, tipos, projetos, qc, inlineEdit]);
+  }, [familias, tipos, projetos, qc, inlineEdit, pessoaTiposMap]);
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
