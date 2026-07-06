@@ -479,6 +479,8 @@ function ParticipantesPage() {
 
   const create = useMutation({
     mutationFn: async () => {
+      const tipoIds = novoTipoIds;
+      const primaryTipo = tipoIds[0] ?? null;
       const payload = {
         nome_completo: form.nome_completo.trim(),
         email: form.email?.trim() || null,
@@ -489,7 +491,7 @@ function ParticipantesPage() {
         data_nascimento: form.data_nascimento || null,
         familia_id: form.familia_id || null,
         notas: form.notas?.trim() || null,
-        tipo_user_id: form.tipo_user_id || null,
+        tipo_user_id: primaryTipo,
         genero: form.genero || null,
         nacionalidade: form.nacionalidade?.trim() || null,
         cidade_residencia: form.cidade_residencia?.trim() || null,
@@ -497,18 +499,27 @@ function ParticipantesPage() {
         profissao: form.profissao?.trim() || null,
         projeto_ids: form.projeto_ids ?? [],
         parceiro_id:
-          hasParceiroTipoFor(null, form.tipo_user_id ?? null)
+          (parceiroTipoId ? tipoIds.includes(parceiroTipoId) : false)
             ? form.parceiro_id || null
             : null,
       };
-      const { error } = await supabase.from("pessoas").insert(payload);
+      const { data: inserted, error } = await supabase.from("pessoas").insert(payload).select("id").single();
       if (error) throw error;
+      const extras = tipoIds.filter((id) => id !== primaryTipo);
+      if (extras.length && inserted?.id) {
+        const { error: eT } = await supabase
+          .from("pessoa_tipos")
+          .insert(extras.map((tipo_user_id) => ({ pessoa_id: inserted.id, tipo_user_id })));
+        if (eT) throw eT;
+      }
     },
     onSuccess: () => {
       toast.success("Pessoa criada");
       invalidate();
+      qc.invalidateQueries({ queryKey: ["pessoa_tipos_all"] });
       setAddOpen(false);
       setForm({ ...emptyForm });
+      setNovoTipoIds([]);
     },
     onError: (e: Error) => toast.error(e.message),
   });
