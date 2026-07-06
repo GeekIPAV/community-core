@@ -84,6 +84,7 @@ type Estatisticas = {
   atividades_total: number;
   atividades_por_categoria: { nome: string; count: number }[];
   atividades_top: { nome: string; count: number }[];
+  idades_detalhe: { faixa: string; count: number }[];
 };
 
 export const Route = createFileRoute("/resultados")({
@@ -477,6 +478,10 @@ function Conteudo({ data, isAdmin }: { data: Estatisticas; isAdmin: boolean }) {
       <AtividadesSection data={data} />
 
       <div className="grid gap-4 lg:grid-cols-2">
+        <IdadesCard data={data.idades_detalhe ?? []} />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
         {charts.map((cfg, i) => (
           <ChartBlock
             key={cfg.id}
@@ -819,6 +824,41 @@ function ChartBlock({
           </p>
         ) : (
           <ChartRenderer type={config.type} data={series ?? []} />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function IdadesCard({ data }: { data: { faixa: string; count: number }[] }) {
+  const total = data.reduce((acc, d) => acc + (d.count ?? 0), 0);
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Distribuição por idade</CardTitle>
+        <CardDescription>
+          Pessoas ativas por faixa etária{total > 0 ? ` · ${total} pessoas` : ""}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="h-64 sm:h-80 overflow-hidden" dir="ltr">
+        {data.length === 0 || total === 0 ? (
+          <p className="flex h-full items-center justify-center text-sm text-muted-foreground">
+            Sem dados de data de nascimento.
+          </p>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis dataKey="faixa" tickLine={false} axisLine={false} />
+              <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={32} />
+              <Tooltip />
+              <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                {data.map((_, i) => (
+                  <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         )}
       </CardContent>
     </Card>

@@ -1530,6 +1530,46 @@ export type Database = {
           },
         ]
       }
+      pessoa_tipos: {
+        Row: {
+          created_at: string
+          pessoa_id: string
+          tipo_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          pessoa_id: string
+          tipo_user_id: string
+        }
+        Update: {
+          created_at?: string
+          pessoa_id?: string
+          tipo_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pessoa_tipos_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoa_tipos_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoa_tipos_tipo_user_id_fkey"
+            columns: ["tipo_user_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pessoas: {
         Row: {
           auth_user_id: string | null

@@ -193,6 +193,56 @@ function ParticipantesPage() {
     },
   });
 
+  const { data: pessoaTiposRows } = useQuery({
+    queryKey: ["pessoa_tipos_all"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pessoa_tipos")
+        .select("pessoa_id, tipo_user_id");
+      if (error) throw error;
+      return (data ?? []) as { pessoa_id: string; tipo_user_id: string }[];
+    },
+  });
+
+  const pessoaTiposMap = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const r of pessoaTiposRows ?? []) {
+      const arr = m.get(r.pessoa_id) ?? [];
+      arr.push(r.tipo_user_id);
+      m.set(r.pessoa_id, arr);
+    }
+    return m;
+  }, [pessoaTiposRows]);
+
+  const tiposDePessoa = (pessoaId: string): string[] => pessoaTiposMap.get(pessoaId) ?? [];
+
+  const savePessoaTipos = useMutation({
+    mutationFn: async ({ pessoaId, tipoIds }: { pessoaId: string; tipoIds: string[] }) => {
+      const current = new Set(tiposDePessoa(pessoaId));
+      const next = new Set(tipoIds);
+      const toAdd = [...next].filter((id) => !current.has(id));
+      const toRemove = [...current].filter((id) => !next.has(id));
+      if (toAdd.length) {
+        const { error } = await supabase
+          .from("pessoa_tipos")
+          .insert(toAdd.map((tipo_user_id) => ({ pessoa_id: pessoaId, tipo_user_id })));
+        if (error) throw error;
+      }
+      if (toRemove.length) {
+        const { error } = await supabase
+          .from("pessoa_tipos")
+          .delete()
+          .eq("pessoa_id", pessoaId)
+          .in("tipo_user_id", toRemove);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pessoa_tipos_all"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const { data: projetos } = useQuery({
     queryKey: ["projetos_lookup"],
     queryFn: async () => {
@@ -321,6 +371,25 @@ function ParticipantesPage() {
         meta: { filterVariant: "select", filterOptions: (projetos ?? []).map((x) => x.nome), label: "Projetos" } satisfies ColumnFilterMeta,
       },
       { id: "tipo_user_id", header: "Tipo", accessorFn: (p) => p.tipo_user_id ? (tipos?.find((t) => t.id === p.tipo_user_id)?.nome ?? "") : "", cell: sel("tipo_user_id", (tipos ?? []).map((t) => ({ value: t.id, label: t.nome })), "sem tipo"), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (tipos ?? []).map((t) => t.nome), label: "Tipo de utilizador" } satisfies ColumnFilterMeta },
+      {
+        id: "tipos_participante",
+        header: "Tipos",
+        accessorFn: (p) => tiposDePessoa(p.id).map((id) => tipos?.find((t) => t.id === id)?.nome ?? "").filter(Boolean).join(", "),
+        cell: ({ row }) => {
+          const ids = tiposDePessoa((row.original as Pessoa).id);
+          if (ids.length === 0) return <span className="text-muted-foreground">—</span>;
+          return (
+            <div className="flex flex-wrap gap-1">
+              {ids.map((id) => {
+                const nome = tipos?.find((t) => t.id === id)?.nome ?? id;
+                return <Badge key={id} variant="secondary" className="font-normal">{nome}</Badge>;
+              })}
+            </div>
+          );
+        },
+        filterFn: advancedFilterFn as any,
+        meta: { filterVariant: "select", filterOptions: (tipos ?? []).map((t) => t.nome), label: "Tipos de participante" } satisfies ColumnFilterMeta,
+      },
       { id: "status", header: "Estado", accessorKey: "status", cell: inlineEdit
         ? ({ getValue, row }) => <InlineSelect value={getValue() as string} options={STATUS_OPTS.map((s) => ({ value: s, label: s }))} allowClear={false} onSave={save(row.original.id, "status")} />
         : ({ getValue }) => {
@@ -335,7 +404,7 @@ function ParticipantesPage() {
         },
         filterFn: advancedFilterFn as any, meta: { filterVariant: "date", label: "Última edição" } satisfies ColumnFilterMeta },
     ];
-  }, [familias, tipos, projetos, qc, inlineEdit]);
+  }, [familias, tipos, projetos, qc, inlineEdit, pessoaTiposMap]);
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
@@ -921,6 +990,22 @@ function ParticipantesPage() {
                     {tipos?.map((t) => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
                   </SelectContent>
                 </Select>
+              </Field>
+              <Field label="Tipos de participante (múltiplos)" className="col-span-2">
+                <MultiSelect
+                  values={tiposDePessoa(editing.id)}
+                  options={(tipos ?? []).map((t) => ({ value: t.id, label: t.nome }))}
+                  placeholder="sem tipos"
+                  onChange={(v: string[]) => savePessoaTipos.mutate({ pessoaId: editing.id, tipoIds: v })}
+                />
+                {tiposDePessoa(editing.id).length > 0 && (
+                  <div className="flex flex-wrap gap-1 pt-2">
+                    {tiposDePessoa(editing.id).map((id) => {
+                      const nome = tipos?.find((t) => t.id === id)?.nome ?? id;
+                      return <Badge key={id} variant="secondary">{nome}</Badge>;
+                    })}
+                  </div>
+                )}
               </Field>
               <Field label="Estado" className="col-span-2">
                 <Select value={editing.status} onValueChange={(v) => setEditing({ ...editing, status: v })}>
