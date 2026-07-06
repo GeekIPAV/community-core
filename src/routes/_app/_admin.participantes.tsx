@@ -909,6 +909,20 @@ function ParticipantesPage() {
                 </SelectContent>
               </Select>
             </Field>
+            {hasParceiroTipoFor(null, form.tipo_user_id ?? null) && (
+              <Field label="Entidade parceira" className="col-span-2">
+                <Select
+                  value={form.parceiro_id ?? "__null"}
+                  onValueChange={(v) => setForm({ ...form, parceiro_id: v === "__null" ? null : v })}
+                >
+                  <SelectTrigger><SelectValue placeholder="— sem entidade —" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__null">— sem entidade —</SelectItem>
+                    {parceirosLookup?.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
             <Field label="Notas" className="col-span-2"><Textarea value={form.notas ?? ""} onChange={(e) => setForm({ ...form, notas: e.target.value })} /></Field>
               </div>
               <DialogFooter className="mt-4">
