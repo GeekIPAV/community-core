@@ -1154,6 +1154,7 @@ function AddPessoasDialog({
   const [novoNacionalidade, setNovoNacionalidade] = useState("");
   const [novoReligiao, setNovoReligiao] = useState("");
   const [novoNotas, setNovoNotas] = useState("");
+  const [novoParceiroId, setNovoParceiroId] = useState<string>("__none");
   const [novaFamiliaNome, setNovaFamiliaNome] = useState("");
   const [nomesRapidos, setNomesRapidos] = useState("");
 
