@@ -80,6 +80,20 @@ function ParceiroDetailPage() {
     },
   });
 
+  const { data: contactos } = useQuery({
+    queryKey: ["parceiro-contactos", parceiroId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pessoas")
+        .select("id, nome_completo, email, telefone")
+        .eq("parceiro_id", parceiroId)
+        .is("deleted_at", null)
+        .order("nome_completo");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome_completo: string; email: string | null; telefone: string | null }[];
+    },
+  });
+
   const updateEstado = useMutation({
     mutationFn: async (estado: string) => {
       const { error } = await supabase.from("parceiros").update({ estado }).eq("id", parceiroId);
@@ -159,12 +173,38 @@ function ParceiroDetailPage() {
             <TabsList>
               <TabsTrigger value="projetos">Projetos</TabsTrigger>
               <TabsTrigger value="interacoes">Interações</TabsTrigger>
+              <TabsTrigger value="contactos">Contactos</TabsTrigger>
             </TabsList>
             <TabsContent value="projetos" className="mt-6 space-y-3">
               <ProjetosTab parceiroId={parceiroId} projetos={projetos ?? []} />
             </TabsContent>
             <TabsContent value="interacoes" className="mt-6">
               <InteracoesTab parceiroId={parceiroId} />
+            </TabsContent>
+            <TabsContent value="contactos" className="mt-6 space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Pessoas com o tipo <strong>Parceiro</strong> associadas a esta entidade. Para adicionar, edita o perfil da pessoa em <Link to="/participantes" className="text-primary hover:underline">Participantes</Link>.
+              </p>
+              {(contactos?.length ?? 0) === 0 ? (
+                <div className="rounded-md border border-dashed py-12 text-center text-sm text-muted-foreground">
+                  <Inbox className="mx-auto mb-2 h-8 w-8 opacity-50" />
+                  Sem pessoas de contacto
+                </div>
+              ) : (
+                <ul className="divide-y rounded-md border">
+                  {(contactos ?? []).map((c) => (
+                    <li key={c.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">{c.nome_completo}</p>
+                        <div className="flex flex-wrap gap-x-3 text-xs text-muted-foreground">
+                          {c.email && <a href={`mailto:${c.email}`} className="hover:underline">{c.email}</a>}
+                          {c.telefone && <span>{c.telefone}</span>}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </TabsContent>
           </Tabs>
         </main>

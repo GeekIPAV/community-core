@@ -1,29 +1,30 @@
-## 1. Top 5 nacionalidades
-`src/components/meeru-em-numeros.tsx`: `slice(0, 3)` → `slice(0, 5)`, título "Top 5 nacionalidades".
+## Objetivo
+Permitir associar uma pessoa a uma entidade parceira (como pessoa de contacto) directamente no formulário de edição do participante — só quando o tipo "Parceiro" está atribuído.
 
-## 2. Voluntários com filtro correcto
-Migração: actualizar `get_estatisticas_publicas` para calcular `voluntarios_total` como:
-```sql
-COUNT(*) FROM pessoas WHERE is_voluntario = true AND status = 'ativo' AND deleted_at IS NULL
-```
-
-## 3. Múltiplos tipos de participante por pessoa
+## 1. Base de dados
 Migração:
-- Nova tabela `public.pessoa_tipos (pessoa_id, tipo_user_id, created_at)` com PK composta, FKs com `ON DELETE CASCADE`.
-- GRANTs (`authenticated`, `service_role`) + RLS.
-- Políticas: staff/admin lê e escreve tudo; utilizador lê os próprios tipos.
+- `ALTER TABLE public.pessoas ADD COLUMN parceiro_id uuid REFERENCES public.parceiros(id) ON DELETE SET NULL;`
+- Índice `idx_pessoas_parceiro_id`.
+- Regra de integridade num trigger `BEFORE INSERT/UPDATE` em `pessoas`: se `parceiro_id IS NOT NULL`, a pessoa tem de ter o tipo "Parceiro" (via `tipo_user_id` ou em `pessoa_tipos`). Caso contrário limpa `parceiro_id` para NULL (silencioso, para não bloquear alterações de tipo).
 
-UI (`src/routes/_app/_admin.participantes.tsx`):
-- Query adicional a `pessoa_tipos` + `tipos_user`.
-- Multi-select popover (checkboxes) na ficha/edição da pessoa que faz upsert/delete em `pessoa_tipos`.
-- Badges com os tipos actuais tanto na ficha como na coluna da listagem (mantém `tipo_user_id` para retrocompatibilidade).
+Sem alterações a `parceiros.pessoa_contacto` (mantém-se para retrocompatibilidade).
 
-## 4. Distribuição por idade em `/resultados`
-Migração: adicionar `idades_detalhe` ao RPC `get_estatisticas_publicas` com faixas `< 18`, `18–25`, `26–35`, `36–45`, `46–60`, `> 60` (só `status='ativo'`, `deleted_at IS NULL`, `data_nascimento IS NOT NULL`).
+## 2. UI — `src/routes/_app/_admin.participantes.tsx`
+- Query adicional `["parceiros_lookup"]` a `parceiros (id, nome)` ordenada por nome.
+- Adicionar `parceiro_id` ao `select(...)` de `pessoas` e ao `Row` type.
+- No formulário **Novo participante** e **Editar participante**: após o bloco de tipos, mostrar um `Select` "Entidade parceira" **apenas quando** o tipo Parceiro estiver seleccionado (em `tipo_user_id` ou nos tipos múltiplos via `pessoa_tipos`). Se o utilizador remover o tipo Parceiro, limpar o valor no estado local.
+- Ao gravar (create/update): incluir `parceiro_id` no upsert. Se nenhum tipo Parceiro estiver activo, forçar `parceiro_id = null`.
+- Nova coluna opcional na SmartTable "Entidade" (`parceiro_id` → nome), escondida por defeito, filtrável.
 
-UI (`src/routes/resultados.tsx`):
-- Novo Card com `BarChart` (recharts) usando o mesmo `ChartContainer`/estilo dos gráficos existentes, colocado na grelha `lg:grid-cols-2`.
+## 3. UI — página da entidade (`_admin.parceiros.$parceiroId.tsx`)
+Adicionar um pequeno card "Pessoas de contacto" que lista `pessoas` com `parceiro_id = :id` (nome + email + telefone, link para `/participantes?...`). Sem edição inline aqui — a associação faz-se no perfil da pessoa.
+
+## Detalhes técnicos
+- Detecção do tipo Parceiro faz-se por nome (`lower(nome) = 'parceiro'`) resolvendo o id a partir da query `tipos_user_lookup` já existente.
+- Não mexer em `src/integrations/supabase/types.ts` manualmente — é regenerado após a migração.
+- Sem alterações a permissões/RLS (herda de `pessoas`).
 
 ## Ordem de execução
-1. Migração SQL única (tabela `pessoa_tipos` + RPC actualizado com `voluntarios_total` corrigido e `idades_detalhe`).
-2. Após aprovação: alterações de UI nos 3 ficheiros.
+1. Migração (coluna + trigger).
+2. Alterações de UI no formulário de participantes e no lookup de parceiros.
+3. Card "Pessoas de contacto" na página da entidade.

@@ -88,6 +88,7 @@ type Pessoa = {
   profissao: string | null;
   projeto_ids: string[];
   updated_at: string | null;
+  parceiro_id: string | null;
 };
 
 const STATUS_OPTS = ["ativo", "suspeito_duplicado", "fundido", "arquivado"];
@@ -128,6 +129,7 @@ const emptyForm: Omit<Pessoa, "id" | "status"> & { status?: string } = {
   profissao: "",
   projeto_ids: [],
   updated_at: null,
+  parceiro_id: null,
 };
 
 function ParticipantesPage() {
@@ -167,7 +169,7 @@ function ParticipantesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, email, telefone, nif, cartao_cidadao, morada, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao, profissao, projeto_ids, updated_at")
+        .select("id, nome_completo, email, telefone, nif, cartao_cidadao, morada, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao, profissao, projeto_ids, updated_at, parceiro_id")
         .is("deleted_at", null)
         .order("nome_completo", { ascending: true });
       if (error) throw error;
@@ -192,6 +194,30 @@ function ParticipantesPage() {
       return data as { id: string; nome: string }[];
     },
   });
+
+  const { data: parceirosLookup } = useQuery({
+    queryKey: ["parceiros_lookup"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("parceiros").select("id, nome").order("nome");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+  });
+
+  const parceiroTipoId = useMemo(
+    () => tipos?.find((t) => t.nome.toLowerCase() === "parceiro")?.id ?? null,
+    [tipos],
+  );
+
+  const parceiroName = (id: string | null) =>
+    id ? parceirosLookup?.find((p) => p.id === id)?.nome ?? "—" : "—";
+
+  const hasParceiroTipoFor = (pessoaId: string | null, tipoUserId: string | null) => {
+    if (!parceiroTipoId) return false;
+    if (tipoUserId === parceiroTipoId) return true;
+    if (!pessoaId) return false;
+    return (pessoaTiposMap.get(pessoaId) ?? []).includes(parceiroTipoId);
+  };
 
   const { data: pessoaTiposRows } = useQuery({
     queryKey: ["pessoa_tipos_all"],
@@ -469,6 +495,10 @@ function ParticipantesPage() {
         religiao: form.religiao?.trim() || null,
         profissao: form.profissao?.trim() || null,
         projeto_ids: form.projeto_ids ?? [],
+        parceiro_id:
+          hasParceiroTipoFor(null, form.tipo_user_id ?? null)
+            ? form.parceiro_id || null
+            : null,
       };
       const { error } = await supabase.from("pessoas").insert(payload);
       if (error) throw error;
@@ -505,6 +535,10 @@ function ParticipantesPage() {
           religiao: editing.religiao || null,
           profissao: editing.profissao || null,
           projeto_ids: editing.projeto_ids ?? [],
+          parceiro_id:
+            hasParceiroTipoFor(editing.id, editing.tipo_user_id ?? null)
+              ? editing.parceiro_id || null
+              : null,
         })
         .eq("id", editing.id);
       if (error) throw error;
@@ -875,6 +909,20 @@ function ParticipantesPage() {
                 </SelectContent>
               </Select>
             </Field>
+            {hasParceiroTipoFor(null, form.tipo_user_id ?? null) && (
+              <Field label="Entidade parceira" className="col-span-2">
+                <Select
+                  value={form.parceiro_id ?? "__null"}
+                  onValueChange={(v) => setForm({ ...form, parceiro_id: v === "__null" ? null : v })}
+                >
+                  <SelectTrigger><SelectValue placeholder="— sem entidade —" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__null">— sem entidade —</SelectItem>
+                    {parceirosLookup?.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
             <Field label="Notas" className="col-span-2"><Textarea value={form.notas ?? ""} onChange={(e) => setForm({ ...form, notas: e.target.value })} /></Field>
               </div>
               <DialogFooter className="mt-4">
@@ -932,7 +980,7 @@ function ParticipantesPage() {
                     if (found) { setEditing({ ...found }); return; }
                     const { data: p } = await supabase
                       .from("pessoas")
-                      .select("id, nome_completo, email, telefone, nif, cartao_cidadao, morada, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao, profissao, projeto_ids, updated_at")
+                      .select("id, nome_completo, email, telefone, nif, cartao_cidadao, morada, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao, profissao, projeto_ids, updated_at, parceiro_id")
                       .eq("id", id)
                       .maybeSingle();
                     if (p) setEditing({ ...(p as any), projeto_ids: (p as any).projeto_ids ?? [] });
@@ -1007,6 +1055,23 @@ function ParticipantesPage() {
                   </div>
                 )}
               </Field>
+              {hasParceiroTipoFor(editing.id, editing.tipo_user_id ?? null) && (
+                <Field label="Entidade parceira" className="col-span-2">
+                  <Select
+                    value={editing.parceiro_id ?? "__null"}
+                    onValueChange={(v) => setEditing({ ...editing, parceiro_id: v === "__null" ? null : v })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="— sem entidade —" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__null">— sem entidade —</SelectItem>
+                      {parceirosLookup?.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <p className="pt-1 text-xs text-muted-foreground">
+                    A pessoa fica como contacto desta entidade.
+                  </p>
+                </Field>
+              )}
               <Field label="Estado" className="col-span-2">
                 <Select value={editing.status} onValueChange={(v) => setEditing({ ...editing, status: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
