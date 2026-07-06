@@ -495,6 +495,10 @@ function ParticipantesPage() {
         religiao: form.religiao?.trim() || null,
         profissao: form.profissao?.trim() || null,
         projeto_ids: form.projeto_ids ?? [],
+        parceiro_id:
+          hasParceiroTipoFor(null, form.tipo_user_id ?? null)
+            ? form.parceiro_id || null
+            : null,
       };
       const { error } = await supabase.from("pessoas").insert(payload);
       if (error) throw error;
@@ -531,6 +535,10 @@ function ParticipantesPage() {
           religiao: editing.religiao || null,
           profissao: editing.profissao || null,
           projeto_ids: editing.projeto_ids ?? [],
+          parceiro_id:
+            hasParceiroTipoFor(editing.id, editing.tipo_user_id ?? null)
+              ? editing.parceiro_id || null
+              : null,
         })
         .eq("id", editing.id);
       if (error) throw error;
