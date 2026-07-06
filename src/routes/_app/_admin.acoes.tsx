@@ -1749,6 +1749,23 @@ function AddPessoasDialog({
                   </SelectContent>
                 </Select>
               </div>
+              {parceiroTipoId && novoTipoUserId === parceiroTipoId && (
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Entidade parceira</label>
+                  <Select value={novoParceiroId} onValueChange={setNovoParceiroId}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="— sem entidade —" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">— sem entidade —</SelectItem>
+                      {(parceirosLookup ?? []).map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground">
+                    A pessoa fica como contacto desta entidade.
+                  </p>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <label className="text-xs font-medium">Nacionalidade</label>
