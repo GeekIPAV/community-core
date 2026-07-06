@@ -980,7 +980,7 @@ function ParticipantesPage() {
                     if (found) { setEditing({ ...found }); return; }
                     const { data: p } = await supabase
                       .from("pessoas")
-                      .select("id, nome_completo, email, telefone, nif, cartao_cidadao, morada, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao, profissao, projeto_ids, updated_at")
+                      .select("id, nome_completo, email, telefone, nif, cartao_cidadao, morada, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao, profissao, projeto_ids, updated_at, parceiro_id")
                       .eq("id", id)
                       .maybeSingle();
                     if (p) setEditing({ ...(p as any), projeto_ids: (p as any).projeto_ids ?? [] });
