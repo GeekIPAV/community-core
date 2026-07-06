@@ -972,6 +972,22 @@ function ParticipantesPage() {
                   </SelectContent>
                 </Select>
               </Field>
+              <Field label="Tipos de participante (múltiplos)" className="col-span-2">
+                <MultiSelect
+                  values={tiposDePessoa(editing.id)}
+                  options={(tipos ?? []).map((t) => ({ value: t.id, label: t.nome }))}
+                  placeholder="sem tipos"
+                  onChange={(v: string[]) => savePessoaTipos.mutate({ pessoaId: editing.id, tipoIds: v })}
+                />
+                {tiposDePessoa(editing.id).length > 0 && (
+                  <div className="flex flex-wrap gap-1 pt-2">
+                    {tiposDePessoa(editing.id).map((id) => {
+                      const nome = tipos?.find((t) => t.id === id)?.nome ?? id;
+                      return <Badge key={id} variant="secondary">{nome}</Badge>;
+                    })}
+                  </div>
+                )}
+              </Field>
               <Field label="Estado" className="col-span-2">
                 <Select value={editing.status} onValueChange={(v) => setEditing({ ...editing, status: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
