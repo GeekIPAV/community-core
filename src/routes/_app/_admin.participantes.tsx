@@ -913,15 +913,20 @@ function ParticipantesPage() {
               />
             </Field>
             <Field label="Tipo de utilizador" className="col-span-2">
-              <Select value={form.tipo_user_id ?? "__null"} onValueChange={(v) => setForm({ ...form, tipo_user_id: v === "__null" ? null : v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__null">— sem tipo —</SelectItem>
-                  {tipos?.map((t) => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <MultiSelect
+                values={novoTipoIds}
+                options={(tipos ?? []).map((t) => ({ value: t.id, label: t.nome }))}
+                placeholder="sem tipos"
+                onChange={(v: string[]) => {
+                  setNovoTipoIds(v);
+                  setForm((prev) => ({ ...prev, tipo_user_id: v[0] ?? null }));
+                }}
+              />
+              <p className="pt-1 text-xs text-muted-foreground">
+                Podes selecionar vários tipos para a mesma pessoa.
+              </p>
             </Field>
-            {hasParceiroTipoFor(null, form.tipo_user_id ?? null) && (
+            {(parceiroTipoId ? novoTipoIds.includes(parceiroTipoId) : false) && (
               <Field label="Entidade parceira" className="col-span-2">
                 <Select
                   value={form.parceiro_id ?? "__null"}
