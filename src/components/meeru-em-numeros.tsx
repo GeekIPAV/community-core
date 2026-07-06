@@ -26,7 +26,7 @@ type Estatisticas = {
 };
 
 export function MeeruEmNumeros({ data, loading }: { data?: Estatisticas; loading?: boolean }) {
-  const top3 = (data?.nacionalidades_detalhe ?? []).slice(0, 3);
+  const top5 = (data?.nacionalidades_detalhe ?? []).slice(0, 5);
 
   return (
     <section className="space-y-4">
@@ -63,22 +63,22 @@ export function MeeruEmNumeros({ data, loading }: { data?: Estatisticas; loading
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Flag className="h-4 w-4" />
-            Top 3 nacionalidades
+            Top 5 nacionalidades
           </CardTitle>
           <CardDescription>Principais nacionalidades representadas na comunidade</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="space-y-2">
-              {Array.from({ length: 3 }).map((_, i) => (
+              {Array.from({ length: 5 }).map((_, i) => (
                 <Skeleton key={i} className="h-8 w-full" />
               ))}
             </div>
-          ) : top3.length === 0 ? (
+          ) : top5.length === 0 ? (
             <p className="text-sm text-muted-foreground">Sem dados.</p>
           ) : (
             <ul className="divide-y">
-              {top3.map((n, i) => (
+              {top5.map((n, i) => (
                 <li key={n.nome} className="flex items-center justify-between py-2 text-sm">
                   <span className="flex items-center gap-3">
                     <span className="w-5 text-xs text-muted-foreground">{i + 1}.</span>
