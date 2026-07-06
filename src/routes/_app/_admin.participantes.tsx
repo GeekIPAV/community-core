@@ -88,6 +88,7 @@ type Pessoa = {
   profissao: string | null;
   projeto_ids: string[];
   updated_at: string | null;
+  parceiro_id: string | null;
 };
 
 const STATUS_OPTS = ["ativo", "suspeito_duplicado", "fundido", "arquivado"];
@@ -128,6 +129,7 @@ const emptyForm: Omit<Pessoa, "id" | "status"> & { status?: string } = {
   profissao: "",
   projeto_ids: [],
   updated_at: null,
+  parceiro_id: null,
 };
 
 function ParticipantesPage() {
@@ -167,7 +169,7 @@ function ParticipantesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, email, telefone, nif, cartao_cidadao, morada, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao, profissao, projeto_ids, updated_at")
+        .select("id, nome_completo, email, telefone, nif, cartao_cidadao, morada, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao, profissao, projeto_ids, updated_at, parceiro_id")
         .is("deleted_at", null)
         .order("nome_completo", { ascending: true });
       if (error) throw error;
@@ -192,6 +194,30 @@ function ParticipantesPage() {
       return data as { id: string; nome: string }[];
     },
   });
+
+  const { data: parceirosLookup } = useQuery({
+    queryKey: ["parceiros_lookup"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("parceiros").select("id, nome").order("nome");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+  });
+
+  const parceiroTipoId = useMemo(
+    () => tipos?.find((t) => t.nome.toLowerCase() === "parceiro")?.id ?? null,
+    [tipos],
+  );
+
+  const parceiroName = (id: string | null) =>
+    id ? parceirosLookup?.find((p) => p.id === id)?.nome ?? "—" : "—";
+
+  const hasParceiroTipoFor = (pessoaId: string | null, tipoUserId: string | null) => {
+    if (!parceiroTipoId) return false;
+    if (tipoUserId === parceiroTipoId) return true;
+    if (!pessoaId) return false;
+    return (pessoaTiposMap.get(pessoaId) ?? []).includes(parceiroTipoId);
+  };
 
   const { data: pessoaTiposRows } = useQuery({
     queryKey: ["pessoa_tipos_all"],
