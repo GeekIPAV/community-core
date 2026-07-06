@@ -139,6 +139,7 @@ function ParticipantesPage() {
 
   const [addOpen, setAddOpen] = useState(false);
   const [form, setForm] = useState({ ...emptyForm });
+  const [novoTipoIds, setNovoTipoIds] = useState<string[]>([]);
 
   const [editOpen, setEditOpen] = useState(false);
   const [editing, setEditing] = useState<Pessoa | null>(null);
