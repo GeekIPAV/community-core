@@ -1061,8 +1061,7 @@ function ParticipantesPage() {
                         placeholder="sem tipos"
                         onChange={(v: string[]) => {
                           setEditing({ ...editing, tipo_user_id: v[0] ?? null });
-                          const extras = v.filter((id) => id !== (v[0] ?? null));
-                          savePessoaTipos.mutate({ pessoaId: editing.id, tipoIds: extras });
+                          savePessoaTipos.mutate({ pessoaId: editing.id, tipoIds: v });
                         }}
                       />
                       <p className="pt-1 text-xs text-muted-foreground">
