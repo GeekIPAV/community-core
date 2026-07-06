@@ -65,6 +65,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/lib/auth-context";
 import { useTranslation } from "react-i18next";
 import { useDir } from "@/lib/i18n";
+import { MeeruEmNumeros } from "@/components/meeru-em-numeros";
 
 type Estatisticas = {
   familias_total: number;
@@ -428,6 +429,8 @@ function Conteudo({ data, isAdmin }: { data: Estatisticas; isAdmin: boolean }) {
 
   return (
     <div className="space-y-8">
+      <MeeruEmNumeros data={data} />
+
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-lg font-semibold">{t("results.summary")}</h2>
         {isAdmin && (
