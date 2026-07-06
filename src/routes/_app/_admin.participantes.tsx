@@ -139,6 +139,7 @@ function ParticipantesPage() {
 
   const [addOpen, setAddOpen] = useState(false);
   const [form, setForm] = useState({ ...emptyForm });
+  const [novoTipoIds, setNovoTipoIds] = useState<string[]>([]);
 
   const [editOpen, setEditOpen] = useState(false);
   const [editing, setEditing] = useState<Pessoa | null>(null);
@@ -396,13 +397,22 @@ function ParticipantesPage() {
         filterFn: advancedFilterFn as any,
         meta: { filterVariant: "select", filterOptions: (projetos ?? []).map((x) => x.nome), label: "Projetos" } satisfies ColumnFilterMeta,
       },
-      { id: "tipo_user_id", header: "Tipo", accessorFn: (p) => p.tipo_user_id ? (tipos?.find((t) => t.id === p.tipo_user_id)?.nome ?? "") : "", cell: sel("tipo_user_id", (tipos ?? []).map((t) => ({ value: t.id, label: t.nome })), "sem tipo"), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (tipos ?? []).map((t) => t.nome), label: "Tipo de utilizador" } satisfies ColumnFilterMeta },
       {
         id: "tipos_participante",
-        header: "Tipos",
-        accessorFn: (p) => tiposDePessoa(p.id).map((id) => tipos?.find((t) => t.id === id)?.nome ?? "").filter(Boolean).join(", "),
+        header: "Tipo",
+        accessorFn: (p) => {
+          const ids = Array.from(new Set([
+            ...(p.tipo_user_id ? [p.tipo_user_id] : []),
+            ...tiposDePessoa(p.id),
+          ]));
+          return ids.map((id) => tipos?.find((t) => t.id === id)?.nome ?? "").filter(Boolean).join(", ");
+        },
         cell: ({ row }) => {
-          const ids = tiposDePessoa((row.original as Pessoa).id);
+          const p = row.original as Pessoa;
+          const ids = Array.from(new Set([
+            ...(p.tipo_user_id ? [p.tipo_user_id] : []),
+            ...tiposDePessoa(p.id),
+          ]));
           if (ids.length === 0) return <span className="text-muted-foreground">—</span>;
           return (
             <div className="flex flex-wrap gap-1">
@@ -414,7 +424,7 @@ function ParticipantesPage() {
           );
         },
         filterFn: advancedFilterFn as any,
-        meta: { filterVariant: "select", filterOptions: (tipos ?? []).map((t) => t.nome), label: "Tipos de participante" } satisfies ColumnFilterMeta,
+        meta: { filterVariant: "select", filterOptions: (tipos ?? []).map((t) => t.nome), label: "Tipo de utilizador" } satisfies ColumnFilterMeta,
       },
       { id: "status", header: "Estado", accessorKey: "status", cell: inlineEdit
         ? ({ getValue, row }) => <InlineSelect value={getValue() as string} options={STATUS_OPTS.map((s) => ({ value: s, label: s }))} allowClear={false} onSave={save(row.original.id, "status")} />
@@ -478,6 +488,8 @@ function ParticipantesPage() {
 
   const create = useMutation({
     mutationFn: async () => {
+      const tipoIds = novoTipoIds;
+      const primaryTipo = tipoIds[0] ?? null;
       const payload = {
         nome_completo: form.nome_completo.trim(),
         email: form.email?.trim() || null,
@@ -488,7 +500,7 @@ function ParticipantesPage() {
         data_nascimento: form.data_nascimento || null,
         familia_id: form.familia_id || null,
         notas: form.notas?.trim() || null,
-        tipo_user_id: form.tipo_user_id || null,
+        tipo_user_id: primaryTipo,
         genero: form.genero || null,
         nacionalidade: form.nacionalidade?.trim() || null,
         cidade_residencia: form.cidade_residencia?.trim() || null,
@@ -496,18 +508,26 @@ function ParticipantesPage() {
         profissao: form.profissao?.trim() || null,
         projeto_ids: form.projeto_ids ?? [],
         parceiro_id:
-          hasParceiroTipoFor(null, form.tipo_user_id ?? null)
+          (parceiroTipoId ? tipoIds.includes(parceiroTipoId) : false)
             ? form.parceiro_id || null
             : null,
       };
-      const { error } = await supabase.from("pessoas").insert(payload);
+      const { data: inserted, error } = await supabase.from("pessoas").insert(payload).select("id").single();
       if (error) throw error;
+      if (tipoIds.length && inserted?.id) {
+        const { error: eT } = await supabase
+          .from("pessoa_tipos")
+          .insert(tipoIds.map((tipo_user_id) => ({ pessoa_id: inserted.id, tipo_user_id })));
+        if (eT) throw eT;
+      }
     },
     onSuccess: () => {
       toast.success("Pessoa criada");
       invalidate();
+      qc.invalidateQueries({ queryKey: ["pessoa_tipos_all"] });
       setAddOpen(false);
       setForm({ ...emptyForm });
+      setNovoTipoIds([]);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -701,7 +721,7 @@ function ParticipantesPage() {
               <SelectItem value="projeto_ids">Projetos</SelectItem>
               <SelectItem value="cidade_residencia">Cidade</SelectItem>
               <SelectItem value="status">Estado</SelectItem>
-              <SelectItem value="tipo_user_id">Tipo</SelectItem>
+              <SelectItem value="tipos_participante">Tipo</SelectItem>
             </SelectContent>
           </Select>
           <AdvancedTableFilters table={table} />
@@ -901,15 +921,20 @@ function ParticipantesPage() {
               />
             </Field>
             <Field label="Tipo de utilizador" className="col-span-2">
-              <Select value={form.tipo_user_id ?? "__null"} onValueChange={(v) => setForm({ ...form, tipo_user_id: v === "__null" ? null : v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__null">— sem tipo —</SelectItem>
-                  {tipos?.map((t) => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <MultiSelect
+                values={novoTipoIds}
+                options={(tipos ?? []).map((t) => ({ value: t.id, label: t.nome }))}
+                placeholder="sem tipos"
+                onChange={(v: string[]) => {
+                  setNovoTipoIds(v);
+                  setForm((prev) => ({ ...prev, tipo_user_id: v[0] ?? null }));
+                }}
+              />
+              <p className="pt-1 text-xs text-muted-foreground">
+                Podes selecionar vários tipos para a mesma pessoa.
+              </p>
             </Field>
-            {hasParceiroTipoFor(null, form.tipo_user_id ?? null) && (
+            {(parceiroTipoId ? novoTipoIds.includes(parceiroTipoId) : false) && (
               <Field label="Entidade parceira" className="col-span-2">
                 <Select
                   value={form.parceiro_id ?? "__null"}
@@ -1031,29 +1056,28 @@ function ParticipantesPage() {
                 />
               </Field>
               <Field label="Tipo de utilizador" className="col-span-2">
-                <Select value={editing.tipo_user_id ?? "__null"} onValueChange={(v) => setEditing({ ...editing, tipo_user_id: v === "__null" ? null : v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__null">— sem tipo —</SelectItem>
-                    {tipos?.map((t) => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field label="Tipos de participante (múltiplos)" className="col-span-2">
-                <MultiSelect
-                  values={tiposDePessoa(editing.id)}
-                  options={(tipos ?? []).map((t) => ({ value: t.id, label: t.nome }))}
-                  placeholder="sem tipos"
-                  onChange={(v: string[]) => savePessoaTipos.mutate({ pessoaId: editing.id, tipoIds: v })}
-                />
-                {tiposDePessoa(editing.id).length > 0 && (
-                  <div className="flex flex-wrap gap-1 pt-2">
-                    {tiposDePessoa(editing.id).map((id) => {
-                      const nome = tipos?.find((t) => t.id === id)?.nome ?? id;
-                      return <Badge key={id} variant="secondary">{nome}</Badge>;
-                    })}
-                  </div>
-                )}
+                {(() => {
+                  const unionIds = Array.from(new Set([
+                    ...(editing.tipo_user_id ? [editing.tipo_user_id] : []),
+                    ...tiposDePessoa(editing.id),
+                  ]));
+                  return (
+                    <>
+                      <MultiSelect
+                        values={unionIds}
+                        options={(tipos ?? []).map((t) => ({ value: t.id, label: t.nome }))}
+                        placeholder="sem tipos"
+                        onChange={(v: string[]) => {
+                          setEditing({ ...editing, tipo_user_id: v[0] ?? null });
+                          savePessoaTipos.mutate({ pessoaId: editing.id, tipoIds: v });
+                        }}
+                      />
+                      <p className="pt-1 text-xs text-muted-foreground">
+                        Podes selecionar vários tipos para a mesma pessoa.
+                      </p>
+                    </>
+                  );
+                })()}
               </Field>
               {hasParceiroTipoFor(editing.id, editing.tipo_user_id ?? null) && (
                 <Field label="Entidade parceira" className="col-span-2">
