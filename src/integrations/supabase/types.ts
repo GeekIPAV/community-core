@@ -1591,6 +1591,7 @@ export type Database = {
           nif: string | null
           nome_completo: string
           notas: string | null
+          parceiro_id: string | null
           profissao: string | null
           projeto_ids: string[]
           religiao: string | null
@@ -1619,6 +1620,7 @@ export type Database = {
           nif?: string | null
           nome_completo: string
           notas?: string | null
+          parceiro_id?: string | null
           profissao?: string | null
           projeto_ids?: string[]
           religiao?: string | null
@@ -1647,6 +1649,7 @@ export type Database = {
           nif?: string | null
           nome_completo?: string
           notas?: string | null
+          parceiro_id?: string | null
           profissao?: string | null
           projeto_ids?: string[]
           religiao?: string | null
@@ -1675,6 +1678,13 @@ export type Database = {
             columns: ["fundido_em"]
             isOneToOne: false
             referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoas_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros"
             referencedColumns: ["id"]
           },
           {
