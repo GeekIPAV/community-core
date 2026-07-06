@@ -1154,6 +1154,7 @@ function AddPessoasDialog({
   const [novoNacionalidade, setNovoNacionalidade] = useState("");
   const [novoReligiao, setNovoReligiao] = useState("");
   const [novoNotas, setNovoNotas] = useState("");
+  const [novoParceiroId, setNovoParceiroId] = useState<string>("__none");
   const [novaFamiliaNome, setNovaFamiliaNome] = useState("");
   const [nomesRapidos, setNomesRapidos] = useState("");
 
@@ -1194,6 +1195,24 @@ function AddPessoasDialog({
       return data as Array<{ id: string; nome: string }>;
     },
   });
+
+  const { data: parceirosLookup } = useQuery({
+    queryKey: ["parceiros-atribuir"],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("parceiros")
+        .select("id, nome")
+        .order("nome");
+      if (error) throw error;
+      return data as Array<{ id: string; nome: string }>;
+    },
+  });
+
+  const parceiroTipoId = useMemo(
+    () => tipos?.find((t) => t.nome.trim().toLowerCase() === "parceiro")?.id ?? null,
+    [tipos],
+  );
 
   const familiaMembros = useMemo(() => {
     const m = new Map<string, Array<{ id: string; nome_completo: string }>>();
@@ -1400,6 +1419,14 @@ function AddPessoasDialog({
       if (novoNacionalidade.trim()) insertPessoa.nacionalidade = novoNacionalidade.trim();
       if (novoReligiao.trim()) insertPessoa.religiao = novoReligiao.trim();
       if (novoNotas.trim()) insertPessoa.notas = novoNotas.trim();
+      if (
+        parceiroTipoId &&
+        novoTipoUserId === parceiroTipoId &&
+        novoParceiroId &&
+        novoParceiroId !== "__none"
+      ) {
+        insertPessoa.parceiro_id = novoParceiroId;
+      }
       const { data: pessoa, error: pErr } = await supabase
         .from("pessoas")
         .insert(insertPessoa)
@@ -1423,6 +1450,7 @@ function AddPessoasDialog({
       setNovoNome(""); setNovoEmail(""); setNovoTelefone(""); setNovoDataNasc("");
       setNovoFamiliaId("__none"); setNovoTipoUserId("__none");
       setNovoNacionalidade(""); setNovoReligiao(""); setNovoNotas(""); setNovaFamiliaNome("");
+      setNovoParceiroId("__none");
       onOpenChange(false);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -1721,6 +1749,23 @@ function AddPessoasDialog({
                   </SelectContent>
                 </Select>
               </div>
+              {parceiroTipoId && novoTipoUserId === parceiroTipoId && (
+                <div className="space-y-1">
+                  <label className="text-xs font-medium">Entidade parceira</label>
+                  <Select value={novoParceiroId} onValueChange={setNovoParceiroId}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="— sem entidade —" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">— sem entidade —</SelectItem>
+                      {(parceirosLookup ?? []).map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground">
+                    A pessoa fica como contacto desta entidade.
+                  </p>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <label className="text-xs font-medium">Nacionalidade</label>
