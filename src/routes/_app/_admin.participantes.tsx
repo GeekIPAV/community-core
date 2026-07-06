@@ -1055,6 +1055,23 @@ function ParticipantesPage() {
                   </div>
                 )}
               </Field>
+              {hasParceiroTipoFor(editing.id, editing.tipo_user_id ?? null) && (
+                <Field label="Entidade parceira" className="col-span-2">
+                  <Select
+                    value={editing.parceiro_id ?? "__null"}
+                    onValueChange={(v) => setEditing({ ...editing, parceiro_id: v === "__null" ? null : v })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="— sem entidade —" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__null">— sem entidade —</SelectItem>
+                      {parceirosLookup?.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <p className="pt-1 text-xs text-muted-foreground">
+                    A pessoa fica como contacto desta entidade.
+                  </p>
+                </Field>
+              )}
               <Field label="Estado" className="col-span-2">
                 <Select value={editing.status} onValueChange={(v) => setEditing({ ...editing, status: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
