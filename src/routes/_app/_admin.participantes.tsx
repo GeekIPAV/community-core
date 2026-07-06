@@ -1309,6 +1309,26 @@ function ParticipantesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Nova entidade parceira inline */}
+      <Dialog open={novoParceiroOpen} onOpenChange={setNovoParceiroOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Criar nova entidade</DialogTitle>
+            <DialogDescription>Introduz o nome da nova entidade parceira.</DialogDescription>
+          </DialogHeader>
+          <Input
+            value={novoParceiroNome}
+            onChange={(e) => setNovoParceiroNome(e.target.value)}
+            placeholder="Nome da entidade"
+            onKeyDown={(e) => { if (e.key === "Enter" && novoParceiroNome.trim()) criarParceiro.mutate(novoParceiroNome); }}
+          />
+          <DialogFooter>
+            <Button onClick={() => criarParceiro.mutate(novoParceiroNome)} disabled={!novoParceiroNome.trim() || criarParceiro.isPending}>
+              {criarParceiro.isPending ? "A criar…" : "Criar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
