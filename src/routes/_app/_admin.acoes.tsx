@@ -1419,6 +1419,14 @@ function AddPessoasDialog({
       if (novoNacionalidade.trim()) insertPessoa.nacionalidade = novoNacionalidade.trim();
       if (novoReligiao.trim()) insertPessoa.religiao = novoReligiao.trim();
       if (novoNotas.trim()) insertPessoa.notas = novoNotas.trim();
+      if (
+        parceiroTipoId &&
+        novoTipoUserId === parceiroTipoId &&
+        novoParceiroId &&
+        novoParceiroId !== "__none"
+      ) {
+        insertPessoa.parceiro_id = novoParceiroId;
+      }
       const { data: pessoa, error: pErr } = await supabase
         .from("pessoas")
         .insert(insertPessoa)
@@ -1442,6 +1450,7 @@ function AddPessoasDialog({
       setNovoNome(""); setNovoEmail(""); setNovoTelefone(""); setNovoDataNasc("");
       setNovoFamiliaId("__none"); setNovoTipoUserId("__none");
       setNovoNacionalidade(""); setNovoReligiao(""); setNovoNotas(""); setNovaFamiliaNome("");
+      setNovoParceiroId("__none");
       onOpenChange(false);
     },
     onError: (e: Error) => toast.error(e.message),
