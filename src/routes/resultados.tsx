@@ -478,6 +478,10 @@ function Conteudo({ data, isAdmin }: { data: Estatisticas; isAdmin: boolean }) {
       <AtividadesSection data={data} />
 
       <div className="grid gap-4 lg:grid-cols-2">
+        <IdadesCard data={data.idades_detalhe ?? []} />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
         {charts.map((cfg, i) => (
           <ChartBlock
             key={cfg.id}
