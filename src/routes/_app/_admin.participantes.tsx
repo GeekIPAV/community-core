@@ -959,12 +959,16 @@ function ParticipantesPage() {
               <Field label="Entidade parceira" className="col-span-2">
                 <Select
                   value={form.parceiro_id ?? "__null"}
-                  onValueChange={(v) => setForm({ ...form, parceiro_id: v === "__null" ? null : v })}
+                  onValueChange={(v) => {
+                    if (v === "__criar_nova_entidade") { setNovoParceiroTarget("form"); setNovoParceiroOpen(true); return; }
+                    setForm({ ...form, parceiro_id: v === "__null" ? null : v });
+                  }}
                 >
                   <SelectTrigger><SelectValue placeholder="— sem entidade —" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__null">— sem entidade —</SelectItem>
                     {parceirosLookup?.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
+                    <SelectItem value="__criar_nova_entidade" className="text-primary font-medium">+ Criar nova entidade…</SelectItem>
                   </SelectContent>
                 </Select>
               </Field>
