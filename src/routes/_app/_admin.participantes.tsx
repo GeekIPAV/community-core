@@ -193,6 +193,56 @@ function ParticipantesPage() {
     },
   });
 
+  const { data: pessoaTiposRows } = useQuery({
+    queryKey: ["pessoa_tipos_all"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pessoa_tipos")
+        .select("pessoa_id, tipo_user_id");
+      if (error) throw error;
+      return (data ?? []) as { pessoa_id: string; tipo_user_id: string }[];
+    },
+  });
+
+  const pessoaTiposMap = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const r of pessoaTiposRows ?? []) {
+      const arr = m.get(r.pessoa_id) ?? [];
+      arr.push(r.tipo_user_id);
+      m.set(r.pessoa_id, arr);
+    }
+    return m;
+  }, [pessoaTiposRows]);
+
+  const tiposDePessoa = (pessoaId: string): string[] => pessoaTiposMap.get(pessoaId) ?? [];
+
+  const savePessoaTipos = useMutation({
+    mutationFn: async ({ pessoaId, tipoIds }: { pessoaId: string; tipoIds: string[] }) => {
+      const current = new Set(tiposDePessoa(pessoaId));
+      const next = new Set(tipoIds);
+      const toAdd = [...next].filter((id) => !current.has(id));
+      const toRemove = [...current].filter((id) => !next.has(id));
+      if (toAdd.length) {
+        const { error } = await supabase
+          .from("pessoa_tipos")
+          .insert(toAdd.map((tipo_user_id) => ({ pessoa_id: pessoaId, tipo_user_id })));
+        if (error) throw error;
+      }
+      if (toRemove.length) {
+        const { error } = await supabase
+          .from("pessoa_tipos")
+          .delete()
+          .eq("pessoa_id", pessoaId)
+          .in("tipo_user_id", toRemove);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pessoa_tipos_all"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const { data: projetos } = useQuery({
     queryKey: ["projetos_lookup"],
     queryFn: async () => {
