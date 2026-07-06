@@ -1141,6 +1141,9 @@ function AddPessoasDialog({
   const [familiaFilter, setFamiliaFilter] = useState<string>("__all");
   const [cidadeFilter, setCidadeFilter] = useState<string>("__all");
   const [statusPessoaFilter, setStatusPessoaFilter] = useState<string>("ativo");
+  const [tipoFilter, setTipoFilter] = useState<string>("__all");
+  const [religiaoFilter, setReligiaoFilter] = useState<string>("__all");
+  const [nacionalidadeFilter, setNacionalidadeFilter] = useState<string>("__all");
   const [statusFamiliaFilter, setStatusFamiliaFilter] = useState<string>("__all");
   const [novoNome, setNovoNome] = useState("");
   const [novoEmail, setNovoEmail] = useState("");
@@ -1160,10 +1163,10 @@ function AddPessoasDialog({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, telefone, email, familia_id, cidade_residencia, status")
+        .select("id, nome_completo, telefone, email, familia_id, cidade_residencia, status, tipo_user_id, religiao, nacionalidade")
         .order("nome_completo", { ascending: true });
       if (error) throw error;
-      return data as Array<{ id: string; nome_completo: string; telefone: string | null; email: string | null; familia_id: string | null; cidade_residencia: string | null; status: string }>;
+      return data as Array<{ id: string; nome_completo: string; telefone: string | null; email: string | null; familia_id: string | null; cidade_residencia: string | null; status: string; tipo_user_id: string | null; religiao: string | null; nacionalidade: string | null }>;
     },
   });
 
@@ -1219,9 +1222,24 @@ function AddPessoasDialog({
       } else if (cidadeFilter !== "__all") {
         if ((p.cidade_residencia ?? "") !== cidadeFilter) return false;
       }
+      if (tipoFilter === "__none") {
+        if (p.tipo_user_id) return false;
+      } else if (tipoFilter !== "__all") {
+        if (p.tipo_user_id !== tipoFilter) return false;
+      }
+      if (religiaoFilter === "__none") {
+        if (p.religiao && p.religiao.trim()) return false;
+      } else if (religiaoFilter !== "__all") {
+        if ((p.religiao ?? "") !== religiaoFilter) return false;
+      }
+      if (nacionalidadeFilter === "__none") {
+        if (p.nacionalidade && p.nacionalidade.trim()) return false;
+      } else if (nacionalidadeFilter !== "__all") {
+        if ((p.nacionalidade ?? "") !== nacionalidadeFilter) return false;
+      }
       return true;
     });
-  }, [pessoas, debouncedSearch, familiaFilter, cidadeFilter, statusPessoaFilter]);
+  }, [pessoas, debouncedSearch, familiaFilter, cidadeFilter, statusPessoaFilter, tipoFilter, religiaoFilter, nacionalidadeFilter]);
 
   const statusesPessoa = useMemo(() => {
     const set = new Set<string>();
@@ -1234,6 +1252,24 @@ function AddPessoasDialog({
     (pessoas ?? []).forEach((p) => {
       const c = (p.cidade_residencia ?? "").trim();
       if (c) set.add(c);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [pessoas]);
+
+  const religioesDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    (pessoas ?? []).forEach((p) => {
+      const v = (p.religiao ?? "").trim();
+      if (v) set.add(v);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [pessoas]);
+
+  const nacionalidadesDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    (pessoas ?? []).forEach((p) => {
+      const v = (p.nacionalidade ?? "").trim();
+      if (v) set.add(v);
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [pessoas]);
@@ -1482,8 +1518,38 @@ function AddPessoasDialog({
                   ))}
                 </SelectContent>
               </Select>
-              {(familiaFilter !== "__all" || cidadeFilter !== "__all" || statusPessoaFilter !== "ativo") && (
-                <Button size="sm" variant="ghost" onClick={() => { setFamiliaFilter("__all"); setCidadeFilter("__all"); setStatusPessoaFilter("ativo"); }}>
+              <Select value={tipoFilter} onValueChange={setTipoFilter}>
+                <SelectTrigger className="h-8 w-[160px]"><SelectValue placeholder="Tipo" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">Todos os tipos</SelectItem>
+                  <SelectItem value="__none">Sem tipo</SelectItem>
+                  {(tipos ?? []).map((t) => (
+                    <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={religiaoFilter} onValueChange={setReligiaoFilter}>
+                <SelectTrigger className="h-8 w-[160px]"><SelectValue placeholder="Religião" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">Todas as religiões</SelectItem>
+                  <SelectItem value="__none">Sem religião</SelectItem>
+                  {religioesDisponiveis.map((r) => (
+                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={nacionalidadeFilter} onValueChange={setNacionalidadeFilter}>
+                <SelectTrigger className="h-8 w-[180px]"><SelectValue placeholder="Nacionalidade" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">Todas as nacionalidades</SelectItem>
+                  <SelectItem value="__none">Sem nacionalidade</SelectItem>
+                  {nacionalidadesDisponiveis.map((n) => (
+                    <SelectItem key={n} value={n}>{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {(familiaFilter !== "__all" || cidadeFilter !== "__all" || statusPessoaFilter !== "ativo" || tipoFilter !== "__all" || religiaoFilter !== "__all" || nacionalidadeFilter !== "__all") && (
+                <Button size="sm" variant="ghost" onClick={() => { setFamiliaFilter("__all"); setCidadeFilter("__all"); setStatusPessoaFilter("ativo"); setTipoFilter("__all"); setReligiaoFilter("__all"); setNacionalidadeFilter("__all"); }}>
                   Limpar
                 </Button>
               )}
