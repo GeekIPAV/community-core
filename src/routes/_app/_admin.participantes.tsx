@@ -397,13 +397,22 @@ function ParticipantesPage() {
         filterFn: advancedFilterFn as any,
         meta: { filterVariant: "select", filterOptions: (projetos ?? []).map((x) => x.nome), label: "Projetos" } satisfies ColumnFilterMeta,
       },
-      { id: "tipo_user_id", header: "Tipo", accessorFn: (p) => p.tipo_user_id ? (tipos?.find((t) => t.id === p.tipo_user_id)?.nome ?? "") : "", cell: sel("tipo_user_id", (tipos ?? []).map((t) => ({ value: t.id, label: t.nome })), "sem tipo"), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (tipos ?? []).map((t) => t.nome), label: "Tipo de utilizador" } satisfies ColumnFilterMeta },
       {
         id: "tipos_participante",
-        header: "Tipos",
-        accessorFn: (p) => tiposDePessoa(p.id).map((id) => tipos?.find((t) => t.id === id)?.nome ?? "").filter(Boolean).join(", "),
+        header: "Tipo",
+        accessorFn: (p) => {
+          const ids = Array.from(new Set([
+            ...(p.tipo_user_id ? [p.tipo_user_id] : []),
+            ...tiposDePessoa(p.id),
+          ]));
+          return ids.map((id) => tipos?.find((t) => t.id === id)?.nome ?? "").filter(Boolean).join(", ");
+        },
         cell: ({ row }) => {
-          const ids = tiposDePessoa((row.original as Pessoa).id);
+          const p = row.original as Pessoa;
+          const ids = Array.from(new Set([
+            ...(p.tipo_user_id ? [p.tipo_user_id] : []),
+            ...tiposDePessoa(p.id),
+          ]));
           if (ids.length === 0) return <span className="text-muted-foreground">—</span>;
           return (
             <div className="flex flex-wrap gap-1">
@@ -415,7 +424,7 @@ function ParticipantesPage() {
           );
         },
         filterFn: advancedFilterFn as any,
-        meta: { filterVariant: "select", filterOptions: (tipos ?? []).map((t) => t.nome), label: "Tipos de participante" } satisfies ColumnFilterMeta,
+        meta: { filterVariant: "select", filterOptions: (tipos ?? []).map((t) => t.nome), label: "Tipo de utilizador" } satisfies ColumnFilterMeta,
       },
       { id: "status", header: "Estado", accessorKey: "status", cell: inlineEdit
         ? ({ getValue, row }) => <InlineSelect value={getValue() as string} options={STATUS_OPTS.map((s) => ({ value: s, label: s }))} allowClear={false} onSave={save(row.original.id, "status")} />
