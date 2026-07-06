@@ -1196,6 +1196,24 @@ function AddPessoasDialog({
     },
   });
 
+  const { data: parceirosLookup } = useQuery({
+    queryKey: ["parceiros-atribuir"],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("parceiros")
+        .select("id, nome")
+        .order("nome");
+      if (error) throw error;
+      return data as Array<{ id: string; nome: string }>;
+    },
+  });
+
+  const parceiroTipoId = useMemo(
+    () => tipos?.find((t) => t.nome.trim().toLowerCase() === "parceiro")?.id ?? null,
+    [tipos],
+  );
+
   const familiaMembros = useMemo(() => {
     const m = new Map<string, Array<{ id: string; nome_completo: string }>>();
     (pessoas ?? []).forEach((p) => {
