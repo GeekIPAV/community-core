@@ -593,6 +593,23 @@ function ParticipantesPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const criarParceiro = useMutation({
+    mutationFn: async (nome: string) => {
+      const { data, error } = await supabase.from("parceiros").insert({ nome: nome.trim() }).select("id").single();
+      if (error) throw error;
+      return data.id as string;
+    },
+    onSuccess: (id) => {
+      toast.success("Entidade criada");
+      qc.invalidateQueries({ queryKey: ["parceiros_lookup"] });
+      if (novoParceiroTarget === "form") setForm((prev) => ({ ...prev, parceiro_id: id }));
+      else if (novoParceiroTarget === "editing" && editing) setEditing({ ...editing, parceiro_id: id });
+      setNovoParceiroOpen(false);
+      setNovoParceiroNome("");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const bulkCreate = useMutation({
     mutationFn: async () => {
       const rows = parseBulkCsv(bulkText, familias ?? [], projetos ?? []);
