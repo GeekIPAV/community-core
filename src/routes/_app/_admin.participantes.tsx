@@ -150,6 +150,10 @@ function ParticipantesPage() {
   const [novaFamiliaNome, setNovaFamiliaNome] = useState("");
   const [novaFamiliaTarget, setNovaFamiliaTarget] = useState<"form" | "editing">("form");
 
+  const [novoParceiroOpen, setNovoParceiroOpen] = useState(false);
+  const [novoParceiroNome, setNovoParceiroNome] = useState("");
+  const [novoParceiroTarget, setNovoParceiroTarget] = useState<"form" | "editing">("form");
+
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [bulkFamilia, setBulkFamilia] = useState<string>("__noop");
   const [bulkStatus, setBulkStatus] = useState<string>("__noop");
@@ -589,6 +593,23 @@ function ParticipantesPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const criarParceiro = useMutation({
+    mutationFn: async (nome: string) => {
+      const { data, error } = await supabase.from("parceiros").insert({ nome: nome.trim() }).select("id").single();
+      if (error) throw error;
+      return data.id as string;
+    },
+    onSuccess: (id) => {
+      toast.success("Entidade criada");
+      qc.invalidateQueries({ queryKey: ["parceiros_lookup"] });
+      if (novoParceiroTarget === "form") setForm((prev) => ({ ...prev, parceiro_id: id }));
+      else if (novoParceiroTarget === "editing" && editing) setEditing({ ...editing, parceiro_id: id });
+      setNovoParceiroOpen(false);
+      setNovoParceiroNome("");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const bulkCreate = useMutation({
     mutationFn: async () => {
       const rows = parseBulkCsv(bulkText, familias ?? [], projetos ?? []);
@@ -938,12 +959,16 @@ function ParticipantesPage() {
               <Field label="Entidade parceira" className="col-span-2">
                 <Select
                   value={form.parceiro_id ?? "__null"}
-                  onValueChange={(v) => setForm({ ...form, parceiro_id: v === "__null" ? null : v })}
+                  onValueChange={(v) => {
+                    if (v === "__criar_nova_entidade") { setNovoParceiroTarget("form"); setNovoParceiroOpen(true); return; }
+                    setForm({ ...form, parceiro_id: v === "__null" ? null : v });
+                  }}
                 >
                   <SelectTrigger><SelectValue placeholder="— sem entidade —" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__null">— sem entidade —</SelectItem>
                     {parceirosLookup?.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
+                    <SelectItem value="__criar_nova_entidade" className="text-primary font-medium">+ Criar nova entidade…</SelectItem>
                   </SelectContent>
                 </Select>
               </Field>
@@ -1083,12 +1108,16 @@ function ParticipantesPage() {
                 <Field label="Entidade parceira" className="col-span-2">
                   <Select
                     value={editing.parceiro_id ?? "__null"}
-                    onValueChange={(v) => setEditing({ ...editing, parceiro_id: v === "__null" ? null : v })}
+                    onValueChange={(v) => {
+                      if (v === "__criar_nova_entidade") { setNovoParceiroTarget("editing"); setNovoParceiroOpen(true); return; }
+                      setEditing({ ...editing, parceiro_id: v === "__null" ? null : v });
+                    }}
                   >
                     <SelectTrigger><SelectValue placeholder="— sem entidade —" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__null">— sem entidade —</SelectItem>
                       {parceirosLookup?.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
+                      <SelectItem value="__criar_nova_entidade" className="text-primary font-medium">+ Criar nova entidade…</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="pt-1 text-xs text-muted-foreground">
@@ -1276,6 +1305,26 @@ function ParticipantesPage() {
           <DialogFooter>
             <Button onClick={() => criarFamilia.mutate(novaFamiliaNome)} disabled={!novaFamiliaNome.trim() || criarFamilia.isPending}>
               {criarFamilia.isPending ? "A criar…" : "Criar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Nova entidade parceira inline */}
+      <Dialog open={novoParceiroOpen} onOpenChange={setNovoParceiroOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Criar nova entidade</DialogTitle>
+            <DialogDescription>Introduz o nome da nova entidade parceira.</DialogDescription>
+          </DialogHeader>
+          <Input
+            value={novoParceiroNome}
+            onChange={(e) => setNovoParceiroNome(e.target.value)}
+            placeholder="Nome da entidade"
+            onKeyDown={(e) => { if (e.key === "Enter" && novoParceiroNome.trim()) criarParceiro.mutate(novoParceiroNome); }}
+          />
+          <DialogFooter>
+            <Button onClick={() => criarParceiro.mutate(novoParceiroNome)} disabled={!novoParceiroNome.trim() || criarParceiro.isPending}>
+              {criarParceiro.isPending ? "A criar…" : "Criar"}
             </Button>
           </DialogFooter>
         </DialogContent>
