@@ -1141,6 +1141,9 @@ function AddPessoasDialog({
   const [familiaFilter, setFamiliaFilter] = useState<string>("__all");
   const [cidadeFilter, setCidadeFilter] = useState<string>("__all");
   const [statusPessoaFilter, setStatusPessoaFilter] = useState<string>("ativo");
+  const [tipoFilter, setTipoFilter] = useState<string>("__all");
+  const [religiaoFilter, setReligiaoFilter] = useState<string>("__all");
+  const [nacionalidadeFilter, setNacionalidadeFilter] = useState<string>("__all");
   const [statusFamiliaFilter, setStatusFamiliaFilter] = useState<string>("__all");
   const [novoNome, setNovoNome] = useState("");
   const [novoEmail, setNovoEmail] = useState("");
@@ -1160,10 +1163,10 @@ function AddPessoasDialog({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, telefone, email, familia_id, cidade_residencia, status")
+        .select("id, nome_completo, telefone, email, familia_id, cidade_residencia, status, tipo_user_id, religiao, nacionalidade")
         .order("nome_completo", { ascending: true });
       if (error) throw error;
-      return data as Array<{ id: string; nome_completo: string; telefone: string | null; email: string | null; familia_id: string | null; cidade_residencia: string | null; status: string }>;
+      return data as Array<{ id: string; nome_completo: string; telefone: string | null; email: string | null; familia_id: string | null; cidade_residencia: string | null; status: string; tipo_user_id: string | null; religiao: string | null; nacionalidade: string | null }>;
     },
   });
 
@@ -1219,9 +1222,24 @@ function AddPessoasDialog({
       } else if (cidadeFilter !== "__all") {
         if ((p.cidade_residencia ?? "") !== cidadeFilter) return false;
       }
+      if (tipoFilter === "__none") {
+        if (p.tipo_user_id) return false;
+      } else if (tipoFilter !== "__all") {
+        if (p.tipo_user_id !== tipoFilter) return false;
+      }
+      if (religiaoFilter === "__none") {
+        if (p.religiao && p.religiao.trim()) return false;
+      } else if (religiaoFilter !== "__all") {
+        if ((p.religiao ?? "") !== religiaoFilter) return false;
+      }
+      if (nacionalidadeFilter === "__none") {
+        if (p.nacionalidade && p.nacionalidade.trim()) return false;
+      } else if (nacionalidadeFilter !== "__all") {
+        if ((p.nacionalidade ?? "") !== nacionalidadeFilter) return false;
+      }
       return true;
     });
-  }, [pessoas, debouncedSearch, familiaFilter, cidadeFilter, statusPessoaFilter]);
+  }, [pessoas, debouncedSearch, familiaFilter, cidadeFilter, statusPessoaFilter, tipoFilter, religiaoFilter, nacionalidadeFilter]);
 
   const statusesPessoa = useMemo(() => {
     const set = new Set<string>();
@@ -1234,6 +1252,24 @@ function AddPessoasDialog({
     (pessoas ?? []).forEach((p) => {
       const c = (p.cidade_residencia ?? "").trim();
       if (c) set.add(c);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [pessoas]);
+
+  const religioesDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    (pessoas ?? []).forEach((p) => {
+      const v = (p.religiao ?? "").trim();
+      if (v) set.add(v);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [pessoas]);
+
+  const nacionalidadesDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    (pessoas ?? []).forEach((p) => {
+      const v = (p.nacionalidade ?? "").trim();
+      if (v) set.add(v);
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [pessoas]);
