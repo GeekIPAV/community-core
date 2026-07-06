@@ -1518,8 +1518,38 @@ function AddPessoasDialog({
                   ))}
                 </SelectContent>
               </Select>
-              {(familiaFilter !== "__all" || cidadeFilter !== "__all" || statusPessoaFilter !== "ativo") && (
-                <Button size="sm" variant="ghost" onClick={() => { setFamiliaFilter("__all"); setCidadeFilter("__all"); setStatusPessoaFilter("ativo"); }}>
+              <Select value={tipoFilter} onValueChange={setTipoFilter}>
+                <SelectTrigger className="h-8 w-[160px]"><SelectValue placeholder="Tipo" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">Todos os tipos</SelectItem>
+                  <SelectItem value="__none">Sem tipo</SelectItem>
+                  {(tipos ?? []).map((t) => (
+                    <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={religiaoFilter} onValueChange={setReligiaoFilter}>
+                <SelectTrigger className="h-8 w-[160px]"><SelectValue placeholder="Religião" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">Todas as religiões</SelectItem>
+                  <SelectItem value="__none">Sem religião</SelectItem>
+                  {religioesDisponiveis.map((r) => (
+                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={nacionalidadeFilter} onValueChange={setNacionalidadeFilter}>
+                <SelectTrigger className="h-8 w-[180px]"><SelectValue placeholder="Nacionalidade" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">Todas as nacionalidades</SelectItem>
+                  <SelectItem value="__none">Sem nacionalidade</SelectItem>
+                  {nacionalidadesDisponiveis.map((n) => (
+                    <SelectItem key={n} value={n}>{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {(familiaFilter !== "__all" || cidadeFilter !== "__all" || statusPessoaFilter !== "ativo" || tipoFilter !== "__all" || religiaoFilter !== "__all" || nacionalidadeFilter !== "__all") && (
+                <Button size="sm" variant="ghost" onClick={() => { setFamiliaFilter("__all"); setCidadeFilter("__all"); setStatusPessoaFilter("ativo"); setTipoFilter("__all"); setReligiaoFilter("__all"); setNacionalidadeFilter("__all"); }}>
                   Limpar
                 </Button>
               )}
