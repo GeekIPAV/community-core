@@ -150,6 +150,10 @@ function ParticipantesPage() {
   const [novaFamiliaNome, setNovaFamiliaNome] = useState("");
   const [novaFamiliaTarget, setNovaFamiliaTarget] = useState<"form" | "editing">("form");
 
+  const [novoParceiroOpen, setNovoParceiroOpen] = useState(false);
+  const [novoParceiroNome, setNovoParceiroNome] = useState("");
+  const [novoParceiroTarget, setNovoParceiroTarget] = useState<"form" | "editing">("form");
+
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [bulkFamilia, setBulkFamilia] = useState<string>("__noop");
   const [bulkStatus, setBulkStatus] = useState<string>("__noop");
