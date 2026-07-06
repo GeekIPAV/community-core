@@ -84,6 +84,7 @@ type Estatisticas = {
   atividades_total: number;
   atividades_por_categoria: { nome: string; count: number }[];
   atividades_top: { nome: string; count: number }[];
+  idades_detalhe: { faixa: string; count: number }[];
 };
 
 export const Route = createFileRoute("/resultados")({
