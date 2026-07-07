@@ -604,11 +604,13 @@ function BolsasTransportePage() {
 
   const updateMapaKm = useMutation({
     mutationFn: async ({ id, ...row }: Partial<Omit<MapaKmRow, "valor" | "familia_nome">> & { id: string }) => {
-      const safe: Record<string, unknown> = { ...row };
-      delete safe.valor;
-      delete safe.familia_nome;
-      safe.updated_at = new Date().toISOString();
-      const { error } = await supabase.from("mapa_km").update(safe).eq("id", id);
+      const safe = { ...row } as Partial<Omit<MapaKmRow, "valor" | "familia_nome">>;
+      delete (safe as { valor?: unknown }).valor;
+      delete (safe as { familia_nome?: unknown }).familia_nome;
+      const { error } = await supabase
+        .from("mapa_km")
+        .update({ ...safe, updated_at: new Date().toISOString() })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
