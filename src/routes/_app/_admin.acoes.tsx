@@ -1144,6 +1144,15 @@ function AddPessoasDialog({
   const [familiaFilter, setFamiliaFilter] = useState<string>("__all");
   const [mapaKmFamilias, setMapaKmFamilias] = useState<Set<string>>(new Set());
   const [mapaKmDados, setMapaKmDados] = useState<Record<string, { motivo: string; km: string; n_carros: string }>>({});
+  const [bolsaFamilias, setBolsaFamilias] = useState<Set<string>>(new Set());
+  const toggleBolsa = (familiaId: string) => {
+    setBolsaFamilias((prev) => {
+      const next = new Set(prev);
+      if (next.has(familiaId)) next.delete(familiaId);
+      else next.add(familiaId);
+      return next;
+    });
+  };
   const toggleMapaKm = (familiaId: string) => {
     setMapaKmFamilias((prev) => {
       const next = new Set(prev);
