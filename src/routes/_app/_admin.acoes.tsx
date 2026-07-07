@@ -2797,6 +2797,8 @@ function AcoesPageInner() {
                 publico: a.publico ?? true,
                 fields,
                 parceiro_ids: acaoParceiros?.get(a.id) ?? [],
+                tipo_acao_id: a.tipo_acao_id ?? null,
+                formador_ids: (a.formador_ids ?? []) as string[],
               });
             }}
           />
