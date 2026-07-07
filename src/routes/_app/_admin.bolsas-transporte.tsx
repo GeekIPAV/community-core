@@ -133,17 +133,19 @@ function InscricaoRow({
   onChangeEstado,
   onUpdate,
   onMarcarPago,
+  hideShared,
 }: {
   i: InscricaoComBolsa;
   onChangeEstado: (i: InscricaoComBolsa, estado: BolsaPagamento["estado"]) => void;
   onUpdate: (i: InscricaoComBolsa, campo: "metodo_pagamento" | "notas", valor: string) => void;
   onMarcarPago: (i: InscricaoComBolsa) => void;
+  hideShared?: boolean;
 }) {
   const estado = i.pagamento?.estado ?? "por_pagar";
   const valor = i.pagamento?.valor ?? i.valor_calculado;
   return (
     <TableRow>
-      <TableCell className="font-medium">{i.pessoa_nome}</TableCell>
+      <TableCell className="font-medium pl-8">{i.pessoa_nome}</TableCell>
       <TableCell className="text-muted-foreground text-xs">{i.familia_nome ?? "—"}</TableCell>
       <TableCell>
         {i.viatura_propria ? (
@@ -174,10 +176,22 @@ function InscricaoRow({
         </Select>
       </TableCell>
       <TableCell>
-        <InlineEditCell value={i.pagamento?.metodo_pagamento ?? null} onSave={(v) => onUpdate(i, "metodo_pagamento", v)} placeholder="Método" />
+        {hideShared ? (
+          <span className="text-xs text-muted-foreground/70 italic">
+            {i.pagamento?.metodo_pagamento || "—"}
+          </span>
+        ) : (
+          <InlineEditCell value={i.pagamento?.metodo_pagamento ?? null} onSave={(v) => onUpdate(i, "metodo_pagamento", v)} placeholder="Método" />
+        )}
       </TableCell>
       <TableCell>
-        <InlineEditCell value={i.pagamento?.notas ?? null} onSave={(v) => onUpdate(i, "notas", v)} placeholder="Notas" />
+        {hideShared ? (
+          <span className="text-xs text-muted-foreground/70 italic truncate max-w-[160px] inline-block">
+            {i.pagamento?.notas || "—"}
+          </span>
+        ) : (
+          <InlineEditCell value={i.pagamento?.notas ?? null} onSave={(v) => onUpdate(i, "notas", v)} placeholder="Notas" />
+        )}
       </TableCell>
       <TableCell className="text-right">
         {estado === "por_pagar" && (
@@ -190,6 +204,158 @@ function InscricaoRow({
     </TableRow>
   );
 }
+
+type FamiliaSubgrupo = {
+  key: string;
+  nome: string;
+  isFamilia: boolean;
+  inscricoes: InscricaoComBolsa[];
+};
+
+function subgruposPorFamilia(inscricoes: InscricaoComBolsa[]): FamiliaSubgrupo[] {
+  const map = new Map<string, FamiliaSubgrupo>();
+  for (const i of inscricoes) {
+    const key = i.familia_id ?? `__solo_${i.pessoa_id}`;
+    const nome = i.familia_id ? (i.familia_nome ?? "—") : i.pessoa_nome;
+    if (!map.has(key)) {
+      map.set(key, { key, nome, isFamilia: !!i.familia_id, inscricoes: [] });
+    }
+    map.get(key)!.inscricoes.push(i);
+  }
+  return Array.from(map.values()).sort((a, b) => a.nome.localeCompare(b.nome));
+}
+
+function FamiliaHeaderRow({
+  group,
+  colSpan,
+  onBulkEstado,
+  onBulkCampo,
+  onBulkMarcarPagos,
+}: {
+  group: FamiliaSubgrupo;
+  colSpan: number;
+  onBulkEstado: (members: InscricaoComBolsa[], estado: BolsaPagamento["estado"]) => void;
+  onBulkCampo: (members: InscricaoComBolsa[], campo: "metodo_pagamento" | "notas", valor: string) => void;
+  onBulkMarcarPagos: (members: InscricaoComBolsa[]) => void;
+}) {
+  const membros = group.inscricoes;
+  const activos = membros.filter((i) => (i.pagamento?.estado ?? "por_pagar") !== "cancelado");
+  const total = activos.reduce((s, i) => s + (i.pagamento?.valor ?? i.valor_calculado), 0);
+  const nPorPagar = activos.filter((i) => (i.pagamento?.estado ?? "por_pagar") === "por_pagar").length;
+  const nPagos = activos.filter((i) => i.pagamento?.estado === "pago").length;
+
+  // Shared values across active members (empty string means "misto")
+  const firstMetodo = activos[0]?.pagamento?.metodo_pagamento ?? "";
+  const allSameMetodo = activos.every((i) => (i.pagamento?.metodo_pagamento ?? "") === firstMetodo);
+  const firstNotas = activos[0]?.pagamento?.notas ?? "";
+  const allSameNotas = activos.every((i) => (i.pagamento?.notas ?? "") === firstNotas);
+
+  const [metodoDraft, setMetodoDraft] = useState<string>(allSameMetodo ? firstMetodo : "");
+  const [notasDraft, setNotasDraft] = useState<string>(allSameNotas ? firstNotas : "");
+
+  return (
+    <TableRow className="bg-muted/40 hover:bg-muted/40 border-t">
+      <TableCell colSpan={colSpan} className="py-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-medium text-sm">
+            {group.isFamilia ? "👪 " : ""}{group.nome}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {membros.length} {membros.length === 1 ? "pessoa" : "pessoas"}
+          </span>
+          {nPorPagar > 0 && (
+            <Badge className="bg-amber-100 text-amber-800 border-amber-200">{nPorPagar} por pagar</Badge>
+          )}
+          {nPagos > 0 && (
+            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">{nPagos} pagos</Badge>
+          )}
+          <span className="text-xs font-medium tabular-nums ml-auto">{formatEuro(total)}</span>
+          <Input
+            className="h-7 w-32 text-xs"
+            placeholder={allSameMetodo ? "Método (todos)" : "Método (misto)"}
+            value={metodoDraft}
+            onChange={(e) => setMetodoDraft(e.target.value)}
+            onBlur={() => {
+              if (metodoDraft !== firstMetodo || !allSameMetodo) onBulkCampo(activos, "metodo_pagamento", metodoDraft);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+            }}
+          />
+          <Input
+            className="h-7 w-40 text-xs"
+            placeholder={allSameNotas ? "Notas (todos)" : "Notas (misto)"}
+            value={notasDraft}
+            onChange={(e) => setNotasDraft(e.target.value)}
+            onBlur={() => {
+              if (notasDraft !== firstNotas || !allSameNotas) onBulkCampo(activos, "notas", notasDraft);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+            }}
+          />
+          <Select onValueChange={(v) => onBulkEstado(activos, v as BolsaPagamento["estado"])}>
+            <SelectTrigger className="h-7 w-36 text-xs">
+              <SelectValue placeholder="Estado (todos)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="por_pagar">Por pagar</SelectItem>
+              <SelectItem value="pago">Pago</SelectItem>
+            </SelectContent>
+          </Select>
+          {nPorPagar > 0 && (
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => onBulkMarcarPagos(activos)}>
+              ✓ Todos pagos
+            </Button>
+          )}
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+}
+
+function FamiliaSubgrupoBlock({
+  group,
+  colSpan,
+  onBulkEstado,
+  onBulkCampo,
+  onBulkMarcarPagos,
+  onChangeEstado,
+  onUpdate,
+  onMarcarPago,
+}: {
+  group: FamiliaSubgrupo;
+  colSpan: number;
+  onBulkEstado: (members: InscricaoComBolsa[], estado: BolsaPagamento["estado"]) => void;
+  onBulkCampo: (members: InscricaoComBolsa[], campo: "metodo_pagamento" | "notas", valor: string) => void;
+  onBulkMarcarPagos: (members: InscricaoComBolsa[]) => void;
+  onChangeEstado: (i: InscricaoComBolsa, estado: BolsaPagamento["estado"]) => void;
+  onUpdate: (i: InscricaoComBolsa, campo: "metodo_pagamento" | "notas", valor: string) => void;
+  onMarcarPago: (i: InscricaoComBolsa) => void;
+}) {
+  return (
+    <>
+      <FamiliaHeaderRow
+        group={group}
+        colSpan={colSpan}
+        onBulkEstado={onBulkEstado}
+        onBulkCampo={onBulkCampo}
+        onBulkMarcarPagos={onBulkMarcarPagos}
+      />
+      {group.inscricoes.map((i) => (
+        <InscricaoRow
+          key={i.inscricao_id}
+          i={i}
+          onChangeEstado={onChangeEstado}
+          onUpdate={onUpdate}
+          onMarcarPago={onMarcarPago}
+          hideShared={group.isFamilia && group.inscricoes.length > 1}
+        />
+      ))}
+    </>
+  );
+}
+
 
 function BolsasTransportePage() {
   const qc = useQueryClient();
@@ -429,6 +595,47 @@ function BolsasTransportePage() {
       notas: campo === "notas" ? (valor || null) : i.pagamento?.notas ?? null,
       data_pagamento: i.pagamento?.data_pagamento ?? null,
     });
+
+  const bulkEstadoFamilia = (members: InscricaoComBolsa[], estado: BolsaPagamento["estado"]) => {
+    for (const i of members) {
+      upsertPagamento.mutate({
+        inscricao_id: i.inscricao_id,
+        pessoa_id: i.pessoa_id,
+        acao_id: i.acao_id,
+        valor: i.pagamento?.valor ?? i.valor_calculado,
+        estado,
+        metodo_pagamento: i.pagamento?.metodo_pagamento ?? null,
+        notas: i.pagamento?.notas ?? null,
+        data_pagamento: i.pagamento?.data_pagamento ?? null,
+      });
+    }
+  };
+
+  const bulkCampoFamilia = (
+    members: InscricaoComBolsa[],
+    campo: "metodo_pagamento" | "notas",
+    valor: string,
+  ) => {
+    for (const i of members) {
+      upsertPagamento.mutate({
+        inscricao_id: i.inscricao_id,
+        pessoa_id: i.pessoa_id,
+        acao_id: i.acao_id,
+        valor: i.pagamento?.valor ?? i.valor_calculado,
+        estado: i.pagamento?.estado ?? "por_pagar",
+        metodo_pagamento: campo === "metodo_pagamento" ? (valor || null) : i.pagamento?.metodo_pagamento ?? null,
+        notas: campo === "notas" ? (valor || null) : i.pagamento?.notas ?? null,
+        data_pagamento: i.pagamento?.data_pagamento ?? null,
+      });
+    }
+  };
+
+  const bulkMarcarPagosFamilia = (members: InscricaoComBolsa[]) => {
+    for (const i of members) {
+      if ((i.pagamento?.estado ?? "por_pagar") !== "por_pagar") continue;
+      marcarPago(i);
+    }
+  };
 
   // Filters tab 1
   const [search, setSearch] = useState("");
@@ -769,10 +976,14 @@ function BolsasTransportePage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {acao.inscricoes.map((i) => (
-                          <InscricaoRow
-                            key={i.inscricao_id}
-                            i={i}
+                        {subgruposPorFamilia(acao.inscricoes).map((fg) => (
+                          <FamiliaSubgrupoBlock
+                            key={fg.key}
+                            group={fg}
+                            colSpan={8}
+                            onBulkEstado={bulkEstadoFamilia}
+                            onBulkCampo={bulkCampoFamilia}
+                            onBulkMarcarPagos={bulkMarcarPagosFamilia}
                             onChangeEstado={changeEstado}
                             onUpdate={updateCampo}
                             onMarcarPago={marcarPago}
