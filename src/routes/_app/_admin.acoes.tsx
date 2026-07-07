@@ -2609,7 +2609,12 @@ function AcoesPageInner() {
               <div className="space-y-2"><Label>Nome</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} /></div>
               <div className="space-y-2">
                 <Label>Imagem do evento</Label>
-                <ImageUpload value={form.imagem_url} onChange={(url) => setForm({ ...form, imagem_url: url ?? "" })} />
+                <ImageUpload
+                  value={form.imagem_url}
+                  onChange={(url) => setForm({ ...form, imagem_url: url ?? "", imagem_position: "50% 50%" })}
+                  position={form.imagem_position}
+                  onPositionChange={(p) => setForm({ ...form, imagem_position: p })}
+                />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
