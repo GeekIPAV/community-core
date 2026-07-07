@@ -1762,10 +1762,19 @@ function AddPessoasDialog({
                 Selecionar visíveis ({selectableFamiliasIds.length} membros disponíveis)
               </span>
             </div>
-            {mapaKmFamilias.size > 0 && (
-              <div className="flex items-center gap-1.5 rounded-md bg-primary/5 border border-primary/20 px-3 py-1.5 text-xs text-primary">
-                <Car className="h-3.5 w-3.5 shrink-0" />
-                {mapaKmFamilias.size} família{mapaKmFamilias.size !== 1 ? "s" : ""} com mapa de KM activo
+            {(mapaKmFamilias.size > 0 || bolsaFamilias.size > 0) && (
+              <div className="flex items-center gap-3 rounded-md bg-primary/5 border border-primary/20 px-3 py-1.5 text-xs text-primary">
+                {mapaKmFamilias.size > 0 && (
+                  <span className="flex items-center gap-1.5">
+                    <Car className="h-3.5 w-3.5 shrink-0" />
+                    {mapaKmFamilias.size} KM activo{mapaKmFamilias.size !== 1 ? "s" : ""}
+                  </span>
+                )}
+                {bolsaFamilias.size > 0 && (
+                  <span className="flex items-center gap-1.5">
+                    🚌 {bolsaFamilias.size} bolsa{bolsaFamilias.size !== 1 ? "s" : ""} activa{bolsaFamilias.size !== 1 ? "s" : ""}
+                  </span>
+                )}
               </div>
             )}
             <ScrollArea className="h-[60vh]">
