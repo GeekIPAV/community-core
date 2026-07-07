@@ -99,7 +99,7 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
     queryKey: ["atividades-catalogo"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("atividades_catalogo" as any)
+        .from("atividades_catalogo")
         .select("id, nome, categoria")
         .eq("ativo", true)
         .order("categoria")
@@ -113,7 +113,7 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
     queryKey: ["familia-atividades", familiaId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("familia_atividades" as any)
+        .from("familia_atividades")
         .select("id, data, descricao, created_at, atividade:atividades_catalogo(id, nome, categoria)")
         .eq("familia_id", familiaId)
         .order("data", { ascending: false, nullsFirst: false })
@@ -126,7 +126,7 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
   const add = useMutation({
     mutationFn: async () => {
       if (!atividadeId) throw new Error("Escolha uma atividade");
-      const { error } = await supabase.from("familia_atividades" as any).insert({
+      const { error } = await supabase.from("familia_atividades").insert({
         familia_id: familiaId,
         atividade_id: atividadeId,
         data: dataVal || null,
@@ -147,7 +147,7 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("familia_atividades" as any).delete().eq("id", id);
+      const { error } = await supabase.from("familia_atividades").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -162,7 +162,7 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
       const nome = novaNome.trim();
       if (!nome) throw new Error("Nome obrigatório");
       const { data: inserted, error } = await supabase
-        .from("atividades_catalogo" as any)
+        .from("atividades_catalogo")
         .insert({ nome, categoria: novaCategoria.trim() || null })
         .select("id")
         .single();
@@ -1573,7 +1573,7 @@ function CasosFamiliaTab({ familiaId }: { familiaId: string }) {
     queryKey: ["familia-casos", familiaId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("casos_apoio" as any)
+        .from("casos_apoio")
         .select("id, numero, titulo, area, estado, prioridade, data_abertura, pessoa:pessoas!casos_apoio_pessoa_id_fkey(nome_completo), mediadora:pessoas!casos_apoio_mediadora_id_fkey(nome_completo)")
         .eq("familia_id", familiaId)
         .order("data_abertura", { ascending: false });

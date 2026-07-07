@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import type React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -31,9 +32,20 @@ function DashboardPage() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ["dashboard-stats"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_estatisticas_publicas" as any);
+      const { data, error } = await supabase.rpc("get_estatisticas_publicas");
       if (error) throw error;
-      return data as any;
+      return data as unknown as {
+        membros_familias_total?: number;
+        familias_total?: number;
+        eventos_total?: number;
+        projetos_total?: number;
+        voluntarios_total?: number;
+        participantes_eventos_total?: number;
+        participantes_projetos_total?: number;
+        atividades_total?: number;
+        generos_detalhe?: { nome: string; count: number }[];
+        atividades_top?: { nome: string; count: number }[];
+      };
     },
   });
 
@@ -105,7 +117,13 @@ function DashboardPage() {
     },
   });
 
-  const meses = useMemo(() => buildMeses(12), []);
+  const hoje = new Date();
+  const meses = useMemo(
+    () => buildMeses(12),
+    // Re-compute when the month changes (day-of-month is enough as proxy)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [hoje.getFullYear(), hoje.getMonth()],
+  );
 
   const acoesMesData = useMemo(() => {
     const map = new Map(meses.map((m) => [m.key, { mes: m.label, eventos: 0, projetos: 0 }]));
@@ -248,7 +266,7 @@ function DashboardPage() {
   );
 }
 
-function KpiCard({ label, value, icon: Icon, loading, format, to }: { label: string; value: number | undefined; icon: any; loading?: boolean; format?: "eur"; to?: string }) {
+function KpiCard({ label, value, icon: Icon, loading, format, to }: { label: string; value: number | undefined; icon: React.ComponentType<{ className?: string }>; loading?: boolean; format?: "eur"; to?: string }) {
   const display = loading
     ? null
     : format === "eur"
