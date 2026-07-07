@@ -2449,7 +2449,7 @@ function TransporteAcaoTab({ acaoId }: { acaoId: string }) {
         .from("inscricoes")
         .select("id, pessoa_id, pessoas!inner(id, nome_completo, familia_id, cidade_residencia, tipo_user_id, familia:familias!pessoas_familia_id_fkey(id, nome))")
         .eq("acao_id", acaoId)
-        .neq("status", "cancelada");
+        .eq("status", "presente");
       if (error) throw error;
       return (data ?? []) as any[];
     },
