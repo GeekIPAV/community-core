@@ -2985,10 +2985,12 @@ function ProjetosMultiSelect({
   values,
   options,
   onChange,
+  placeholder = "Sem projetos",
 }: {
   values: string[];
   options: { value: string; label: string }[];
   onChange: (next: string[]) => void;
+  placeholder?: string;
 }) {
   const labels = values.map((v) => options.find((o) => o.value === v)?.label).filter(Boolean) as string[];
   const toggle = (v: string) => {
@@ -3002,7 +3004,7 @@ function ProjetosMultiSelect({
           className="flex min-h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-1.5 text-left text-sm shadow-sm hover:bg-muted/50"
         >
           <span className={labels.length ? "" : "text-muted-foreground"}>
-            {labels.length ? labels.join(", ") : "Sem projetos"}
+            {labels.length ? labels.join(", ") : placeholder}
           </span>
           <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
         </button>
