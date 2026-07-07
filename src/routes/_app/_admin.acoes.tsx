@@ -2433,6 +2433,327 @@ function BulkImportAcoesDialog({ onDone }: { onDone: () => void }) {
   );
 }
 
+function TransporteAcaoTab({ acaoId }: { acaoId: string }) {
+  const qc = useQueryClient();
+
+  const { data: inscricoes, isLoading } = useQuery({
+    queryKey: ["transporte-acao", acaoId],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("inscricoes")
+        .select("id, pessoa_id, pessoas!inner(id, nome_completo, familia_id, cidade_residencia, tipo_user_id, familia:familias!pessoas_familia_id_fkey(id, nome))")
+        .eq("acao_id", acaoId)
+        .neq("status", "cancelada");
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const { data: bolsasPagamentos = [] } = useQuery({
+    queryKey: ["bolsas-acao", acaoId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("bolsas_pagamentos")
+        .select("*")
+        .eq("acao_id", acaoId);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const { data: mapaKmRows = [] } = useQuery({
+    queryKey: ["mapa-km-acao", acaoId],
+    queryFn: async () => {
+      if (!inscricoes?.length) return [] as any[];
+      const familiaIds = [...new Set(
+        (inscricoes ?? [])
+          .map((i: any) => i.pessoas?.familia_id)
+          .filter(Boolean)
+      )];
+      if (!familiaIds.length) return [] as any[];
+      const { data, error } = await (supabase as any)
+        .from("mapa_km")
+        .select("*")
+        .in("familia_id", familiaIds)
+        .order("data", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+    enabled: !!inscricoes,
+  });
+
+  const { data: tipos = [] } = useQuery({
+    queryKey: ["tipos-user-transporte"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("tipos_user").select("id, nome");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+  });
+
+  const membroTipoId = useMemo(
+    () => tipos.find((t) => t.nome.trim().toLowerCase() === "membro")?.id ?? null,
+    [tipos]
+  );
+
+  const familias = useMemo(() => {
+    if (!inscricoes) return [] as Array<{
+      familia_id: string;
+      familia_nome: string;
+      membros: Array<{ id: string; nome: string; cidade: string | null; tipo_user_id: string | null; isMembro: boolean }>;
+      bolsas: any[];
+      kmRows: any[];
+    }>;
+    const map = new Map<string, {
+      familia_id: string;
+      familia_nome: string;
+      membros: Array<{ id: string; nome: string; cidade: string | null; tipo_user_id: string | null; isMembro: boolean }>;
+      bolsas: any[];
+      kmRows: any[];
+    }>();
+
+    for (const i of inscricoes as any[]) {
+      const fid = i.pessoas?.familia_id;
+      if (!fid) continue;
+      const existing = map.get(fid) ?? {
+        familia_id: fid,
+        familia_nome: i.pessoas?.familia?.nome ?? "—",
+        membros: [],
+        bolsas: [],
+        kmRows: [],
+      };
+      const isMembro = membroTipoId ? i.pessoas?.tipo_user_id === membroTipoId : true;
+      existing.membros.push({
+        id: i.pessoa_id,
+        nome: i.pessoas?.nome_completo ?? "—",
+        cidade: i.pessoas?.cidade_residencia ?? null,
+        tipo_user_id: i.pessoas?.tipo_user_id ?? null,
+        isMembro,
+      });
+      map.set(fid, existing);
+    }
+
+    for (const [fid, f] of map) {
+      const memberIds = f.membros.map((m) => m.id);
+      f.bolsas = bolsasPagamentos.filter((b: any) => memberIds.includes(b.pessoa_id));
+      f.kmRows = mapaKmRows.filter((k: any) => k.familia_id === fid);
+    }
+
+    return Array.from(map.values()).sort((a, b) => a.familia_nome.localeCompare(b.familia_nome, "pt"));
+  }, [inscricoes, bolsasPagamentos, mapaKmRows, membroTipoId]);
+
+  const updateBolsa = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: any }) => {
+      const { error } = await (supabase as any)
+        .from("bolsas_pagamentos")
+        .update({ ...patch, updated_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["bolsas-acao", acaoId] });
+      qc.invalidateQueries({ queryKey: ["bolsas-pagamentos-full"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const updateKm = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: any }) => {
+      const { valor: _v, ...safe } = patch;
+      const { error } = await (supabase as any)
+        .from("mapa_km")
+        .update({ ...safe, updated_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["mapa-km-acao", acaoId] });
+      qc.invalidateQueries({ queryKey: ["mapa-km"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const eur = (v: number) => v.toFixed(2).replace(".", ",") + " €";
+
+  if (isLoading) return <Skeleton className="h-32 w-full" />;
+
+  if (familias.length === 0) {
+    return (
+      <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
+        Sem famílias inscritas nesta ação.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-muted-foreground">
+        Gerir bolsas de transporte e registos de KM por família. Só membros com tipo <strong>Membro</strong> têm direito a bolsa.
+      </p>
+
+      {familias.map((f) => {
+        const totalBolsa = f.bolsas.reduce((s: number, b: any) => s + (b.valor ?? 0), 0);
+        const totalKm = f.kmRows.reduce((s: number, k: any) => s + (k.valor ?? 0), 0);
+        const naoMembros = f.membros.filter((m) => !m.isMembro);
+
+        return (
+          <Collapsible key={f.familia_id}>
+            <CollapsibleTrigger className="w-full flex items-center justify-between rounded-lg border px-4 py-3 hover:bg-muted/40 transition-colors">
+              <div className="flex items-center gap-3 min-w-0">
+                <ChevronDown className="h-4 w-4 shrink-0 transition-transform [[data-state=open]_&]:rotate-180" />
+                <div className="text-left min-w-0">
+                  <p className="font-medium truncate">{f.familia_nome}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {f.membros.length} pessoa{f.membros.length !== 1 ? "s" : ""}
+                    {naoMembros.length > 0 && (
+                      <span className="text-amber-600 ml-2">· {naoMembros.length} sem tipo Membro</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 shrink-0 ml-3 text-sm">
+                {f.bolsas.length > 0 && (
+                  <Badge className="bg-blue-100 text-blue-800 border-blue-200">
+                    Bolsa: {eur(totalBolsa)}
+                  </Badge>
+                )}
+                {f.kmRows.length > 0 && (
+                  <Badge className="bg-orange-100 text-orange-800 border-orange-200">
+                    KM: {eur(totalKm)}
+                  </Badge>
+                )}
+                {f.bolsas.length === 0 && f.kmRows.length === 0 && (
+                  <span className="text-xs text-muted-foreground">Sem registos</span>
+                )}
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="border border-t-0 rounded-b-lg p-4 space-y-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Membros inscritos</p>
+                  <div className="flex flex-wrap gap-2">
+                    {f.membros.map((m) => (
+                      <div key={m.id} className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs ${m.isMembro ? "" : "opacity-60 border-dashed"}`}>
+                        <span>{m.nome}</span>
+                        {m.cidade && <span className="text-muted-foreground">· {m.cidade}</span>}
+                        {!m.isMembro && <span className="text-amber-600 font-medium">· não Membro</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {f.bolsas.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-primary mb-2">Bolsas de transporte</p>
+                    <div className="rounded-md border overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Pessoa</TableHead>
+                            <TableHead className="text-right">Valor</TableHead>
+                            <TableHead>Estado</TableHead>
+                            <TableHead>Método</TableHead>
+                            <TableHead>Data pagamento</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {f.bolsas.map((b: any) => {
+                            const membro = f.membros.find((m) => m.id === b.pessoa_id);
+                            return (
+                              <TableRow key={b.id}>
+                                <TableCell className="font-medium">{membro?.nome ?? "—"}</TableCell>
+                                <TableCell className="text-right tabular-nums">{eur(b.valor)}</TableCell>
+                                <TableCell>
+                                  <Select
+                                    value={b.estado}
+                                    onValueChange={(v) => updateBolsa.mutate({ id: b.id, patch: {
+                                      estado: v,
+                                      data_pagamento: v === "pago" && !b.data_pagamento
+                                        ? new Date().toISOString().slice(0, 10)
+                                        : b.data_pagamento,
+                                    }})}
+                                  >
+                                    <SelectTrigger className="h-7 w-32 text-xs"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="por_pagar">Por pagar</SelectItem>
+                                      <SelectItem value="pago">Pago</SelectItem>
+                                      <SelectItem value="cancelado">Cancelado</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </TableCell>
+                                <TableCell className="text-xs text-muted-foreground">{b.metodo_pagamento ?? "—"}</TableCell>
+                                <TableCell className="text-xs text-muted-foreground">{b.data_pagamento ?? "—"}</TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                )}
+
+                {f.kmRows.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-primary mb-2">Mapa de KM</p>
+                    <div className="rounded-md border overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Data</TableHead>
+                            <TableHead>Motivo</TableHead>
+                            <TableHead className="text-right">KM</TableHead>
+                            <TableHead className="text-right">Valor</TableHead>
+                            <TableHead>Estado</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {f.kmRows.map((k: any) => (
+                            <TableRow key={k.id}>
+                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                                {new Date(k.data).toLocaleDateString("pt-PT")}
+                              </TableCell>
+                              <TableCell className="max-w-[160px] truncate" title={k.motivo}>{k.motivo}</TableCell>
+                              <TableCell className="text-right tabular-nums">{k.km}</TableCell>
+                              <TableCell className="text-right tabular-nums font-medium">{eur(k.valor)}</TableCell>
+                              <TableCell>
+                                <Select
+                                  value={k.estado}
+                                  onValueChange={(v) => updateKm.mutate({ id: k.id, patch: {
+                                    estado: v,
+                                    data_pagamento: v === "pago" && !k.data_pagamento
+                                      ? new Date().toISOString().slice(0, 10)
+                                      : k.data_pagamento,
+                                  }})}
+                                >
+                                  <SelectTrigger className="h-7 w-32 text-xs"><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="por_pagar">Por pagar</SelectItem>
+                                    <SelectItem value="pago">Pago</SelectItem>
+                                    <SelectItem value="cancelado">Cancelado</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                )}
+
+                {f.bolsas.length === 0 && f.kmRows.length === 0 && (
+                  <p className="text-sm text-muted-foreground italic">Sem bolsas de transporte nem registos de KM para esta família neste evento.</p>
+                )}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+      })}
+    </div>
+  );
+}
+
 function AcoesPageInner() {
   const qc = useQueryClient();
   const [addOpen, setAddOpen] = useState(false);
