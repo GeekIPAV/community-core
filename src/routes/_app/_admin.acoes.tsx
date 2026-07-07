@@ -3176,7 +3176,7 @@ function ProjetosMultiSelect({
   const toggle = (v: string) => {
     onChange(values.includes(v) ? values.filter((x) => x !== v) : [...values, v]);
   };
-  const [query, setQuery] = React.useState("");
+  const [query, setQuery] = useState("");
   const filtered = searchable && query.trim()
     ? options.filter((o) => o.label.toLowerCase().includes(query.trim().toLowerCase()))
     : options;
