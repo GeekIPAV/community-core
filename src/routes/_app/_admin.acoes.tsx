@@ -575,6 +575,100 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
   }, [baseRows]);
   const [addOpen, setAddOpen] = useState(false);
 
+  // Transport toggles per family (for group-by-familia view)
+  const [familiaKm, setFamiliaKm] = useState<Record<string, boolean>>({});
+  const [familiaBolsa, setFamiliaBolsa] = useState<Record<string, boolean>>({});
+  const [familiaKmDados, setFamiliaKmDados] = useState<Record<string, { motivo: string; km: string; n_carros: string }>>({});
+
+  // Fetch cidades for bolsa calculation
+  const { data: bolsasCidadesInscricoes } = useQuery({
+    queryKey: ["bolsas-cidades"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("bolsas_cidades")
+        .select("id, nome, valor_sentido, ativo")
+        .eq("ativo", true);
+      if (error) throw error;
+      return (data ?? []) as unknown as CidadeBolsa[];
+    },
+  });
+
+  // Fetch membro tipo id
+  const { data: tiposInscricoes } = useQuery({
+    queryKey: ["tipos-user-inscricoes"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("tipos_user").select("id, nome");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+  });
+  const membroTipoIdInscricoes = useMemo(
+    () => tiposInscricoes?.find((t) => t.nome.trim().toLowerCase() === "membro")?.id ?? null,
+    [tiposInscricoes]
+  );
+
+  const criarKmFamilia = useMutation({
+    mutationFn: async ({ familiaId }: { familiaId: string; rows: InscricaoRow[] }) => {
+      const dados = familiaKmDados[familiaId] ?? { motivo: "", km: "", n_carros: "1" };
+      const km = Number((dados.km ?? "").replace(",", "."));
+      const nCarros = Math.max(1, Number(dados.n_carros ?? 1));
+      const motivo = (dados.motivo ?? "").trim() || "Deslocação para evento";
+      if (!km || km <= 0) throw new Error("Indica os km para registar o mapa de KM");
+      const { error } = await (supabase as any).from("mapa_km").insert({
+        familia_id: familiaId,
+        data: new Date().toISOString().slice(0, 10),
+        motivo,
+        km,
+        n_carros: nCarros,
+        estado: "por_pagar",
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      toast.success("Mapa de KM registado");
+      qc.invalidateQueries({ queryKey: ["mapa-km"] });
+      setFamiliaKm((prev) => ({ ...prev, [vars.familiaId]: false }));
+      setFamiliaKmDados((prev) => { const n = { ...prev }; delete n[vars.familiaId]; return n; });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const criarBolsaFamilia = useMutation({
+    mutationFn: async ({ rows: inscRows }: { familiaId: string; rows: InscricaoRow[] }) => {
+      const elegiveis = inscRows.filter((r) => {
+        if (r.status !== "presente") return false;
+        if (membroTipoIdInscricoes && r.pessoa?.tipo_user_id !== membroTipoIdInscricoes) return false;
+        return true;
+      });
+      if (elegiveis.length === 0) throw new Error("Nenhum membro elegível (tem de estar Presente e ter tipo Membro)");
+      const bolsaRows = elegiveis.map((r) => {
+        const cidade = matchCidade(r.pessoa?.cidade_residencia, bolsasCidadesInscricoes ?? []);
+        const valor = cidade ? Math.round(cidade.valor_sentido * TRIP_FACTOR * 100) / 100 : 0;
+        return {
+          inscricao_id: r.id,
+          pessoa_id: r.pessoa?.id,
+          acao_id: acaoId,
+          valor,
+          estado: "por_pagar",
+          metodo_pagamento: null,
+          notas: null,
+        };
+      });
+      const { error } = await (supabase as any)
+        .from("bolsas_pagamentos")
+        .upsert(bolsaRows, { onConflict: "inscricao_id" });
+      if (error) throw error;
+      return bolsaRows.length;
+    },
+    onSuccess: (n, vars) => {
+      toast.success(`Bolsa criada para ${n} pessoa${n !== 1 ? "s" : ""}`);
+      qc.invalidateQueries({ queryKey: ["bolsas-pagamentos-full"] });
+      qc.invalidateQueries({ queryKey: ["bolsas-acao", acaoId] });
+      setFamiliaBolsa((prev) => ({ ...prev, [vars.familiaId]: false }));
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const familiasInscritas = useMemo(() => {
     const map = new Map<string, string>();
     baseRows.forEach((r) => {
