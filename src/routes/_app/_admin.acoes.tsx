@@ -231,9 +231,11 @@ type AcaoForm = {
   publico: boolean;
   fields: FieldDef[];
   parceiro_ids?: string[];
+  tipo_acao_id?: string | null;
+  formador_ids?: string[];
 };
 
-const EMPTY_FORM: AcaoForm = { nome: "", local: "", mapa_url: "", imagem_url: "", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, bolsa_transporte: false, projeto_ids: [], restrito_a_projetos: false, publico: true, fields: [], parceiro_ids: [] };
+const EMPTY_FORM: AcaoForm = { nome: "", local: "", mapa_url: "", imagem_url: "", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, bolsa_transporte: false, projeto_ids: [], restrito_a_projetos: false, publico: true, fields: [], parceiro_ids: [], tipo_acao_id: null, formador_ids: [] };
 
 const acaoFormSchema = z
   .object({
@@ -2239,7 +2241,7 @@ function AcoesPageInner() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("acoes")
-        .select("id, nome, local, mapa_url, imagem_url, data_inicio, data_fim, status, inscricoes_abertas, bolsa_transporte, projeto_ids, restrito_a_projetos, publico, config_campos")
+        .select("id, nome, local, mapa_url, imagem_url, data_inicio, data_fim, status, inscricoes_abertas, bolsa_transporte, projeto_ids, restrito_a_projetos, publico, config_campos, tipo_acao_id, formador_ids")
         .order("data_inicio", { ascending: false, nullsFirst: false });
       if (error) throw error;
       return data;
@@ -2252,6 +2254,32 @@ function AcoesPageInner() {
       const { data, error } = await supabase.from("projetos").select("id, nome").order("nome");
       if (error) throw error;
       return data as { id: string; nome: string }[];
+    },
+  });
+
+  const { data: tiposAcao } = useQuery({
+    queryKey: ["tipos_acao_lookup"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tipos_acao")
+        .select("id, nome, requer_formadores, ordem")
+        .order("ordem")
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string; requer_formadores: boolean; ordem: number }[];
+    },
+  });
+
+  const { data: pessoasLookup } = useQuery({
+    queryKey: ["pessoas_lookup_formadores"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pessoas")
+        .select("id, nome_completo")
+        .eq("status", "ativo")
+        .order("nome_completo");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome_completo: string }[];
     },
   });
 
@@ -2382,6 +2410,8 @@ function AcoesPageInner() {
             publico: (a as any).publico ?? true,
             fields,
             parceiro_ids: acaoParceiros?.get(a.id) ?? [],
+            tipo_acao_id: (a as any).tipo_acao_id ?? null,
+            formador_ids: ((a as any).formador_ids ?? []) as string[],
           });
         }}
       >
@@ -2457,6 +2487,8 @@ function AcoesPageInner() {
         restrito_a_projetos: form.restrito_a_projetos,
         publico: form.publico,
         config_campos: { fields: form.fields },
+        tipo_acao_id: form.tipo_acao_id || null,
+        formador_ids: form.formador_ids ?? [],
       } as any).select("id").single();
       if (error) throw error;
       await upsertLocalizacao(form.local, form.mapa_url || null);
@@ -2505,6 +2537,8 @@ function AcoesPageInner() {
           restrito_a_projetos: editing.restrito_a_projetos,
           publico: editing.publico,
           config_campos: { fields: editing.fields },
+          tipo_acao_id: editing.tipo_acao_id || null,
+          formador_ids: editing.formador_ids ?? [],
         } as any)
         .eq("id", editing.id);
       if (error) throw error;
@@ -2635,6 +2669,14 @@ function AcoesPageInner() {
                 </div>
                 <Switch checked={form.bolsa_transporte} onCheckedChange={(c) => setForm({ ...form, bolsa_transporte: c })} />
               </label>
+              <TipoAcaoBlock
+                tipoAcaoId={form.tipo_acao_id}
+                formadorIds={form.formador_ids ?? []}
+                onTipoChange={(id) => setForm({ ...form, tipo_acao_id: id, formador_ids: id ? (form.formador_ids ?? []) : [] })}
+                onFormadoresChange={(ids) => setForm({ ...form, formador_ids: ids })}
+                tipos={tiposAcao ?? []}
+                pessoas={pessoasLookup ?? []}
+              />
               <div className="space-y-2 rounded-md border p-3">
                 <Label>Projetos associados</Label>
                 <ProjetosMultiSelect
@@ -2763,6 +2805,8 @@ function AcoesPageInner() {
                 publico: a.publico ?? true,
                 fields,
                 parceiro_ids: acaoParceiros?.get(a.id) ?? [],
+                tipo_acao_id: a.tipo_acao_id ?? null,
+                formador_ids: (a.formador_ids ?? []) as string[],
               });
             }}
           />
@@ -2871,6 +2915,14 @@ function AcoesPageInner() {
                 </div>
                 <Switch checked={editing.bolsa_transporte} onCheckedChange={(c) => setEditing({ ...editing, bolsa_transporte: c })} />
               </label>
+              <TipoAcaoBlock
+                tipoAcaoId={editing.tipo_acao_id}
+                formadorIds={editing.formador_ids ?? []}
+                onTipoChange={(id) => setEditing({ ...editing, tipo_acao_id: id, formador_ids: id ? (editing.formador_ids ?? []) : [] })}
+                onFormadoresChange={(ids) => setEditing({ ...editing, formador_ids: ids })}
+                tipos={tiposAcao ?? []}
+                pessoas={pessoasLookup ?? []}
+              />
               <div className="space-y-2 rounded-md border p-3">
                 <Label>Projetos associados</Label>
                 <ProjetosMultiSelect
@@ -2945,14 +2997,123 @@ function AcoesPageInner() {
     </div>
   );
 }
+
+function TipoAcaoBlock({
+  tipoAcaoId,
+  formadorIds,
+  onTipoChange,
+  onFormadoresChange,
+  tipos,
+  pessoas,
+}: {
+  tipoAcaoId: string | null | undefined;
+  formadorIds: string[];
+  onTipoChange: (id: string | null) => void;
+  onFormadoresChange: (ids: string[]) => void;
+  tipos: { id: string; nome: string; requer_formadores: boolean }[];
+  pessoas: { id: string; nome_completo: string }[];
+}) {
+  const selected = tipos.find((t) => t.id === tipoAcaoId);
+  const requerFormadores = !!selected?.requer_formadores;
+  const qc = useQueryClient();
+  const [novoOpen, setNovoOpen] = useState(false);
+  const [novoNome, setNovoNome] = useState("");
+  const [novoRequer, setNovoRequer] = useState(false);
+  const criar = useMutation({
+    mutationFn: async () => {
+      const nome = novoNome.trim();
+      if (!nome) throw new Error("Nome obrigatório");
+      const { data, error } = await supabase
+        .from("tipos_acao")
+        .insert({ nome, requer_formadores: novoRequer } as any)
+        .select("id")
+        .single();
+      if (error) throw error;
+      return data?.id as string;
+    },
+    onSuccess: (id) => {
+      toast.success("Tipo criado");
+      qc.invalidateQueries({ queryKey: ["tipos_acao_lookup"] });
+      setNovoOpen(false);
+      setNovoNome("");
+      setNovoRequer(false);
+      if (id) onTipoChange(id);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <div className="space-y-2 rounded-md border p-3">
+      <div className="flex items-center justify-between">
+        <Label>Tipo de ação</Label>
+        <Button type="button" size="sm" variant="ghost" onClick={() => setNovoOpen(true)}>
+          <Plus className="mr-1 h-3.5 w-3.5" /> Novo tipo
+        </Button>
+      </div>
+      <Select
+        value={tipoAcaoId ?? "__none"}
+        onValueChange={(v) => onTipoChange(v === "__none" ? null : v)}
+      >
+        <SelectTrigger className="h-9"><SelectValue placeholder="Sem tipo" /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__none">Sem tipo</SelectItem>
+          {tipos.map((t) => (
+            <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {requerFormadores && (
+        <div className="space-y-1 pt-1">
+          <Label className="text-xs text-muted-foreground">Formadores</Label>
+          <ProjetosMultiSelect
+            values={formadorIds}
+            options={pessoas.map((p) => ({ value: p.id, label: p.nome_completo }))}
+            onChange={onFormadoresChange}
+            placeholder="Sem formadores"
+          />
+          <p className="text-xs text-muted-foreground">Escolhe os formadores da base de dados de participantes.</p>
+        </div>
+      )}
+      <Dialog open={novoOpen} onOpenChange={setNovoOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Novo tipo de ação</DialogTitle>
+            <DialogDescription>Cria um novo tipo para categorizar as ações.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>Nome</Label>
+              <Input value={novoNome} onChange={(e) => setNovoNome(e.target.value)} placeholder="Ex: Formação" />
+            </div>
+            <label className="flex items-center justify-between rounded-md border p-3">
+              <div>
+                <p className="text-sm font-medium">Requer formadores</p>
+                <p className="text-xs text-muted-foreground">Se ligado, ao escolher este tipo poderás selecionar formadores.</p>
+              </div>
+              <Switch checked={novoRequer} onCheckedChange={setNovoRequer} />
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNovoOpen(false)}>Cancelar</Button>
+            <Button onClick={() => criar.mutate()} disabled={!novoNome.trim() || criar.isPending}>
+              {criar.isPending ? "A guardar…" : "Criar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 function ProjetosMultiSelect({
   values,
   options,
   onChange,
+  placeholder = "Sem projetos",
 }: {
   values: string[];
   options: { value: string; label: string }[];
   onChange: (next: string[]) => void;
+  placeholder?: string;
 }) {
   const labels = values.map((v) => options.find((o) => o.value === v)?.label).filter(Boolean) as string[];
   const toggle = (v: string) => {
@@ -2966,7 +3127,7 @@ function ProjetosMultiSelect({
           className="flex min-h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-1.5 text-left text-sm shadow-sm hover:bg-muted/50"
         >
           <span className={labels.length ? "" : "text-muted-foreground"}>
-            {labels.length ? labels.join(", ") : "Sem projetos"}
+            {labels.length ? labels.join(", ") : placeholder}
           </span>
           <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
         </button>
