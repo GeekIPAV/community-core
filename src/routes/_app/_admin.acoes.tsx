@@ -2981,6 +2981,55 @@ function AcoesPageInner() {
     </div>
   );
 }
+
+function TipoAcaoBlock({
+  tipoAcaoId,
+  formadorIds,
+  onTipoChange,
+  onFormadoresChange,
+  tipos,
+  pessoas,
+}: {
+  tipoAcaoId: string | null | undefined;
+  formadorIds: string[];
+  onTipoChange: (id: string | null) => void;
+  onFormadoresChange: (ids: string[]) => void;
+  tipos: { id: string; nome: string; requer_formadores: boolean }[];
+  pessoas: { id: string; nome_completo: string }[];
+}) {
+  const selected = tipos.find((t) => t.id === tipoAcaoId);
+  const requerFormadores = !!selected?.requer_formadores;
+  return (
+    <div className="space-y-2 rounded-md border p-3">
+      <Label>Tipo de ação</Label>
+      <Select
+        value={tipoAcaoId ?? "__none"}
+        onValueChange={(v) => onTipoChange(v === "__none" ? null : v)}
+      >
+        <SelectTrigger className="h-9"><SelectValue placeholder="Sem tipo" /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__none">Sem tipo</SelectItem>
+          {tipos.map((t) => (
+            <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {requerFormadores && (
+        <div className="space-y-1 pt-1">
+          <Label className="text-xs text-muted-foreground">Formadores</Label>
+          <ProjetosMultiSelect
+            values={formadorIds}
+            options={pessoas.map((p) => ({ value: p.id, label: p.nome_completo }))}
+            onChange={onFormadoresChange}
+            placeholder="Sem formadores"
+          />
+          <p className="text-xs text-muted-foreground">Escolhe os formadores da base de dados de participantes.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ProjetosMultiSelect({
   values,
   options,
