@@ -76,6 +76,22 @@ type FamiliaResumo = {
   inscricoes: InscricaoComBolsa[];
 };
 
+type MapaKmRow = {
+  id: string;
+  familia_id: string;
+  familia_nome?: string;
+  data: string;
+  motivo: string;
+  km: number;
+  matricula: string | null;
+  n_carros: number;
+  valor: number;
+  estado: "por_pagar" | "pago" | "cancelado";
+  metodo_pagamento: string | null;
+  notas: string | null;
+  data_pagamento: string | null;
+};
+
 function formatDate(d: string | null | undefined) {
   if (!d) return "—";
   return new Date(d).toLocaleDateString("pt-PT", { day: "numeric", month: "short", year: "numeric" });
