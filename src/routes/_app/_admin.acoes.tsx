@@ -2274,13 +2274,38 @@ function AcoesPageInner() {
   const { data: pessoasLookup } = useQuery({
     queryKey: ["pessoas_lookup_formadores"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pessoas")
-        .select("id, nome_completo")
-        .eq("status", "ativo")
-        .order("nome_completo");
-      if (error) throw error;
-      return (data ?? []) as { id: string; nome_completo: string }[];
+      const { data: tipoRow, error: tipoErr } = await supabase
+        .from("tipos_user")
+        .select("id")
+        .ilike("nome", "formador")
+        .maybeSingle();
+      if (tipoErr) throw tipoErr;
+      if (!tipoRow) return [] as { id: string; nome_completo: string }[];
+      const tipoId = tipoRow.id;
+      const [primaryRes, ptRes] = await Promise.all([
+        supabase
+          .from("pessoas")
+          .select("id, nome_completo, status")
+          .eq("status", "ativo")
+          .eq("tipo_user_id", tipoId),
+        supabase
+          .from("pessoa_tipos")
+          .select("pessoa_id, pessoas!inner(id, nome_completo, status)")
+          .eq("tipo_user_id", tipoId),
+      ]);
+      if (primaryRes.error) throw primaryRes.error;
+      if (ptRes.error) throw ptRes.error;
+      const map = new Map<string, string>();
+      for (const p of (primaryRes.data ?? []) as any[]) {
+        map.set(p.id, p.nome_completo);
+      }
+      for (const r of (ptRes.data ?? []) as any[]) {
+        const p = r.pessoas;
+        if (p && p.status === "ativo") map.set(p.id, p.nome_completo);
+      }
+      return Array.from(map, ([id, nome_completo]) => ({ id, nome_completo })).sort((a, b) =>
+        a.nome_completo.localeCompare(b.nome_completo, "pt"),
+      );
     },
   });
 
