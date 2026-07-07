@@ -26,7 +26,7 @@ export const Route = createFileRoute("/acao/$id")({
   loader: async ({ params }) => {
     const { data } = await supabase
       .from("acoes")
-      .select("id, nome, descricao, local, imagem_url, data_inicio, data_fim, publico")
+      .select("id, nome, descricao, local, imagem_url, imagem_position, data_inicio, data_fim, publico")
       .eq("id", params.id)
       .eq("publico", true)
       .maybeSingle();
@@ -148,6 +148,7 @@ function AcaoDetailPage() {
                 src={acao.imagem_url}
                 alt={acao.nome}
                 className="h-56 w-full object-cover sm:h-72"
+                style={{ objectPosition: (acao as any).imagem_position ?? "50% 50%" }}
               />
             )}
             <CardHeader>
@@ -486,6 +487,7 @@ function EditarAcaoDialog({ open, onOpenChange, acao }: { open: boolean; onOpenC
     local: acao.local ?? "",
     mapa_url: acao.mapa_url ?? "",
     imagem_url: acao.imagem_url ?? "",
+    imagem_position: (acao as any).imagem_position ?? "50% 50%",
     data_inicio: toLocalInput(acao.data_inicio),
     data_fim: toLocalInput(acao.data_fim),
     publico: !!acao.publico,
@@ -502,6 +504,7 @@ function EditarAcaoDialog({ open, onOpenChange, acao }: { open: boolean; onOpenC
         local: acao.local ?? "",
         mapa_url: acao.mapa_url ?? "",
         imagem_url: acao.imagem_url ?? "",
+        imagem_position: (acao as any).imagem_position ?? "50% 50%",
         data_inicio: toLocalInput(acao.data_inicio),
         data_fim: toLocalInput(acao.data_fim),
         publico: !!acao.publico,
@@ -530,6 +533,7 @@ function EditarAcaoDialog({ open, onOpenChange, acao }: { open: boolean; onOpenC
         local: form.local || null,
         mapa_url: form.mapa_url || null,
         imagem_url: form.imagem_url || null,
+        imagem_position: form.imagem_position || "50% 50%",
         data_inicio: form.data_inicio ? new Date(form.data_inicio).toISOString() : null,
         data_fim: form.data_fim ? new Date(form.data_fim).toISOString() : null,
         publico: form.publico,
@@ -572,7 +576,12 @@ function EditarAcaoDialog({ open, onOpenChange, acao }: { open: boolean; onOpenC
           </div>
           <div className="space-y-1">
             <Label>Imagem</Label>
-            <ImageUpload value={form.imagem_url} onChange={(url) => setForm({ ...form, imagem_url: url ?? "" })} />
+            <ImageUpload
+              value={form.imagem_url}
+              onChange={(url) => setForm({ ...form, imagem_url: url ?? "", imagem_position: "50% 50%" })}
+              position={form.imagem_position}
+              onPositionChange={(p) => setForm({ ...form, imagem_position: p })}
+            />
           </div>
           <div className="space-y-1">
             <Label>Descrição</Label>
