@@ -2274,13 +2274,38 @@ function AcoesPageInner() {
   const { data: pessoasLookup } = useQuery({
     queryKey: ["pessoas_lookup_formadores"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pessoas")
-        .select("id, nome_completo")
-        .eq("status", "ativo")
-        .order("nome_completo");
-      if (error) throw error;
-      return (data ?? []) as { id: string; nome_completo: string }[];
+      const { data: tipoRow, error: tipoErr } = await supabase
+        .from("tipos_user")
+        .select("id")
+        .ilike("nome", "formador")
+        .maybeSingle();
+      if (tipoErr) throw tipoErr;
+      if (!tipoRow) return [] as { id: string; nome_completo: string }[];
+      const tipoId = tipoRow.id;
+      const [primaryRes, ptRes] = await Promise.all([
+        supabase
+          .from("pessoas")
+          .select("id, nome_completo, status")
+          .eq("status", "ativo")
+          .eq("tipo_user_id", tipoId),
+        supabase
+          .from("pessoa_tipos")
+          .select("pessoa_id, pessoas!inner(id, nome_completo, status)")
+          .eq("tipo_user_id", tipoId),
+      ]);
+      if (primaryRes.error) throw primaryRes.error;
+      if (ptRes.error) throw ptRes.error;
+      const map = new Map<string, string>();
+      for (const p of (primaryRes.data ?? []) as any[]) {
+        map.set(p.id, p.nome_completo);
+      }
+      for (const r of (ptRes.data ?? []) as any[]) {
+        const p = r.pessoas;
+        if (p && p.status === "ativo") map.set(p.id, p.nome_completo);
+      }
+      return Array.from(map, ([id, nome_completo]) => ({ id, nome_completo })).sort((a, b) =>
+        a.nome_completo.localeCompare(b.nome_completo, "pt"),
+      );
     },
   });
 
@@ -3095,6 +3120,9 @@ function TipoAcaoBlock({
             options={pessoas.map((p) => ({ value: p.id, label: p.nome_completo }))}
             onChange={onFormadoresChange}
             placeholder="Sem formadores"
+            searchable
+            searchPlaceholder="Pesquisar formador…"
+            emptyLabel="Sem formadores disponíveis"
           />
           <p className="text-xs text-muted-foreground">Escolhe os formadores da base de dados de participantes.</p>
         </div>
@@ -3135,16 +3163,26 @@ function ProjetosMultiSelect({
   options,
   onChange,
   placeholder = "Sem projetos",
+  searchable = false,
+  searchPlaceholder = "Pesquisar…",
+  emptyLabel = "Sem projetos disponíveis",
 }: {
   values: string[];
   options: { value: string; label: string }[];
   onChange: (next: string[]) => void;
   placeholder?: string;
+  searchable?: boolean;
+  searchPlaceholder?: string;
+  emptyLabel?: string;
 }) {
   const labels = values.map((v) => options.find((o) => o.value === v)?.label).filter(Boolean) as string[];
   const toggle = (v: string) => {
     onChange(values.includes(v) ? values.filter((x) => x !== v) : [...values, v]);
   };
+  const [query, setQuery] = useState("");
+  const filtered = searchable && query.trim()
+    ? options.filter((o) => o.label.toLowerCase().includes(query.trim().toLowerCase()))
+    : options;
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -3159,11 +3197,21 @@ function ProjetosMultiSelect({
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-1">
+        {searchable && (
+          <div className="p-1">
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={searchPlaceholder}
+              className="h-8"
+            />
+          </div>
+        )}
         <div className="max-h-64 overflow-auto">
-          {options.length === 0 && (
-            <div className="px-2 py-1.5 text-sm text-muted-foreground">Sem projetos disponíveis</div>
+          {filtered.length === 0 && (
+            <div className="px-2 py-1.5 text-sm text-muted-foreground">{emptyLabel}</div>
           )}
-          {options.map((o) => {
+          {filtered.map((o) => {
             const checked = values.includes(o.value);
             return (
               <button
