@@ -1383,6 +1383,7 @@ export type Database = {
       }
       mapa_km: {
         Row: {
+          acao_id: string | null
           created_at: string
           data: string
           data_pagamento: string | null
@@ -1399,6 +1400,7 @@ export type Database = {
           valor: number | null
         }
         Insert: {
+          acao_id?: string | null
           created_at?: string
           data?: string
           data_pagamento?: string | null
@@ -1415,6 +1417,7 @@ export type Database = {
           valor?: number | null
         }
         Update: {
+          acao_id?: string | null
           created_at?: string
           data?: string
           data_pagamento?: string | null
@@ -1431,6 +1434,13 @@ export type Database = {
           valor?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "mapa_km_acao_id_fkey"
+            columns: ["acao_id"]
+            isOneToOne: false
+            referencedRelation: "acoes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "mapa_km_familia_id_fkey"
             columns: ["familia_id"]
