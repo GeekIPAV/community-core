@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,11 +84,12 @@ function IndicadoresGlobalPage() {
     queryKey: ["financiamentos-min"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("financiamentos" as any)
+        // @ts-expect-error — table not yet in generated types
+        .from("financiamentos")
         .select("id, nome, financiador, data_inicio, data_fim, valor_total, estado")
         .order("nome");
       if (error) throw error;
-      return ((data ?? []) as unknown) as {
+      return (data ?? []) as {
         id: string;
         nome: string;
         financiador: string;
@@ -104,10 +105,11 @@ function IndicadoresGlobalPage() {
     queryKey: ["financiamento-links"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("financiamento_indicadores" as any)
+        // @ts-expect-error — table not yet in generated types
+        .from("financiamento_indicadores")
         .select("financiamento_id, indicador_id");
       if (error) throw error;
-      return ((data ?? []) as unknown) as {
+      return (data ?? []) as {
         financiamento_id: string;
         indicador_id: string;
       }[];
@@ -159,8 +161,11 @@ function IndicadoresGlobalPage() {
 
   // Computed values
   const [values, setValues] = useState<Record<string, number>>({});
-  const handleComputed = (id: string, v: number) =>
-    setValues((p) => (p[id] === v ? p : { ...p, [id]: v }));
+  const handleComputed = useCallback(
+    (id: string, v: number) =>
+      setValues((p) => (p[id] === v ? p : { ...p, [id]: v })),
+    [],
+  );
   const valorAtual = (k: Kpi) =>
     k.fonte === "manual" ? Number(k.valor_manual ?? 0) : values[k.id] ?? 0;
 
@@ -190,7 +195,7 @@ function IndicadoresGlobalPage() {
     return Array.from(map.values()).sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
   }, [filtered]);
 
-  const exportar = () => {
+  const exportar = async () => {
     const lines: string[] = [];
     lines.push("═════════════════════════════");
     if (financiamentoSelecionado) {
@@ -224,8 +229,12 @@ function IndicadoresGlobalPage() {
       }
       lines.push("");
     }
-    navigator.clipboard.writeText(lines.join("\n"));
-    toast.success("Relatório copiado para a área de transferência ✓");
+    try {
+      await navigator.clipboard.writeText(lines.join("\n"));
+      toast.success("Relatório copiado para a área de transferência ✓");
+    } catch {
+      toast.error("Não foi possível copiar — tenta seleccionar e copiar manualmente.");
+    }
   };
 
   return (
@@ -237,7 +246,7 @@ function IndicadoresGlobalPage() {
             Vista global dos indicadores de monitorização e avaliação em todos os projetos.
           </p>
         </div>
-        <Button variant="outline" onClick={exportar} disabled={total === 0}>
+        <Button variant="outline" onClick={() => void exportar()} disabled={total === 0}>
           <ClipboardCopy className="me-2 h-4 w-4" /> Exportar relatório
         </Button>
       </div>
