@@ -59,6 +59,7 @@ export type Database = {
           formador_ids: string[]
           google_event_id: string | null
           id: string
+          imagem_position: string
           imagem_url: string | null
           inscricoes_abertas: boolean
           local: string | null
@@ -84,6 +85,7 @@ export type Database = {
           formador_ids?: string[]
           google_event_id?: string | null
           id?: string
+          imagem_position?: string
           imagem_url?: string | null
           inscricoes_abertas?: boolean
           local?: string | null
@@ -109,6 +111,7 @@ export type Database = {
           formador_ids?: string[]
           google_event_id?: string | null
           id?: string
+          imagem_position?: string
           imagem_url?: string | null
           inscricoes_abertas?: boolean
           local?: string | null

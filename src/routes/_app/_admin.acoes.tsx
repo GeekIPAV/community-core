@@ -220,6 +220,7 @@ type AcaoForm = {
   local: string;
   mapa_url: string;
   imagem_url: string;
+  imagem_position: string;
   descricao: string;
   data_inicio: string;
   data_fim: string;
@@ -235,7 +236,7 @@ type AcaoForm = {
   formador_ids?: string[];
 };
 
-const EMPTY_FORM: AcaoForm = { nome: "", local: "", mapa_url: "", imagem_url: "", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, bolsa_transporte: false, projeto_ids: [], restrito_a_projetos: false, publico: true, fields: [], parceiro_ids: [], tipo_acao_id: null, formador_ids: [] };
+const EMPTY_FORM: AcaoForm = { nome: "", local: "", mapa_url: "", imagem_url: "", imagem_position: "50% 50%", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, bolsa_transporte: false, projeto_ids: [], restrito_a_projetos: false, publico: true, fields: [], parceiro_ids: [], tipo_acao_id: null, formador_ids: [] };
 
 const acaoFormSchema = z
   .object({
@@ -2241,7 +2242,7 @@ function AcoesPageInner() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("acoes")
-        .select("id, nome, local, mapa_url, imagem_url, data_inicio, data_fim, status, inscricoes_abertas, bolsa_transporte, projeto_ids, restrito_a_projetos, publico, config_campos, tipo_acao_id, formador_ids")
+        .select("id, nome, local, mapa_url, imagem_url, imagem_position, data_inicio, data_fim, status, inscricoes_abertas, bolsa_transporte, projeto_ids, restrito_a_projetos, publico, config_campos, tipo_acao_id, formador_ids")
         .order("data_inicio", { ascending: false, nullsFirst: false });
       if (error) throw error;
       return data;
@@ -2399,6 +2400,7 @@ function AcoesPageInner() {
             local: a.local ?? "",
             mapa_url: (a as any).mapa_url ?? "",
             imagem_url: (a as any).imagem_url ?? "",
+            imagem_position: (a as any).imagem_position ?? "50% 50%",
             descricao: full?.descricao ?? "",
             data_inicio: toDtLocal(a.data_inicio),
             data_fim: toDtLocal(a.data_fim),
@@ -2477,6 +2479,7 @@ function AcoesPageInner() {
         local: form.local || null,
         mapa_url: form.mapa_url || null,
         imagem_url: form.imagem_url || null,
+        imagem_position: form.imagem_position || "50% 50%",
         descricao: form.descricao || null,
         data_inicio: fromDtLocal(form.data_inicio),
         data_fim: fromDtLocal(form.data_fim),
@@ -2527,6 +2530,7 @@ function AcoesPageInner() {
           local: editing.local || null,
           mapa_url: editing.mapa_url || null,
           imagem_url: editing.imagem_url || null,
+          imagem_position: editing.imagem_position || "50% 50%",
           descricao: editing.descricao || null,
           data_inicio: fromDtLocal(editing.data_inicio),
           data_fim: fromDtLocal(editing.data_fim),
@@ -2605,7 +2609,12 @@ function AcoesPageInner() {
               <div className="space-y-2"><Label>Nome</Label><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} /></div>
               <div className="space-y-2">
                 <Label>Imagem do evento</Label>
-                <ImageUpload value={form.imagem_url} onChange={(url) => setForm({ ...form, imagem_url: url ?? "" })} />
+                <ImageUpload
+                  value={form.imagem_url}
+                  onChange={(url) => setForm({ ...form, imagem_url: url ?? "", imagem_position: "50% 50%" })}
+                  position={form.imagem_position}
+                  onPositionChange={(p) => setForm({ ...form, imagem_position: p })}
+                />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
@@ -2794,6 +2803,7 @@ function AcoesPageInner() {
                 local: a.local ?? "",
                 mapa_url: a.mapa_url ?? "",
                 imagem_url: a.imagem_url ?? "",
+                imagem_position: a.imagem_position ?? "50% 50%",
                 descricao: full?.descricao ?? "",
                 data_inicio: toDtLocal(a.data_inicio),
                 data_fim: toDtLocal(a.data_fim),
@@ -2847,7 +2857,12 @@ function AcoesPageInner() {
               <div className="space-y-2"><Label>Nome</Label><Input value={editing.nome} onChange={(e) => setEditing({ ...editing, nome: e.target.value })} /></div>
               <div className="space-y-2">
                 <Label>Imagem do evento</Label>
-                <ImageUpload value={editing.imagem_url} onChange={(url) => setEditing({ ...editing, imagem_url: url ?? "" })} />
+                <ImageUpload
+                  value={editing.imagem_url}
+                  onChange={(url) => setEditing({ ...editing, imagem_url: url ?? "", imagem_position: "50% 50%" })}
+                  position={editing.imagem_position}
+                  onPositionChange={(p) => setEditing({ ...editing, imagem_position: p })}
+                />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
