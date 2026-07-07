@@ -618,7 +618,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Registo de KM criado — completa os detalhes na página de Bolsas");
+      toast.success("Registo de KM criado — completa os detalhes na página de Bolsas de Transporte");
       qc.invalidateQueries({ queryKey: ["mapa-km"] });
       qc.invalidateQueries({ queryKey: ["mapa-km-acao", acaoId] });
     },
