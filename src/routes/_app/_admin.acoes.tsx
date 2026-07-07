@@ -2505,18 +2505,19 @@ function TransporteAcaoTab({ acaoId }: { acaoId: string }) {
       bolsas: any[];
       kmRows: any[];
     }>;
-    const map = new Map<string, {
+    type FamRow = {
       familia_id: string;
       familia_nome: string;
       membros: Array<{ id: string; nome: string; cidade: string | null; tipo_user_id: string | null; isMembro: boolean }>;
       bolsas: any[];
       kmRows: any[];
-    }>();
+    };
+    const map = new Map<string, FamRow>();
 
     for (const i of inscricoes as any[]) {
       const fid = i.pessoas?.familia_id;
       if (!fid) continue;
-      const existing = map.get(fid) ?? {
+      const existing: FamRow = map.get(fid) ?? {
         familia_id: fid,
         familia_nome: i.pessoas?.familia?.nome ?? "—",
         membros: [],
