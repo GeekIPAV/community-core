@@ -554,6 +554,47 @@ function BolsasTransportePage() {
       data_pagamento: i.pagamento?.data_pagamento ?? null,
     });
 
+  const bulkEstadoFamilia = (members: InscricaoComBolsa[], estado: BolsaPagamento["estado"]) => {
+    for (const i of members) {
+      upsertPagamento.mutate({
+        inscricao_id: i.inscricao_id,
+        pessoa_id: i.pessoa_id,
+        acao_id: i.acao_id,
+        valor: i.pagamento?.valor ?? i.valor_calculado,
+        estado,
+        metodo_pagamento: i.pagamento?.metodo_pagamento ?? null,
+        notas: i.pagamento?.notas ?? null,
+        data_pagamento: i.pagamento?.data_pagamento ?? null,
+      });
+    }
+  };
+
+  const bulkCampoFamilia = (
+    members: InscricaoComBolsa[],
+    campo: "metodo_pagamento" | "notas",
+    valor: string,
+  ) => {
+    for (const i of members) {
+      upsertPagamento.mutate({
+        inscricao_id: i.inscricao_id,
+        pessoa_id: i.pessoa_id,
+        acao_id: i.acao_id,
+        valor: i.pagamento?.valor ?? i.valor_calculado,
+        estado: i.pagamento?.estado ?? "por_pagar",
+        metodo_pagamento: campo === "metodo_pagamento" ? (valor || null) : i.pagamento?.metodo_pagamento ?? null,
+        notas: campo === "notas" ? (valor || null) : i.pagamento?.notas ?? null,
+        data_pagamento: i.pagamento?.data_pagamento ?? null,
+      });
+    }
+  };
+
+  const bulkMarcarPagosFamilia = (members: InscricaoComBolsa[]) => {
+    for (const i of members) {
+      if ((i.pagamento?.estado ?? "por_pagar") !== "por_pagar") continue;
+      marcarPago(i);
+    }
+  };
+
   // Filters tab 1
   const [search, setSearch] = useState("");
   const [estadoFilter, setEstadoFilter] = useState<"todos" | BolsaPagamento["estado"]>("todos");
