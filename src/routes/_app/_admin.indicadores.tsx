@@ -84,7 +84,6 @@ function IndicadoresGlobalPage() {
     queryKey: ["financiamentos-min"],
     queryFn: async () => {
       const { data, error } = await supabase
-        // @ts-expect-error — table not yet in generated types
         .from("financiamentos")
         .select("id, nome, financiador, data_inicio, data_fim, valor_total, estado")
         .order("nome");
@@ -105,7 +104,6 @@ function IndicadoresGlobalPage() {
     queryKey: ["financiamento-links"],
     queryFn: async () => {
       const { data, error } = await supabase
-        // @ts-expect-error — table not yet in generated types
         .from("financiamento_indicadores")
         .select("financiamento_id, indicador_id");
       if (error) throw error;
