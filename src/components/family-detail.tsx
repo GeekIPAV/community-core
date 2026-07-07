@@ -361,7 +361,7 @@ export interface FamilyDetailDialogProps {
   /** Called after any successful mutation so the parent can refresh its queries */
   onUpdate?: () => void;
   /** Which tab to open first (defaults to "membros") */
- defaultTab?: "dados" | "membros" | "projetos" | "acoes" | "atividades" | "casos" | "contexto";
+ defaultTab?: "dados" | "membros" | "projetos" | "acoes" | "atividades" | "casos" | "contexto" | "transporte";
 }
 
 export function FamilyDetailDialog({
@@ -376,7 +376,7 @@ export function FamilyDetailDialog({
   const qc = useQueryClient();
 
   // ── tab + editing state ───────────────────────────────────────────────────
-  const [detailTab, setDetailTab] = useState<"dados" | "membros" | "projetos" | "acoes" | "atividades" | "casos" | "contexto">(defaultTab);
+  const [detailTab, setDetailTab] = useState<"dados" | "membros" | "projetos" | "acoes" | "atividades" | "casos" | "contexto" | "transporte">(defaultTab);
   const [editing, setEditing] = useState<Familia | null>(family);
 
   // When the selected family changes reset editing state. Only reset the active
@@ -776,6 +776,7 @@ export function FamilyDetailDialog({
               <TabsTrigger value="acoes" className="flex-1">Ações</TabsTrigger>
               <TabsTrigger value="atividades" className="flex-1">Atividades</TabsTrigger>
               <TabsTrigger value="casos" className="flex-1">Casos</TabsTrigger>
+              <TabsTrigger value="transporte" className="flex-1">Transporte</TabsTrigger>
               <TabsTrigger value="contexto" className="flex-1">
                 {family ? <ContextoTabLabel familiaId={family.id} /> : "Contexto"}
               </TabsTrigger>
@@ -1138,6 +1139,11 @@ export function FamilyDetailDialog({
             {/* ── Casos de Apoio ── */}
             <TabsContent value="casos" className="pt-4 flex-1 min-h-0 overflow-auto">
               {family && <CasosFamiliaTab familiaId={family.id} />}
+            </TabsContent>
+
+            {/* ── Transporte ── */}
+            <TabsContent value="transporte" className="pt-4 flex-1 min-h-0 overflow-auto">
+              {family && <TransporteFamiliaTab familiaId={family.id} />}
             </TabsContent>
 
             {/* ── Contexto Relacional ── */}
