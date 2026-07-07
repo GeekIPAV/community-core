@@ -1394,13 +1394,45 @@ function AddPessoasDialog({
       }));
       const { error } = await supabase.from("inscricoes").insert(rows as any);
       if (error) throw error;
+      if (mapaKmFamilias.size > 0) {
+        const pessoasInscritas = (pessoas ?? []).filter((p) => ids.includes(p.id));
+        const familiasDone = new Set<string>();
+        const mapaKmRows: any[] = [];
+        for (const pessoa of pessoasInscritas) {
+          if (!pessoa.familia_id) continue;
+          if (!mapaKmFamilias.has(pessoa.familia_id)) continue;
+          if (familiasDone.has(pessoa.familia_id)) continue;
+          familiasDone.add(pessoa.familia_id);
+          const dados = mapaKmDados[pessoa.familia_id];
+          const km = Number((dados?.km ?? "").replace(",", "."));
+          const nCarros = Math.max(1, Number(dados?.n_carros ?? 1));
+          const motivo = (dados?.motivo ?? "").trim() || "Deslocação para evento";
+          if (km > 0) {
+            mapaKmRows.push({
+              familia_id: pessoa.familia_id,
+              data: new Date().toISOString().slice(0, 10),
+              motivo,
+              km,
+              n_carros: nCarros,
+              estado: "por_pagar",
+            });
+          }
+        }
+        if (mapaKmRows.length > 0) {
+          const { error: kmError } = await supabase.from("mapa_km").insert(mapaKmRows as any);
+          if (kmError) console.warn("[mapa_km] Erro ao criar registo:", kmError);
+        }
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["inscricoes", acaoId] });
       qc.invalidateQueries({ queryKey: ["inscricao-counts"] });
+      qc.invalidateQueries({ queryKey: ["mapa-km"] });
       toast.success("Pessoas inscritas com sucesso");
       setSelected(new Set());
       setSearch("");
+      setMapaKmFamilias(new Set());
+      setMapaKmDados({});
       onOpenChange(false);
     },
     onError: (e: Error) => toast.error(e.message),
