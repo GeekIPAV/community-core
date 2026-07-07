@@ -2086,7 +2086,7 @@ function BolsaTab({ acaoId }: { acaoId: string }) {
         .from("inscricoes")
         .select("id, status, valores_dinamicos, pessoa:pessoas(id, nome_completo, cidade_residencia, familia:familias!pessoas_familia_id_fkey(id, nome))")
         .eq("acao_id", acaoId)
-        .neq("status", "cancelada");
+        .eq("status", "presente");
       if (error) throw error;
       return data as any[];
     },
