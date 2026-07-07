@@ -3160,16 +3160,26 @@ function ProjetosMultiSelect({
   options,
   onChange,
   placeholder = "Sem projetos",
+  searchable = false,
+  searchPlaceholder = "Pesquisar…",
+  emptyLabel = "Sem projetos disponíveis",
 }: {
   values: string[];
   options: { value: string; label: string }[];
   onChange: (next: string[]) => void;
   placeholder?: string;
+  searchable?: boolean;
+  searchPlaceholder?: string;
+  emptyLabel?: string;
 }) {
   const labels = values.map((v) => options.find((o) => o.value === v)?.label).filter(Boolean) as string[];
   const toggle = (v: string) => {
     onChange(values.includes(v) ? values.filter((x) => x !== v) : [...values, v]);
   };
+  const [query, setQuery] = React.useState("");
+  const filtered = searchable && query.trim()
+    ? options.filter((o) => o.label.toLowerCase().includes(query.trim().toLowerCase()))
+    : options;
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -3184,11 +3194,21 @@ function ProjetosMultiSelect({
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-1">
+        {searchable && (
+          <div className="p-1">
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={searchPlaceholder}
+              className="h-8"
+            />
+          </div>
+        )}
         <div className="max-h-64 overflow-auto">
-          {options.length === 0 && (
-            <div className="px-2 py-1.5 text-sm text-muted-foreground">Sem projetos disponíveis</div>
+          {filtered.length === 0 && (
+            <div className="px-2 py-1.5 text-sm text-muted-foreground">{emptyLabel}</div>
           )}
-          {options.map((o) => {
+          {filtered.map((o) => {
             const checked = values.includes(o.value);
             return (
               <button
