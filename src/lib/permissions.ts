@@ -17,13 +17,17 @@ export type PageKey =
   | "bolsas-transporte"
   | "localizacoes"
   | "tipos-user"
-  | "servicos";
+  | "servicos"
+  | "pedidos-ajuda"
+  | "parceiros";
 
 export const AVAILABLE_PAGES: { key: PageKey; label: string; path: string }[] = [
   { key: "dashboard", label: "Dashboard", path: "/dashboard" },
   { key: "participantes", label: "Gestão de Participantes", path: "/participantes" },
   { key: "familias", label: "Gestão de Famílias", path: "/familias" },
   { key: "casos", label: "Acompanhamento", path: "/casos" },
+  { key: "pedidos-ajuda", label: "Pedidos de Ajuda", path: "/pedidos-ajuda" },
+  { key: "parceiros", label: "Parceiros", path: "/parceiros" },
   { key: "acoes", label: "Gestão de Ações", path: "/acoes" },
   { key: "atividades", label: "Atividades", path: "/atividades" },
   { key: "curriculos", label: "Currículos", path: "/curriculos" },
