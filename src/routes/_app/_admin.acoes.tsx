@@ -2669,6 +2669,14 @@ function AcoesPageInner() {
                 </div>
                 <Switch checked={form.bolsa_transporte} onCheckedChange={(c) => setForm({ ...form, bolsa_transporte: c })} />
               </label>
+              <TipoAcaoBlock
+                tipoAcaoId={form.tipo_acao_id}
+                formadorIds={form.formador_ids ?? []}
+                onTipoChange={(id) => setForm({ ...form, tipo_acao_id: id, formador_ids: id ? (form.formador_ids ?? []) : [] })}
+                onFormadoresChange={(ids) => setForm({ ...form, formador_ids: ids })}
+                tipos={tiposAcao ?? []}
+                pessoas={pessoasLookup ?? []}
+              />
               <div className="space-y-2 rounded-md border p-3">
                 <Label>Projetos associados</Label>
                 <ProjetosMultiSelect
