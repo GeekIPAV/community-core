@@ -2915,6 +2915,14 @@ function AcoesPageInner() {
                 </div>
                 <Switch checked={editing.bolsa_transporte} onCheckedChange={(c) => setEditing({ ...editing, bolsa_transporte: c })} />
               </label>
+              <TipoAcaoBlock
+                tipoAcaoId={editing.tipo_acao_id}
+                formadorIds={editing.formador_ids ?? []}
+                onTipoChange={(id) => setEditing({ ...editing, tipo_acao_id: id, formador_ids: id ? (editing.formador_ids ?? []) : [] })}
+                onFormadoresChange={(ids) => setEditing({ ...editing, formador_ids: ids })}
+                tipos={tiposAcao ?? []}
+                pessoas={pessoasLookup ?? []}
+              />
               <div className="space-y-2 rounded-md border p-3">
                 <Label>Projetos associados</Label>
                 <ProjetosMultiSelect
