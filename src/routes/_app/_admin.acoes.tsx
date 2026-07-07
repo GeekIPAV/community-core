@@ -994,30 +994,30 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
                         <TableCell>
                           <Checkbox checked={allGroupSelected} onCheckedChange={toggleGroup} />
                         </TableCell>
-                        <TableCell className="font-medium text-sm">
-                          {key} <span className="text-muted-foreground font-normal">({rows.length})</span>
-                        </TableCell>
-                        <TableCell colSpan={colSpan - 2} className="text-right">
-                          {familiaId && (
-                            <div className="flex items-center justify-end gap-3 flex-wrap">
-                              <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none" title="Registar mapa de KM para esta família">
-                                <Switch
-                                  className="scale-75"
-                                  checked={!!familiaKm[familiaId]}
-                                  onCheckedChange={(v) => setFamiliaKm((prev) => ({ ...prev, [familiaId]: v }))}
-                                />
-                                <span className="text-muted-foreground">KM</span>
-                              </label>
-                              <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none" title="Registar bolsa de transporte para esta família">
-                                <Switch
-                                  className="scale-75"
-                                  checked={!!familiaBolsa[familiaId]}
-                                  onCheckedChange={(v) => setFamiliaBolsa((prev) => ({ ...prev, [familiaId]: v }))}
-                                />
-                                <span className="text-muted-foreground">Bolsa</span>
-                              </label>
-                            </div>
-                          )}
+                        <TableCell className="font-medium text-sm" colSpan={colSpan - 1}>
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <span>{key} <span className="text-muted-foreground font-normal">({rows.length})</span></span>
+                            {familiaId && (
+                              <div className="flex items-center gap-3 flex-wrap">
+                                <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none" title="Registar mapa de KM para esta família">
+                                  <Switch
+                                    className="scale-75"
+                                    checked={!!familiaKm[familiaId]}
+                                    onCheckedChange={(v) => setFamiliaKm((prev) => ({ ...prev, [familiaId]: v }))}
+                                  />
+                                  <span className="text-muted-foreground">KM</span>
+                                </label>
+                                <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none" title="Registar bolsa de transporte para esta família">
+                                  <Switch
+                                    className="scale-75"
+                                    checked={!!familiaBolsa[familiaId]}
+                                    onCheckedChange={(v) => setFamiliaBolsa((prev) => ({ ...prev, [familiaId]: v }))}
+                                  />
+                                  <span className="text-muted-foreground">Bolsa</span>
+                                </label>
+                              </div>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
