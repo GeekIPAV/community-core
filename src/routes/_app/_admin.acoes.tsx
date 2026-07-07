@@ -2007,7 +2007,7 @@ function AddPessoasDialog({
           </TabsContent>
         </Tabs>
         <SheetFooter>
-          <Button variant="outline" onClick={() => { setMapaKmFamilias(new Set()); setMapaKmDados({}); onOpenChange(false); }}>Cancelar</Button>
+          <Button variant="outline" onClick={() => { setMapaKmFamilias(new Set()); setMapaKmDados({}); setBolsaFamilias(new Set()); onOpenChange(false); }}>Cancelar</Button>
           {tab === "nova" ? (
             <Button
               disabled={
