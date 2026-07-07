@@ -609,6 +609,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
     mutationFn: async ({ familiaId }: { familiaId: string; rows: InscricaoRow[] }) => {
       const { error } = await (supabase as any).from("mapa_km").insert({
         familia_id: familiaId,
+        acao_id: acaoId,
         data: new Date().toISOString().slice(0, 10),
         motivo: "A completar",
         km: 1,
