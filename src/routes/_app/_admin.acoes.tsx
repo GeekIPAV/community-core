@@ -3099,6 +3099,7 @@ function AcoesPageInner() {
                   <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
                   <TabsTrigger value="inscricoes">Inscrições</TabsTrigger>
                   {editing.bolsa_transporte && <TabsTrigger value="bolsa">Bolsa</TabsTrigger>}
+                  <TabsTrigger value="transporte">Transporte</TabsTrigger>
                 </TabsList>
               </DialogHeader>
               <TabsContent value="detalhes" className="mt-6 space-y-4 min-w-0">
@@ -3227,6 +3228,9 @@ function AcoesPageInner() {
                   <BolsaTab acaoId={editing.id} />
                 </TabsContent>
               )}
+              <TabsContent value="transporte" className="mt-6 min-w-0">
+                <TransporteAcaoTab acaoId={editing.id} />
+              </TabsContent>
             </Tabs>
           )}
           <DialogFooter className="gap-2 sm:justify-between">
