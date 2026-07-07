@@ -2485,6 +2485,8 @@ function AcoesPageInner() {
         restrito_a_projetos: form.restrito_a_projetos,
         publico: form.publico,
         config_campos: { fields: form.fields },
+        tipo_acao_id: form.tipo_acao_id || null,
+        formador_ids: form.formador_ids ?? [],
       } as any).select("id").single();
       if (error) throw error;
       await upsertLocalizacao(form.local, form.mapa_url || null);
