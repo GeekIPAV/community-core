@@ -2400,6 +2400,7 @@ function AcoesPageInner() {
             local: a.local ?? "",
             mapa_url: (a as any).mapa_url ?? "",
             imagem_url: (a as any).imagem_url ?? "",
+            imagem_position: (a as any).imagem_position ?? "50% 50%",
             descricao: full?.descricao ?? "",
             data_inicio: toDtLocal(a.data_inicio),
             data_fim: toDtLocal(a.data_fim),
