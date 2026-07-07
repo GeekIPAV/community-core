@@ -32,10 +32,20 @@ function DashboardPage() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ["dashboard-stats"],
     queryFn: async () => {
-      // @ts-expect-error — RPC not yet in generated types
       const { data, error } = await supabase.rpc("get_estatisticas_publicas");
       if (error) throw error;
-      return data;
+      return data as unknown as {
+        membros_familias_total?: number;
+        familias_total?: number;
+        eventos_total?: number;
+        projetos_total?: number;
+        voluntarios_total?: number;
+        participantes_eventos_total?: number;
+        participantes_projetos_total?: number;
+        atividades_total?: number;
+        generos_detalhe?: { nome: string; count: number }[];
+        atividades_top?: { nome: string; count: number }[];
+      };
     },
   });
 
