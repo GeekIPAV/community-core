@@ -314,6 +314,48 @@ function FamiliaHeaderRow({
   );
 }
 
+function FamiliaSubgrupoBlock({
+  group,
+  colSpan,
+  onBulkEstado,
+  onBulkCampo,
+  onBulkMarcarPagos,
+  onChangeEstado,
+  onUpdate,
+  onMarcarPago,
+}: {
+  group: FamiliaSubgrupo;
+  colSpan: number;
+  onBulkEstado: (members: InscricaoComBolsa[], estado: BolsaPagamento["estado"]) => void;
+  onBulkCampo: (members: InscricaoComBolsa[], campo: "metodo_pagamento" | "notas", valor: string) => void;
+  onBulkMarcarPagos: (members: InscricaoComBolsa[]) => void;
+  onChangeEstado: (i: InscricaoComBolsa, estado: BolsaPagamento["estado"]) => void;
+  onUpdate: (i: InscricaoComBolsa, campo: "metodo_pagamento" | "notas", valor: string) => void;
+  onMarcarPago: (i: InscricaoComBolsa) => void;
+}) {
+  return (
+    <>
+      <FamiliaHeaderRow
+        group={group}
+        colSpan={colSpan}
+        onBulkEstado={onBulkEstado}
+        onBulkCampo={onBulkCampo}
+        onBulkMarcarPagos={onBulkMarcarPagos}
+      />
+      {group.inscricoes.map((i) => (
+        <InscricaoRow
+          key={i.inscricao_id}
+          i={i}
+          onChangeEstado={onChangeEstado}
+          onUpdate={onUpdate}
+          onMarcarPago={onMarcarPago}
+          hideShared={group.isFamilia && group.inscricoes.length > 1}
+        />
+      ))}
+    </>
+  );
+}
+
 
 function BolsasTransportePage() {
   const qc = useQueryClient();
