@@ -988,16 +988,164 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
                       else groupIds.forEach((id) => next.add(id));
                       setSelected(next);
                     };
+                    const familiaId = rows[0]?.original.pessoa?.familia?.id as string | undefined;
                     out.push(
                       <TableRow key={`group-${key}`} className="bg-muted/50 hover:bg-muted/50">
                         <TableCell>
                           <Checkbox checked={allGroupSelected} onCheckedChange={toggleGroup} />
                         </TableCell>
-                        <TableCell colSpan={colSpan - 1} className="font-medium text-sm">
+                        <TableCell className="font-medium text-sm">
                           {key} <span className="text-muted-foreground font-normal">({rows.length})</span>
+                        </TableCell>
+                        <TableCell colSpan={colSpan - 2} className="text-right">
+                          {familiaId && (
+                            <div className="flex items-center justify-end gap-3 flex-wrap">
+                              <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none" title="Registar mapa de KM para esta família">
+                                <Switch
+                                  className="scale-75"
+                                  checked={!!familiaKm[familiaId]}
+                                  onCheckedChange={(v) => setFamiliaKm((prev) => ({ ...prev, [familiaId]: v }))}
+                                />
+                                <span className="text-muted-foreground">KM</span>
+                              </label>
+                              <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none" title="Registar bolsa de transporte para esta família">
+                                <Switch
+                                  className="scale-75"
+                                  checked={!!familiaBolsa[familiaId]}
+                                  onCheckedChange={(v) => setFamiliaBolsa((prev) => ({ ...prev, [familiaId]: v }))}
+                                />
+                                <span className="text-muted-foreground">Bolsa</span>
+                              </label>
+                            </div>
+                          )}
                         </TableCell>
                       </TableRow>
                     );
+                    if (familiaId && familiaKm[familiaId]) {
+                      out.push(
+                        <TableRow key={`group-km-${key}`} className="bg-amber-50/50 hover:bg-amber-50/50">
+                          <TableCell />
+                          <TableCell colSpan={colSpan - 1}>
+                            <div className="flex items-end gap-2 flex-wrap py-1">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground self-end pb-1 w-full">Mapa de KM</p>
+                              <div className="flex flex-col gap-0.5 min-w-[180px] flex-1">
+                                <p className="text-[10px] text-muted-foreground">Motivo / destino</p>
+                                <Input
+                                  className="h-7 text-xs"
+                                  placeholder="Ex: SEF, IPO, AIMA…"
+                                  value={familiaKmDados[familiaId]?.motivo ?? ""}
+                                  onChange={(e) => setFamiliaKmDados((prev) => ({
+                                    ...prev,
+                                    [familiaId]: { ...{ motivo: "", km: "", n_carros: "1" }, ...(prev[familiaId] ?? {}), motivo: e.target.value }
+                                  }))}
+                                />
+                              </div>
+                              <div className="flex flex-col gap-0.5 w-20">
+                                <p className="text-[10px] text-muted-foreground">KM (ida)</p>
+                                <Input
+                                  className="h-7 text-xs"
+                                  inputMode="decimal"
+                                  placeholder="Ex: 25"
+                                  value={familiaKmDados[familiaId]?.km ?? ""}
+                                  onChange={(e) => setFamiliaKmDados((prev) => ({
+                                    ...prev,
+                                    [familiaId]: { ...{ motivo: "", km: "", n_carros: "1" }, ...(prev[familiaId] ?? {}), km: e.target.value }
+                                  }))}
+                                />
+                              </div>
+                              <div className="flex flex-col gap-0.5 w-16">
+                                <p className="text-[10px] text-muted-foreground">Nº carros</p>
+                                <Input
+                                  className="h-7 text-xs"
+                                  type="number"
+                                  min={1}
+                                  max={10}
+                                  value={familiaKmDados[familiaId]?.n_carros ?? "1"}
+                                  onChange={(e) => setFamiliaKmDados((prev) => ({
+                                    ...prev,
+                                    [familiaId]: { ...{ motivo: "", km: "", n_carros: "1" }, ...(prev[familiaId] ?? {}), n_carros: e.target.value }
+                                  }))}
+                                />
+                              </div>
+                              {(() => {
+                                const km = Number((familiaKmDados[familiaId]?.km ?? "").replace(",", "."));
+                                const n = Math.max(1, Number(familiaKmDados[familiaId]?.n_carros ?? 1));
+                                if (!km || km <= 0) return null;
+                                return (
+                                  <p className="text-xs font-medium text-emerald-700 tabular-nums self-end pb-1">
+                                    = {(Math.round(km * 0.36 * 2 * n * 100) / 100).toFixed(2).replace(".", ",")}€
+                                  </p>
+                                );
+                              })()}
+                              <Button
+                                size="sm"
+                                className="h-7 self-end"
+                                disabled={criarKmFamilia.isPending}
+                                onClick={() => {
+                                  const familiaRows = rows.map((r) => r.original);
+                                  criarKmFamilia.mutate({ familiaId, rows: familiaRows });
+                                }}
+                              >
+                                Registar KM
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 self-end"
+                                onClick={() => setFamiliaKm((prev) => ({ ...prev, [familiaId]: false }))}
+                              >
+                                Cancelar
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    }
+                    if (familiaId && familiaBolsa[familiaId]) {
+                      const presentesCount = rows.filter((r) => r.original.status === "presente").length;
+                      const elegiveisCount = rows.filter((r) => {
+                        if (r.original.status !== "presente") return false;
+                        if (membroTipoIdInscricoes && r.original.pessoa?.tipo_user_id !== membroTipoIdInscricoes) return false;
+                        return true;
+                      }).length;
+                      out.push(
+                        <TableRow key={`group-bolsa-${key}`} className="bg-blue-50/50 hover:bg-blue-50/50">
+                          <TableCell />
+                          <TableCell colSpan={colSpan - 1}>
+                            <div className="flex items-center gap-3 flex-wrap py-1">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium">Bolsa de transporte</p>
+                                <p className="text-[10px] text-muted-foreground">
+                                  {presentesCount} presente{presentesCount !== 1 ? "s" : ""} · {elegiveisCount} elegíve{elegiveisCount !== 1 ? "is" : "l"} (tipo Membro)
+                                </p>
+                                {elegiveisCount === 0 && (
+                                  <p className="text-[10px] text-amber-600">Nenhum membro elegível — necessário estar Presente e ter tipo Membro.</p>
+                                )}
+                              </div>
+                              <Button
+                                size="sm"
+                                className="h-7"
+                                disabled={criarBolsaFamilia.isPending || elegiveisCount === 0}
+                                onClick={() => {
+                                  const familiaRows = rows.map((r) => r.original);
+                                  criarBolsaFamilia.mutate({ familiaId, rows: familiaRows });
+                                }}
+                              >
+                                Criar bolsa
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7"
+                                onClick={() => setFamiliaBolsa((prev) => ({ ...prev, [familiaId]: false }))}
+                              >
+                                Cancelar
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    }
                     rows.forEach((row) => {
                       out.push(
                         <TableRow key={row.id} data-state={selected.has(row.original.id) ? "selected" : undefined}>
