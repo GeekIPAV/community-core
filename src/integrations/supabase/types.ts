@@ -56,6 +56,7 @@ export type Database = {
           data_fim: string | null
           data_inicio: string | null
           descricao: string | null
+          formador_ids: string[]
           google_event_id: string | null
           id: string
           imagem_url: string | null
@@ -69,6 +70,7 @@ export type Database = {
           restrito_a_projetos: boolean
           status: string
           tipo: string
+          tipo_acao_id: string | null
           updated_at: string
         }
         Insert: {
@@ -79,6 +81,7 @@ export type Database = {
           data_fim?: string | null
           data_inicio?: string | null
           descricao?: string | null
+          formador_ids?: string[]
           google_event_id?: string | null
           id?: string
           imagem_url?: string | null
@@ -92,6 +95,7 @@ export type Database = {
           restrito_a_projetos?: boolean
           status?: string
           tipo?: string
+          tipo_acao_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -102,6 +106,7 @@ export type Database = {
           data_fim?: string | null
           data_inicio?: string | null
           descricao?: string | null
+          formador_ids?: string[]
           google_event_id?: string | null
           id?: string
           imagem_url?: string | null
@@ -115,6 +120,7 @@ export type Database = {
           restrito_a_projetos?: boolean
           status?: string
           tipo?: string
+          tipo_acao_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -123,6 +129,13 @@ export type Database = {
             columns: ["localizacao_id"]
             isOneToOne: false
             referencedRelation: "localizacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acoes_tipo_acao_id_fkey"
+            columns: ["tipo_acao_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_acao"
             referencedColumns: ["id"]
           },
         ]
@@ -2276,6 +2289,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tipos_acao: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          requer_formadores: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          requer_formadores?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          requer_formadores?: boolean
+          updated_at?: string
+        }
+        Relationships: []
       }
       tipos_servico: {
         Row: {
