@@ -2241,7 +2241,7 @@ function AcoesPageInner() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("acoes")
-        .select("id, nome, local, mapa_url, imagem_url, data_inicio, data_fim, status, inscricoes_abertas, bolsa_transporte, projeto_ids, restrito_a_projetos, publico, config_campos")
+        .select("id, nome, local, mapa_url, imagem_url, data_inicio, data_fim, status, inscricoes_abertas, bolsa_transporte, projeto_ids, restrito_a_projetos, publico, config_campos, tipo_acao_id, formador_ids")
         .order("data_inicio", { ascending: false, nullsFirst: false });
       if (error) throw error;
       return data;
@@ -2254,6 +2254,32 @@ function AcoesPageInner() {
       const { data, error } = await supabase.from("projetos").select("id, nome").order("nome");
       if (error) throw error;
       return data as { id: string; nome: string }[];
+    },
+  });
+
+  const { data: tiposAcao } = useQuery({
+    queryKey: ["tipos_acao_lookup"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tipos_acao")
+        .select("id, nome, requer_formadores, ordem")
+        .order("ordem")
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string; requer_formadores: boolean; ordem: number }[];
+    },
+  });
+
+  const { data: pessoasLookup } = useQuery({
+    queryKey: ["pessoas_lookup_formadores"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pessoas")
+        .select("id, nome_completo")
+        .eq("status", "ativo")
+        .order("nome_completo");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome_completo: string }[];
     },
   });
 
