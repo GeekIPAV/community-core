@@ -220,6 +220,7 @@ type AcaoForm = {
   local: string;
   mapa_url: string;
   imagem_url: string;
+  imagem_position: string;
   descricao: string;
   data_inicio: string;
   data_fim: string;
@@ -235,7 +236,7 @@ type AcaoForm = {
   formador_ids?: string[];
 };
 
-const EMPTY_FORM: AcaoForm = { nome: "", local: "", mapa_url: "", imagem_url: "", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, bolsa_transporte: false, projeto_ids: [], restrito_a_projetos: false, publico: true, fields: [], parceiro_ids: [], tipo_acao_id: null, formador_ids: [] };
+const EMPTY_FORM: AcaoForm = { nome: "", local: "", mapa_url: "", imagem_url: "", imagem_position: "50% 50%", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, bolsa_transporte: false, projeto_ids: [], restrito_a_projetos: false, publico: true, fields: [], parceiro_ids: [], tipo_acao_id: null, formador_ids: [] };
 
 const acaoFormSchema = z
   .object({
