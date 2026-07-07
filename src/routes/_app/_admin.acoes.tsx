@@ -1153,10 +1153,10 @@ function AddPessoasDialog({
     });
   };
   const setDado = (familiaId: string, field: "motivo" | "km" | "n_carros", value: string) => {
-    setMapaKmDados((prev) => ({
-      ...prev,
-      [familiaId]: { motivo: "", km: "", n_carros: "1", ...(prev[familiaId] ?? {}), [field]: value } as { motivo: string; km: string; n_carros: string },
-    }));
+    setMapaKmDados((prev) => {
+      const base = prev[familiaId] ?? { motivo: "", km: "", n_carros: "1" };
+      return { ...prev, [familiaId]: { ...base, [field]: value } };
+    });
   };
   const [cidadeFilter, setCidadeFilter] = useState<string>("__all");
   const [statusPessoaFilter, setStatusPessoaFilter] = useState<string>("ativo");
