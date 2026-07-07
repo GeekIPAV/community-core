@@ -609,6 +609,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
     mutationFn: async ({ familiaId }: { familiaId: string; rows: InscricaoRow[] }) => {
       const { error } = await (supabase as any).from("mapa_km").insert({
         familia_id: familiaId,
+        acao_id: acaoId,
         data: new Date().toISOString().slice(0, 10),
         motivo: "A completar",
         km: 1,
@@ -2206,9 +2207,50 @@ function BolsaTab({ acaoId }: { acaoId: string }) {
     },
   });
 
+  const { data: bolsasAtivas = [] } = useQuery({
+    queryKey: ["bolsa-ativas", acaoId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("bolsas_pagamentos")
+        .select("pessoa_id")
+        .eq("acao_id", acaoId);
+      if (error) throw error;
+      return (data ?? []) as { pessoa_id: string }[];
+    },
+  });
+
+  const { data: kmAtivos = [] } = useQuery({
+    queryKey: ["bolsa-km-ativos", acaoId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("mapa_km")
+        .select("familia_id")
+        .eq("acao_id", acaoId);
+      if (error) throw error;
+      return (data ?? []) as { familia_id: string }[];
+    },
+  });
+
   if (isLoading || !cidades) return <Skeleton className="h-40 w-full" />;
 
-  const rows = (inscricoes ?? []).map((r: any) => {
+  const pessoasComBolsa = new Set((bolsasAtivas as any[]).map((b) => b.pessoa_id).filter(Boolean));
+  const familiasComRegisto = new Set<string>();
+  for (const b of bolsasAtivas as any[]) {
+    const insc = (inscricoes ?? []).find((i: any) => i.pessoa?.id === b.pessoa_id);
+    const fid = insc?.pessoa?.familia?.id;
+    if (fid) familiasComRegisto.add(fid);
+  }
+  for (const k of kmAtivos as any[]) {
+    if (k.familia_id) familiasComRegisto.add(k.familia_id);
+  }
+
+  const rows = (inscricoes ?? [])
+    .filter((r: any) => {
+      const fid = r.pessoa?.familia?.id;
+      if (fid && familiasComRegisto.has(fid)) return true;
+      return pessoasComBolsa.has(r.pessoa?.id);
+    })
+    .map((r: any) => {
     const v = parseViatura(r.valores_dinamicos);
     const cidade = v.viatura_propria ? null : matchCidade(r.pessoa?.cidade_residencia, cidades);
     const valor = cidade ? cidade.valor_sentido * TRIP_FACTOR : 0;
@@ -2311,7 +2353,7 @@ function BolsaTab({ acaoId }: { acaoId: string }) {
           <Table>
             <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Cidade do perfil</TableHead><TableHead>Cidade aplicada</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
             <TableBody>
-              {familias.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-sm text-muted-foreground">Sem inscritos.</TableCell></TableRow>}
+              {familias.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-sm text-muted-foreground">Nenhuma família ativada para bolsa nesta ação. Ativa nos botões + KM / + Bolsa na aba Inscrições.</TableCell></TableRow>}
               {familias.map((f) => (
                 <Fragment key={f.nome}>
                   <TableRow className="bg-muted/40">
@@ -2595,6 +2637,7 @@ function TransporteAcaoTab({ acaoId }: { acaoId: string }) {
         .from("mapa_km")
         .select("*")
         .in("familia_id", familiaIds)
+        .eq("acao_id", acaoId)
         .order("data", { ascending: false });
       if (error) throw error;
       return (data ?? []) as any[];
@@ -2660,7 +2703,9 @@ function TransporteAcaoTab({ acaoId }: { acaoId: string }) {
       f.kmRows = mapaKmRows.filter((k: any) => k.familia_id === fid);
     }
 
-    return Array.from(map.values()).sort((a, b) => a.familia_nome.localeCompare(b.familia_nome, "pt"));
+    return Array.from(map.values())
+      .filter((f) => f.bolsas.length > 0 || f.kmRows.length > 0)
+      .sort((a, b) => a.familia_nome.localeCompare(b.familia_nome, "pt"));
   }, [inscricoes, bolsasPagamentos, mapaKmRows, membroTipoId]);
 
   const updateBolsa = useMutation({
@@ -2701,7 +2746,7 @@ function TransporteAcaoTab({ acaoId }: { acaoId: string }) {
   if (familias.length === 0) {
     return (
       <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
-        Sem famílias inscritas nesta ação.
+        Nenhuma família ativada para bolsa ou KM. Ativa nos botões + KM / + Bolsa na aba Inscrições.
       </div>
     );
   }
