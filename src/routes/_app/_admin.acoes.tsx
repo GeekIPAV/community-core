@@ -2662,7 +2662,9 @@ function TransporteAcaoTab({ acaoId }: { acaoId: string }) {
       f.kmRows = mapaKmRows.filter((k: any) => k.familia_id === fid);
     }
 
-    return Array.from(map.values()).sort((a, b) => a.familia_nome.localeCompare(b.familia_nome, "pt"));
+    return Array.from(map.values())
+      .filter((f) => f.bolsas.length > 0 || f.kmRows.length > 0)
+      .sort((a, b) => a.familia_nome.localeCompare(b.familia_nome, "pt"));
   }, [inscricoes, bolsasPagamentos, mapaKmRows, membroTipoId]);
 
   const updateBolsa = useMutation({
@@ -2703,7 +2705,7 @@ function TransporteAcaoTab({ acaoId }: { acaoId: string }) {
   if (familias.length === 0) {
     return (
       <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
-        Sem famílias inscritas nesta ação.
+        Nenhuma família ativada para bolsa ou KM. Ativa nos botões + KM / + Bolsa na aba Inscrições.
       </div>
     );
   }
