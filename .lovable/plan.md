@@ -1,30 +1,53 @@
-## Objetivo
-Permitir associar uma pessoa a uma entidade parceira (como pessoa de contacto) directamente no formulário de edição do participante — só quando o tipo "Parceiro" está atribuído.
+## Rebuild `src/routes/_app/_admin.bolsas-transporte.tsx` with payment management
 
-## 1. Base de dados
-Migração:
-- `ALTER TABLE public.pessoas ADD COLUMN parceiro_id uuid REFERENCES public.parceiros(id) ON DELETE SET NULL;`
-- Índice `idx_pessoas_parceiro_id`.
-- Regra de integridade num trigger `BEFORE INSERT/UPDATE` em `pessoas`: se `parceiro_id IS NOT NULL`, a pessoa tem de ter o tipo "Parceiro" (via `tipo_user_id` ou em `pessoa_tipos`). Caso contrário limpa `parceiro_id` para NULL (silencioso, para não bloquear alterações de tipo).
+### 1. Migration — create `bolsas_pagamentos` table
+New table (doesn't exist yet) with:
+- `inscricao_id` (unique, FK cascade), `pessoa_id` (FK), `acao_id` (FK)
+- `valor numeric(8,2)`, `estado` (`por_pagar`/`pago`/`cancelado`)
+- `metodo_pagamento`, `notas`, `data_pagamento`
+- Standard `created_at`/`updated_at` + trigger
+- GRANTs to `authenticated` + `service_role`
+- RLS enabled with policies matching `bolsas_cidades` pattern (staff/admin write, authenticated read)
 
-Sem alterações a `parceiros.pessoa_contacto` (mantém-se para retrocompatibilidade).
+### 2. Rebuild the route file with 3 Tabs
 
-## 2. UI — `src/routes/_app/_admin.participantes.tsx`
-- Query adicional `["parceiros_lookup"]` a `parceiros (id, nome)` ordenada por nome.
-- Adicionar `parceiro_id` ao `select(...)` de `pessoas` e ao `Row` type.
-- No formulário **Novo participante** e **Editar participante**: após o bloco de tipos, mostrar um `Select` "Entidade parceira" **apenas quando** o tipo Parceiro estiver seleccionado (em `tipo_user_id` ou nos tipos múltiplos via `pessoa_tipos`). Se o utilizador remover o tipo Parceiro, limpar o valor no estado local.
-- Ao gravar (create/update): incluir `parceiro_id` no upsert. Se nenhum tipo Parceiro estiver activo, forçar `parceiro_id = null`.
-- Nova coluna opcional na SmartTable "Entidade" (`parceiro_id` → nome), escondida por defeito, filtrável.
+**Tab "Pagamentos"** (default)
+- Fetches actions with `bolsa_transporte = true`, their non-cancelled inscriptions, related pessoas/famílias, active cidades, and existing pagamentos in one query
+- Computes `valor_calculado` per inscription:
+  - Own car → `viatura_km × KM_RATE × TRIP_FACTOR`
+  - Otherwise → `matchCidade().valor_sentido × TRIP_FACTOR`
+- 4 KPI cards: Por pagar, Pago, Ações com bolsa, Total geral
+- Search input + estado filter (Todos / Por pagar / Pago / Cancelado)
+- Accordion per ação → expandable Table with columns: Pessoa · Família · Cidade · Transporte · Valor · Estado · Método · Notas · Ações
+- Estado via Select; Método & Notas inline-editable (blur/Enter to save)
+- "Marcar pago" quick button; "Reverter" for pagos
+- Warning row when multiple inscriptions share the same `viatura_grupo` (normalized)
 
-## 3. UI — página da entidade (`_admin.parceiros.$parceiroId.tsx`)
-Adicionar um pequeno card "Pessoas de contacto" que lista `pessoas` com `parceiro_id = :id` (nome + email + telefone, link para `/participantes?...`). Sem edição inline aqui — a associação faz-se no perfil da pessoa.
+**Tab "Por família"**
+- Search by family name
+- One Collapsible per família showing totals (recebido / por receber) + inner table of inscriptions
+- Sort: families with `por receber > 0` first, then alphabetical
 
-## Detalhes técnicos
-- Detecção do tipo Parceiro faz-se por nome (`lower(nome) = 'parceiro'`) resolvendo o id a partir da query `tipos_user_lookup` já existente.
-- Não mexer em `src/integrations/supabase/types.ts` manualmente — é regenerado após a migração.
-- Sem alterações a permissões/RLS (herda de `pessoas`).
+**Tab "Cidades"**
+- Existing cities configuration UI moved verbatim into a `TabsContent`
 
-## Ordem de execução
-1. Migração (coluna + trigger).
-2. Alterações de UI no formulário de participantes e no lookup de parceiros.
-3. Card "Pessoas de contacto" na página da entidade.
+### 3. Mutations
+- `upsertPagamento` via `.upsert(..., { onConflict: "inscricao_id" })` — auto-fills `data_pagamento` when marking as pago
+- Invalidates `["bolsas-pagamentos-full"]`
+- Helpers: `marcarPago`, `reverter`, `changeEstado`, inline metodo/notas save
+
+### 4. Imports & types
+- Add Tabs, Collapsible, Select, Badge, Table, icons per spec
+- Import `matchCidade`, `parseViatura`, `formatEuro`, `KM_RATE`, `TRIP_FACTOR`, `normalizeGrupo`, `CidadeBolsa` from `@/lib/bolsa-transporte`
+- Local types: `BolsaPagamento`, `InscricaoComBolsa`, `AcaoComBolsa`, `FamiliaResumo`
+- Use `@ts-expect-error` on `bolsas_cidades` / `bolsas_pagamentos` `.from()` calls (not in generated types until types regenerate)
+
+### 5. Constraints
+- Do not modify `src/lib/bolsa-transporte.ts`
+- Keep existing cities UI unchanged (only wrapped in TabsContent)
+- All copy in European Portuguese
+- Typecheck must pass
+
+### Order of execution
+1. Run migration (creates `bolsas_pagamentos`, waits for approval)
+2. After migration approved & types regenerated, rewrite the route file
