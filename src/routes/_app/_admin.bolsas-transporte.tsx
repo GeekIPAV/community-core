@@ -550,6 +550,130 @@ function BolsasTransportePage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // ============ TAB 4: MAPA DE KM ============
+  const { data: mapaKmData, isLoading: loadingMapaKm } = useQuery({
+    queryKey: ["mapa-km"],
+    staleTime: 2 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("mapa_km")
+        .select("*, familias(nome)")
+        .order("data", { ascending: false });
+      if (error) throw error;
+      return ((data ?? []) as Array<MapaKmRow & { familias: { nome: string } | null }>).map((r) => ({
+        ...r,
+        familia_nome: r.familias?.nome ?? "—",
+      })) as MapaKmRow[];
+    },
+  });
+
+  const { data: familiasList } = useQuery({
+    queryKey: ["familias-lista-bolsa"],
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("familias")
+        .select("id, nome")
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+  });
+
+  const createMapaKm = useMutation({
+    mutationFn: async (row: {
+      familia_id: string;
+      data: string;
+      motivo: string;
+      km: number;
+      matricula: string | null;
+      n_carros: number;
+      estado: MapaKmRow["estado"];
+      metodo_pagamento: string | null;
+      notas: string | null;
+    }) => {
+      const { error } = await supabase.from("mapa_km").insert(row);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["mapa-km"] });
+      toast.success("Registo adicionado");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const updateMapaKm = useMutation({
+    mutationFn: async ({ id, ...row }: Partial<Omit<MapaKmRow, "valor" | "familia_nome">> & { id: string }) => {
+      const safe: Record<string, unknown> = { ...row };
+      delete safe.valor;
+      delete safe.familia_nome;
+      safe.updated_at = new Date().toISOString();
+      const { error } = await supabase.from("mapa_km").update(safe).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["mapa-km"] });
+      toast.success("Atualizado");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteMapaKm = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("mapa_km").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["mapa-km"] });
+      toast.success("Registo eliminado");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const emptyKmForm = {
+    familia_id: "",
+    data: new Date().toISOString().slice(0, 10),
+    motivo: "",
+    km: "",
+    matricula: "",
+    n_carros: "1",
+    estado: "por_pagar" as MapaKmRow["estado"],
+    metodo_pagamento: "",
+    notas: "",
+  };
+  const [kmSearch, setKmSearch] = useState("");
+  const [kmEstadoFilter, setKmEstadoFilter] = useState<"todos" | MapaKmRow["estado"]>("todos");
+  const [kmFamiliaFilter, setKmFamiliaFilter] = useState<string>("todas");
+  const [addKmOpen, setAddKmOpen] = useState(false);
+  const [editKmRow, setEditKmRow] = useState<MapaKmRow | null>(null);
+  const [deleteKmId, setDeleteKmId] = useState<string | null>(null);
+  const [kmForm, setKmForm] = useState(emptyKmForm);
+
+  const kmKpis = useMemo(() => {
+    const rows = mapaKmData ?? [];
+    const porPagar = rows.filter((r) => r.estado === "por_pagar");
+    const pago = rows.filter((r) => r.estado === "pago");
+    return {
+      porPagarN: porPagar.length,
+      porPagarV: porPagar.reduce((s, r) => s + Number(r.valor), 0),
+      pagoN: pago.length,
+      pagoV: pago.reduce((s, r) => s + Number(r.valor), 0),
+      totalKm: rows.reduce((s, r) => s + Number(r.km), 0),
+      totalV: rows.reduce((s, r) => s + Number(r.valor), 0),
+    };
+  }, [mapaKmData]);
+
+  const kmFiltered = useMemo(() => {
+    const rows = mapaKmData ?? [];
+    const s = kmSearch.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (kmEstadoFilter !== "todos" && r.estado !== kmEstadoFilter) return false;
+      if (kmFamiliaFilter !== "todas" && r.familia_id !== kmFamiliaFilter) return false;
+      if (s && !(r.familia_nome ?? "").toLowerCase().includes(s) && !r.motivo.toLowerCase().includes(s)) return false;
+      return true;
+    });
+  }, [mapaKmData, kmSearch, kmEstadoFilter, kmFamiliaFilter]);
+
   return (
     <Tabs defaultValue="pagamentos" className="space-y-6">
       <div className="flex items-center justify-between">
@@ -560,6 +684,7 @@ function BolsasTransportePage() {
         <TabsList>
           <TabsTrigger value="pagamentos">Pagamentos</TabsTrigger>
           <TabsTrigger value="familias">Por família</TabsTrigger>
+          <TabsTrigger value="mapa-km">Mapa de KM</TabsTrigger>
           <TabsTrigger value="cidades">Cidades</TabsTrigger>
         </TabsList>
       </div>
