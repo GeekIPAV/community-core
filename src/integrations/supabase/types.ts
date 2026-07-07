@@ -1381,6 +1381,65 @@ export type Database = {
         }
         Relationships: []
       }
+      mapa_km: {
+        Row: {
+          created_at: string
+          data: string
+          data_pagamento: string | null
+          estado: string
+          familia_id: string
+          id: string
+          km: number
+          matricula: string | null
+          metodo_pagamento: string | null
+          motivo: string
+          n_carros: number
+          notas: string | null
+          updated_at: string
+          valor: number | null
+        }
+        Insert: {
+          created_at?: string
+          data?: string
+          data_pagamento?: string | null
+          estado?: string
+          familia_id: string
+          id?: string
+          km: number
+          matricula?: string | null
+          metodo_pagamento?: string | null
+          motivo: string
+          n_carros?: number
+          notas?: string | null
+          updated_at?: string
+          valor?: number | null
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          data_pagamento?: string | null
+          estado?: string
+          familia_id?: string
+          id?: string
+          km?: number
+          matricula?: string | null
+          metodo_pagamento?: string | null
+          motivo?: string
+          n_carros?: number
+          notas?: string | null
+          updated_at?: string
+          valor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mapa_km_familia_id_fkey"
+            columns: ["familia_id"]
+            isOneToOne: false
+            referencedRelation: "familias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notificacoes: {
         Row: {
           count: number
