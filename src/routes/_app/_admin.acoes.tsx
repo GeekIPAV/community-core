@@ -2535,6 +2535,8 @@ function AcoesPageInner() {
           restrito_a_projetos: editing.restrito_a_projetos,
           publico: editing.publico,
           config_campos: { fields: editing.fields },
+          tipo_acao_id: editing.tipo_acao_id || null,
+          formador_ids: editing.formador_ids ?? [],
         } as any)
         .eq("id", editing.id);
       if (error) throw error;
