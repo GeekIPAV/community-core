@@ -1445,16 +1445,51 @@ function AddPessoasDialog({
           if (kmError) console.warn("[mapa_km] Erro ao criar registo:", kmError);
         }
       }
+      if (bolsaFamilias.size > 0) {
+        const { data: novasInscricoes } = await supabase
+          .from("inscricoes")
+          .select("id, pessoa_id, pessoas!inner(id, familia_id, cidade_residencia)")
+          .in("pessoa_id", ids)
+          .eq("acao_id", acaoId)
+          .neq("status", "cancelada");
+
+        const bolsaRows: any[] = [];
+        for (const inscricao of (novasInscricoes ?? []) as any[]) {
+          const familiaId = inscricao.pessoas?.familia_id;
+          if (!familiaId) continue;
+          if (!bolsaFamilias.has(familiaId)) continue;
+          const cidadeResidencia = inscricao.pessoas?.cidade_residencia;
+          const cidade = matchCidade(cidadeResidencia, bolsasCidades ?? []);
+          const valor = cidade ? Math.round(cidade.valor_sentido * TRIP_FACTOR * 100) / 100 : 0;
+          bolsaRows.push({
+            inscricao_id: inscricao.id,
+            pessoa_id: inscricao.pessoa_id,
+            acao_id: acaoId,
+            valor,
+            estado: "por_pagar",
+            metodo_pagamento: null,
+            notas: null,
+          });
+        }
+        if (bolsaRows.length > 0) {
+          const { error: bolsaError } = await supabase
+            .from("bolsas_pagamentos")
+            .upsert(bolsaRows as any, { onConflict: "inscricao_id" });
+          if (bolsaError) console.warn("[bolsas_pagamentos] Erro ao criar registo:", bolsaError);
+        }
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["inscricoes", acaoId] });
       qc.invalidateQueries({ queryKey: ["inscricao-counts"] });
       qc.invalidateQueries({ queryKey: ["mapa-km"] });
+      qc.invalidateQueries({ queryKey: ["bolsas-pagamentos-full"] });
       toast.success("Pessoas inscritas com sucesso");
       setSelected(new Set());
       setSearch("");
       setMapaKmFamilias(new Set());
       setMapaKmDados({});
+      setBolsaFamilias(new Set());
       onOpenChange(false);
     },
     onError: (e: Error) => toast.error(e.message),
