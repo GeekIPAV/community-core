@@ -1456,7 +1456,7 @@ function AddPessoasDialog({
           .select("id, pessoa_id, pessoas!inner(id, familia_id, cidade_residencia, tipo_user_id)")
           .in("pessoa_id", ids)
           .eq("acao_id", acaoId)
-          .neq("status", "cancelada");
+          .eq("status", "presente");
 
         const bolsaRows: any[] = [];
         for (const inscricao of (novasInscricoes ?? []) as any[]) {
@@ -1848,6 +1848,11 @@ function AddPessoasDialog({
                                 </p>
                               );
                             })()}
+                            {bolsaFamilias.has(f.id) && (
+                              <p className="text-[10px] text-muted-foreground ml-1">
+                                Bolsa criada apenas para quem estiver marcado como Presente.
+                              </p>
+                            )}
                           </div>
                         </div>
                         {mapaKmFamilias.has(f.id) && (
@@ -2081,7 +2086,7 @@ function BolsaTab({ acaoId }: { acaoId: string }) {
         .from("inscricoes")
         .select("id, status, valores_dinamicos, pessoa:pessoas(id, nome_completo, cidade_residencia, familia:familias!pessoas_familia_id_fkey(id, nome))")
         .eq("acao_id", acaoId)
-        .neq("status", "cancelada");
+        .eq("status", "presente");
       if (error) throw error;
       return data as any[];
     },
@@ -2444,7 +2449,7 @@ function TransporteAcaoTab({ acaoId }: { acaoId: string }) {
         .from("inscricoes")
         .select("id, pessoa_id, pessoas!inner(id, nome_completo, familia_id, cidade_residencia, tipo_user_id, familia:familias!pessoas_familia_id_fkey(id, nome))")
         .eq("acao_id", acaoId)
-        .neq("status", "cancelada");
+        .eq("status", "presente");
       if (error) throw error;
       return (data ?? []) as any[];
     },
