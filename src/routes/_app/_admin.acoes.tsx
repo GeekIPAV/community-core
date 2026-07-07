@@ -2857,7 +2857,12 @@ function AcoesPageInner() {
               <div className="space-y-2"><Label>Nome</Label><Input value={editing.nome} onChange={(e) => setEditing({ ...editing, nome: e.target.value })} /></div>
               <div className="space-y-2">
                 <Label>Imagem do evento</Label>
-                <ImageUpload value={editing.imagem_url} onChange={(url) => setEditing({ ...editing, imagem_url: url ?? "" })} />
+                <ImageUpload
+                  value={editing.imagem_url}
+                  onChange={(url) => setEditing({ ...editing, imagem_url: url ?? "", imagem_position: "50% 50%" })}
+                  position={editing.imagem_position}
+                  onPositionChange={(p) => setEditing({ ...editing, imagem_position: p })}
+                />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
