@@ -99,7 +99,6 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
     queryKey: ["atividades-catalogo"],
     queryFn: async () => {
       const { data, error } = await supabase
-        // @ts-expect-error — table not yet in generated types
         .from("atividades_catalogo")
         .select("id, nome, categoria")
         .eq("ativo", true)
@@ -114,7 +113,6 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
     queryKey: ["familia-atividades", familiaId],
     queryFn: async () => {
       const { data, error } = await supabase
-        // @ts-expect-error — table not yet in generated types
         .from("familia_atividades")
         .select("id, data, descricao, created_at, atividade:atividades_catalogo(id, nome, categoria)")
         .eq("familia_id", familiaId)
@@ -128,7 +126,6 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
   const add = useMutation({
     mutationFn: async () => {
       if (!atividadeId) throw new Error("Escolha uma atividade");
-      // @ts-expect-error — table not yet in generated types
       const { error } = await supabase.from("familia_atividades").insert({
         familia_id: familiaId,
         atividade_id: atividadeId,
@@ -150,7 +147,6 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      // @ts-expect-error — table not yet in generated types
       const { error } = await supabase.from("familia_atividades").delete().eq("id", id);
       if (error) throw error;
     },
@@ -166,7 +162,6 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
       const nome = novaNome.trim();
       if (!nome) throw new Error("Nome obrigatório");
       const { data: inserted, error } = await supabase
-        // @ts-expect-error — table not yet in generated types
         .from("atividades_catalogo")
         .insert({ nome, categoria: novaCategoria.trim() || null })
         .select("id")
@@ -1372,7 +1367,6 @@ function useContextoQuery(familiaId: string) {
     queryKey: ["familia-contexto", familiaId],
     queryFn: async () => {
       const { data, error } = await supabase
-        // @ts-expect-error — table not yet in generated types
         .from("familia_contexto")
         .select("*")
         .eq("familia_id", familiaId)
@@ -1429,7 +1423,6 @@ function ContextoRelacionalTab({ familiaId }: { familiaId: string }) {
     setLocal(next);
     const payload = { ...next, familia_id: familiaId };
     const { error } = await supabase
-      // @ts-expect-error — table not yet in generated types
       .from("familia_contexto")
       .upsert(payload, { onConflict: "familia_id" });
     if (error) {
@@ -1442,7 +1435,6 @@ function ContextoRelacionalTab({ familiaId }: { familiaId: string }) {
 
   const saveAll = async () => {
     const { error } = await supabase
-      // @ts-expect-error — table not yet in generated types
       .from("familia_contexto")
       .upsert({ ...local, familia_id: familiaId }, { onConflict: "familia_id" });
     if (error) toast.error(error.message);
@@ -1581,7 +1573,6 @@ function CasosFamiliaTab({ familiaId }: { familiaId: string }) {
     queryKey: ["familia-casos", familiaId],
     queryFn: async () => {
       const { data, error } = await supabase
-        // @ts-expect-error — table not yet in generated types
         .from("casos_apoio")
         .select("id, numero, titulo, area, estado, prioridade, data_abertura, pessoa:pessoas!casos_apoio_pessoa_id_fkey(nome_completo), mediadora:pessoas!casos_apoio_mediadora_id_fkey(nome_completo)")
         .eq("familia_id", familiaId)
