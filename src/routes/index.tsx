@@ -32,7 +32,7 @@ function Home() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("acoes")
-        .select("id, nome, descricao, local, mapa_url, imagem_url, data_inicio, data_fim, inscricoes_abertas, projeto_ids, restrito_a_projetos, publico")
+        .select("id, nome, descricao, local, mapa_url, imagem_url, imagem_position, data_inicio, data_fim, inscricoes_abertas, projeto_ids, restrito_a_projetos, publico")
         .eq("publico", true)
         .order("data_inicio", { ascending: true, nullsFirst: false });
       if (error) throw error;
@@ -289,7 +289,12 @@ function AcaoCard({ acao, passado }: { acao: any; passado?: boolean }) {
   return (
     <Card className={"overflow-hidden " + (passado ? "opacity-70" : "")}>
       {acao.imagem_url && (
-        <img src={acao.imagem_url} alt={acao.nome} className="h-36 w-full object-cover" />
+        <img
+          src={acao.imagem_url}
+          alt={acao.nome}
+          className="h-36 w-full object-cover"
+          style={{ objectPosition: acao.imagem_position ?? "50% 50%" }}
+        />
       )}
       <CardHeader>
         <CardTitle className="text-lg">{acao.nome}</CardTitle>
