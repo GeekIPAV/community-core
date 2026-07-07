@@ -934,10 +934,14 @@ function BolsasTransportePage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {acao.inscricoes.map((i) => (
-                          <InscricaoRow
-                            key={i.inscricao_id}
-                            i={i}
+                        {subgruposPorFamilia(acao.inscricoes).map((fg) => (
+                          <FamiliaSubgrupoBlock
+                            key={fg.key}
+                            group={fg}
+                            colSpan={8}
+                            onBulkEstado={bulkEstadoFamilia}
+                            onBulkCampo={bulkCampoFamilia}
+                            onBulkMarcarPagos={bulkMarcarPagosFamilia}
                             onChangeEstado={changeEstado}
                             onUpdate={updateCampo}
                             onMarcarPago={marcarPago}
