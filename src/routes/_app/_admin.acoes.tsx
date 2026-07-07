@@ -2410,6 +2410,8 @@ function AcoesPageInner() {
             publico: (a as any).publico ?? true,
             fields,
             parceiro_ids: acaoParceiros?.get(a.id) ?? [],
+            tipo_acao_id: (a as any).tipo_acao_id ?? null,
+            formador_ids: ((a as any).formador_ids ?? []) as string[],
           });
         }}
       >
