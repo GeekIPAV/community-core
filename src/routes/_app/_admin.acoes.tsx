@@ -1255,6 +1255,11 @@ function AddPessoasDialog({
     [tipos],
   );
 
+  const membroTipoId = useMemo(
+    () => tipos?.find((t) => t.nome.trim().toLowerCase() === "membro")?.id ?? null,
+    [tipos],
+  );
+
   const familiaMembros = useMemo(() => {
     const m = new Map<string, Array<{ id: string; nome_completo: string }>>();
     (pessoas ?? []).forEach((p) => {
@@ -1448,7 +1453,7 @@ function AddPessoasDialog({
       if (bolsaFamilias.size > 0) {
         const { data: novasInscricoes } = await supabase
           .from("inscricoes")
-          .select("id, pessoa_id, pessoas!inner(id, familia_id, cidade_residencia)")
+          .select("id, pessoa_id, pessoas!inner(id, familia_id, cidade_residencia, tipo_user_id)")
           .in("pessoa_id", ids)
           .eq("acao_id", acaoId)
           .neq("status", "cancelada");
@@ -1458,6 +1463,8 @@ function AddPessoasDialog({
           const familiaId = inscricao.pessoas?.familia_id;
           if (!familiaId) continue;
           if (!bolsaFamilias.has(familiaId)) continue;
+          // Only MEMBRO tipo is eligible for bolsa
+          if (membroTipoId && inscricao.pessoas?.tipo_user_id !== membroTipoId) continue;
           const cidadeResidencia = inscricao.pessoas?.cidade_residencia;
           const cidade = matchCidade(cidadeResidencia, bolsasCidades ?? []);
           const valor = cidade ? Math.round(cidade.valor_sentido * TRIP_FACTOR * 100) / 100 : 0;
