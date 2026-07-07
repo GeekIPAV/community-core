@@ -576,9 +576,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
   const [addOpen, setAddOpen] = useState(false);
 
   // Transport toggles per family (for group-by-familia view)
-  const [familiaKm, setFamiliaKm] = useState<Record<string, boolean>>({});
-  const [familiaBolsa, setFamiliaBolsa] = useState<Record<string, boolean>>({});
-  const [familiaKmDados, setFamiliaKmDados] = useState<Record<string, { motivo: string; km: string; n_carros: string }>>({});
+
 
   // Fetch cidades for bolsa calculation
   const { data: bolsasCidadesInscricoes } = useQuery({
