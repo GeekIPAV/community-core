@@ -18,7 +18,7 @@ import { useState, useMemo, Fragment } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, Maximize2, Minimize2, ArrowUpDown, UserPlus, Search, Upload, CheckCircle2, AlertCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, Maximize2, Minimize2, ArrowUpDown, UserPlus, Search, Upload, CheckCircle2, AlertCircle, Car } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -1142,6 +1142,22 @@ function AddPessoasDialog({
   const debouncedSearch = useDebounce(search, 300);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [familiaFilter, setFamiliaFilter] = useState<string>("__all");
+  const [mapaKmFamilias, setMapaKmFamilias] = useState<Set<string>>(new Set());
+  const [mapaKmDados, setMapaKmDados] = useState<Record<string, { motivo: string; km: string; n_carros: string }>>({});
+  const toggleMapaKm = (familiaId: string) => {
+    setMapaKmFamilias((prev) => {
+      const next = new Set(prev);
+      if (next.has(familiaId)) next.delete(familiaId);
+      else next.add(familiaId);
+      return next;
+    });
+  };
+  const setDado = (familiaId: string, field: "motivo" | "km" | "n_carros", value: string) => {
+    setMapaKmDados((prev) => ({
+      ...prev,
+      [familiaId]: { motivo: "", km: "", n_carros: "1", ...(prev[familiaId] ?? {}), [field]: value },
+    }));
+  };
   const [cidadeFilter, setCidadeFilter] = useState<string>("__all");
   const [statusPessoaFilter, setStatusPessoaFilter] = useState<string>("ativo");
   const [tipoFilter, setTipoFilter] = useState<string>("__all");
