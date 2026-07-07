@@ -986,40 +986,34 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
                         <TableCell>
                           <Checkbox checked={allGroupSelected} onCheckedChange={toggleGroup} />
                         </TableCell>
-                        <TableCell className="font-medium text-sm" colSpan={colSpan - 1}>
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <span>{key} <span className="text-muted-foreground font-normal">({rows.length})</span></span>
-                            {familiaId && (
-                              <div className="flex items-center gap-3 flex-wrap">
-                                <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none" title="Registar mapa de KM para esta família">
-                                  <Switch
-                                    className="scale-75"
-                                    checked={false}
-                                    disabled={criarKmFamilia.isPending}
-                                    onCheckedChange={(v) => {
-                                      if (v && familiaId) {
-                                        criarKmFamilia.mutate({ familiaId, rows: rows.map((r) => r.original) });
-                                      }
-                                    }}
-                                  />
-                                  <span className="text-muted-foreground">KM</span>
-                                </label>
-                                <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none" title="Registar bolsa de transporte para esta família">
-                                  <Switch
-                                    className="scale-75"
-                                    checked={false}
-                                    disabled={criarBolsaFamilia.isPending}
-                                    onCheckedChange={(v) => {
-                                      if (v && familiaId) {
-                                        criarBolsaFamilia.mutate({ familiaId, rows: rows.map((r) => r.original) });
-                                      }
-                                    }}
-                                  />
-                                  <span className="text-muted-foreground">Bolsa</span>
-                                </label>
-                              </div>
-                            )}
-                          </div>
+                        <TableCell className="font-medium text-sm" colSpan={colSpan - 2}>
+                          <span>{key} <span className="text-muted-foreground font-normal">({rows.length})</span></span>
+                        </TableCell>
+                        <TableCell>
+                          {familiaId && (
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-6 px-2 text-[11px] gap-1.5"
+                                disabled={criarKmFamilia.isPending}
+                                onClick={() => criarKmFamilia.mutate({ familiaId, rows: rows.map((r) => r.original) })}
+                                title="Registar mapa de KM para esta família"
+                              >
+                                <Car className="h-3 w-3" /> + KM
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-6 px-2 text-[11px] gap-1.5"
+                                disabled={criarBolsaFamilia.isPending}
+                                onClick={() => criarBolsaFamilia.mutate({ familiaId, rows: rows.map((r) => r.original) })}
+                                title="Registar bolsa de transporte para esta família"
+                              >
+                                🚌 + Bolsa
+                              </Button>
+                            </div>
+                          )}
                         </TableCell>
                       </TableRow>
                     );
