@@ -3120,6 +3120,9 @@ function TipoAcaoBlock({
             options={pessoas.map((p) => ({ value: p.id, label: p.nome_completo }))}
             onChange={onFormadoresChange}
             placeholder="Sem formadores"
+            searchable
+            searchPlaceholder="Pesquisar formador…"
+            emptyLabel="Sem formadores disponíveis"
           />
           <p className="text-xs text-muted-foreground">Escolhe os formadores da base de dados de participantes.</p>
         </div>
