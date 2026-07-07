@@ -1144,6 +1144,15 @@ function AddPessoasDialog({
   const [familiaFilter, setFamiliaFilter] = useState<string>("__all");
   const [mapaKmFamilias, setMapaKmFamilias] = useState<Set<string>>(new Set());
   const [mapaKmDados, setMapaKmDados] = useState<Record<string, { motivo: string; km: string; n_carros: string }>>({});
+  const [bolsaFamilias, setBolsaFamilias] = useState<Set<string>>(new Set());
+  const toggleBolsa = (familiaId: string) => {
+    setBolsaFamilias((prev) => {
+      const next = new Set(prev);
+      if (next.has(familiaId)) next.delete(familiaId);
+      else next.add(familiaId);
+      return next;
+    });
+  };
   const toggleMapaKm = (familiaId: string) => {
     setMapaKmFamilias((prev) => {
       const next = new Set(prev);
@@ -1199,6 +1208,19 @@ function AddPessoasDialog({
         .select("id, nome, status");
       if (error) throw error;
       return data as Array<{ id: string; nome: string; status: string }>;
+    },
+  });
+
+  const { data: bolsasCidades } = useQuery({
+    queryKey: ["bolsas-cidades"],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("bolsas_cidades")
+        .select("id, nome, valor_sentido, ativo")
+        .eq("ativo", true);
+      if (error) throw error;
+      return (data ?? []) as unknown as CidadeBolsa[];
     },
   });
 
@@ -1423,16 +1445,51 @@ function AddPessoasDialog({
           if (kmError) console.warn("[mapa_km] Erro ao criar registo:", kmError);
         }
       }
+      if (bolsaFamilias.size > 0) {
+        const { data: novasInscricoes } = await supabase
+          .from("inscricoes")
+          .select("id, pessoa_id, pessoas!inner(id, familia_id, cidade_residencia)")
+          .in("pessoa_id", ids)
+          .eq("acao_id", acaoId)
+          .neq("status", "cancelada");
+
+        const bolsaRows: any[] = [];
+        for (const inscricao of (novasInscricoes ?? []) as any[]) {
+          const familiaId = inscricao.pessoas?.familia_id;
+          if (!familiaId) continue;
+          if (!bolsaFamilias.has(familiaId)) continue;
+          const cidadeResidencia = inscricao.pessoas?.cidade_residencia;
+          const cidade = matchCidade(cidadeResidencia, bolsasCidades ?? []);
+          const valor = cidade ? Math.round(cidade.valor_sentido * TRIP_FACTOR * 100) / 100 : 0;
+          bolsaRows.push({
+            inscricao_id: inscricao.id,
+            pessoa_id: inscricao.pessoa_id,
+            acao_id: acaoId,
+            valor,
+            estado: "por_pagar",
+            metodo_pagamento: null,
+            notas: null,
+          });
+        }
+        if (bolsaRows.length > 0) {
+          const { error: bolsaError } = await supabase
+            .from("bolsas_pagamentos")
+            .upsert(bolsaRows as any, { onConflict: "inscricao_id" });
+          if (bolsaError) console.warn("[bolsas_pagamentos] Erro ao criar registo:", bolsaError);
+        }
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["inscricoes", acaoId] });
       qc.invalidateQueries({ queryKey: ["inscricao-counts"] });
       qc.invalidateQueries({ queryKey: ["mapa-km"] });
+      qc.invalidateQueries({ queryKey: ["bolsas-pagamentos-full"] });
       toast.success("Pessoas inscritas com sucesso");
       setSelected(new Set());
       setSearch("");
       setMapaKmFamilias(new Set());
       setMapaKmDados({});
+      setBolsaFamilias(new Set());
       onOpenChange(false);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -1705,10 +1762,19 @@ function AddPessoasDialog({
                 Selecionar visíveis ({selectableFamiliasIds.length} membros disponíveis)
               </span>
             </div>
-            {mapaKmFamilias.size > 0 && (
-              <div className="flex items-center gap-1.5 rounded-md bg-primary/5 border border-primary/20 px-3 py-1.5 text-xs text-primary">
-                <Car className="h-3.5 w-3.5 shrink-0" />
-                {mapaKmFamilias.size} família{mapaKmFamilias.size !== 1 ? "s" : ""} com mapa de KM activo
+            {(mapaKmFamilias.size > 0 || bolsaFamilias.size > 0) && (
+              <div className="flex items-center gap-3 rounded-md bg-primary/5 border border-primary/20 px-3 py-1.5 text-xs text-primary">
+                {mapaKmFamilias.size > 0 && (
+                  <span className="flex items-center gap-1.5">
+                    <Car className="h-3.5 w-3.5 shrink-0" />
+                    {mapaKmFamilias.size} KM activo{mapaKmFamilias.size !== 1 ? "s" : ""}
+                  </span>
+                )}
+                {bolsaFamilias.size > 0 && (
+                  <span className="flex items-center gap-1.5">
+                    🚌 {bolsaFamilias.size} bolsa{bolsaFamilias.size !== 1 ? "s" : ""} activa{bolsaFamilias.size !== 1 ? "s" : ""}
+                  </span>
+                )}
               </div>
             )}
             <ScrollArea className="h-[60vh]">
@@ -1749,6 +1815,16 @@ function AddPessoasDialog({
                                   onCheckedChange={() => toggleMapaKm(f.id)}
                                 />
                                 <span className="text-muted-foreground whitespace-nowrap">KM</span>
+                              </label>
+                            )}
+                            {state.selectable.length > 0 && (
+                              <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none" title="Registar bolsa de transporte para esta família">
+                                <Switch
+                                  className="scale-75"
+                                  checked={bolsaFamilias.has(f.id)}
+                                  onCheckedChange={() => toggleBolsa(f.id)}
+                                />
+                                <span className="text-muted-foreground whitespace-nowrap">Bolsa</span>
                               </label>
                             )}
                           </div>
@@ -1931,7 +2007,7 @@ function AddPessoasDialog({
           </TabsContent>
         </Tabs>
         <SheetFooter>
-          <Button variant="outline" onClick={() => { setMapaKmFamilias(new Set()); setMapaKmDados({}); onOpenChange(false); }}>Cancelar</Button>
+          <Button variant="outline" onClick={() => { setMapaKmFamilias(new Set()); setMapaKmDados({}); setBolsaFamilias(new Set()); onOpenChange(false); }}>Cancelar</Button>
           {tab === "nova" ? (
             <Button
               disabled={
