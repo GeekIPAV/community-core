@@ -2353,7 +2353,7 @@ function BolsaTab({ acaoId }: { acaoId: string }) {
           <Table>
             <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Cidade do perfil</TableHead><TableHead>Cidade aplicada</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
             <TableBody>
-              {familias.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-sm text-muted-foreground">Sem inscritos.</TableCell></TableRow>}
+              {familias.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-sm text-muted-foreground">Nenhuma família ativada para bolsa nesta ação. Ativa nos botões + KM / + Bolsa na aba Inscrições.</TableCell></TableRow>}
               {familias.map((f) => (
                 <Fragment key={f.nome}>
                   <TableRow className="bg-muted/40">
