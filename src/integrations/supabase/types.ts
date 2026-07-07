@@ -221,6 +221,77 @@ export type Database = {
         }
         Relationships: []
       }
+      bolsas_pagamentos: {
+        Row: {
+          acao_id: string
+          created_at: string
+          data_pagamento: string | null
+          estado: string
+          id: string
+          inscricao_id: string
+          metodo_pagamento: string | null
+          notas: string | null
+          pessoa_id: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          acao_id: string
+          created_at?: string
+          data_pagamento?: string | null
+          estado?: string
+          id?: string
+          inscricao_id: string
+          metodo_pagamento?: string | null
+          notas?: string | null
+          pessoa_id: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          acao_id?: string
+          created_at?: string
+          data_pagamento?: string | null
+          estado?: string
+          id?: string
+          inscricao_id?: string
+          metodo_pagamento?: string | null
+          notas?: string | null
+          pessoa_id?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bolsas_pagamentos_acao_id_fkey"
+            columns: ["acao_id"]
+            isOneToOne: false
+            referencedRelation: "acoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bolsas_pagamentos_inscricao_id_fkey"
+            columns: ["inscricao_id"]
+            isOneToOne: true
+            referencedRelation: "inscricoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bolsas_pagamentos_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bolsas_pagamentos_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       caso_objetivos: {
         Row: {
           caso_id: string
