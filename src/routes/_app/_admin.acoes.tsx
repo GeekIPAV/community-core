@@ -1848,6 +1848,11 @@ function AddPessoasDialog({
                                 </p>
                               );
                             })()}
+                            {bolsaFamilias.has(f.id) && (
+                              <p className="text-[10px] text-muted-foreground ml-1">
+                                Bolsa criada apenas para quem estiver marcado como Presente.
+                              </p>
+                            )}
                           </div>
                         </div>
                         {mapaKmFamilias.has(f.id) && (
