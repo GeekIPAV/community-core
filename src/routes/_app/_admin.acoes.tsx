@@ -3015,9 +3015,40 @@ function TipoAcaoBlock({
 }) {
   const selected = tipos.find((t) => t.id === tipoAcaoId);
   const requerFormadores = !!selected?.requer_formadores;
+  const qc = useQueryClient();
+  const [novoOpen, setNovoOpen] = useState(false);
+  const [novoNome, setNovoNome] = useState("");
+  const [novoRequer, setNovoRequer] = useState(false);
+  const criar = useMutation({
+    mutationFn: async () => {
+      const nome = novoNome.trim();
+      if (!nome) throw new Error("Nome obrigatório");
+      const { data, error } = await supabase
+        .from("tipos_acao")
+        .insert({ nome, requer_formadores: novoRequer } as any)
+        .select("id")
+        .single();
+      if (error) throw error;
+      return data?.id as string;
+    },
+    onSuccess: (id) => {
+      toast.success("Tipo criado");
+      qc.invalidateQueries({ queryKey: ["tipos_acao_lookup"] });
+      setNovoOpen(false);
+      setNovoNome("");
+      setNovoRequer(false);
+      if (id) onTipoChange(id);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
   return (
     <div className="space-y-2 rounded-md border p-3">
-      <Label>Tipo de ação</Label>
+      <div className="flex items-center justify-between">
+        <Label>Tipo de ação</Label>
+        <Button type="button" size="sm" variant="ghost" onClick={() => setNovoOpen(true)}>
+          <Plus className="mr-1 h-3.5 w-3.5" /> Novo tipo
+        </Button>
+      </div>
       <Select
         value={tipoAcaoId ?? "__none"}
         onValueChange={(v) => onTipoChange(v === "__none" ? null : v)}
@@ -3042,6 +3073,33 @@ function TipoAcaoBlock({
           <p className="text-xs text-muted-foreground">Escolhe os formadores da base de dados de participantes.</p>
         </div>
       )}
+      <Dialog open={novoOpen} onOpenChange={setNovoOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Novo tipo de ação</DialogTitle>
+            <DialogDescription>Cria um novo tipo para categorizar as ações.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>Nome</Label>
+              <Input value={novoNome} onChange={(e) => setNovoNome(e.target.value)} placeholder="Ex: Formação" />
+            </div>
+            <label className="flex items-center justify-between rounded-md border p-3">
+              <div>
+                <p className="text-sm font-medium">Requer formadores</p>
+                <p className="text-xs text-muted-foreground">Se ligado, ao escolher este tipo poderás selecionar formadores.</p>
+              </div>
+              <Switch checked={novoRequer} onCheckedChange={setNovoRequer} />
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNovoOpen(false)}>Cancelar</Button>
+            <Button onClick={() => criar.mutate()} disabled={!novoNome.trim() || criar.isPending}>
+              {criar.isPending ? "A guardar…" : "Criar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
