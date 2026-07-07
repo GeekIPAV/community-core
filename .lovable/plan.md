@@ -1,53 +1,43 @@
-## Rebuild `src/routes/_app/_admin.bolsas-transporte.tsx` with payment management
+## Plano — Mapa de KM (bolsas de transporte)
 
-### 1. Migration — create `bolsas_pagamentos` table
-New table (doesn't exist yet) with:
-- `inscricao_id` (unique, FK cascade), `pessoa_id` (FK), `acao_id` (FK)
-- `valor numeric(8,2)`, `estado` (`por_pagar`/`pago`/`cancelado`)
-- `metodo_pagamento`, `notas`, `data_pagamento`
-- Standard `created_at`/`updated_at` + trigger
-- GRANTs to `authenticated` + `service_role`
-- RLS enabled with policies matching `bolsas_cidades` pattern (staff/admin write, authenticated read)
+Adicionar uma 4ª aba "Mapa de KM" à página `src/routes/_app/_admin.bolsas-transporte.tsx` para registar deslocações avulsas de famílias (fora das ações), reembolsadas a 0,36€/km × 2 (ida e volta) × nº de carros.
 
-### 2. Rebuild the route file with 3 Tabs
+### 1. Migração — nova tabela `mapa_km`
+- Campos: `familia_id` (FK cascade), `data`, `motivo`, `km`, `matricula`, `n_carros`, `estado` (por_pagar/pago/cancelado), `metodo_pagamento`, `notas`, `data_pagamento`.
+- `valor` como coluna **GENERATED** (`km × 0.36 × 2 × n_carros`) — nunca incluída em inserts/updates.
+- GRANTs a `authenticated` e `service_role`.
+- RLS ativo, política permissiva para `authenticated` (consistente com `bolsas_pagamentos`).
+- Trigger `updated_at`.
 
-**Tab "Pagamentos"** (default)
-- Fetches actions with `bolsa_transporte = true`, their non-cancelled inscriptions, related pessoas/famílias, active cidades, and existing pagamentos in one query
-- Computes `valor_calculado` per inscription:
-  - Own car → `viatura_km × KM_RATE × TRIP_FACTOR`
-  - Otherwise → `matchCidade().valor_sentido × TRIP_FACTOR`
-- 4 KPI cards: Por pagar, Pago, Ações com bolsa, Total geral
-- Search input + estado filter (Todos / Por pagar / Pago / Cancelado)
-- Accordion per ação → expandable Table with columns: Pessoa · Família · Cidade · Transporte · Valor · Estado · Método · Notas · Ações
-- Estado via Select; Método & Notas inline-editable (blur/Enter to save)
-- "Marcar pago" quick button; "Reverter" for pagos
-- Warning row when multiple inscriptions share the same `viatura_grupo` (normalized)
+### 2. Rota — nova aba na página existente
+- Adicionar `<TabsTrigger value="mapa-km">` e respectivo `<TabsContent>`.
+- Manter tabs 1, 2, 3 (Pagamentos, Por família, Cidades) intactas.
 
-**Tab "Por família"**
-- Search by family name
-- One Collapsible per família showing totals (recebido / por receber) + inner table of inscriptions
-- Sort: families with `por receber > 0` first, then alphabetical
+### 3. Dados
+- Query `mapa-km`: SELECT com join a `familias(nome)`, ordenada por data desc.
+- Query `familias-lista-bolsa` (para form + filtro).
+- Mutations: `createMapaKm`, `updateMapaKm`, `deleteMapaKm` — todas invalidam `["mapa-km"]`. `valor` e `familia_nome` são strippados dos payloads.
 
-**Tab "Cidades"**
-- Existing cities configuration UI moved verbatim into a `TabsContent`
+### 4. UI da aba
+- 4 KPI cards: Por pagar (nº + €), Pago (nº + €), Total KM, Total geral €.
+- Filtros: pesquisa (família/motivo), família, estado + botão "Novo registo".
+- Tabela: Família · Data · Motivo · KM · Matrícula · Carros · Valor · Estado (Select) · Método (inline) · Notas (inline) · Editar/Eliminar.
+- Rodapé com totais filtrados.
+- Caixa informativa sobre a fórmula.
 
-### 3. Mutations
-- `upsertPagamento` via `.upsert(..., { onConflict: "inscricao_id" })` — auto-fills `data_pagamento` when marking as pago
-- Invalidates `["bolsas-pagamentos-full"]`
-- Helpers: `marcarPago`, `reverter`, `changeEstado`, inline metodo/notas save
+### 5. Diálogo criar/editar
+- Campos: Família (bloqueada em edição), Data, Estado, Motivo, KM (ida), Matrícula, Nº carros, Método, Notas.
+- Preview do valor calculado em tempo real.
+- Validação: família, motivo, km > 0.
 
-### 4. Imports & types
-- Add Tabs, Collapsible, Select, Badge, Table, icons per spec
-- Import `matchCidade`, `parseViatura`, `formatEuro`, `KM_RATE`, `TRIP_FACTOR`, `normalizeGrupo`, `CidadeBolsa` from `@/lib/bolsa-transporte`
-- Local types: `BolsaPagamento`, `InscricaoComBolsa`, `AcaoComBolsa`, `FamiliaResumo`
-- Use `@ts-expect-error` on `bolsas_cidades` / `bolsas_pagamentos` `.from()` calls (not in generated types until types regenerate)
+### 6. Diálogo de confirmação de eliminação (AlertDialog).
 
-### 5. Constraints
-- Do not modify `src/lib/bolsa-transporte.ts`
-- Keep existing cities UI unchanged (only wrapped in TabsContent)
-- All copy in European Portuguese
-- Typecheck must pass
+### Restrições
+- Nunca enviar `valor` (coluna gerada).
+- Todo o texto em português europeu.
+- Typecheck tem de passar.
+- Não alterar `src/lib/bolsa-transporte.ts` nem as outras tabs.
 
-### Order of execution
-1. Run migration (creates `bolsas_pagamentos`, waits for approval)
-2. After migration approved & types regenerated, rewrite the route file
+### Ordem
+1. Migração (aprovação do utilizador + regeneração de tipos).
+2. Editar o ficheiro da rota para adicionar tab, queries, mutations, UI e diálogos.
