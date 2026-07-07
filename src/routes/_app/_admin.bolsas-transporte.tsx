@@ -849,6 +849,347 @@ function BolsasTransportePage() {
       </TabsContent>
 
       {/* ============= TAB 3: CIDADES (unchanged) ============= */}
+      {/* ============= TAB MAPA DE KM ============= */}
+      <TabsContent value="mapa-km" className="space-y-4">
+        <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+          <Card>
+            <CardHeader className="pb-2"><CardDescription>Por pagar</CardDescription></CardHeader>
+            <CardContent>
+              <p className="text-2xl font-semibold text-amber-700">{kmKpis.porPagarN}</p>
+              <p className="text-xs text-muted-foreground tabular-nums">{formatEuro(kmKpis.porPagarV)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2"><CardDescription>Pago</CardDescription></CardHeader>
+            <CardContent>
+              <p className="text-2xl font-semibold text-emerald-700">{kmKpis.pagoN}</p>
+              <p className="text-xs text-muted-foreground tabular-nums">{formatEuro(kmKpis.pagoV)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2"><CardDescription>Total KM</CardDescription></CardHeader>
+            <CardContent>
+              <p className="text-2xl font-semibold tabular-nums">{kmKpis.totalKm.toLocaleString("pt-PT")} km</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2"><CardDescription>Total geral</CardDescription></CardHeader>
+            <CardContent>
+              <p className="text-2xl font-semibold tabular-nums">{formatEuro(kmKpis.totalV)}</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="flex flex-col md:flex-row gap-2">
+          <Input
+            placeholder="Pesquisar família ou motivo…"
+            value={kmSearch}
+            onChange={(e) => setKmSearch(e.target.value)}
+            className="md:max-w-xs"
+          />
+          <Select value={kmFamiliaFilter} onValueChange={setKmFamiliaFilter}>
+            <SelectTrigger className="md:w-56"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas as famílias</SelectItem>
+              {(familiasList ?? []).map((f) => (
+                <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={kmEstadoFilter} onValueChange={(v) => setKmEstadoFilter(v as typeof kmEstadoFilter)}>
+            <SelectTrigger className="md:w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os estados</SelectItem>
+              <SelectItem value="por_pagar">Por pagar</SelectItem>
+              <SelectItem value="pago">Pago</SelectItem>
+              <SelectItem value="cancelado">Cancelado</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="flex-1" />
+          <Button onClick={() => { setEditKmRow(null); setKmForm(emptyKmForm); setAddKmOpen(true); }}>
+            <Plus className="mr-2 h-4 w-4" /> Novo registo
+          </Button>
+        </div>
+
+        {loadingMapaKm ? (
+          <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+        ) : kmFiltered.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Sem registos.</p>
+        ) : (
+          <div className="rounded-md border overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Família</TableHead>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Motivo</TableHead>
+                  <TableHead className="text-right">KM</TableHead>
+                  <TableHead>Matrícula</TableHead>
+                  <TableHead className="text-right">Carros</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>Método</TableHead>
+                  <TableHead>Notas</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {kmFiltered.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="font-medium whitespace-nowrap">{r.familia_nome}</TableCell>
+                    <TableCell className="text-muted-foreground text-xs whitespace-nowrap">{formatDate(r.data)}</TableCell>
+                    <TableCell className="max-w-[200px] truncate" title={r.motivo}>{r.motivo}</TableCell>
+                    <TableCell className="text-right tabular-nums">{r.km}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{r.matricula ?? "—"}</TableCell>
+                    <TableCell className="text-right tabular-nums">{r.n_carros}</TableCell>
+                    <TableCell className="text-right tabular-nums font-medium">{formatEuro(Number(r.valor))}</TableCell>
+                    <TableCell>
+                      <Select
+                        value={r.estado}
+                        onValueChange={(v) => updateMapaKm.mutate({ id: r.id, estado: v as MapaKmRow["estado"] })}
+                      >
+                        <SelectTrigger className="h-7 w-32 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="por_pagar">Por pagar</SelectItem>
+                          <SelectItem value="pago">Pago</SelectItem>
+                          <SelectItem value="cancelado">Cancelado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <InlineEditCell
+                        value={r.metodo_pagamento}
+                        placeholder="Método"
+                        onSave={(v) => updateMapaKm.mutate({ id: r.id, metodo_pagamento: v || null })}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <InlineEditCell
+                        value={r.notas}
+                        placeholder="Notas"
+                        onSave={(v) => updateMapaKm.mutate({ id: r.id, notas: v || null })}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          onClick={() => {
+                            setEditKmRow(r);
+                            setKmForm({
+                              familia_id: r.familia_id,
+                              data: r.data,
+                              motivo: r.motivo,
+                              km: String(r.km),
+                              matricula: r.matricula ?? "",
+                              n_carros: String(r.n_carros),
+                              estado: r.estado,
+                              metodo_pagamento: r.metodo_pagamento ?? "",
+                              notas: r.notas ?? "",
+                            });
+                            setAddKmOpen(true);
+                          }}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setDeleteKmId(r.id)}>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+              <tfoot>
+                <tr className="border-t bg-muted/30">
+                  <td colSpan={3} className="px-4 py-2 text-xs font-medium">Total filtrado</td>
+                  <td className="px-4 py-2 text-right text-xs tabular-nums">{kmFiltered.reduce((s, r) => s + Number(r.km), 0).toLocaleString("pt-PT")} km</td>
+                  <td colSpan={2}></td>
+                  <td className="px-4 py-2 text-right text-xs font-semibold tabular-nums">{formatEuro(kmFiltered.reduce((s, r) => s + Number(r.valor), 0))}</td>
+                  <td colSpan={4}></td>
+                </tr>
+              </tfoot>
+            </Table>
+          </div>
+        )}
+
+        <div className="flex items-start gap-3 rounded-md border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
+          <Car className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+          <span>Cada carro é reembolsado a <strong className="text-foreground">0,36€/km × 2</strong> (ida e volta). O valor é calculado automaticamente: km × 0,36 × 2 × nº de carros.</span>
+        </div>
+
+        <Dialog open={addKmOpen} onOpenChange={(o) => { if (!o) { setAddKmOpen(false); setEditKmRow(null); } }}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{editKmRow ? "Editar registo" : "Novo registo de KM"}</DialogTitle>
+              <DialogDescription>Valor calculado automaticamente: km × 0,36€ × 2 × nº de carros.</DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label>Família</Label>
+                <Select
+                  value={kmForm.familia_id || "__none"}
+                  onValueChange={(v) => setKmForm({ ...kmForm, familia_id: v === "__none" ? "" : v })}
+                  disabled={!!editKmRow}
+                >
+                  <SelectTrigger><SelectValue placeholder="Escolher família…" /></SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    <SelectItem value="__none">—</SelectItem>
+                    {(familiasList ?? []).map((f) => (
+                      <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>Data</Label>
+                  <Input type="date" value={kmForm.data} onChange={(e) => setKmForm({ ...kmForm, data: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Estado</Label>
+                  <Select value={kmForm.estado} onValueChange={(v) => setKmForm({ ...kmForm, estado: v as MapaKmRow["estado"] })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="por_pagar">Por pagar</SelectItem>
+                      <SelectItem value="pago">Pago</SelectItem>
+                      <SelectItem value="cancelado">Cancelado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label>Motivo / destino</Label>
+                <Input
+                  value={kmForm.motivo}
+                  onChange={(e) => setKmForm({ ...kmForm, motivo: e.target.value })}
+                  placeholder="Ex: Consulta médica no IPO, AIMA Lisboa, SEF…"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label>KM (ida)</Label>
+                  <Input
+                    inputMode="decimal"
+                    value={kmForm.km}
+                    onChange={(e) => setKmForm({ ...kmForm, km: e.target.value })}
+                    placeholder="Ex: 45"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Matrícula</Label>
+                  <Input
+                    value={kmForm.matricula}
+                    onChange={(e) => setKmForm({ ...kmForm, matricula: e.target.value.toUpperCase() })}
+                    placeholder="AA-00-AA"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Nº carros</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={10}
+                    value={kmForm.n_carros}
+                    onChange={(e) => setKmForm({ ...kmForm, n_carros: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {kmForm.km && Number(kmForm.km.replace(",", ".")) > 0 && (
+                <div className="rounded-md bg-muted px-3 py-2 text-sm">
+                  Valor a pagar:{" "}
+                  <strong className="tabular-nums">
+                    {formatEuro(
+                      Math.round(
+                        Number(kmForm.km.replace(",", ".")) * KM_RATE * TRIP_FACTOR * Math.max(1, Number(kmForm.n_carros) || 1) * 100,
+                      ) / 100,
+                    )}
+                  </strong>
+                  <span className="text-xs text-muted-foreground ml-2">
+                    ({kmForm.km} km × 0,36€ × 2 × {Math.max(1, Number(kmForm.n_carros) || 1)} carro{Math.max(1, Number(kmForm.n_carros) || 1) > 1 ? "s" : ""})
+                  </span>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>Método de pagamento</Label>
+                  <Input
+                    value={kmForm.metodo_pagamento}
+                    onChange={(e) => setKmForm({ ...kmForm, metodo_pagamento: e.target.value })}
+                    placeholder="MB, MBWay, Transferência…"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Notas</Label>
+                  <Input value={kmForm.notas} onChange={(e) => setKmForm({ ...kmForm, notas: e.target.value })} placeholder="Observações…" />
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setAddKmOpen(false); setEditKmRow(null); }}>Cancelar</Button>
+              <Button
+                disabled={
+                  !kmForm.familia_id ||
+                  !kmForm.motivo.trim() ||
+                  !kmForm.km ||
+                  Number(kmForm.km.replace(",", ".")) <= 0 ||
+                  createMapaKm.isPending ||
+                  updateMapaKm.isPending
+                }
+                onClick={() => {
+                  const kmNum = Math.round(Number(kmForm.km.replace(",", ".")) * 100) / 100;
+                  const nCarros = Math.max(1, Number(kmForm.n_carros) || 1);
+                  const payload = {
+                    familia_id: kmForm.familia_id,
+                    data: kmForm.data,
+                    motivo: kmForm.motivo.trim(),
+                    km: kmNum,
+                    matricula: kmForm.matricula.trim() || null,
+                    n_carros: nCarros,
+                    estado: kmForm.estado,
+                    metodo_pagamento: kmForm.metodo_pagamento.trim() || null,
+                    notas: kmForm.notas.trim() || null,
+                  };
+                  if (editKmRow) {
+                    updateMapaKm.mutate({ id: editKmRow.id, ...payload });
+                  } else {
+                    createMapaKm.mutate(payload);
+                  }
+                  setAddKmOpen(false);
+                  setEditKmRow(null);
+                }}
+              >
+                {editKmRow ? "Guardar" : "Adicionar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <AlertDialog open={!!deleteKmId} onOpenChange={(o) => { if (!o) setDeleteKmId(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Eliminar registo?</AlertDialogTitle>
+              <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={() => { if (deleteKmId) deleteMapaKm.mutate(deleteKmId); }}>
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </TabsContent>
+
       <TabsContent value="cidades" className="space-y-6">
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
