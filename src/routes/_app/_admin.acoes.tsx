@@ -1211,6 +1211,19 @@ function AddPessoasDialog({
     },
   });
 
+  const { data: bolsasCidades } = useQuery({
+    queryKey: ["bolsas-cidades"],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("bolsas_cidades")
+        .select("id, nome, valor_sentido, ativo")
+        .eq("ativo", true);
+      if (error) throw error;
+      return (data ?? []) as unknown as CidadeBolsa[];
+    },
+  });
+
   const { data: tipos } = useQuery({
     queryKey: ["tipos-user-atribuir"],
     enabled: open,
