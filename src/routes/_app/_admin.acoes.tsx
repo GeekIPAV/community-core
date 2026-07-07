@@ -1817,6 +1817,16 @@ function AddPessoasDialog({
                                 <span className="text-muted-foreground whitespace-nowrap">KM</span>
                               </label>
                             )}
+                            {state.selectable.length > 0 && (
+                              <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none" title="Registar bolsa de transporte para esta família">
+                                <Switch
+                                  className="scale-75"
+                                  checked={bolsaFamilias.has(f.id)}
+                                  onCheckedChange={() => toggleBolsa(f.id)}
+                                />
+                                <span className="text-muted-foreground whitespace-nowrap">Bolsa</span>
+                              </label>
+                            )}
                           </div>
                         </div>
                         {mapaKmFamilias.has(f.id) && (
