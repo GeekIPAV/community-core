@@ -1456,7 +1456,7 @@ function AddPessoasDialog({
           .select("id, pessoa_id, pessoas!inner(id, familia_id, cidade_residencia, tipo_user_id)")
           .in("pessoa_id", ids)
           .eq("acao_id", acaoId)
-          .neq("status", "cancelada");
+          .eq("status", "presente");
 
         const bolsaRows: any[] = [];
         for (const inscricao of (novasInscricoes ?? []) as any[]) {
