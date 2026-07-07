@@ -1155,7 +1155,7 @@ function AddPessoasDialog({
   const setDado = (familiaId: string, field: "motivo" | "km" | "n_carros", value: string) => {
     setMapaKmDados((prev) => ({
       ...prev,
-      [familiaId]: { motivo: "", km: "", n_carros: "1", ...(prev[familiaId] ?? {}), [field]: value },
+      [familiaId]: { motivo: "", km: "", n_carros: "1", ...(prev[familiaId] ?? {}), [field]: value } as { motivo: string; km: string; n_carros: string },
     }));
   };
   const [cidadeFilter, setCidadeFilter] = useState<string>("__all");
