@@ -1834,6 +1834,20 @@ function AddPessoasDialog({
                                 <span className="text-muted-foreground whitespace-nowrap">Bolsa</span>
                               </label>
                             )}
+                            {bolsaFamilias.has(f.id) && membroTipoId && (() => {
+                              const membros = familiaMembros.get(f.id) ?? [];
+                              const pessoasList = pessoas ?? [];
+                              const naoMembros = membros.filter((m) => {
+                                const p = pessoasList.find((p) => p.id === m.id);
+                                return p && p.tipo_user_id !== membroTipoId;
+                              });
+                              if (naoMembros.length === 0) return null;
+                              return (
+                                <p className="text-[10px] text-amber-600 ml-1">
+                                  ⚠ {naoMembros.length} pessoa{naoMembros.length !== 1 ? "s" : ""} sem tipo MEMBRO não receber{naoMembros.length !== 1 ? "ão" : "á"} bolsa
+                                </p>
+                              );
+                            })()}
                           </div>
                         </div>
                         {mapaKmFamilias.has(f.id) && (
