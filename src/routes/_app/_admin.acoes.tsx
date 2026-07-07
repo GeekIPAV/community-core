@@ -607,26 +607,20 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
 
   const criarKmFamilia = useMutation({
     mutationFn: async ({ familiaId }: { familiaId: string; rows: InscricaoRow[] }) => {
-      const dados = familiaKmDados[familiaId] ?? { motivo: "", km: "", n_carros: "1" };
-      const km = Number((dados.km ?? "").replace(",", "."));
-      const nCarros = Math.max(1, Number(dados.n_carros ?? 1));
-      const motivo = (dados.motivo ?? "").trim() || "Deslocação para evento";
-      if (!km || km <= 0) throw new Error("Indica os km para registar o mapa de KM");
       const { error } = await (supabase as any).from("mapa_km").insert({
         familia_id: familiaId,
         data: new Date().toISOString().slice(0, 10),
-        motivo,
-        km,
-        n_carros: nCarros,
+        motivo: "A completar",
+        km: 1,
+        n_carros: 1,
         estado: "por_pagar",
       });
       if (error) throw error;
     },
-    onSuccess: (_d, vars) => {
-      toast.success("Mapa de KM registado");
+    onSuccess: () => {
+      toast.success("Registo de KM criado — completa os detalhes na página de Bolsas");
       qc.invalidateQueries({ queryKey: ["mapa-km"] });
-      setFamiliaKm((prev) => ({ ...prev, [vars.familiaId]: false }));
-      setFamiliaKmDados((prev) => { const n = { ...prev }; delete n[vars.familiaId]; return n; });
+      qc.invalidateQueries({ queryKey: ["mapa-km-acao", acaoId] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -658,14 +652,14 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
       if (error) throw error;
       return bolsaRows.length;
     },
-    onSuccess: (n, vars) => {
+    onSuccess: (n) => {
       toast.success(`Bolsa criada para ${n} pessoa${n !== 1 ? "s" : ""}`);
       qc.invalidateQueries({ queryKey: ["bolsas-pagamentos-full"] });
       qc.invalidateQueries({ queryKey: ["bolsas-acao", acaoId] });
-      setFamiliaBolsa((prev) => ({ ...prev, [vars.familiaId]: false }));
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const familiasInscritas = useMemo(() => {
     const map = new Map<string, string>();
