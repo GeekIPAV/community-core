@@ -1705,6 +1705,12 @@ function AddPessoasDialog({
                 Selecionar visíveis ({selectableFamiliasIds.length} membros disponíveis)
               </span>
             </div>
+            {mapaKmFamilias.size > 0 && (
+              <div className="flex items-center gap-1.5 rounded-md bg-primary/5 border border-primary/20 px-3 py-1.5 text-xs text-primary">
+                <Car className="h-3.5 w-3.5 shrink-0" />
+                {mapaKmFamilias.size} família{mapaKmFamilias.size !== 1 ? "s" : ""} com mapa de KM activo
+              </div>
+            )}
             <ScrollArea className="h-[60vh]">
               {loadingFamilias || loadingPessoas ? (
                 <Skeleton className="m-2 h-32" />
@@ -1717,22 +1723,83 @@ function AddPessoasDialog({
                     const membros = familiaMembros.get(f.id) ?? [];
                     const checked = state.selectable.length > 0 && state.selectable.every((id) => selected.has(id));
                     return (
-                      <li key={f.id} className="flex items-center gap-3 px-1 py-2">
-                        <Checkbox
-                          checked={checked}
-                          disabled={state.selectable.length === 0}
-                          onCheckedChange={() => toggleFamilia(f.id)}
-                        />
-                        <div className="grid h-8 w-8 place-content-center rounded-full bg-muted text-xs font-medium">
-                          {initials(f.nome) || "F"}
+                      <li key={f.id} className="flex flex-col gap-1 px-1 py-2">
+                        <div className="flex items-center gap-3">
+                          <Checkbox
+                            checked={checked}
+                            disabled={state.selectable.length === 0}
+                            onCheckedChange={() => toggleFamilia(f.id)}
+                          />
+                          <div className="grid h-8 w-8 place-content-center rounded-full bg-muted text-xs font-medium">
+                            {initials(f.nome) || "F"}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium">{f.nome}</p>
+                            <p className="truncate text-xs text-muted-foreground">
+                              {membros.length} membro(s)
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Badge variant={state.variant}>{state.label}</Badge>
+                            {state.selectable.length > 0 && (
+                              <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none" title="Registar mapa de KM para esta família">
+                                <Switch
+                                  className="scale-75"
+                                  checked={mapaKmFamilias.has(f.id)}
+                                  onCheckedChange={() => toggleMapaKm(f.id)}
+                                />
+                                <span className="text-muted-foreground whitespace-nowrap">KM</span>
+                              </label>
+                            )}
+                          </div>
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">{f.nome}</p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            {membros.length} membro(s)
-                          </p>
-                        </div>
-                        <Badge variant={state.variant}>{state.label}</Badge>
+                        {mapaKmFamilias.has(f.id) && (
+                          <div className="mt-2 ml-11 grid grid-cols-3 gap-2" onClick={(e) => e.stopPropagation()}>
+                            <div className="col-span-3 space-y-0.5">
+                              <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Mapa de KM</p>
+                              <Input
+                                className="h-7 text-xs"
+                                placeholder="Motivo / destino (ex: SEF, IPO…)"
+                                value={mapaKmDados[f.id]?.motivo ?? ""}
+                                onChange={(e) => setDado(f.id, "motivo", e.target.value)}
+                              />
+                            </div>
+                            <div className="space-y-0.5">
+                              <p className="text-[10px] text-muted-foreground">KM (ida)</p>
+                              <Input
+                                className="h-7 text-xs"
+                                inputMode="decimal"
+                                placeholder="Ex: 25"
+                                value={mapaKmDados[f.id]?.km ?? ""}
+                                onChange={(e) => setDado(f.id, "km", e.target.value)}
+                              />
+                            </div>
+                            <div className="space-y-0.5">
+                              <p className="text-[10px] text-muted-foreground">Nº carros</p>
+                              <Input
+                                className="h-7 text-xs"
+                                type="number"
+                                min={1}
+                                max={10}
+                                value={mapaKmDados[f.id]?.n_carros ?? "1"}
+                                onChange={(e) => setDado(f.id, "n_carros", e.target.value)}
+                              />
+                            </div>
+                            <div className="space-y-0.5 flex items-end">
+                              {(() => {
+                                const km = Number((mapaKmDados[f.id]?.km ?? "").replace(",", "."));
+                                const n = Math.max(1, Number(mapaKmDados[f.id]?.n_carros ?? 1));
+                                if (!km || km <= 0) return null;
+                                const valor = Math.round(km * 0.36 * 2 * n * 100) / 100;
+                                return (
+                                  <p className="text-xs font-medium text-emerald-700 tabular-nums pb-1">
+                                    = {valor.toFixed(2).replace(".", ",")}€
+                                  </p>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        )}
                       </li>
                     );
                   })}
@@ -1864,7 +1931,7 @@ function AddPessoasDialog({
           </TabsContent>
         </Tabs>
         <SheetFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="outline" onClick={() => { setMapaKmFamilias(new Set()); setMapaKmDados({}); onOpenChange(false); }}>Cancelar</Button>
           {tab === "nova" ? (
             <Button
               disabled={
