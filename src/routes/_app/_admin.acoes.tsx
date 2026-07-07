@@ -2207,9 +2207,50 @@ function BolsaTab({ acaoId }: { acaoId: string }) {
     },
   });
 
+  const { data: bolsasAtivas = [] } = useQuery({
+    queryKey: ["bolsa-ativas", acaoId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("bolsas_pagamentos")
+        .select("pessoa_id")
+        .eq("acao_id", acaoId);
+      if (error) throw error;
+      return (data ?? []) as { pessoa_id: string }[];
+    },
+  });
+
+  const { data: kmAtivos = [] } = useQuery({
+    queryKey: ["bolsa-km-ativos", acaoId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("mapa_km")
+        .select("familia_id")
+        .eq("acao_id", acaoId);
+      if (error) throw error;
+      return (data ?? []) as { familia_id: string }[];
+    },
+  });
+
   if (isLoading || !cidades) return <Skeleton className="h-40 w-full" />;
 
-  const rows = (inscricoes ?? []).map((r: any) => {
+  const pessoasComBolsa = new Set((bolsasAtivas as any[]).map((b) => b.pessoa_id).filter(Boolean));
+  const familiasComRegisto = new Set<string>();
+  for (const b of bolsasAtivas as any[]) {
+    const insc = (inscricoes ?? []).find((i: any) => i.pessoa?.id === b.pessoa_id);
+    const fid = insc?.pessoa?.familia?.id;
+    if (fid) familiasComRegisto.add(fid);
+  }
+  for (const k of kmAtivos as any[]) {
+    if (k.familia_id) familiasComRegisto.add(k.familia_id);
+  }
+
+  const rows = (inscricoes ?? [])
+    .filter((r: any) => {
+      const fid = r.pessoa?.familia?.id;
+      if (fid && familiasComRegisto.has(fid)) return true;
+      return pessoasComBolsa.has(r.pessoa?.id);
+    })
+    .map((r: any) => {
     const v = parseViatura(r.valores_dinamicos);
     const cidade = v.viatura_propria ? null : matchCidade(r.pessoa?.cidade_residencia, cidades);
     const valor = cidade ? cidade.valor_sentido * TRIP_FACTOR : 0;
