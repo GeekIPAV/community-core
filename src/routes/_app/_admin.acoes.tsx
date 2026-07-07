@@ -618,7 +618,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Registo de KM criado — completa os detalhes na página de Bolsas");
+      toast.success("Registo de KM criado — completa os detalhes na página de Bolsas de Transporte");
       qc.invalidateQueries({ queryKey: ["mapa-km"] });
       qc.invalidateQueries({ queryKey: ["mapa-km-acao", acaoId] });
     },
@@ -990,33 +990,27 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
                           <div className="flex items-center gap-3 flex-wrap">
                             <span>{key} <span className="text-muted-foreground font-normal">({rows.length})</span></span>
                             {familiaId && (
-                              <div className="flex items-center gap-3 flex-wrap">
-                                <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none" title="Registar mapa de KM para esta família">
-                                  <Switch
-                                    className="scale-75"
-                                    checked={false}
-                                    disabled={criarKmFamilia.isPending}
-                                    onCheckedChange={(v) => {
-                                      if (v && familiaId) {
-                                        criarKmFamilia.mutate({ familiaId, rows: rows.map((r) => r.original) });
-                                      }
-                                    }}
-                                  />
-                                  <span className="text-muted-foreground">KM</span>
-                                </label>
-                                <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none" title="Registar bolsa de transporte para esta família">
-                                  <Switch
-                                    className="scale-75"
-                                    checked={false}
-                                    disabled={criarBolsaFamilia.isPending}
-                                    onCheckedChange={(v) => {
-                                      if (v && familiaId) {
-                                        criarBolsaFamilia.mutate({ familiaId, rows: rows.map((r) => r.original) });
-                                      }
-                                    }}
-                                  />
-                                  <span className="text-muted-foreground">Bolsa</span>
-                                </label>
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-6 px-2 text-[11px] gap-1.5"
+                                  disabled={criarKmFamilia.isPending}
+                                  onClick={() => criarKmFamilia.mutate({ familiaId, rows: rows.map((r) => r.original) })}
+                                  title="Registar mapa de KM para esta família"
+                                >
+                                  <Car className="h-3 w-3" /> + KM
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-6 px-2 text-[11px] gap-1.5"
+                                  disabled={criarBolsaFamilia.isPending}
+                                  onClick={() => criarBolsaFamilia.mutate({ familiaId, rows: rows.map((r) => r.original) })}
+                                  title="Registar bolsa de transporte para esta família"
+                                >
+                                  🚌 + Bolsa
+                                </Button>
                               </div>
                             )}
                           </div>
