@@ -19,6 +19,7 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, Maximize2, Minimize2, ArrowUpDown, UserPlus, Search, Upload, CheckCircle2, AlertCircle, Car, Download } from "lucide-react";
+import { downloadCSV, toCSV } from "@/lib/csv";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -859,6 +860,24 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
         </div>
         <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}>
           <UserPlus className="mr-1 h-3.5 w-3.5" /> Adicionar Pessoas
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            const headers = ["Nome", "Família", "Email", "Telefone", "Cidade", "Estado"];
+            const rowsCsv = baseRows.map((r) => ({
+              "Nome": r.pessoa?.nome_completo ?? "",
+              "Família": r.pessoa?.familia?.nome ?? "",
+              "Email": r.pessoa?.email ?? "",
+              "Telefone": r.pessoa?.telefone ?? "",
+              "Cidade": r.pessoa?.cidade_residencia ?? "",
+              "Estado": INSCRICAO_STATUS_LABEL[r.status] ?? r.status,
+            }));
+            downloadCSV(`inscricoes-${new Date().toISOString().slice(0, 10)}.csv`, toCSV(rowsCsv, headers));
+          }}
+        >
+          <Download className="mr-1 h-3.5 w-3.5" /> Exportar
         </Button>
         <DataTableViewOptions table={table} />
       </div>
