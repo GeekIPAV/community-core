@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useEffect, useMemo, useState } from "react";
 import { SavedViews } from "@/components/saved-views";
 import { toast } from "sonner";
-import { LayoutGrid, List, Pencil, Plus, Search, Upload, Users } from "lucide-react";
+import { Download, LayoutGrid, List, Pencil, Plus, Search, Upload, Users } from "lucide-react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -36,6 +36,7 @@ import { InlineText, InlineSelect, InlineMultiSelect } from "@/components/inline
 import { FamilyDetailDialog } from "@/components/family-detail";
 import { applyOptimisticRowPatch, rollbackOptimisticRows } from "@/lib/optimistic-row-update";
 import { handleSupabaseError } from "@/lib/handle-supabase-error";
+import { downloadCSV, toCSV } from "@/lib/csv";
 
 const PESSOA_STATUS_OPTS = ["ativo", "suspeito_duplicado", "fundido", "arquivado"];
 const GENERO_OPTS = ["Masculino", "Feminino"];
@@ -599,6 +600,29 @@ function FamiliasPage() {
           </Button>
           <Button variant="outline" size="sm" className="h-9" onClick={() => setBulkAddOpen(true)}>
             <Upload className="mr-2 h-4 w-4" /> Importar
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9"
+            onClick={() => {
+              const headers = ["Nome", "Status", "Membros", "Projetos", "Cidades", "Contacto MEERU", "Última edição"];
+              const rowsCsv = rows.map((f) => {
+                const agg = agregados?.get(f.id);
+                return {
+                  "Nome": f.nome ?? "",
+                  "Status": f.status ?? "",
+                  "Membros": String(contagens?.get(f.id) ?? 0),
+                  "Projetos": Array.from(agg?.projetos ?? []).sort().join("; "),
+                  "Cidades": Array.from(agg?.cidades ?? []).sort().join("; "),
+                  "Contacto MEERU": f.contacto_meeru_id ? (equipaMap.get(f.contacto_meeru_id)?.nome_completo ?? "") : "",
+                  "Última edição": f.updated_at ? new Date(f.updated_at).toLocaleDateString("pt-PT") : "",
+                };
+              });
+              downloadCSV(`familias-${new Date().toISOString().slice(0, 10)}.csv`, toCSV(rowsCsv, headers));
+            }}
+          >
+            <Download className="mr-2 h-4 w-4" /> Exportar
           </Button>
         </div>
       </div>
