@@ -15,9 +15,10 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Car, ChevronDown, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, Car, ChevronDown, AlertTriangle, Download } from "lucide-react";
 import { toast } from "sonner";
 import { matchCidade, parseViatura, formatEuro, KM_RATE, TRIP_FACTOR, normalizeGrupo, type CidadeBolsa } from "@/lib/bolsa-transporte";
+import { downloadCSV, toCSV } from "@/lib/csv";
 
 export const Route = createFileRoute("/_app/_admin/bolsas-transporte")({
   component: BolsasTransportePage,
@@ -936,6 +937,31 @@ function BolsasTransportePage() {
               <SelectItem value="cancelado">Cancelado</SelectItem>
             </SelectContent>
           </Select>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const headers = ["Ação", "Data", "Pessoa", "Família", "Cidade", "Transporte", "Valor", "Estado", "Método", "Notas", "Data pagamento"];
+              const rowsCsv = acoesFiltradas.flatMap((a) =>
+                a.inscricoes.map((i) => ({
+                  "Ação": i.acao_nome,
+                  "Data": i.acao_data ? new Date(i.acao_data).toLocaleDateString("pt-PT") : "",
+                  "Pessoa": i.pessoa_nome,
+                  "Família": i.familia_nome ?? "",
+                  "Cidade": i.cidade_residencia ?? "",
+                  "Transporte": i.viatura_propria ? `Própria · ${i.viatura_km ?? 0}km` : (i.cidade_residencia ?? ""),
+                  "Valor": (i.pagamento?.valor ?? i.valor_calculado).toFixed(2).replace(".", ","),
+                  "Estado": i.pagamento?.estado === "pago" ? "Pago" : i.pagamento?.estado === "cancelado" ? "Cancelado" : "Por pagar",
+                  "Método": i.pagamento?.metodo_pagamento ?? "",
+                  "Notas": i.pagamento?.notas ?? "",
+                  "Data pagamento": i.pagamento?.data_pagamento ?? "",
+                }))
+              );
+              downloadCSV(`bolsas-pagamentos-${new Date().toISOString().slice(0, 10)}.csv`, toCSV(rowsCsv, headers));
+            }}
+          >
+            <Download className="mr-1 h-3.5 w-3.5" /> Exportar
+          </Button>
         </div>
 
         {loadingPagamentos ? (
@@ -1117,6 +1143,27 @@ function BolsasTransportePage() {
             </SelectContent>
           </Select>
           <div className="flex-1" />
+          <Button
+            variant="outline"
+            onClick={() => {
+              const headers = ["Família", "Data", "Motivo", "KM", "Matrícula", "Carros", "Valor", "Estado", "Método", "Notas"];
+              const rowsCsv = kmFiltered.map((r) => ({
+                "Família": r.familia_nome ?? "",
+                "Data": r.data ? new Date(r.data).toLocaleDateString("pt-PT") : "",
+                "Motivo": r.motivo,
+                "KM": String(r.km),
+                "Matrícula": r.matricula ?? "",
+                "Carros": String(r.n_carros),
+                "Valor": r.valor.toFixed(2).replace(".", ","),
+                "Estado": r.estado === "pago" ? "Pago" : r.estado === "cancelado" ? "Cancelado" : "Por pagar",
+                "Método": r.metodo_pagamento ?? "",
+                "Notas": r.notas ?? "",
+              }));
+              downloadCSV(`mapa-km-${new Date().toISOString().slice(0, 10)}.csv`, toCSV(rowsCsv, headers));
+            }}
+          >
+            <Download className="mr-2 h-4 w-4" /> Exportar
+          </Button>
           <Button onClick={() => { setEditKmRow(null); setKmForm(emptyKmForm); setAddKmOpen(true); }}>
             <Plus className="mr-2 h-4 w-4" /> Novo registo
           </Button>
