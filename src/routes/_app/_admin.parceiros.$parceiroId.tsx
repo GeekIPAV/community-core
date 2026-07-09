@@ -282,6 +282,255 @@ function ProjetosTab({ parceiroId, projetos }: { parceiroId: string; projetos: {
   );
 }
 
+type Contacto = { id: string; nome_completo: string; email: string | null; telefone: string | null };
+
+function ContactosTab({
+  parceiroId,
+  contactos,
+  principalNome,
+  onDefinirPrincipal,
+}: {
+  parceiroId: string;
+  contactos: Contacto[];
+  principalNome: string | null;
+  onDefinirPrincipal: (c: { nome: string; email: string | null }) => void;
+}) {
+  const qc = useQueryClient();
+  const [addOpen, setAddOpen] = useState(false);
+  const [novoOpen, setNovoOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [novoNome, setNovoNome] = useState("");
+  const [novoEmail, setNovoEmail] = useState("");
+  const [novoTelefone, setNovoTelefone] = useState("");
+
+  const { data: tipoParceiroId } = useQuery({
+    queryKey: ["tipo-user-parceiro-id"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tipos_user")
+        .select("id, nome")
+        .ilike("nome", "parceiro")
+        .maybeSingle();
+      if (error) throw error;
+      return (data?.id ?? null) as string | null;
+    },
+  });
+
+  const { data: disponiveis } = useQuery({
+    queryKey: ["parceiros-contactos-disponiveis", tipoParceiroId, parceiroId],
+    enabled: !!tipoParceiroId && addOpen,
+    queryFn: async () => {
+      // Pessoas com tipo parceiro (tipo_user_id ou junção pessoa_tipos), sem parceiro_id atribuído
+      const [{ data: mainTipo, error: e1 }, { data: viaJuncao, error: e2 }] = await Promise.all([
+        supabase
+          .from("pessoas")
+          .select("id, nome_completo, email, telefone, parceiro_id, tipo_user_id")
+          .is("deleted_at", null)
+          .is("parceiro_id", null)
+          .eq("tipo_user_id", tipoParceiroId!)
+          .order("nome_completo"),
+        supabase
+          .from("pessoa_tipos")
+          .select("pessoa:pessoas(id, nome_completo, email, telefone, parceiro_id)")
+          .eq("tipo_user_id", tipoParceiroId!),
+      ]);
+      if (e1) throw e1;
+      if (e2) throw e2;
+      const map = new Map<string, Contacto>();
+      ((mainTipo ?? []) as any[]).forEach((p) => map.set(p.id, p));
+      ((viaJuncao ?? []) as any[]).forEach((r) => {
+        const p = r.pessoa;
+        if (p && !p.parceiro_id) map.set(p.id, p);
+      });
+      return Array.from(map.values()).sort((a, b) => a.nome_completo.localeCompare(b.nome_completo));
+    },
+  });
+
+  const invalidateAll = () => {
+    qc.invalidateQueries({ queryKey: ["parceiro-contactos", parceiroId] });
+    qc.invalidateQueries({ queryKey: ["parceiros-contactos-disponiveis"] });
+  };
+
+  const associar = useMutation({
+    mutationFn: async (pessoaId: string) => {
+      const { error } = await supabase
+        .from("pessoas")
+        .update({ parceiro_id: parceiroId })
+        .eq("id", pessoaId);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Contacto adicionado"); invalidateAll(); setAddOpen(false); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const desassociar = useMutation({
+    mutationFn: async (pessoaId: string) => {
+      const { error } = await supabase
+        .from("pessoas")
+        .update({ parceiro_id: null })
+        .eq("id", pessoaId);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Contacto removido"); invalidateAll(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const criar = useMutation({
+    mutationFn: async () => {
+      const nome = novoNome.trim();
+      if (!nome) throw new Error("Nome obrigatório");
+      const payload: any = {
+        nome_completo: nome,
+        email: novoEmail.trim() || null,
+        telefone: novoTelefone.trim() || null,
+        status: "ativo",
+        parceiro_id: parceiroId,
+      };
+      if (tipoParceiroId) payload.tipo_user_id = tipoParceiroId;
+      const { error } = await supabase.from("pessoas").insert(payload);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Contacto criado");
+      invalidateAll();
+      setNovoOpen(false);
+      setNovoNome(""); setNovoEmail(""); setNovoTelefone("");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const filtrados = (disponiveis ?? []).filter((p) =>
+    !search.trim() || p.nome_completo.toLowerCase().includes(search.toLowerCase()) || (p.email ?? "").toLowerCase().includes(search.toLowerCase()),
+  );
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">
+          Pessoas do tipo <strong>Parceiro</strong> associadas a esta entidade.
+        </p>
+        <div className="flex gap-2">
+          <Popover open={addOpen} onOpenChange={setAddOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm"><UserPlus className="me-1 h-4 w-4" /> Adicionar existente</Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-0" align="end">
+              <Command shouldFilter={false}>
+                <CommandInput placeholder="Procurar parceiro…" value={search} onValueChange={setSearch} />
+                <CommandList>
+                  <CommandEmpty>
+                    Sem parceiros disponíveis.
+                  </CommandEmpty>
+                  <CommandGroup>
+                    {filtrados.map((p) => (
+                      <CommandItem key={p.id} value={p.id} onSelect={() => associar.mutate(p.id)}>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{p.nome_completo}</span>
+                          {p.email && <span className="text-xs text-muted-foreground">{p.email}</span>}
+                        </div>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+          <Button size="sm" onClick={() => setNovoOpen(true)}><Plus className="me-1 h-4 w-4" /> Novo parceiro</Button>
+        </div>
+      </div>
+
+      {(contactos.length === 0) ? (
+        <div className="rounded-md border border-dashed py-12 text-center text-sm text-muted-foreground">
+          <Inbox className="mx-auto mb-2 h-8 w-8 opacity-50" />
+          Sem pessoas de contacto
+        </div>
+      ) : (
+        <ul className="divide-y rounded-md border">
+          {contactos.map((c) => {
+            const isPrincipal = principalNome && principalNome === c.nome_completo;
+            return (
+              <li key={c.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <Link
+                      to="/participantes"
+                      className="truncate font-medium hover:underline"
+                    >
+                      {c.nome_completo}
+                    </Link>
+                    {isPrincipal && (
+                      <Badge variant="secondary" className="gap-1">
+                        <Star className="h-3 w-3" /> Principal
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-x-3 text-xs text-muted-foreground">
+                    {c.email && <a href={`mailto:${c.email}`} className="hover:underline">{c.email}</a>}
+                    {c.telefone && <span>{c.telefone}</span>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  {!isPrincipal && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      title="Definir como contacto principal"
+                      onClick={() => onDefinirPrincipal({ nome: c.nome_completo, email: c.email })}
+                    >
+                      <Star className="me-1 h-3.5 w-3.5" /> Principal
+                    </Button>
+                  )}
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    title="Remover desta entidade"
+                    onClick={() => { if (confirm("Remover este contacto da entidade?")) desassociar.mutate(c.id); }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <Dialog open={novoOpen} onOpenChange={setNovoOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Novo parceiro para esta entidade</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>Nome *</Label>
+              <Input value={novoNome} onChange={(e) => setNovoNome(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Email</Label>
+              <Input type="email" value={novoEmail} onChange={(e) => setNovoEmail(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Telefone</Label>
+              <Input value={novoTelefone} onChange={(e) => setNovoTelefone(e.target.value)} />
+            </div>
+            {!tipoParceiroId && (
+              <p className="text-xs text-amber-600">
+                Tipo &quot;Parceiro&quot; não encontrado — a pessoa será criada sem tipo atribuído.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNovoOpen(false)}>Cancelar</Button>
+            <Button onClick={() => criar.mutate()} disabled={criar.isPending || !novoNome.trim()}>
+              {criar.isPending ? "A criar…" : "Criar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 function InteracoesTab({ parceiroId }: { parceiroId: string }) {
   const qc = useQueryClient();
   const [addOpen, setAddOpen] = useState(false);
