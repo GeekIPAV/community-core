@@ -1169,6 +1169,12 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
         </DialogContent>
       </Dialog>
 
+      <PessoaEditSheet
+        pessoaId={editingPessoaId}
+        open={!!editingPessoaId}
+        onOpenChange={(o) => { if (!o) setEditingPessoaId(null); }}
+      />
+
       <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
