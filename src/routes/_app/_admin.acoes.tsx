@@ -469,6 +469,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
   const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([]);
   const [editingInscricao, setEditingInscricao] = useState<InscricaoRow | null>(null);
   const [editValores, setEditValores] = useState<Record<string, any>>({});
+  const [editingPessoaId, setEditingPessoaId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<InscricaoRow | null>(null);
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [bulkEditField, setBulkEditField] = useState<string>("");
@@ -763,10 +764,20 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
             size="icon"
             variant="ghost"
             className="h-8 w-8"
-            onClick={() => { setEditingInscricao(row.original); setEditValores({ ...(row.original.valores_dinamicos ?? {}) }); }}
-            title="Editar respostas"
+            onClick={() => setEditingPessoaId(row.original.pessoa?.id ?? null)}
+            title="Editar pessoa"
+            disabled={!row.original.pessoa?.id}
           >
             <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+            onClick={() => { setEditingInscricao(row.original); setEditValores({ ...(row.original.valores_dinamicos ?? {}) }); }}
+            title="Editar respostas do formulário"
+          >
+            <ClipboardList className="h-3.5 w-3.5" />
           </Button>
           <Button
             size="icon"
