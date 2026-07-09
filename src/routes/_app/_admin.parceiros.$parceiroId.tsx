@@ -200,29 +200,12 @@ function ParceiroDetailPage() {
               <InteracoesTab parceiroId={parceiroId} />
             </TabsContent>
             <TabsContent value="contactos" className="mt-6 space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Pessoas com o tipo <strong>Parceiro</strong> associadas a esta entidade. Para adicionar, edita o perfil da pessoa em <Link to="/participantes" className="text-primary hover:underline">Participantes</Link>.
-              </p>
-              {(contactos?.length ?? 0) === 0 ? (
-                <div className="rounded-md border border-dashed py-12 text-center text-sm text-muted-foreground">
-                  <Inbox className="mx-auto mb-2 h-8 w-8 opacity-50" />
-                  Sem pessoas de contacto
-                </div>
-              ) : (
-                <ul className="divide-y rounded-md border">
-                  {(contactos ?? []).map((c) => (
-                    <li key={c.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                      <div className="min-w-0">
-                        <p className="truncate font-medium">{c.nome_completo}</p>
-                        <div className="flex flex-wrap gap-x-3 text-xs text-muted-foreground">
-                          {c.email && <a href={`mailto:${c.email}`} className="hover:underline">{c.email}</a>}
-                          {c.telefone && <span>{c.telefone}</span>}
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <ContactosTab
+                parceiroId={parceiroId}
+                contactos={contactos ?? []}
+                principalNome={parceiro.pessoa_contacto}
+                onDefinirPrincipal={(c) => setContactoPrincipal.mutate(c)}
+              />
             </TabsContent>
           </Tabs>
         </main>
