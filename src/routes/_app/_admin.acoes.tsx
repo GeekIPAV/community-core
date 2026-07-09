@@ -18,7 +18,8 @@ import { useState, useMemo, Fragment } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, Maximize2, Minimize2, ArrowUpDown, UserPlus, Search, Upload, CheckCircle2, AlertCircle, Car, Download } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, Maximize2, Minimize2, ArrowUpDown, UserPlus, Search, Upload, CheckCircle2, AlertCircle, Car, Download, ClipboardList } from "lucide-react";
+import { PessoaEditSheet } from "@/components/pessoa-edit-sheet";
 import { downloadCSV, toCSV } from "@/lib/csv";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -468,6 +469,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
   const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([]);
   const [editingInscricao, setEditingInscricao] = useState<InscricaoRow | null>(null);
   const [editValores, setEditValores] = useState<Record<string, any>>({});
+  const [editingPessoaId, setEditingPessoaId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<InscricaoRow | null>(null);
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [bulkEditField, setBulkEditField] = useState<string>("");
@@ -762,10 +764,20 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
             size="icon"
             variant="ghost"
             className="h-8 w-8"
-            onClick={() => { setEditingInscricao(row.original); setEditValores({ ...(row.original.valores_dinamicos ?? {}) }); }}
-            title="Editar respostas"
+            onClick={() => setEditingPessoaId(row.original.pessoa?.id ?? null)}
+            title="Editar pessoa"
+            disabled={!row.original.pessoa?.id}
           >
             <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+            onClick={() => { setEditingInscricao(row.original); setEditValores({ ...(row.original.valores_dinamicos ?? {}) }); }}
+            title="Editar respostas do formulário"
+          >
+            <ClipboardList className="h-3.5 w-3.5" />
           </Button>
           <Button
             size="icon"
@@ -1156,6 +1168,12 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PessoaEditSheet
+        pessoaId={editingPessoaId}
+        open={!!editingPessoaId}
+        onOpenChange={(o) => { if (!o) setEditingPessoaId(null); }}
+      />
 
       <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
         <DialogContent className="max-w-md">
