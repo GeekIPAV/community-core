@@ -98,7 +98,7 @@ export function PessoaEditSheet({
           morada: form.morada || null,
           data_nascimento: form.data_nascimento || null,
           familia_id: form.familia_id || null,
-          status: form.status,
+          status: form.status as any,
           notas: form.notas || null,
           tipo_user_id: form.tipo_user_id || null,
           genero: form.genero || null,
