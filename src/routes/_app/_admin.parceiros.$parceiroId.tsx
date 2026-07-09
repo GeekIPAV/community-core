@@ -24,7 +24,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Calendar, Inbox, Mail, Pencil, Plus, Trash2, User } from "lucide-react";
+import { ArrowLeft, Calendar, Inbox, Mail, Pencil, Plus, Trash2, User, UserPlus, X, Search, Star } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import {
   ParceiroDialog,
   estadoBadgeClass,
@@ -92,6 +94,22 @@ function ParceiroDetailPage() {
       if (error) throw error;
       return (data ?? []) as { id: string; nome_completo: string; email: string | null; telefone: string | null }[];
     },
+  });
+
+  const setContactoPrincipal = useMutation({
+    mutationFn: async (c: { nome: string; email: string | null }) => {
+      const { error } = await supabase
+        .from("parceiros")
+        .update({ pessoa_contacto: c.nome, email_contacto: c.email })
+        .eq("id", parceiroId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Contacto principal definido");
+      qc.invalidateQueries({ queryKey: ["parceiro", parceiroId] });
+      qc.invalidateQueries({ queryKey: ["parceiros"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const updateEstado = useMutation({
