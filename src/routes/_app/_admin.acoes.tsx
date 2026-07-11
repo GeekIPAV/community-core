@@ -1797,6 +1797,10 @@ function AddPessoasDialog({
       qc.invalidateQueries({ queryKey: ["inscricoes", acaoId] });
       qc.invalidateQueries({ queryKey: ["inscricao-counts"] });
       qc.invalidateQueries({ queryKey: ["mapa-km"] });
+      qc.invalidateQueries({ queryKey: ["familia-mapa-km"] });
+      qc.invalidateQueries({ queryKey: ["mapa-km-acao"] });
+      qc.invalidateQueries({ queryKey: ["transporte-acao"] });
+      qc.invalidateQueries({ queryKey: ["bolsa-km-ativos"] });
       qc.invalidateQueries({ queryKey: ["bolsas-pagamentos-full"] });
       toast.success("Pessoas inscritas com sucesso");
       setSelected(new Set());
@@ -2977,6 +2981,8 @@ function TransporteAcaoTab({ acaoId }: { acaoId: string }) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["mapa-km-acao", acaoId] });
       qc.invalidateQueries({ queryKey: ["mapa-km"] });
+      qc.invalidateQueries({ queryKey: ["familia-mapa-km"] });
+      qc.invalidateQueries({ queryKey: ["transporte-acao", acaoId] });
     },
     onError: (e: Error) => toast.error(e.message),
   });

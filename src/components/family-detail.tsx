@@ -463,6 +463,8 @@ function TransporteFamiliaTab({ familiaId }: { familiaId: string }) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["familia-mapa-km", familiaId] });
       qc.invalidateQueries({ queryKey: ["mapa-km"] });
+      qc.invalidateQueries({ queryKey: ["mapa-km-acao"] });
+      qc.invalidateQueries({ queryKey: ["transporte-acao"] });
       toast.success("Actualizado");
     },
     onError: (e: Error) => toast.error(e.message),
