@@ -694,6 +694,56 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
     return Array.from(map.values()).sort((a, b) => a.localeCompare(b));
   }, [baseRows]);
 
+  // Todas as famílias inscritas (id + nome + linhas) para o painel de transporte
+  const familiasComRows = useMemo(() => {
+    const map = new Map<string, { id: string; nome: string; rows: InscricaoRow[] }>();
+    baseRows.forEach((r) => {
+      const fam = r.pessoa?.familia;
+      if (fam?.id && fam?.nome) {
+        const cur = map.get(fam.id) ?? { id: fam.id, nome: fam.nome, rows: [] };
+        cur.rows.push(r);
+        map.set(fam.id, cur);
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [baseRows]);
+
+  // Registos de KM / Bolsa já existentes para esta ação — para mostrar contadores no painel
+  const { data: bolsasExistentesAcao = [] } = useQuery({
+    queryKey: ["bolsas-acao", acaoId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("bolsas_pagamentos")
+        .select("id, pessoa_id, acao_id")
+        .eq("acao_id", acaoId);
+      if (error) throw error;
+      return (data ?? []) as { id: string; pessoa_id: string; acao_id: string }[];
+    },
+  });
+
+  const { data: mapaKmExistenteAcao = [] } = useQuery({
+    queryKey: ["mapa-km-acao", acaoId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("mapa_km")
+        .select("id, familia_id, acao_id")
+        .eq("acao_id", acaoId);
+      if (error) throw error;
+      return (data ?? []) as { id: string; familia_id: string; acao_id: string }[];
+    },
+  });
+
+  const kmCountByFamilia = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of mapaKmExistenteAcao) m.set(r.familia_id, (m.get(r.familia_id) ?? 0) + 1);
+    return m;
+  }, [mapaKmExistenteAcao]);
+
+  const bolsaPessoaIds = useMemo(
+    () => new Set(bolsasExistentesAcao.map((b) => b.pessoa_id)),
+    [bolsasExistentesAcao]
+  );
+
   const columns: ColumnDef<InscricaoRow>[] = useMemo(() => [
     {
       id: "status",
