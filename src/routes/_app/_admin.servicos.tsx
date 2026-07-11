@@ -201,7 +201,7 @@ function ColaboradoresTab() {
       size: 240,
       meta: { label: "Nome", filterVariant: "text", editType: "text" },
       cell: ({ row }) => (
-        <Link to="/colaboradoras/$colaboradoraId" params={{ colaboradoraId: row.original.id }} className="inline-flex items-center gap-1 truncate font-medium hover:underline">
+        <Link to="/servicos/colaborador/$id" params={{ id: row.original.id }} className="inline-flex items-center gap-1 truncate font-medium hover:underline">
           <span className="truncate">{row.original.nome_completo}</span>
           <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
         </Link>
@@ -1463,7 +1463,7 @@ function RegistosTab() {
     { id: "_colab", accessorKey: "_colab", header: "Colaborador", size: 200,
       meta: { label: "Colaborador", filterVariant: "text" },
       cell: ({ row }) => (
-        <Link to="/colaboradoras/$colaboradoraId" params={{ colaboradoraId: row.original.colaborador_id }} className="font-medium hover:underline truncate block">
+        <Link to="/servicos/colaborador/$id" params={{ id: row.original.colaborador_id }} className="font-medium hover:underline truncate block">
           {row.original._colab}
         </Link>
       ) },
@@ -1915,7 +1915,7 @@ function PagamentosTab() {
     { id: "_colab", accessorKey: "_colab", header: "Colaborador", size: 220,
       meta: { label: "Colaborador", filterVariant: "text" },
       cell: ({ row }) => (
-        <Link to="/colaboradoras/$colaboradoraId" params={{ colaboradoraId: row.original.colaborador_id }} className="font-medium hover:underline truncate block">
+        <Link to="/servicos/colaborador/$id" params={{ id: row.original.colaborador_id }} className="font-medium hover:underline truncate block">
           {row.original._colab}
         </Link>
       ) },
