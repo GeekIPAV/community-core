@@ -443,6 +443,19 @@ function fromDtLocal(v: string): string | null {
   return isNaN(d.getTime()) ? null : d.toISOString();
 }
 
+function idadeDe(dataNascimento: string | null | undefined): number | null {
+  if (!dataNascimento) return null;
+  const m = dataNascimento.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  const birth = new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00Z`);
+  if (Number.isNaN(birth.getTime())) return null;
+  const now = new Date();
+  let age = now.getUTCFullYear() - birth.getUTCFullYear();
+  const mo = now.getUTCMonth() - birth.getUTCMonth();
+  if (mo < 0 || (mo === 0 && now.getUTCDate() < birth.getUTCDate())) age--;
+  return age;
+}
+
 const INSCRICAO_STATUSES = ["confirmada", "pendente", "presente", "ausente", "cancelada"] as const;
 type InscricaoStatus = typeof INSCRICAO_STATUSES[number];
 
