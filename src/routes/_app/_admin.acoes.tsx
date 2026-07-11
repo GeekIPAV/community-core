@@ -2089,6 +2089,11 @@ function AddPessoasDialog({
                     return (
                       <li key={f.id} className="flex flex-col gap-1 px-1 py-2">
                         <div className="flex items-center gap-3">
+                          <Checkbox
+                            checked={checked}
+                            disabled={state.selectable.length === 0}
+                            onCheckedChange={() => toggleFamilia(f.id)}
+                          />
                           <button
                             type="button"
                             onClick={() => toggleExpandFamilia(f.id)}
@@ -2098,11 +2103,6 @@ function AddPessoasDialog({
                           >
                             {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                           </button>
-                          <Checkbox
-                            checked={checked}
-                            disabled={state.selectable.length === 0}
-                            onCheckedChange={() => toggleFamilia(f.id)}
-                          />
                           <div className="grid h-8 w-8 place-content-center rounded-full bg-muted text-xs font-medium">
                             {initials(f.nome) || "F"}
                           </div>
