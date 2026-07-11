@@ -2222,6 +2222,14 @@ function AddPessoasDialog({
                               .sort((a, b) => a.nome_completo.localeCompare(b.nome_completo))
                               .map((m) => {
                                 const jaInscrito = inscritosIds.has(m.id);
+                                const idade = idadeDe(m.data_nascimento);
+                                const generoAbbr = m.genero
+                                  ? m.genero.toLowerCase().startsWith("m")
+                                    ? "M"
+                                    : m.genero.toLowerCase().startsWith("f")
+                                      ? "F"
+                                      : m.genero[0]?.toUpperCase()
+                                  : null;
                                 return (
                                   <li key={m.id} className="flex items-center gap-3 px-2 py-1.5">
                                     <Checkbox
@@ -2229,7 +2237,16 @@ function AddPessoasDialog({
                                       disabled={jaInscrito}
                                       onCheckedChange={() => toggleOne(m.id)}
                                     />
-                                    <span className="flex-1 truncate text-xs">{m.nome_completo}</span>
+                                    <div className="flex flex-1 items-center gap-2 min-w-0">
+                                      <span className="truncate text-xs">{m.nome_completo}</span>
+                                      {(idade != null || generoAbbr) && (
+                                        <span className="whitespace-nowrap text-[10px] text-muted-foreground">
+                                          {idade != null ? `${idade} anos` : ""}
+                                          {idade != null && generoAbbr ? " · " : ""}
+                                          {generoAbbr}
+                                        </span>
+                                      )}
+                                    </div>
                                     {jaInscrito && (
                                       <Badge variant="secondary" className="text-[10px]">Já inscrito</Badge>
                                     )}
