@@ -134,12 +134,14 @@ function InscricaoRow({
   onChangeEstado,
   onUpdate,
   onMarcarPago,
+  onDelete,
   hideShared,
 }: {
   i: InscricaoComBolsa;
   onChangeEstado: (i: InscricaoComBolsa, estado: BolsaPagamento["estado"]) => void;
   onUpdate: (i: InscricaoComBolsa, campo: "metodo_pagamento" | "notas", valor: string) => void;
   onMarcarPago: (i: InscricaoComBolsa) => void;
+  onDelete: (i: InscricaoComBolsa) => void;
   hideShared?: boolean;
 }) {
   const estado = i.pagamento?.estado ?? "por_pagar";
@@ -200,6 +202,19 @@ function InscricaoRow({
         )}
         {estado === "pago" && (
           <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => onChangeEstado(i, "por_pagar")}>Reverter</Button>
+        )}
+      </TableCell>
+      <TableCell>
+        {i.pagamento && (
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6 text-destructive hover:text-destructive"
+            onClick={(e) => { e.stopPropagation(); if (confirm("Remover esta bolsa?")) onDelete(i); }}
+            title="Remover bolsa"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
         )}
       </TableCell>
     </TableRow>
