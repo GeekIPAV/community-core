@@ -1022,16 +1022,29 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
                       setSelected(next);
                     };
                     const familiaId = rows[0]?.original.pessoa?.familia?.id as string | undefined;
+                    const isCollapsed = collapsedFamilias.has(key);
                     out.push(
-                      <TableRow key={`group-${key}`} className="bg-muted/50 hover:bg-muted/50">
+                      <TableRow key={`group-${key}`} className="bg-muted/50 hover:bg-muted/50 cursor-pointer" onClick={() => toggleFamiliaCollapse(key)}>
                         <TableCell>
-                          <Checkbox checked={allGroupSelected} onCheckedChange={toggleGroup} />
+                          <Checkbox
+                            checked={allGroupSelected}
+                            onCheckedChange={toggleGroup}
+                            onClick={(e) => e.stopPropagation()}
+                          />
                         </TableCell>
                         <TableCell className="font-medium text-sm" colSpan={colSpan - 1}>
                           <div className="flex items-center gap-3 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); toggleFamiliaCollapse(key); }}
+                              className="inline-flex h-5 w-5 items-center justify-center rounded hover:bg-muted"
+                              aria-label={isCollapsed ? "Expandir família" : "Colapsar família"}
+                            >
+                              {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                            </button>
                             <span>{key} <span className="text-muted-foreground font-normal">({rows.length})</span></span>
                             {familiaId && (
-                              <div className="flex items-center justify-end gap-2">
+                              <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -1059,7 +1072,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
                       </TableRow>
                     );
 
-                    rows.forEach((row) => {
+                    if (!isCollapsed) rows.forEach((row) => {
                       out.push(
                         <TableRow key={row.id} data-state={selected.has(row.original.id) ? "selected" : undefined}>
                           <TableCell>
