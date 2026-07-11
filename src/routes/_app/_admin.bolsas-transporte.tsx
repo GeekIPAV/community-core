@@ -603,6 +603,18 @@ function BolsasTransportePage() {
       data_pagamento: i.pagamento?.data_pagamento ?? null,
     });
 
+  const deleteBolsa = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from("bolsas_pagamentos").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Bolsa removida");
+      qc.invalidateQueries({ queryKey: ["bolsas-pagamentos-full"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const updateCampo = (i: InscricaoComBolsa, campo: "metodo_pagamento" | "notas", valor: string) =>
     upsertPagamento.mutate({
       inscricao_id: i.inscricao_id,
