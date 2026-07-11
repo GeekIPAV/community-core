@@ -694,6 +694,57 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
     return Array.from(map.values()).sort((a, b) => a.localeCompare(b));
   }, [baseRows]);
 
+  // Todas as famílias inscritas (id + nome + linhas) para o painel de transporte
+  const familiasComRows = useMemo(() => {
+    type Entry = { id: string; nome: string; rows: InscricaoRow[] };
+    const map = new Map<string, Entry>();
+    baseRows.forEach((r) => {
+      const fam = r.pessoa?.familia;
+      if (fam?.id && fam?.nome) {
+        const cur: Entry = map.get(fam.id) ?? { id: fam.id, nome: fam.nome, rows: [] as InscricaoRow[] };
+        cur.rows.push(r);
+        map.set(fam.id, cur);
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [baseRows]);
+
+  // Registos de KM / Bolsa já existentes para esta ação — para mostrar contadores no painel
+  const { data: bolsasExistentesAcao = [] } = useQuery({
+    queryKey: ["bolsas-acao", acaoId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("bolsas_pagamentos")
+        .select("id, pessoa_id, acao_id")
+        .eq("acao_id", acaoId);
+      if (error) throw error;
+      return (data ?? []) as { id: string; pessoa_id: string; acao_id: string }[];
+    },
+  });
+
+  const { data: mapaKmExistenteAcao = [] } = useQuery({
+    queryKey: ["mapa-km-acao", acaoId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("mapa_km")
+        .select("id, familia_id, acao_id")
+        .eq("acao_id", acaoId);
+      if (error) throw error;
+      return (data ?? []) as { id: string; familia_id: string; acao_id: string }[];
+    },
+  });
+
+  const kmCountByFamilia = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of mapaKmExistenteAcao) m.set(r.familia_id, (m.get(r.familia_id) ?? 0) + 1);
+    return m;
+  }, [mapaKmExistenteAcao]);
+
+  const bolsaPessoaIds = useMemo(
+    () => new Set(bolsasExistentesAcao.map((b) => b.pessoa_id)),
+    [bolsasExistentesAcao]
+  );
+
   const columns: ColumnDef<InscricaoRow>[] = useMemo(() => [
     {
       id: "status",
@@ -921,6 +972,62 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
           </div>
         </CollapsibleContent>
       </Collapsible>
+      {familiasComRows.length > 0 && (
+        <Collapsible defaultOpen>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="flex items-center gap-1 text-muted-foreground hover:text-foreground">
+              Transporte por família <ChevronDown className="h-4 w-4" />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="mt-2 rounded-md border divide-y">
+              {familiasComRows.map((fam) => {
+                const nKm = kmCountByFamilia.get(fam.id) ?? 0;
+                const nBolsa = fam.rows.filter((r) => bolsaPessoaIds.has(r.pessoa?.id ?? "")).length;
+                return (
+                  <div key={fam.id} className="flex items-center gap-3 px-3 py-2 flex-wrap">
+                    <span className="text-sm font-medium">{fam.nome}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {fam.rows.length} inscrito{fam.rows.length !== 1 ? "s" : ""}
+                    </span>
+                    {nKm > 0 && (
+                      <Badge variant="secondary" className="text-[10px]">{nKm} KM</Badge>
+                    )}
+                    {nBolsa > 0 && (
+                      <Badge variant="secondary" className="text-[10px]">{nBolsa} Bolsa</Badge>
+                    )}
+                    <div className="ml-auto flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-xs gap-1.5"
+                        disabled={criarKmFamilia.isPending}
+                        onClick={() => criarKmFamilia.mutate({ familiaId: fam.id, rows: fam.rows })}
+                        title="Registar mapa de KM para esta família"
+                      >
+                        <Car className="h-3 w-3" /> + KM
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-xs gap-1.5"
+                        disabled={criarBolsaFamilia.isPending}
+                        onClick={() => criarBolsaFamilia.mutate({ familiaId: fam.id, rows: fam.rows })}
+                        title="Registar bolsa de transporte para esta família"
+                      >
+                        🚌 + Bolsa
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Cria registos de KM ou bolsa depois da inscrição. Os detalhes (km, motivo, valor) completam-se em <span className="italic">Bolsas de transporte</span>.
+            </p>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
       <AddPessoasDialog
         open={addOpen}
         onOpenChange={setAddOpen}
