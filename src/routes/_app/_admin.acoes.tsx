@@ -1426,6 +1426,15 @@ function AddPessoasDialog({
   const [mapaKmFamilias, setMapaKmFamilias] = useState<Set<string>>(new Set());
   const [mapaKmDados, setMapaKmDados] = useState<Record<string, { motivo: string; km: string; n_carros: string }>>({});
   const [bolsaFamilias, setBolsaFamilias] = useState<Set<string>>(new Set());
+  const [expandedFamilias, setExpandedFamilias] = useState<Set<string>>(new Set());
+  const toggleExpandFamilia = (familiaId: string) => {
+    setExpandedFamilias((prev) => {
+      const next = new Set(prev);
+      if (next.has(familiaId)) next.delete(familiaId);
+      else next.add(familiaId);
+      return next;
+    });
+  };
   const toggleBolsa = (familiaId: string) => {
     setBolsaFamilias((prev) => {
       const next = new Set(prev);
@@ -2076,9 +2085,19 @@ function AddPessoasDialog({
                     const state = getFamiliaState(f.id);
                     const membros = familiaMembros.get(f.id) ?? [];
                     const checked = state.selectable.length > 0 && state.selectable.every((id) => selected.has(id));
+                    const isExpanded = expandedFamilias.has(f.id);
                     return (
                       <li key={f.id} className="flex flex-col gap-1 px-1 py-2">
                         <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => toggleExpandFamilia(f.id)}
+                            disabled={membros.length === 0}
+                            className="grid h-6 w-6 place-content-center rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+                            aria-label={isExpanded ? "Colapsar" : "Expandir"}
+                          >
+                            {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                          </button>
                           <Checkbox
                             checked={checked}
                             disabled={state.selectable.length === 0}
@@ -2182,6 +2201,29 @@ function AddPessoasDialog({
                               })()}
                             </div>
                           </div>
+                        )}
+                        {isExpanded && membros.length > 0 && (
+                          <ul className="ml-11 mt-1 divide-y divide-border/40 rounded-md border border-border/40 bg-muted/20">
+                            {membros
+                              .slice()
+                              .sort((a, b) => a.nome_completo.localeCompare(b.nome_completo))
+                              .map((m) => {
+                                const jaInscrito = inscritosIds.has(m.id);
+                                return (
+                                  <li key={m.id} className="flex items-center gap-3 px-2 py-1.5">
+                                    <Checkbox
+                                      checked={selected.has(m.id)}
+                                      disabled={jaInscrito}
+                                      onCheckedChange={() => toggleOne(m.id)}
+                                    />
+                                    <span className="flex-1 truncate text-xs">{m.nome_completo}</span>
+                                    {jaInscrito && (
+                                      <Badge variant="secondary" className="text-[10px]">Já inscrito</Badge>
+                                    )}
+                                  </li>
+                                );
+                              })}
+                          </ul>
                         )}
                       </li>
                     );
