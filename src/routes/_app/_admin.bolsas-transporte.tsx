@@ -348,6 +348,7 @@ function FamiliaSubgrupoBlock({
   onChangeEstado: (i: InscricaoComBolsa, estado: BolsaPagamento["estado"]) => void;
   onUpdate: (i: InscricaoComBolsa, campo: "metodo_pagamento" | "notas", valor: string) => void;
   onMarcarPago: (i: InscricaoComBolsa) => void;
+  onDelete: (i: InscricaoComBolsa) => void;
 }) {
   return (
     <>
@@ -365,6 +366,7 @@ function FamiliaSubgrupoBlock({
           onChangeEstado={onChangeEstado}
           onUpdate={onUpdate}
           onMarcarPago={onMarcarPago}
+          onDelete={onDelete}
           hideShared={group.isFamilia && group.inscricoes.length > 1}
         />
       ))}
