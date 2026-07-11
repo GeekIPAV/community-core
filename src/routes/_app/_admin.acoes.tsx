@@ -676,8 +676,13 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
       });
       const { error } = await (supabase as any)
         .from("bolsas_pagamentos")
-        .upsert(bolsaRows, { onConflict: "inscricao_id" });
-      if (error) throw error;
+        .insert(bolsaRows);
+      if (error) {
+        if ((error as any).code === "23505") {
+          throw new Error("Esta família já tem bolsa criada para este evento. Apaga primeiro a existente.");
+        }
+        throw error;
+      }
       return bolsaRows.length;
     },
     onSuccess: (n) => {
@@ -1796,10 +1801,12 @@ function AddPessoasDialog({
           });
         }
         if (bolsaRows.length > 0) {
-          const { error: bolsaError } = await supabase
+          const { error: bolsaError } = await (supabase as any)
             .from("bolsas_pagamentos")
-            .upsert(bolsaRows as any, { onConflict: "inscricao_id" });
-          if (bolsaError) console.warn("[bolsas_pagamentos] Erro ao criar registo:", bolsaError);
+            .insert(bolsaRows);
+          if (bolsaError && (bolsaError as any).code !== "23505") {
+            console.warn("[bolsas_pagamentos] Erro ao criar registo:", bolsaError);
+          }
         }
       }
     },
@@ -2931,6 +2938,9 @@ function TransporteAcaoTab({ acaoId }: { acaoId: string }) {
       toast.success("Bolsa removida");
       qc.invalidateQueries({ queryKey: ["bolsas-acao", acaoId] });
       qc.invalidateQueries({ queryKey: ["bolsas-pagamentos-full"] });
+      qc.invalidateQueries({ queryKey: ["bolsa-ativas", acaoId] });
+      qc.invalidateQueries({ queryKey: ["bolsa-inscricoes", acaoId] });
+      qc.invalidateQueries({ queryKey: ["familia-bolsas"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -2957,6 +2967,8 @@ function TransporteAcaoTab({ acaoId }: { acaoId: string }) {
       toast.success("Registo de KM removido");
       qc.invalidateQueries({ queryKey: ["mapa-km-acao", acaoId] });
       qc.invalidateQueries({ queryKey: ["mapa-km"] });
+      qc.invalidateQueries({ queryKey: ["bolsa-km-ativos", acaoId] });
+      qc.invalidateQueries({ queryKey: ["familia-mapa-km"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
