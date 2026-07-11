@@ -1564,11 +1564,11 @@ function AddPessoasDialog({
   );
 
   const familiaMembros = useMemo(() => {
-    const m = new Map<string, Array<{ id: string; nome_completo: string }>>();
+    const m = new Map<string, Array<{ id: string; nome_completo: string; data_nascimento: string | null; genero: string | null }>>();
     (pessoas ?? []).forEach((p) => {
       if (!p.familia_id) return;
       const arr = m.get(p.familia_id) ?? [];
-      arr.push({ id: p.id, nome_completo: p.nome_completo });
+      arr.push({ id: p.id, nome_completo: p.nome_completo, data_nascimento: p.data_nascimento, genero: p.genero });
       m.set(p.familia_id, arr);
     });
     return m;
