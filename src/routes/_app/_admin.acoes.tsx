@@ -649,6 +649,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
       qc.invalidateQueries({ queryKey: ["mapa-km-acao", acaoId] });
       qc.invalidateQueries({ queryKey: ["bolsa-km-ativos", acaoId] });
       qc.invalidateQueries({ queryKey: ["transporte-acao", acaoId] });
+      qc.invalidateQueries({ queryKey: ["familia-mapa-km"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
