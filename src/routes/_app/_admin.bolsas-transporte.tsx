@@ -548,6 +548,9 @@ function BolsasTransportePage() {
     onSuccess: () => {
       toast.success("Bolsa removida");
       qc.invalidateQueries({ queryKey: ["bolsas-pagamentos-full"] });
+      qc.invalidateQueries({ queryKey: ["bolsas-acao"] });
+      qc.invalidateQueries({ queryKey: ["bolsa-ativas"] });
+      qc.invalidateQueries({ queryKey: ["familia-bolsas"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
