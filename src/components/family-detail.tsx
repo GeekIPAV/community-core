@@ -470,6 +470,32 @@ function TransporteFamiliaTab({ familiaId }: { familiaId: string }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const deleteBolsa = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from("bolsas_pagamentos").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Bolsa removida");
+      qc.invalidateQueries({ queryKey: ["familia-bolsas", familiaId] });
+      qc.invalidateQueries({ queryKey: ["bolsas-pagamentos-full"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteKm = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from("mapa_km").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Registo de KM removido");
+      qc.invalidateQueries({ queryKey: ["familia-mapa-km", familiaId] });
+      qc.invalidateQueries({ queryKey: ["mapa-km"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const kpis = useMemo(() => {
     const bolsasPorPagar = bolsas.filter((b) => b.estado === "por_pagar");
     const bolsasPago = bolsas.filter((b) => b.estado === "pago");
@@ -535,6 +561,7 @@ function TransporteFamiliaTab({ familiaId }: { familiaId: string }) {
                   <TableHead>Método</TableHead>
                   <TableHead>Data pagamento</TableHead>
                   <TableHead>Notas</TableHead>
+                  <TableHead className="w-8"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -581,6 +608,18 @@ function TransporteFamiliaTab({ familiaId }: { familiaId: string }) {
                         onSave={(v) => updateBolsa.mutate({ id: b.id, patch: { notas: v || null } })}
                       />
                     </TableCell>
+                    <TableCell>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 text-destructive hover:text-destructive"
+                        disabled={deleteBolsa.isPending}
+                        onClick={() => { if (confirm("Remover esta bolsa?")) deleteBolsa.mutate(b.id); }}
+                        title="Remover bolsa"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -591,7 +630,7 @@ function TransporteFamiliaTab({ familiaId }: { familiaId: string }) {
                     <td className="px-4 py-2 text-right text-xs font-semibold tabular-nums whitespace-nowrap">
                       {eur(bolsas.reduce((s, b) => s + b.valor, 0))}
                     </td>
-                    <td colSpan={4}></td>
+                    <td colSpan={5}></td>
                   </tr>
                 </tfoot>
               )}
@@ -621,6 +660,7 @@ function TransporteFamiliaTab({ familiaId }: { familiaId: string }) {
                   <TableHead>Método</TableHead>
                   <TableHead>Data pagamento</TableHead>
                   <TableHead>Notas</TableHead>
+                  <TableHead className="w-8"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -669,6 +709,18 @@ function TransporteFamiliaTab({ familiaId }: { familiaId: string }) {
                         onSave={(v) => updateKm.mutate({ id: k.id, patch: { notas: v || null } })}
                       />
                     </TableCell>
+                    <TableCell>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 text-destructive hover:text-destructive"
+                        disabled={deleteKm.isPending}
+                        onClick={() => { if (confirm("Remover este registo de KM?")) deleteKm.mutate(k.id); }}
+                        title="Remover registo de KM"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -683,7 +735,7 @@ function TransporteFamiliaTab({ familiaId }: { familiaId: string }) {
                     <td className="px-4 py-2 text-right text-xs font-semibold tabular-nums whitespace-nowrap">
                       {eur(mapaKm.reduce((s, k) => s + k.valor, 0))}
                     </td>
-                    <td colSpan={4}></td>
+                    <td colSpan={5}></td>
                   </tr>
                 </tfoot>
               )}

@@ -134,12 +134,14 @@ function InscricaoRow({
   onChangeEstado,
   onUpdate,
   onMarcarPago,
+  onDelete,
   hideShared,
 }: {
   i: InscricaoComBolsa;
   onChangeEstado: (i: InscricaoComBolsa, estado: BolsaPagamento["estado"]) => void;
   onUpdate: (i: InscricaoComBolsa, campo: "metodo_pagamento" | "notas", valor: string) => void;
   onMarcarPago: (i: InscricaoComBolsa) => void;
+  onDelete: (i: InscricaoComBolsa) => void;
   hideShared?: boolean;
 }) {
   const estado = i.pagamento?.estado ?? "por_pagar";
@@ -200,6 +202,19 @@ function InscricaoRow({
         )}
         {estado === "pago" && (
           <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => onChangeEstado(i, "por_pagar")}>Reverter</Button>
+        )}
+      </TableCell>
+      <TableCell>
+        {i.pagamento && (
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6 text-destructive hover:text-destructive"
+            onClick={(e) => { e.stopPropagation(); if (confirm("Remover esta bolsa?")) onDelete(i); }}
+            title="Remover bolsa"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
         )}
       </TableCell>
     </TableRow>
@@ -324,6 +339,7 @@ function FamiliaSubgrupoBlock({
   onChangeEstado,
   onUpdate,
   onMarcarPago,
+  onDelete,
 }: {
   group: FamiliaSubgrupo;
   colSpan: number;
@@ -333,6 +349,7 @@ function FamiliaSubgrupoBlock({
   onChangeEstado: (i: InscricaoComBolsa, estado: BolsaPagamento["estado"]) => void;
   onUpdate: (i: InscricaoComBolsa, campo: "metodo_pagamento" | "notas", valor: string) => void;
   onMarcarPago: (i: InscricaoComBolsa) => void;
+  onDelete: (i: InscricaoComBolsa) => void;
 }) {
   return (
     <>
@@ -350,6 +367,7 @@ function FamiliaSubgrupoBlock({
           onChangeEstado={onChangeEstado}
           onUpdate={onUpdate}
           onMarcarPago={onMarcarPago}
+          onDelete={onDelete}
           hideShared={group.isFamilia && group.inscricoes.length > 1}
         />
       ))}
@@ -584,6 +602,18 @@ function BolsasTransportePage() {
       notas: i.pagamento?.notas ?? null,
       data_pagamento: i.pagamento?.data_pagamento ?? null,
     });
+
+  const deleteBolsa = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from("bolsas_pagamentos").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Bolsa removida");
+      qc.invalidateQueries({ queryKey: ["bolsas-pagamentos-full"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const updateCampo = (i: InscricaoComBolsa, campo: "metodo_pagamento" | "notas", valor: string) =>
     upsertPagamento.mutate({
@@ -1011,6 +1041,7 @@ function BolsasTransportePage() {
                           <TableHead>Método</TableHead>
                           <TableHead>Notas</TableHead>
                           <TableHead></TableHead>
+                          <TableHead className="w-8"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1018,13 +1049,14 @@ function BolsasTransportePage() {
                           <FamiliaSubgrupoBlock
                             key={fg.key}
                             group={fg}
-                            colSpan={8}
+                            colSpan={9}
                             onBulkEstado={bulkEstadoFamilia}
                             onBulkCampo={bulkCampoFamilia}
                             onBulkMarcarPagos={bulkMarcarPagosFamilia}
                             onChangeEstado={changeEstado}
                             onUpdate={updateCampo}
                             onMarcarPago={marcarPago}
+                            onDelete={(i) => deleteBolsa.mutate(i.pagamento!.id)}
                           />
                         ))}
                       </TableBody>
