@@ -38,6 +38,7 @@ import { DraggableTableHeaders } from "@/components/draggable-table-headers";
 import { useMobileColumnVisibility } from "@/hooks/use-mobile-columns";
 import { matchCidade, formatEuro, type CidadeBolsa, KM_RATE, TRIP_FACTOR, parseViatura, normalizeGrupo } from "@/lib/bolsa-transporte";
 import { ChevronDown } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { AcoesPlaneamento } from "@/components/acoes-planeamento";
 import { useServerFn } from "@tanstack/react-start";
 import {
