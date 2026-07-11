@@ -742,12 +742,22 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
   const { data: mapaKmExistenteAcao = [] } = useQuery({
     queryKey: ["mapa-km-acao", acaoId],
     queryFn: async () => {
+      // mapa_km has no acao_id — get families in this action then fetch their km rows
+      const { data: insc } = await supabase
+        .from("inscricoes")
+        .select("pessoas!inner(familia_id)")
+        .eq("acao_id", acaoId)
+        .neq("status", "cancelada");
+      const familiaIds = [...new Set(
+        ((insc ?? []) as any[]).map((i: any) => i.pessoas?.familia_id).filter(Boolean)
+      )];
+      if (!familiaIds.length) return [] as { id: string; familia_id: string }[];
       const { data, error } = await (supabase as any)
         .from("mapa_km")
-        .select("id, familia_id, acao_id")
-        .eq("acao_id", acaoId);
+        .select("id, familia_id")
+        .in("familia_id", familiaIds);
       if (error) throw error;
-      return (data ?? []) as { id: string; familia_id: string; acao_id: string }[];
+      return (data ?? []) as { id: string; familia_id: string }[];
     },
   });
 
@@ -2468,10 +2478,20 @@ function BolsaTab({ acaoId }: { acaoId: string }) {
   const { data: kmAtivos = [] } = useQuery({
     queryKey: ["bolsa-km-ativos", acaoId],
     queryFn: async () => {
+      // mapa_km has no acao_id — get families in this action then fetch their km rows
+      const { data: insc } = await supabase
+        .from("inscricoes")
+        .select("pessoas!inner(familia_id)")
+        .eq("acao_id", acaoId)
+        .neq("status", "cancelada");
+      const familiaIds = [...new Set(
+        ((insc ?? []) as any[]).map((i: any) => i.pessoas?.familia_id).filter(Boolean)
+      )];
+      if (!familiaIds.length) return [] as { familia_id: string }[];
       const { data, error } = await (supabase as any)
         .from("mapa_km")
         .select("familia_id")
-        .eq("acao_id", acaoId);
+        .in("familia_id", familiaIds);
       if (error) throw error;
       return (data ?? []) as { familia_id: string }[];
     },
