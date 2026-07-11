@@ -135,26 +135,27 @@ function InscricaoRow({
   onUpdate,
   onMarcarPago,
   onDelete,
-  hideShared,
+  indented = false,
 }: {
   i: InscricaoComBolsa;
   onChangeEstado: (i: InscricaoComBolsa, estado: BolsaPagamento["estado"]) => void;
   onUpdate: (i: InscricaoComBolsa, campo: "metodo_pagamento" | "notas", valor: string) => void;
   onMarcarPago: (i: InscricaoComBolsa) => void;
   onDelete: (i: InscricaoComBolsa) => void;
-  hideShared?: boolean;
+  indented?: boolean;
 }) {
   const estado = i.pagamento?.estado ?? "por_pagar";
   const valor = i.pagamento?.valor ?? i.valor_calculado;
+  const semCidade = !i.viatura_propria && i.valor_calculado === 0;
   return (
-    <TableRow>
-      <TableCell className="font-medium pl-8">{i.pessoa_nome}</TableCell>
+    <TableRow className={semCidade ? "opacity-60" : ""}>
+      <TableCell className={`font-medium ${indented ? "pl-8" : ""}`}>{i.pessoa_nome}</TableCell>
       <TableCell className="text-muted-foreground text-xs">{i.familia_nome ?? "—"}</TableCell>
       <TableCell>
         {i.viatura_propria ? (
-          <div className="flex items-center gap-1">
-            <Badge className="bg-orange-100 text-orange-800 border-orange-200">
-              🚗 {i.viatura_grupo ?? "?"} · {i.viatura_km ?? 0}km
+          <div className="flex items-center gap-1.5">
+            <Badge className="bg-orange-100 text-orange-800 border-orange-200 text-xs">
+              🚗 {i.viatura_grupo ?? "?"} · {i.viatura_km ?? 0} km
             </Badge>
             {i.isDuplicateGrupo && (
               <AlertTriangle
@@ -163,14 +164,19 @@ function InscricaoRow({
               />
             )}
           </div>
+        ) : semCidade ? (
+          <span className="flex items-center gap-1 text-xs text-amber-600">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            Cidade não reconhecida
+          </span>
         ) : (
           <span className="text-sm">{i.cidade_residencia ?? "—"}</span>
         )}
       </TableCell>
-      <TableCell className="text-right tabular-nums">{formatEuro(valor)}</TableCell>
+      <TableCell className="text-right tabular-nums font-medium">{formatEuro(valor)}</TableCell>
       <TableCell>
         <Select value={estado} onValueChange={(v) => onChangeEstado(i, v as BolsaPagamento["estado"])}>
-          <SelectTrigger className="h-7 w-32 text-xs"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-7 w-28 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="por_pagar">Por pagar</SelectItem>
             <SelectItem value="pago">Pago</SelectItem>
@@ -179,22 +185,10 @@ function InscricaoRow({
         </Select>
       </TableCell>
       <TableCell>
-        {hideShared ? (
-          <span className="text-xs text-muted-foreground/70 italic">
-            {i.pagamento?.metodo_pagamento || "—"}
-          </span>
-        ) : (
-          <InlineEditCell value={i.pagamento?.metodo_pagamento ?? null} onSave={(v) => onUpdate(i, "metodo_pagamento", v)} placeholder="Método" />
-        )}
+        <InlineEditCell value={i.pagamento?.metodo_pagamento ?? null} onSave={(v) => onUpdate(i, "metodo_pagamento", v)} placeholder="Método" />
       </TableCell>
       <TableCell>
-        {hideShared ? (
-          <span className="text-xs text-muted-foreground/70 italic truncate max-w-[160px] inline-block">
-            {i.pagamento?.notas || "—"}
-          </span>
-        ) : (
-          <InlineEditCell value={i.pagamento?.notas ?? null} onSave={(v) => onUpdate(i, "notas", v)} placeholder="Notas" />
-        )}
+        <InlineEditCell value={i.pagamento?.notas ?? null} onSave={(v) => onUpdate(i, "notas", v)} placeholder="Notas" />
       </TableCell>
       <TableCell className="text-right">
         {estado === "por_pagar" && (
@@ -244,84 +238,30 @@ function subgruposPorFamilia(inscricoes: InscricaoComBolsa[]): FamiliaSubgrupo[]
 function FamiliaHeaderRow({
   group,
   colSpan,
-  onBulkEstado,
-  onBulkCampo,
   onBulkMarcarPagos,
 }: {
   group: FamiliaSubgrupo;
   colSpan: number;
-  onBulkEstado: (members: InscricaoComBolsa[], estado: BolsaPagamento["estado"]) => void;
-  onBulkCampo: (members: InscricaoComBolsa[], campo: "metodo_pagamento" | "notas", valor: string) => void;
   onBulkMarcarPagos: (members: InscricaoComBolsa[]) => void;
 }) {
   const membros = group.inscricoes;
   const activos = membros.filter((i) => (i.pagamento?.estado ?? "por_pagar") !== "cancelado");
   const total = activos.reduce((s, i) => s + (i.pagamento?.valor ?? i.valor_calculado), 0);
   const nPorPagar = activos.filter((i) => (i.pagamento?.estado ?? "por_pagar") === "por_pagar").length;
-  const nPagos = activos.filter((i) => i.pagamento?.estado === "pago").length;
-
-  // Shared values across active members (empty string means "misto")
-  const firstMetodo = activos[0]?.pagamento?.metodo_pagamento ?? "";
-  const allSameMetodo = activos.every((i) => (i.pagamento?.metodo_pagamento ?? "") === firstMetodo);
-  const firstNotas = activos[0]?.pagamento?.notas ?? "";
-  const allSameNotas = activos.every((i) => (i.pagamento?.notas ?? "") === firstNotas);
-
-  const [metodoDraft, setMetodoDraft] = useState<string>(allSameMetodo ? firstMetodo : "");
-  const [notasDraft, setNotasDraft] = useState<string>(allSameNotas ? firstNotas : "");
 
   return (
-    <TableRow className="bg-muted/40 hover:bg-muted/40 border-t">
+    <TableRow className="bg-muted/30 hover:bg-muted/30 border-t-2">
       <TableCell colSpan={colSpan} className="py-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="font-medium text-sm">
-            {group.isFamilia ? "👪 " : ""}{group.nome}
-          </span>
-          <span className="text-xs text-muted-foreground">
-            {membros.length} {membros.length === 1 ? "pessoa" : "pessoas"}
-          </span>
+        <div className="flex items-center gap-3">
+          <span className="font-semibold text-sm">👪 {group.nome}</span>
+          <span className="text-xs text-muted-foreground">{membros.length} pessoas</span>
           {nPorPagar > 0 && (
-            <Badge className="bg-amber-100 text-amber-800 border-amber-200">{nPorPagar} por pagar</Badge>
+            <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-xs">{nPorPagar} por pagar</Badge>
           )}
-          {nPagos > 0 && (
-            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">{nPagos} pagos</Badge>
-          )}
-          <span className="text-xs font-medium tabular-nums ml-auto">{formatEuro(total)}</span>
-          <Input
-            className="h-7 w-32 text-xs"
-            placeholder={allSameMetodo ? "Método (todos)" : "Método (misto)"}
-            value={metodoDraft}
-            onChange={(e) => setMetodoDraft(e.target.value)}
-            onBlur={() => {
-              if (metodoDraft !== firstMetodo || !allSameMetodo) onBulkCampo(activos, "metodo_pagamento", metodoDraft);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-            }}
-          />
-          <Input
-            className="h-7 w-40 text-xs"
-            placeholder={allSameNotas ? "Notas (todos)" : "Notas (misto)"}
-            value={notasDraft}
-            onChange={(e) => setNotasDraft(e.target.value)}
-            onBlur={() => {
-              if (notasDraft !== firstNotas || !allSameNotas) onBulkCampo(activos, "notas", notasDraft);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-            }}
-          />
-          <Select onValueChange={(v) => onBulkEstado(activos, v as BolsaPagamento["estado"])}>
-            <SelectTrigger className="h-7 w-36 text-xs">
-              <SelectValue placeholder="Estado (todos)" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="por_pagar">Por pagar</SelectItem>
-              <SelectItem value="pago">Pago</SelectItem>
-            </SelectContent>
-          </Select>
+          <span className="ml-auto text-sm font-semibold tabular-nums">{formatEuro(total)}</span>
           {nPorPagar > 0 && (
             <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => onBulkMarcarPagos(activos)}>
-              ✓ Todos pagos
+              ✓ Marcar todos pagos
             </Button>
           )}
         </div>
@@ -333,8 +273,6 @@ function FamiliaHeaderRow({
 function FamiliaSubgrupoBlock({
   group,
   colSpan,
-  onBulkEstado,
-  onBulkCampo,
   onBulkMarcarPagos,
   onChangeEstado,
   onUpdate,
@@ -343,23 +281,22 @@ function FamiliaSubgrupoBlock({
 }: {
   group: FamiliaSubgrupo;
   colSpan: number;
-  onBulkEstado: (members: InscricaoComBolsa[], estado: BolsaPagamento["estado"]) => void;
-  onBulkCampo: (members: InscricaoComBolsa[], campo: "metodo_pagamento" | "notas", valor: string) => void;
   onBulkMarcarPagos: (members: InscricaoComBolsa[]) => void;
   onChangeEstado: (i: InscricaoComBolsa, estado: BolsaPagamento["estado"]) => void;
   onUpdate: (i: InscricaoComBolsa, campo: "metodo_pagamento" | "notas", valor: string) => void;
   onMarcarPago: (i: InscricaoComBolsa) => void;
   onDelete: (i: InscricaoComBolsa) => void;
 }) {
+  const showHeader = group.isFamilia && group.inscricoes.length > 1;
   return (
     <>
-      <FamiliaHeaderRow
-        group={group}
-        colSpan={colSpan}
-        onBulkEstado={onBulkEstado}
-        onBulkCampo={onBulkCampo}
-        onBulkMarcarPagos={onBulkMarcarPagos}
-      />
+      {showHeader && (
+        <FamiliaHeaderRow
+          group={group}
+          colSpan={colSpan}
+          onBulkMarcarPagos={onBulkMarcarPagos}
+        />
+      )}
       {group.inscricoes.map((i) => (
         <InscricaoRow
           key={i.inscricao_id}
@@ -368,7 +305,7 @@ function FamiliaSubgrupoBlock({
           onUpdate={onUpdate}
           onMarcarPago={onMarcarPago}
           onDelete={onDelete}
-          hideShared={group.isFamilia && group.inscricoes.length > 1}
+          indented={showHeader}
         />
       ))}
     </>
