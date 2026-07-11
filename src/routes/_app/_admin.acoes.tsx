@@ -38,6 +38,7 @@ import { DraggableTableHeaders } from "@/components/draggable-table-headers";
 import { useMobileColumnVisibility } from "@/hooks/use-mobile-columns";
 import { matchCidade, formatEuro, type CidadeBolsa, KM_RATE, TRIP_FACTOR, parseViatura, normalizeGrupo } from "@/lib/bolsa-transporte";
 import { ChevronDown } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { AcoesPlaneamento } from "@/components/acoes-planeamento";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -477,6 +478,14 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [groupByFamilia, setGroupByFamilia] = useState(false);
   const [globalFilter, setGlobalFilter] = useState("");
+  const [collapsedFamilias, setCollapsedFamilias] = useState<Set<string>>(new Set());
+  const toggleFamiliaCollapse = (key: string) => {
+    setCollapsedFamilias((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
   
   const { data, isLoading } = useQuery({
     queryKey: ["inscricoes", acaoId],
@@ -1013,16 +1022,29 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
                       setSelected(next);
                     };
                     const familiaId = rows[0]?.original.pessoa?.familia?.id as string | undefined;
+                    const isCollapsed = collapsedFamilias.has(key);
                     out.push(
-                      <TableRow key={`group-${key}`} className="bg-muted/50 hover:bg-muted/50">
+                      <TableRow key={`group-${key}`} className="bg-muted/50 hover:bg-muted/50 cursor-pointer" onClick={() => toggleFamiliaCollapse(key)}>
                         <TableCell>
-                          <Checkbox checked={allGroupSelected} onCheckedChange={toggleGroup} />
+                          <Checkbox
+                            checked={allGroupSelected}
+                            onCheckedChange={toggleGroup}
+                            onClick={(e) => e.stopPropagation()}
+                          />
                         </TableCell>
                         <TableCell className="font-medium text-sm" colSpan={colSpan - 1}>
                           <div className="flex items-center gap-3 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); toggleFamiliaCollapse(key); }}
+                              className="inline-flex h-5 w-5 items-center justify-center rounded hover:bg-muted"
+                              aria-label={isCollapsed ? "Expandir família" : "Colapsar família"}
+                            >
+                              {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                            </button>
                             <span>{key} <span className="text-muted-foreground font-normal">({rows.length})</span></span>
                             {familiaId && (
-                              <div className="flex items-center justify-end gap-2">
+                              <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -1050,7 +1072,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
                       </TableRow>
                     );
 
-                    rows.forEach((row) => {
+                    if (!isCollapsed) rows.forEach((row) => {
                       out.push(
                         <TableRow key={row.id} data-state={selected.has(row.original.id) ? "selected" : undefined}>
                           <TableCell>
