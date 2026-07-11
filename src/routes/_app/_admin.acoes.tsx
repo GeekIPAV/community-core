@@ -443,6 +443,19 @@ function fromDtLocal(v: string): string | null {
   return isNaN(d.getTime()) ? null : d.toISOString();
 }
 
+function idadeDe(dataNascimento: string | null | undefined): number | null {
+  if (!dataNascimento) return null;
+  const m = dataNascimento.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  const birth = new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00Z`);
+  if (Number.isNaN(birth.getTime())) return null;
+  const now = new Date();
+  let age = now.getUTCFullYear() - birth.getUTCFullYear();
+  const mo = now.getUTCMonth() - birth.getUTCMonth();
+  if (mo < 0 || (mo === 0 && now.getUTCDate() < birth.getUTCDate())) age--;
+  return age;
+}
+
 const INSCRICAO_STATUSES = ["confirmada", "pendente", "presente", "ausente", "cancelada"] as const;
 type InscricaoStatus = typeof INSCRICAO_STATUSES[number];
 
@@ -1482,10 +1495,10 @@ function AddPessoasDialog({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, telefone, email, familia_id, cidade_residencia, status, tipo_user_id, religiao, nacionalidade")
+        .select("id, nome_completo, telefone, email, familia_id, cidade_residencia, status, tipo_user_id, religiao, nacionalidade, data_nascimento, genero")
         .order("nome_completo", { ascending: true });
       if (error) throw error;
-      return data as Array<{ id: string; nome_completo: string; telefone: string | null; email: string | null; familia_id: string | null; cidade_residencia: string | null; status: string; tipo_user_id: string | null; religiao: string | null; nacionalidade: string | null }>;
+      return data as Array<{ id: string; nome_completo: string; telefone: string | null; email: string | null; familia_id: string | null; cidade_residencia: string | null; status: string; tipo_user_id: string | null; religiao: string | null; nacionalidade: string | null; data_nascimento: string | null; genero: string | null }>;
     },
   });
 
@@ -1551,11 +1564,11 @@ function AddPessoasDialog({
   );
 
   const familiaMembros = useMemo(() => {
-    const m = new Map<string, Array<{ id: string; nome_completo: string }>>();
+    const m = new Map<string, Array<{ id: string; nome_completo: string; data_nascimento: string | null; genero: string | null }>>();
     (pessoas ?? []).forEach((p) => {
       if (!p.familia_id) return;
       const arr = m.get(p.familia_id) ?? [];
-      arr.push({ id: p.id, nome_completo: p.nome_completo });
+      arr.push({ id: p.id, nome_completo: p.nome_completo, data_nascimento: p.data_nascimento, genero: p.genero });
       m.set(p.familia_id, arr);
     });
     return m;
@@ -2209,6 +2222,14 @@ function AddPessoasDialog({
                               .sort((a, b) => a.nome_completo.localeCompare(b.nome_completo))
                               .map((m) => {
                                 const jaInscrito = inscritosIds.has(m.id);
+                                const idade = idadeDe(m.data_nascimento);
+                                const generoAbbr = m.genero
+                                  ? m.genero.toLowerCase().startsWith("m")
+                                    ? "M"
+                                    : m.genero.toLowerCase().startsWith("f")
+                                      ? "F"
+                                      : m.genero[0]?.toUpperCase()
+                                  : null;
                                 return (
                                   <li key={m.id} className="flex items-center gap-3 px-2 py-1.5">
                                     <Checkbox
@@ -2216,7 +2237,16 @@ function AddPessoasDialog({
                                       disabled={jaInscrito}
                                       onCheckedChange={() => toggleOne(m.id)}
                                     />
-                                    <span className="flex-1 truncate text-xs">{m.nome_completo}</span>
+                                    <div className="flex flex-1 items-center gap-2 min-w-0">
+                                      <span className="truncate text-xs">{m.nome_completo}</span>
+                                      {(idade != null || generoAbbr) && (
+                                        <span className="whitespace-nowrap text-[10px] text-muted-foreground">
+                                          {idade != null ? `${idade} anos` : ""}
+                                          {idade != null && generoAbbr ? " · " : ""}
+                                          {generoAbbr}
+                                        </span>
+                                      )}
+                                    </div>
                                     {jaInscrito && (
                                       <Badge variant="secondary" className="text-[10px]">Já inscrito</Badge>
                                     )}
