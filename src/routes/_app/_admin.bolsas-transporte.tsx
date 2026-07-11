@@ -1029,6 +1029,7 @@ function BolsasTransportePage() {
                           <TableHead>Método</TableHead>
                           <TableHead>Notas</TableHead>
                           <TableHead></TableHead>
+                          <TableHead className="w-8"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1036,13 +1037,14 @@ function BolsasTransportePage() {
                           <FamiliaSubgrupoBlock
                             key={fg.key}
                             group={fg}
-                            colSpan={8}
+                            colSpan={9}
                             onBulkEstado={bulkEstadoFamilia}
                             onBulkCampo={bulkCampoFamilia}
                             onBulkMarcarPagos={bulkMarcarPagosFamilia}
                             onChangeEstado={changeEstado}
                             onUpdate={updateCampo}
                             onMarcarPago={marcarPago}
+                            onDelete={(i) => deleteBolsa.mutate(i.pagamento!.id)}
                           />
                         ))}
                       </TableBody>
