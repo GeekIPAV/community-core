@@ -339,6 +339,7 @@ function FamiliaSubgrupoBlock({
   onChangeEstado,
   onUpdate,
   onMarcarPago,
+  onDelete,
 }: {
   group: FamiliaSubgrupo;
   colSpan: number;
