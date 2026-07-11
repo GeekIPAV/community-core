@@ -319,7 +319,7 @@ function BolsasTransportePage() {
   // ================= TAB 1+2 DATA =================
   const { data: rawData, isLoading: loadingPagamentos } = useQuery({
     queryKey: ["bolsas-pagamentos-full"],
-    staleTime: 2 * 60_000,
+    staleTime: 0,
     queryFn: async () => {
       const { data: acoes, error: acoesErr } = await supabase
         .from("acoes")
@@ -547,6 +547,7 @@ function BolsasTransportePage() {
     },
     onSuccess: () => {
       toast.success("Bolsa removida");
+      qc.removeQueries({ queryKey: ["bolsas-pagamentos-full"] });
       qc.invalidateQueries({ queryKey: ["bolsas-pagamentos-full"] });
       qc.invalidateQueries({ queryKey: ["bolsas-acao"] });
       qc.invalidateQueries({ queryKey: ["bolsa-ativas"] });
@@ -731,7 +732,7 @@ function BolsasTransportePage() {
   // ============ TAB 4: MAPA DE KM ============
   const { data: mapaKmData, isLoading: loadingMapaKm } = useQuery({
     queryKey: ["mapa-km"],
-    staleTime: 2 * 60_000,
+    staleTime: 0,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("mapa_km")
@@ -812,6 +813,7 @@ function BolsasTransportePage() {
       if (error) throw error;
     },
     onSuccess: () => {
+      qc.removeQueries({ queryKey: ["mapa-km"] });
       qc.invalidateQueries({ queryKey: ["mapa-km"] });
       qc.invalidateQueries({ queryKey: ["familia-mapa-km"] });
       qc.invalidateQueries({ queryKey: ["mapa-km-acao"] });
