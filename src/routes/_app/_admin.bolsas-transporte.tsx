@@ -987,8 +987,6 @@ function BolsasTransportePage() {
                             key={fg.key}
                             group={fg}
                             colSpan={9}
-                            onBulkEstado={bulkEstadoFamilia}
-                            onBulkCampo={bulkCampoFamilia}
                             onBulkMarcarPagos={bulkMarcarPagosFamilia}
                             onChangeEstado={changeEstado}
                             onUpdate={updateCampo}
