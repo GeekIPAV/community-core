@@ -479,6 +479,8 @@ function TransporteFamiliaTab({ familiaId }: { familiaId: string }) {
       toast.success("Bolsa removida");
       qc.invalidateQueries({ queryKey: ["familia-bolsas", familiaId] });
       qc.invalidateQueries({ queryKey: ["bolsas-pagamentos-full"] });
+      qc.invalidateQueries({ queryKey: ["bolsas-acao"] });
+      qc.invalidateQueries({ queryKey: ["bolsa-ativas"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -492,6 +494,8 @@ function TransporteFamiliaTab({ familiaId }: { familiaId: string }) {
       toast.success("Registo de KM removido");
       qc.invalidateQueries({ queryKey: ["familia-mapa-km", familiaId] });
       qc.invalidateQueries({ queryKey: ["mapa-km"] });
+      qc.invalidateQueries({ queryKey: ["mapa-km-acao"] });
+      qc.invalidateQueries({ queryKey: ["bolsa-km-ativos"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
