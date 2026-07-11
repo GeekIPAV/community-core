@@ -2987,6 +2987,32 @@ function TransporteAcaoTab({ acaoId }: { acaoId: string }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const deleteBolsa = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from("bolsas_pagamentos").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Bolsa removida");
+      qc.invalidateQueries({ queryKey: ["bolsas-acao", acaoId] });
+      qc.invalidateQueries({ queryKey: ["bolsas-pagamentos-full"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteKm = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from("mapa_km").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Registo de KM removido");
+      qc.invalidateQueries({ queryKey: ["mapa-km-acao", acaoId] });
+      qc.invalidateQueries({ queryKey: ["mapa-km"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const eur = (v: number) => v.toFixed(2).replace(".", ",") + " €";
 
   if (isLoading) return <Skeleton className="h-32 w-full" />;
@@ -3068,6 +3094,7 @@ function TransporteAcaoTab({ acaoId }: { acaoId: string }) {
                             <TableHead>Estado</TableHead>
                             <TableHead>Método</TableHead>
                             <TableHead>Data pagamento</TableHead>
+                            <TableHead className="w-8"></TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -3097,6 +3124,18 @@ function TransporteAcaoTab({ acaoId }: { acaoId: string }) {
                                 </TableCell>
                                 <TableCell className="text-xs text-muted-foreground">{b.metodo_pagamento ?? "—"}</TableCell>
                                 <TableCell className="text-xs text-muted-foreground">{b.data_pagamento ?? "—"}</TableCell>
+                                <TableCell>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6 text-destructive hover:text-destructive"
+                                    disabled={deleteBolsa.isPending}
+                                    onClick={() => { if (confirm("Remover esta bolsa?")) deleteBolsa.mutate(b.id); }}
+                                    title="Remover bolsa"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TableCell>
                               </TableRow>
                             );
                           })}
@@ -3118,6 +3157,7 @@ function TransporteAcaoTab({ acaoId }: { acaoId: string }) {
                             <TableHead className="text-right">KM</TableHead>
                             <TableHead className="text-right">Valor</TableHead>
                             <TableHead>Estado</TableHead>
+                            <TableHead className="w-8"></TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -3146,6 +3186,18 @@ function TransporteAcaoTab({ acaoId }: { acaoId: string }) {
                                     <SelectItem value="cancelado">Cancelado</SelectItem>
                                   </SelectContent>
                                 </Select>
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6 text-destructive hover:text-destructive"
+                                  disabled={deleteKm.isPending}
+                                  onClick={() => { if (confirm("Remover este registo de KM?")) deleteKm.mutate(k.id); }}
+                                  title="Remover registo de KM"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
                               </TableCell>
                             </TableRow>
                           ))}
