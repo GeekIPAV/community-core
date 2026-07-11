@@ -2883,6 +2883,7 @@ function TransporteAcaoTab({ acaoId }: { acaoId: string }) {
         .from("mapa_km")
         .select("*")
         .in("familia_id", familiaIds)
+        .eq("acao_id", acaoId)
         .order("data", { ascending: false });
       if (error) throw error;
       return (data ?? []) as any[];
