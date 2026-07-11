@@ -805,6 +805,10 @@ function BolsasTransportePage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["mapa-km"] });
+      qc.invalidateQueries({ queryKey: ["familia-mapa-km"] });
+      qc.invalidateQueries({ queryKey: ["mapa-km-acao"] });
+      qc.invalidateQueries({ queryKey: ["transporte-acao"] });
+      qc.invalidateQueries({ queryKey: ["bolsa-km-ativos"] });
       toast.success("Registo adicionado");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -823,6 +827,10 @@ function BolsasTransportePage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["mapa-km"] });
+      qc.invalidateQueries({ queryKey: ["familia-mapa-km"] });
+      qc.invalidateQueries({ queryKey: ["mapa-km-acao"] });
+      qc.invalidateQueries({ queryKey: ["transporte-acao"] });
+      qc.invalidateQueries({ queryKey: ["bolsa-km-ativos"] });
       toast.success("Atualizado");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -835,6 +843,10 @@ function BolsasTransportePage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["mapa-km"] });
+      qc.invalidateQueries({ queryKey: ["familia-mapa-km"] });
+      qc.invalidateQueries({ queryKey: ["mapa-km-acao"] });
+      qc.invalidateQueries({ queryKey: ["transporte-acao"] });
+      qc.invalidateQueries({ queryKey: ["bolsa-km-ativos"] });
       toast.success("Registo eliminado");
     },
     onError: (e: Error) => toast.error(e.message),
