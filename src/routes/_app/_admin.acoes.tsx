@@ -647,6 +647,8 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
       toast.success("Registo de KM criado — completa os detalhes na página de Bolsas de Transporte");
       qc.invalidateQueries({ queryKey: ["mapa-km"] });
       qc.invalidateQueries({ queryKey: ["mapa-km-acao", acaoId] });
+      qc.invalidateQueries({ queryKey: ["bolsa-km-ativos", acaoId] });
+      qc.invalidateQueries({ queryKey: ["transporte-acao", acaoId] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -682,6 +684,8 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
       toast.success(`Bolsa criada para ${n} pessoa${n !== 1 ? "s" : ""}`);
       qc.invalidateQueries({ queryKey: ["bolsas-pagamentos-full"] });
       qc.invalidateQueries({ queryKey: ["bolsas-acao", acaoId] });
+      qc.invalidateQueries({ queryKey: ["bolsa-ativas", acaoId] });
+      qc.invalidateQueries({ queryKey: ["transporte-acao", acaoId] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
