@@ -990,7 +990,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
         </CollapsibleContent>
       </Collapsible>
       {familiasComRows.length > 0 && (
-        <Collapsible defaultOpen>
+        <Collapsible>
           <CollapsibleTrigger asChild>
             <Button variant="ghost" size="sm" className="flex items-center gap-1 text-muted-foreground hover:text-foreground">
               Transporte por família <ChevronDown className="h-4 w-4" />
