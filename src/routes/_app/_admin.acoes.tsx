@@ -696,11 +696,12 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
 
   // Todas as famílias inscritas (id + nome + linhas) para o painel de transporte
   const familiasComRows = useMemo(() => {
-    const map = new Map<string, { id: string; nome: string; rows: InscricaoRow[] }>();
+    type Entry = { id: string; nome: string; rows: InscricaoRow[] };
+    const map = new Map<string, Entry>();
     baseRows.forEach((r) => {
       const fam = r.pessoa?.familia;
       if (fam?.id && fam?.nome) {
-        const cur = map.get(fam.id) ?? { id: fam.id, nome: fam.nome, rows: [] };
+        const cur: Entry = map.get(fam.id) ?? { id: fam.id, nome: fam.nome, rows: [] as InscricaoRow[] };
         cur.rows.push(r);
         map.set(fam.id, cur);
       }
