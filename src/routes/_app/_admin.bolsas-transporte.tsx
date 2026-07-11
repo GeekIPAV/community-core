@@ -403,6 +403,8 @@ function BolsasTransportePage() {
       const v = parseViatura(i.valores_dinamicos);
       const grupoNorm = v.viatura_grupo ? normalizeGrupo(v.viatura_grupo) : "";
       const isDup = !!(v.viatura_propria && grupoNorm && (grupoPorAcao.get(i.acao_id)?.get(grupoNorm) ?? 0) > 1);
+      const pagamento = pagamentoMap.get(i.id) ?? null;
+      if (!pagamento) continue;
 
       let valorCalc = 0;
       if (v.viatura_propria) {
@@ -429,7 +431,7 @@ function BolsasTransportePage() {
         viatura_grupo: v.viatura_grupo ?? null,
         isDuplicateGrupo: isDup,
         valor_calculado: valorCalc,
-        pagamento: pagamentoMap.get(i.id) ?? null,
+        pagamento,
       });
     }
 
@@ -548,7 +550,7 @@ function BolsasTransportePage() {
     onSuccess: () => {
       toast.success("Bolsa removida");
       qc.removeQueries({ queryKey: ["bolsas-pagamentos-full"] });
-      qc.invalidateQueries({ queryKey: ["bolsas-pagamentos-full"] });
+      qc.refetchQueries({ queryKey: ["bolsas-pagamentos-full"] });
       qc.invalidateQueries({ queryKey: ["bolsas-acao"] });
       qc.invalidateQueries({ queryKey: ["bolsa-ativas"] });
       qc.invalidateQueries({ queryKey: ["familia-bolsas"] });
@@ -814,7 +816,7 @@ function BolsasTransportePage() {
     },
     onSuccess: () => {
       qc.removeQueries({ queryKey: ["mapa-km"] });
-      qc.invalidateQueries({ queryKey: ["mapa-km"] });
+      qc.refetchQueries({ queryKey: ["mapa-km"] });
       qc.invalidateQueries({ queryKey: ["familia-mapa-km"] });
       qc.invalidateQueries({ queryKey: ["mapa-km-acao"] });
       qc.invalidateQueries({ queryKey: ["transporte-acao"] });
