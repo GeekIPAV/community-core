@@ -478,6 +478,14 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [groupByFamilia, setGroupByFamilia] = useState(false);
   const [globalFilter, setGlobalFilter] = useState("");
+  const [collapsedFamilias, setCollapsedFamilias] = useState<Set<string>>(new Set());
+  const toggleFamiliaCollapse = (key: string) => {
+    setCollapsedFamilias((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
   
   const { data, isLoading } = useQuery({
     queryKey: ["inscricoes", acaoId],
