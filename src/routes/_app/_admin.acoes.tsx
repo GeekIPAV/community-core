@@ -972,6 +972,62 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
           </div>
         </CollapsibleContent>
       </Collapsible>
+      {familiasComRows.length > 0 && (
+        <Collapsible defaultOpen>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="flex items-center gap-1 text-muted-foreground hover:text-foreground">
+              Transporte por família <ChevronDown className="h-4 w-4" />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="mt-2 rounded-md border divide-y">
+              {familiasComRows.map((fam) => {
+                const nKm = kmCountByFamilia.get(fam.id) ?? 0;
+                const nBolsa = fam.rows.filter((r) => bolsaPessoaIds.has(r.pessoa?.id ?? "")).length;
+                return (
+                  <div key={fam.id} className="flex items-center gap-3 px-3 py-2 flex-wrap">
+                    <span className="text-sm font-medium">{fam.nome}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {fam.rows.length} inscrito{fam.rows.length !== 1 ? "s" : ""}
+                    </span>
+                    {nKm > 0 && (
+                      <Badge variant="secondary" className="text-[10px]">{nKm} KM</Badge>
+                    )}
+                    {nBolsa > 0 && (
+                      <Badge variant="secondary" className="text-[10px]">{nBolsa} Bolsa</Badge>
+                    )}
+                    <div className="ml-auto flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-xs gap-1.5"
+                        disabled={criarKmFamilia.isPending}
+                        onClick={() => criarKmFamilia.mutate({ familiaId: fam.id, rows: fam.rows })}
+                        title="Registar mapa de KM para esta família"
+                      >
+                        <Car className="h-3 w-3" /> + KM
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-xs gap-1.5"
+                        disabled={criarBolsaFamilia.isPending}
+                        onClick={() => criarBolsaFamilia.mutate({ familiaId: fam.id, rows: fam.rows })}
+                        title="Registar bolsa de transporte para esta família"
+                      >
+                        🚌 + Bolsa
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Cria registos de KM ou bolsa depois da inscrição. Os detalhes (km, motivo, valor) completam-se em <span className="italic">Bolsas de transporte</span>.
+            </p>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
       <AddPessoasDialog
         open={addOpen}
         onOpenChange={setAddOpen}
