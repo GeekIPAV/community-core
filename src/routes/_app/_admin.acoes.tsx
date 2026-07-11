@@ -1495,10 +1495,10 @@ function AddPessoasDialog({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, telefone, email, familia_id, cidade_residencia, status, tipo_user_id, religiao, nacionalidade")
+        .select("id, nome_completo, telefone, email, familia_id, cidade_residencia, status, tipo_user_id, religiao, nacionalidade, data_nascimento, genero")
         .order("nome_completo", { ascending: true });
       if (error) throw error;
-      return data as Array<{ id: string; nome_completo: string; telefone: string | null; email: string | null; familia_id: string | null; cidade_residencia: string | null; status: string; tipo_user_id: string | null; religiao: string | null; nacionalidade: string | null }>;
+      return data as Array<{ id: string; nome_completo: string; telefone: string | null; email: string | null; familia_id: string | null; cidade_residencia: string | null; status: string; tipo_user_id: string | null; religiao: string | null; nacionalidade: string | null; data_nascimento: string | null; genero: string | null }>;
     },
   });
 
