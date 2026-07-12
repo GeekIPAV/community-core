@@ -201,7 +201,12 @@ function ColaboradoresTab() {
       size: 240,
       meta: { label: "Nome", filterVariant: "text", editType: "text" },
       cell: ({ row }) => (
-        <Link to="/servicos/colaborador/$id" params={{ id: row.original.id }} className="inline-flex items-center gap-1 truncate font-medium hover:underline">
+        <Link
+          to="/servicos/colaborador/$id"
+          params={{ id: row.original.id }}
+          className="inline-flex items-center gap-1 truncate font-medium hover:underline text-foreground"
+          onClick={(e) => e.stopPropagation()}
+        >
           <span className="truncate">{row.original.nome_completo}</span>
           <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
         </Link>
