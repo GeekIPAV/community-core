@@ -1,5 +1,5 @@
-import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -46,22 +46,13 @@ const estadoBadge = (e: Registo["estado"]) => {
 
 function MeusServicosPage() {
   const { pessoa } = useAuth();
-  const [authUid, setAuthUid] = useState<string | null>(null);
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setAuthUid(data.user?.id ?? null));
-  }, []);
-
-  // Find this user's collaborator record. Try by auth_user_id, fall back to email.
+  // Find this user's collaborator record. Try by pessoa_id, then email, then auth email.
   const { data: colab, isLoading: colabLoading } = useQuery({
-    queryKey: ["meu_colaborador", authUid, pessoa?.id, pessoa?.email],
-    enabled: !!authUid,
+    queryKey: ["meu_colaborador", pessoa?.id, pessoa?.email],
+    enabled: true,
     queryFn: async () => {
-      const byAuth = await supabase.from("colaboradores")
-        .select("id, nome_completo, email, ativo")
-        .eq("auth_user_id", authUid!).maybeSingle();
-      if (byAuth.error) throw byAuth.error;
-      if (byAuth.data) return byAuth.data;
+      // Try by pessoa_id first (most reliable)
       if (pessoa?.id) {
         const byPessoa = await supabase.from("colaboradores")
           .select("id, nome_completo, email, ativo")
@@ -69,20 +60,42 @@ function MeusServicosPage() {
         if (byPessoa.error) throw byPessoa.error;
         if (byPessoa.data) return byPessoa.data;
       }
+      // Fall back to pessoa email
       if (pessoa?.email) {
         const byEmail = await supabase.from("colaboradores")
           .select("id, nome_completo, email, ativo")
           .ilike("email", pessoa.email).maybeSingle();
         if (byEmail.error) throw byEmail.error;
-        return byEmail.data;
+        if (byEmail.data) return byEmail.data;
+      }
+      // Last resort: auth user email
+      const { data: authData } = await supabase.auth.getUser();
+      const authEmail = authData?.user?.email;
+      if (authEmail) {
+        const byAuthEmail = await supabase.from("colaboradores")
+          .select("id, nome_completo, email, ativo")
+          .ilike("email", authEmail).maybeSingle();
+        if (byAuthEmail.error) throw byAuthEmail.error;
+        if (byAuthEmail.data) return byAuthEmail.data;
       }
       return null;
     },
   });
 
-  if (colabLoading || !authUid) return <Skeleton className="h-64 w-full" />;
+  if (colabLoading || !pessoa) return <Skeleton className="h-64 w-full" />;
 
-  if (!colab) return <Navigate to="/" replace />;
+  if (!colab) {
+    return (
+      <div className="space-y-4 max-w-lg mx-auto pt-12 text-center">
+        <div className="rounded-lg border border-dashed p-10">
+          <p className="font-medium text-lg mb-2">Sem serviços associados</p>
+          <p className="text-sm text-muted-foreground">
+            A tua conta não está ainda associada a nenhum registo de colaboradora. Contacta a equipa MEERU para que possam ligar o teu perfil.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return <ColabSelfArea colaboradorId={colab.id} nome={colab.nome_completo} />;
 }
