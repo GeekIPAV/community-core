@@ -274,7 +274,7 @@ function ColaboradoresTab() {
         data={rows}
         isLoading={isLoading}
         defaultGroupBy="_status"
-        editableColumns={["nome_completo", "email", "telefone", "iban", "ativo"]}
+        editableColumns={["email", "telefone", "iban", "ativo"]}
         onCellEdit={(rowId, columnId, value) => {
           let v: unknown = value;
           if (columnId === "ativo") v = value === "true" || value === true;
