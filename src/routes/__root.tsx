@@ -81,15 +81,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Meeru — Comunidade" },
-      { name: "description", content: "Portal da comunidade Meeru: ações, projetos e participação." },
-      { property: "og:title", content: "Meeru — Comunidade" },
-      { property: "og:description", content: "Portal da comunidade Meeru: ações, projetos e participação." },
+      { title: "Comunidade MEERU" },
+      { name: "description", content: "Inscreve-te nas próximas ações da comunidade Meeru." },
+      { property: "og:title", content: "Comunidade MEERU" },
+      { property: "og:description", content: "Inscreve-te nas próximas ações da comunidade Meeru." },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "Meeru" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "Meeru — Comunidade" },
-      { name: "twitter:description", content: "Portal da comunidade Meeru: ações, projetos e participação." },
+      { name: "twitter:title", content: "Comunidade MEERU" },
+      { name: "twitter:description", content: "Inscreve-te nas próximas ações da comunidade Meeru." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/87f2bcb2-022d-45bd-8fca-40fd779a01b9/id-preview-e10e5f34--bb896c6c-730f-4f20-a117-10e66d9b0dff.lovable.app-1783848013807.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/87f2bcb2-022d-45bd-8fca-40fd779a01b9/id-preview-e10e5f34--bb896c6c-730f-4f20-a117-10e66d9b0dff.lovable.app-1783848013807.png" },
     ],
     links: [
       {

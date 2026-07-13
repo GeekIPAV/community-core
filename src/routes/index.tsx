@@ -16,7 +16,7 @@ import { RichTextView } from "@/components/rich-text-view";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Meeru — Comunidade" },
+      { title: "Comunidade MEERU" },
       { name: "description", content: "Inscreve-te nas próximas ações da comunidade Meeru." },
     ],
   }),
