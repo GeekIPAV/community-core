@@ -1520,6 +1520,7 @@ function AddPessoasDialog({
   inscritosIds: Set<string>;
 }) {
   const qc = useQueryClient();
+  const { data: familiasInfo } = useFamiliasTransporteInfo();
   const [tab, setTab] = useState<"pessoas" | "familias" | "nova" | "rapida">("pessoas");
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
