@@ -27,6 +27,7 @@ import { ChevronLeft, ChevronRight, Plus, Trash2, UserMinus, FolderOpen } from "
 import { Link } from "@tanstack/react-router";
 import { formatDateBR } from "@/lib/utils";
 import { InlineText, InlineSelect, InlineMultiSelect } from "@/components/inline-edit";
+import { KM_RATE, TRIP_FACTOR } from "@/lib/bolsa-transporte";
 import { personIcon, flagFor } from "@/lib/person-display";
 
 // ── Constants ──────────────────────────────────────────────────────────────
