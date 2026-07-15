@@ -474,6 +474,54 @@ type InscricaoRow = {
   pessoa: any;
 };
 
+type FamiliaTransporteInfo = {
+  direito_bolsa: boolean;
+  direito_mapa_km: boolean;
+  acoes_count: number;
+};
+
+function useFamiliasTransporteInfo() {
+  return useQuery({
+    queryKey: ["familias-transporte-info"],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const [famRes, insRes] = await Promise.all([
+        (supabase as any)
+          .from("familias")
+          .select("id, direito_bolsa, direito_mapa_km")
+          .is("deleted_at", null),
+        supabase
+          .from("inscricoes")
+          .select("acao_id, pessoa:pessoas!inner(familia_id)")
+          .neq("status", "cancelada"),
+      ]);
+      if (famRes.error) throw famRes.error;
+      if (insRes.error) throw insRes.error;
+      const pairs = new Set<string>();
+      const counts = new Map<string, Set<string>>();
+      for (const r of (insRes.data ?? []) as any[]) {
+        const fid = r.pessoa?.familia_id;
+        const aid = r.acao_id;
+        if (!fid || !aid) continue;
+        const key = `${fid}::${aid}`;
+        if (pairs.has(key)) continue;
+        pairs.add(key);
+        if (!counts.has(fid)) counts.set(fid, new Set());
+        counts.get(fid)!.add(aid);
+      }
+      const map = new Map<string, FamiliaTransporteInfo>();
+      for (const f of (famRes.data ?? []) as any[]) {
+        map.set(f.id, {
+          direito_bolsa: !!f.direito_bolsa,
+          direito_mapa_km: !!f.direito_mapa_km,
+          acoes_count: counts.get(f.id)?.size ?? 0,
+        });
+      }
+      return map;
+    },
+  });
+}
+
 function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] }) {
   const qc = useQueryClient();
   const [selected, setSelected] = useState<Set<string>>(new Set());
