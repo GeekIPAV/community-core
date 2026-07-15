@@ -994,6 +994,21 @@ function BolsasTransportePage() {
                     {acao.nPorPagar > 0 && <Badge className="bg-amber-100 text-amber-800 border-amber-200">{acao.nPorPagar} por pagar</Badge>}
                     {acao.nPago > 0 && <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">{acao.nPago} pagos</Badge>}
                     <span className="text-sm font-medium tabular-nums">{formatEuro(acao.totalValor)}</span>
+                    {(() => {
+                      const familiaIds = [...new Set(
+                        acao.inscricoes.map((i) => i.familia_id).filter(Boolean) as string[]
+                      )];
+                      const kmRows = familiaIds.flatMap((fid) => kmPorFamilia.get(fid) ?? []);
+                      if (kmRows.length === 0) return null;
+                      const kmPP = kmRows.filter((r) => r.estado === "por_pagar").reduce((s, r) => s + Number(r.valor), 0);
+                      const kmTotal = kmRows.reduce((s, r) => s + Number(r.valor), 0);
+                      return (
+                        <span className="flex items-center gap-1 text-xs text-orange-700 tabular-nums">
+                          <Car className="h-3 w-3" />
+                          {formatEuro(kmPP > 0 ? kmPP : kmTotal)}{kmPP > 0 ? " KM p/pagar" : " KM"}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
