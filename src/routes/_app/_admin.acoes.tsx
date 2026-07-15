@@ -524,6 +524,7 @@ function useFamiliasTransporteInfo() {
 
 function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] }) {
   const qc = useQueryClient();
+  const { data: familiasInfo } = useFamiliasTransporteInfo();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkStatus, setBulkStatus] = useState<InscricaoStatus>("presente");
   const [sorting, setSorting] = useState<SortingState>([]);
