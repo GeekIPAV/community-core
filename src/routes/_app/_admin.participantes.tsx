@@ -444,6 +444,9 @@ function ParticipantesPage() {
           return <span className="text-muted-foreground">{v ? new Date(v).toLocaleString("pt-PT") : "—"}</span>;
         },
         filterFn: advancedFilterFn as any, meta: { filterVariant: "date", label: "Última edição" } satisfies ColumnFilterMeta },
+      { id: "acoes_count", header: "Ações", accessorFn: () => "", enableSorting: false,
+        cell: ({ row }) => <AcoesHoverSummary pessoaId={row.original.id} label="ver ações" />,
+        meta: { filterVariant: undefined, label: "Ações" } satisfies ColumnFilterMeta },
     ];
   }, [familias, tipos, projetos, qc, inlineEdit, pessoaTiposMap]);
 
