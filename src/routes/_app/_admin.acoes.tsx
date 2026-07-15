@@ -474,8 +474,57 @@ type InscricaoRow = {
   pessoa: any;
 };
 
+type FamiliaTransporteInfo = {
+  direito_bolsa: boolean;
+  direito_mapa_km: boolean;
+  acoes_count: number;
+};
+
+function useFamiliasTransporteInfo() {
+  return useQuery({
+    queryKey: ["familias-transporte-info"],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const [famRes, insRes] = await Promise.all([
+        (supabase as any)
+          .from("familias")
+          .select("id, direito_bolsa, direito_mapa_km")
+          .is("deleted_at", null),
+        supabase
+          .from("inscricoes")
+          .select("acao_id, pessoa:pessoas!inner(familia_id)")
+          .neq("status", "cancelada"),
+      ]);
+      if (famRes.error) throw famRes.error;
+      if (insRes.error) throw insRes.error;
+      const pairs = new Set<string>();
+      const counts = new Map<string, Set<string>>();
+      for (const r of (insRes.data ?? []) as any[]) {
+        const fid = r.pessoa?.familia_id;
+        const aid = r.acao_id;
+        if (!fid || !aid) continue;
+        const key = `${fid}::${aid}`;
+        if (pairs.has(key)) continue;
+        pairs.add(key);
+        if (!counts.has(fid)) counts.set(fid, new Set());
+        counts.get(fid)!.add(aid);
+      }
+      const map = new Map<string, FamiliaTransporteInfo>();
+      for (const f of (famRes.data ?? []) as any[]) {
+        map.set(f.id, {
+          direito_bolsa: !!f.direito_bolsa,
+          direito_mapa_km: !!f.direito_mapa_km,
+          acoes_count: counts.get(f.id)?.size ?? 0,
+        });
+      }
+      return map;
+    },
+  });
+}
+
 function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] }) {
   const qc = useQueryClient();
+  const { data: familiasInfo } = useFamiliasTransporteInfo();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkStatus, setBulkStatus] = useState<InscricaoStatus>("presente");
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -1185,6 +1234,24 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
                               {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                             </button>
                             <span>{key} <span className="text-muted-foreground font-normal">({rows.length})</span></span>
+                            {familiaId && (() => {
+                              const info = familiasInfo?.get(familiaId);
+                              if (!info) return null;
+                              return (
+                                <div className="flex items-center gap-1.5">
+                                  {info.direito_bolsa && (
+                                    <Badge variant="secondary" className="text-[10px] bg-blue-100 text-blue-800 border-blue-200">Direito a bolsa</Badge>
+                                  )}
+                                  {info.direito_mapa_km && (
+                                    <Badge variant="secondary" className="text-[10px] bg-orange-100 text-orange-800 border-orange-200">Direito a KM</Badge>
+                                  )}
+                                  {!info.direito_bolsa && !info.direito_mapa_km && (
+                                    <Badge variant="outline" className="text-[10px] text-muted-foreground">Sem direito a transporte</Badge>
+                                  )}
+                                  <Badge variant="outline" className="text-[10px]">{info.acoes_count} açã{info.acoes_count === 1 ? "o" : "oes"}</Badge>
+                                </div>
+                              );
+                            })()}
                             {familiaId && (
                               <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                                 <Button
@@ -1453,6 +1520,7 @@ function AddPessoasDialog({
   inscritosIds: Set<string>;
 }) {
   const qc = useQueryClient();
+  const { data: familiasInfo } = useFamiliasTransporteInfo();
   const [tab, setTab] = useState<"pessoas" | "familias" | "nova" | "rapida">("pessoas");
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
@@ -2148,7 +2216,27 @@ function AddPessoasDialog({
                             {initials(f.nome) || "F"}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium">{f.nome}</p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="truncate text-sm font-medium">{f.nome}</p>
+                              {(() => {
+                                const info = familiasInfo?.get(f.id);
+                                if (!info) return null;
+                                return (
+                                  <>
+                                    {info.direito_bolsa && (
+                                      <Badge variant="secondary" className="text-[10px] bg-blue-100 text-blue-800 border-blue-200">Bolsa</Badge>
+                                    )}
+                                    {info.direito_mapa_km && (
+                                      <Badge variant="secondary" className="text-[10px] bg-orange-100 text-orange-800 border-orange-200">KM</Badge>
+                                    )}
+                                    {!info.direito_bolsa && !info.direito_mapa_km && (
+                                      <Badge variant="outline" className="text-[10px] text-muted-foreground">Sem transporte</Badge>
+                                    )}
+                                    <Badge variant="outline" className="text-[10px]">{info.acoes_count} açã{info.acoes_count === 1 ? "o" : "oes"}</Badge>
+                                  </>
+                                );
+                              })()}
+                            </div>
                             <p className="truncate text-xs text-muted-foreground">
                               {membros.length} membro(s)
                             </p>

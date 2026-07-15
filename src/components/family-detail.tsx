@@ -28,6 +28,7 @@ import { Link } from "@tanstack/react-router";
 import { formatDateBR } from "@/lib/utils";
 import { InlineText, InlineSelect, InlineMultiSelect } from "@/components/inline-edit";
 import { KM_RATE, TRIP_FACTOR } from "@/lib/bolsa-transporte";
+import { Switch } from "@/components/ui/switch";
 import { personIcon, flagFor } from "@/lib/person-display";
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -56,6 +57,8 @@ export type Familia = {
   notas: string | null;
   status: FamiliaStatus;
   contacto_meeru_id: string | null;
+  direito_bolsa?: boolean | null;
+  direito_mapa_km?: boolean | null;
   updated_at: string | null;
 };
 
@@ -1034,6 +1037,8 @@ export function FamilyDetailDialog({
           notas: editing.notas || null,
           status: editing.status,
           contacto_meeru_id: editing.contacto_meeru_id,
+          direito_bolsa: !!editing.direito_bolsa,
+          direito_mapa_km: !!editing.direito_mapa_km,
         } as any)
         .eq("id", editing.id);
       if (error) throw error;
@@ -1311,6 +1316,31 @@ export function FamilyDetailDialog({
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div className="space-y-2 rounded-md border p-3">
+                    <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Direito a apoio para transporte
+                    </Label>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">Bolsa de transporte</p>
+                        <p className="text-xs text-muted-foreground">A família tem direito a receber bolsa de transporte.</p>
+                      </div>
+                      <Switch
+                        checked={!!editing.direito_bolsa}
+                        onCheckedChange={(v) => setEditing({ ...editing, direito_bolsa: v })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">Mapa de KM</p>
+                        <p className="text-xs text-muted-foreground">A família tem direito a reembolso por quilómetros percorridos.</p>
+                      </div>
+                      <Switch
+                        checked={!!editing.direito_mapa_km}
+                        onCheckedChange={(v) => setEditing({ ...editing, direito_mapa_km: v })}
+                      />
+                    </div>
                   </div>
                   <DialogFooter className="flex justify-between gap-2">
                     <Button
