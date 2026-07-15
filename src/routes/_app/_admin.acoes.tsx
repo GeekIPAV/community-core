@@ -1263,7 +1263,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
                                   {!info.direito_bolsa && !info.direito_mapa_km && (
                                     <Badge variant="outline" className="text-[10px] text-muted-foreground">Sem direito a transporte</Badge>
                                   )}
-                                  <Badge variant="outline" className="text-[10px]">{info.acoes_count} açã{info.acoes_count === 1 ? "o" : "oes"}</Badge>
+                                  <Badge variant="outline" className="text-[10px] cursor-help" title={info.acoes_nomes.length ? info.acoes_nomes.join("\n") : "Sem ações"}>{info.acoes_count} {info.acoes_count === 1 ? "ação" : "ações"}</Badge>
                                 </div>
                               );
                             })()}
@@ -2247,7 +2247,7 @@ function AddPessoasDialog({
                                     {!info.direito_bolsa && !info.direito_mapa_km && (
                                       <Badge variant="outline" className="text-[10px] text-muted-foreground">Sem transporte</Badge>
                                     )}
-                                    <Badge variant="outline" className="text-[10px]">{info.acoes_count} açã{info.acoes_count === 1 ? "o" : "oes"}</Badge>
+                                    <Badge variant="outline" className="text-[10px] cursor-help" title={info.acoes_nomes.length ? info.acoes_nomes.join("\n") : "Sem ações"}>{info.acoes_count} {info.acoes_count === 1 ? "ação" : "ações"}</Badge>
                                   </>
                                 );
                               })()}
