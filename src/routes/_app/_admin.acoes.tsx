@@ -3109,11 +3109,44 @@ function TransporteAcaoTab({ acaoId }: { acaoId: string }) {
                         <TableBody>
                           {f.kmRows.map((k: any) => (
                             <TableRow key={k.id}>
-                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                                {k.data ? new Date(k.data).toLocaleDateString("pt-PT") : "—"}
+                              <TableCell className="whitespace-nowrap">
+                                <Input
+                                  type="date"
+                                  defaultValue={k.data ?? ""}
+                                  className="h-7 w-36 text-xs"
+                                  onBlur={(e) => {
+                                    const v = e.target.value || null;
+                                    if (v !== (k.data ?? null)) updateKm.mutate({ id: k.id, patch: { data: v } });
+                                  }}
+                                />
                               </TableCell>
-                              <TableCell className="max-w-[180px] truncate" title={k.motivo ?? ""}>{k.motivo ?? "—"}</TableCell>
-                              <TableCell className="text-right tabular-nums">{k.km ?? "—"}</TableCell>
+                              <TableCell>
+                                <Input
+                                  defaultValue={k.motivo ?? ""}
+                                  placeholder="Motivo / destino"
+                                  className="h-7 text-xs min-w-[180px]"
+                                  onBlur={(e) => {
+                                    const v = e.target.value.trim() || null;
+                                    if (v !== (k.motivo ?? null)) updateKm.mutate({ id: k.id, patch: { motivo: v } });
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Input
+                                  type="number"
+                                  step="0.1"
+                                  min="0"
+                                  defaultValue={k.km ?? ""}
+                                  className="h-7 w-20 text-xs text-right tabular-nums ml-auto"
+                                  onBlur={(e) => {
+                                    const km = Number(e.target.value.replace(",", "."));
+                                    if (!isFinite(km) || km === Number(k.km)) return;
+                                    const n = Math.max(1, Number(k.n_carros ?? 1));
+                                    const valor = Math.round(km * KM_RATE * TRIP_FACTOR * n * 100) / 100;
+                                    updateKm.mutate({ id: k.id, patch: { km, valor } });
+                                  }}
+                                />
+                              </TableCell>
                               <TableCell className="text-right tabular-nums font-medium">{eur(k.valor)}</TableCell>
                               <TableCell>
                                 <Select value={k.estado ?? "por_pagar"} onValueChange={(v) => updateKm.mutate({ id: k.id, patch: { estado: v, data_pagamento: v === "pago" && !k.data_pagamento ? new Date().toISOString().slice(0, 10) : k.data_pagamento } })}>
