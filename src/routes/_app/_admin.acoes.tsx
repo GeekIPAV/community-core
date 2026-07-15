@@ -1234,6 +1234,24 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
                               {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                             </button>
                             <span>{key} <span className="text-muted-foreground font-normal">({rows.length})</span></span>
+                            {familiaId && (() => {
+                              const info = familiasInfo?.get(familiaId);
+                              if (!info) return null;
+                              return (
+                                <div className="flex items-center gap-1.5">
+                                  {info.direito_bolsa && (
+                                    <Badge variant="secondary" className="text-[10px] bg-blue-100 text-blue-800 border-blue-200">Direito a bolsa</Badge>
+                                  )}
+                                  {info.direito_mapa_km && (
+                                    <Badge variant="secondary" className="text-[10px] bg-orange-100 text-orange-800 border-orange-200">Direito a KM</Badge>
+                                  )}
+                                  {!info.direito_bolsa && !info.direito_mapa_km && (
+                                    <Badge variant="outline" className="text-[10px] text-muted-foreground">Sem direito a transporte</Badge>
+                                  )}
+                                  <Badge variant="outline" className="text-[10px]">{info.acoes_count} açã{info.acoes_count === 1 ? "o" : "oes"}</Badge>
+                                </div>
+                              );
+                            })()}
                             {familiaId && (
                               <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                                 <Button
