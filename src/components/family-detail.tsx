@@ -1317,6 +1317,31 @@ export function FamilyDetailDialog({
                       </SelectContent>
                     </Select>
                   </div>
+                  <div className="space-y-2 rounded-md border p-3">
+                    <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Direito a apoio para transporte
+                    </Label>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">Bolsa de transporte</p>
+                        <p className="text-xs text-muted-foreground">A família tem direito a receber bolsa de transporte.</p>
+                      </div>
+                      <Switch
+                        checked={!!editing.direito_bolsa}
+                        onCheckedChange={(v) => setEditing({ ...editing, direito_bolsa: v })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">Mapa de KM</p>
+                        <p className="text-xs text-muted-foreground">A família tem direito a reembolso por quilómetros percorridos.</p>
+                      </div>
+                      <Switch
+                        checked={!!editing.direito_mapa_km}
+                        onCheckedChange={(v) => setEditing({ ...editing, direito_mapa_km: v })}
+                      />
+                    </div>
+                  </div>
                   <DialogFooter className="flex justify-between gap-2">
                     <Button
                       variant="destructive"
