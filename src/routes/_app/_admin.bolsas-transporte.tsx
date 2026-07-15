@@ -870,6 +870,16 @@ function BolsasTransportePage() {
     });
   }, [mapaKmData, kmSearch, kmEstadoFilter, kmFamiliaFilter]);
 
+  const kmPorFamilia = useMemo(() => {
+    const map = new Map<string, MapaKmRow[]>();
+    for (const r of mapaKmData ?? []) {
+      const arr = map.get(r.familia_id) ?? [];
+      arr.push(r);
+      map.set(r.familia_id, arr);
+    }
+    return map;
+  }, [mapaKmData]);
+
   return (
     <Tabs defaultValue="pagamentos" className="space-y-6">
       <div className="flex items-center justify-between">
