@@ -2216,7 +2216,27 @@ function AddPessoasDialog({
                             {initials(f.nome) || "F"}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium">{f.nome}</p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="truncate text-sm font-medium">{f.nome}</p>
+                              {(() => {
+                                const info = familiasInfo?.get(f.id);
+                                if (!info) return null;
+                                return (
+                                  <>
+                                    {info.direito_bolsa && (
+                                      <Badge variant="secondary" className="text-[10px] bg-blue-100 text-blue-800 border-blue-200">Bolsa</Badge>
+                                    )}
+                                    {info.direito_mapa_km && (
+                                      <Badge variant="secondary" className="text-[10px] bg-orange-100 text-orange-800 border-orange-200">KM</Badge>
+                                    )}
+                                    {!info.direito_bolsa && !info.direito_mapa_km && (
+                                      <Badge variant="outline" className="text-[10px] text-muted-foreground">Sem transporte</Badge>
+                                    )}
+                                    <Badge variant="outline" className="text-[10px]">{info.acoes_count} açã{info.acoes_count === 1 ? "o" : "oes"}</Badge>
+                                  </>
+                                );
+                              })()}
+                            </div>
                             <p className="truncate text-xs text-muted-foreground">
                               {membros.length} membro(s)
                             </p>
