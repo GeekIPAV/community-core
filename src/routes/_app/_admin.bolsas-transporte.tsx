@@ -897,7 +897,7 @@ function BolsasTransportePage() {
 
       {/* ============= TAB 1: PAGAMENTOS ============= */}
       <TabsContent value="pagamentos" className="space-y-4">
-        <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+        <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
           <Card>
             <CardHeader className="pb-2"><CardDescription>Por pagar</CardDescription></CardHeader>
             <CardContent>
@@ -919,6 +919,20 @@ function BolsasTransportePage() {
           <Card>
             <CardHeader className="pb-2"><CardDescription>Total geral</CardDescription></CardHeader>
             <CardContent><p className="text-2xl font-semibold tabular-nums">{formatEuro(kpis.total)}</p></CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2"><CardDescription>KM por pagar</CardDescription></CardHeader>
+            <CardContent>
+              <p className="text-2xl font-semibold text-amber-700">{kmKpis.porPagarN}</p>
+              <p className="text-xs text-muted-foreground tabular-nums">{formatEuro(kmKpis.porPagarV)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2"><CardDescription>KM pago</CardDescription></CardHeader>
+            <CardContent>
+              <p className="text-2xl font-semibold text-emerald-700">{kmKpis.pagoN}</p>
+              <p className="text-xs text-muted-foreground tabular-nums">{formatEuro(kmKpis.pagoV)}</p>
+            </CardContent>
           </Card>
         </div>
 
