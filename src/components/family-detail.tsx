@@ -27,6 +27,7 @@ import { ChevronLeft, ChevronRight, Plus, Trash2, UserMinus, FolderOpen } from "
 import { Link } from "@tanstack/react-router";
 import { formatDateBR } from "@/lib/utils";
 import { InlineText, InlineSelect, InlineMultiSelect } from "@/components/inline-edit";
+import { KM_RATE, TRIP_FACTOR } from "@/lib/bolsa-transporte";
 import { personIcon, flagFor } from "@/lib/person-display";
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -670,13 +671,71 @@ function TransporteFamiliaTab({ familiaId }: { familiaId: string }) {
               <TableBody>
                 {mapaKm.map((k) => (
                   <TableRow key={k.id}>
-                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                      {formatDateBR(k.data)}
+                    <TableCell className="whitespace-nowrap">
+                      <Input
+                        type="date"
+                        defaultValue={k.data ?? ""}
+                        className="h-7 w-36 text-xs"
+                        onBlur={(e) => {
+                          const v = e.target.value || null;
+                          if (v !== (k.data ?? null)) updateKm.mutate({ id: k.id, patch: { data: v as any } });
+                        }}
+                      />
                     </TableCell>
-                    <TableCell className="font-medium max-w-[180px] truncate" title={k.motivo}>{k.motivo}</TableCell>
-                    <TableCell className="text-right tabular-nums">{k.km}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{k.matricula ?? "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums">{k.n_carros}</TableCell>
+                    <TableCell>
+                      <Input
+                        defaultValue={k.motivo ?? ""}
+                        placeholder="Motivo / destino"
+                        className="h-7 text-xs min-w-[180px]"
+                        onBlur={(e) => {
+                          const v = e.target.value.trim();
+                          if (v !== (k.motivo ?? "")) updateKm.mutate({ id: k.id, patch: { motivo: v } as any });
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        defaultValue={k.km ?? ""}
+                        className="h-7 w-20 text-xs text-right tabular-nums ml-auto"
+                        onBlur={(e) => {
+                          const km = Number(e.target.value.replace(",", "."));
+                          if (!isFinite(km) || km === Number(k.km)) return;
+                          const n = Math.max(1, Number(k.n_carros ?? 1));
+                          const valor = Math.round(km * KM_RATE * TRIP_FACTOR * n * 100) / 100;
+                          updateKm.mutate({ id: k.id, patch: { km, valor } as any });
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        defaultValue={k.matricula ?? ""}
+                        placeholder="—"
+                        className="h-7 w-24 text-xs"
+                        onBlur={(e) => {
+                          const v = e.target.value.trim() || null;
+                          if (v !== (k.matricula ?? null)) updateKm.mutate({ id: k.id, patch: { matricula: v } as any });
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Input
+                        type="number"
+                        min="1"
+                        step="1"
+                        defaultValue={k.n_carros ?? 1}
+                        className="h-7 w-16 text-xs text-right tabular-nums ml-auto"
+                        onBlur={(e) => {
+                          const n = Math.max(1, Math.floor(Number(e.target.value)));
+                          if (!isFinite(n) || n === Number(k.n_carros)) return;
+                          const km = Number(k.km ?? 0);
+                          const valor = Math.round(km * KM_RATE * TRIP_FACTOR * n * 100) / 100;
+                          updateKm.mutate({ id: k.id, patch: { n_carros: n, valor } as any });
+                        }}
+                      />
+                    </TableCell>
                     <TableCell className="text-right tabular-nums font-medium whitespace-nowrap">{eur(k.valor)}</TableCell>
                     <TableCell>
                       <Select
