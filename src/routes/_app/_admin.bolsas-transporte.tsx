@@ -994,6 +994,21 @@ function BolsasTransportePage() {
                     {acao.nPorPagar > 0 && <Badge className="bg-amber-100 text-amber-800 border-amber-200">{acao.nPorPagar} por pagar</Badge>}
                     {acao.nPago > 0 && <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">{acao.nPago} pagos</Badge>}
                     <span className="text-sm font-medium tabular-nums">{formatEuro(acao.totalValor)}</span>
+                    {(() => {
+                      const familiaIds = [...new Set(
+                        acao.inscricoes.map((i) => i.familia_id).filter(Boolean) as string[]
+                      )];
+                      const kmRows = familiaIds.flatMap((fid) => kmPorFamilia.get(fid) ?? []);
+                      if (kmRows.length === 0) return null;
+                      const kmPP = kmRows.filter((r) => r.estado === "por_pagar").reduce((s, r) => s + Number(r.valor), 0);
+                      const kmTotal = kmRows.reduce((s, r) => s + Number(r.valor), 0);
+                      return (
+                        <span className="flex items-center gap-1 text-xs text-orange-700 tabular-nums">
+                          <Car className="h-3 w-3" />
+                          {formatEuro(kmPP > 0 ? kmPP : kmTotal)}{kmPP > 0 ? " KM p/pagar" : " KM"}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
@@ -1028,6 +1043,82 @@ function BolsasTransportePage() {
                       </TableBody>
                     </Table>
                   </div>
+                  {/* KM records for families in this action */}
+                  {(() => {
+                    // Collect unique familia_ids from this action's inscricoes
+                    const familiaIds = [...new Set(
+                      acao.inscricoes
+                        .map((i) => i.familia_id)
+                        .filter(Boolean) as string[]
+                    )];
+                    // Gather KM rows for those families
+                    const kmRows = familiaIds.flatMap((fid) => kmPorFamilia.get(fid) ?? []);
+                    if (kmRows.length === 0) return null;
+                    const totalKm = kmRows.reduce((s, r) => s + Number(r.valor), 0);
+                    const kmPorPagar = kmRows
+                      .filter((r) => r.estado === "por_pagar")
+                      .reduce((s, r) => s + Number(r.valor), 0);
+                    // Group by family for display
+                    const byFamilia = new Map<string, { nome: string; rows: MapaKmRow[] }>();
+                    for (const r of kmRows) {
+                      if (!byFamilia.has(r.familia_id)) {
+                        const insc = acao.inscricoes.find((i) => i.familia_id === r.familia_id);
+                        byFamilia.set(r.familia_id, { nome: insc?.familia_nome ?? "—", rows: [] });
+                      }
+                      byFamilia.get(r.familia_id)!.rows.push(r);
+                    }
+                    return (
+                      <div className="border border-t-0 rounded-b-lg overflow-x-auto mt-1">
+                        <div className="px-4 py-2 bg-orange-50/60 border-b flex items-center gap-2">
+                          <Car className="h-3.5 w-3.5 text-orange-600 shrink-0" />
+                          <span className="text-xs font-medium text-orange-800">Mapa de KM associado</span>
+                          {kmPorPagar > 0 && (
+                            <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-xs">
+                              {formatEuro(kmPorPagar)} por pagar
+                            </Badge>
+                          )}
+                          <span className="ml-auto text-xs text-muted-foreground tabular-nums">Total: {formatEuro(totalKm)}</span>
+                        </div>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Família</TableHead>
+                              <TableHead>Data</TableHead>
+                              <TableHead>Motivo</TableHead>
+                              <TableHead className="text-right">KM</TableHead>
+                              <TableHead className="text-right">Carros</TableHead>
+                              <TableHead className="text-right">Valor</TableHead>
+                              <TableHead>Estado</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {Array.from(byFamilia.entries()).map(([fid, { nome, rows }]) =>
+                              rows.map((r, ri) => (
+                                <TableRow key={r.id}>
+                                  <TableCell className="font-medium text-sm">
+                                    {ri === 0 ? nome : ""}
+                                  </TableCell>
+                                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">{formatDate(r.data)}</TableCell>
+                                  <TableCell className="max-w-[180px] truncate text-sm" title={r.motivo}>{r.motivo}</TableCell>
+                                  <TableCell className="text-right tabular-nums text-sm">{r.km}</TableCell>
+                                  <TableCell className="text-right tabular-nums text-sm">{r.n_carros}</TableCell>
+                                  <TableCell className="text-right tabular-nums font-medium">{formatEuro(Number(r.valor))}</TableCell>
+                                  <TableCell><EstadoBadge estado={r.estado} /></TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                          <tfoot>
+                            <tr className="border-t bg-muted/30">
+                              <td colSpan={5} className="px-4 py-2 text-xs font-medium">Total KM</td>
+                              <td className="px-4 py-2 text-right text-xs font-semibold tabular-nums">{formatEuro(totalKm)}</td>
+                              <td></td>
+                            </tr>
+                          </tfoot>
+                        </Table>
+                      </div>
+                    );
+                  })()}
                 </CollapsibleContent>
               </Collapsible>
             ))}
