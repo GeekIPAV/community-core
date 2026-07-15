@@ -1057,6 +1057,9 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
             <p className="mt-1 text-[11px] text-muted-foreground">
               Cria registos de KM ou bolsa depois da inscrição. Os detalhes (km, motivo, valor) completam-se em <span className="italic">Bolsas de transporte</span>.
             </p>
+            <div className="mt-3">
+              <TransporteAcaoTab acaoId={acaoId} />
+            </div>
           </CollapsibleContent>
         </Collapsible>
       )}
