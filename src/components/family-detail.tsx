@@ -1037,6 +1037,8 @@ export function FamilyDetailDialog({
           notas: editing.notas || null,
           status: editing.status,
           contacto_meeru_id: editing.contacto_meeru_id,
+          direito_bolsa: !!editing.direito_bolsa,
+          direito_mapa_km: !!editing.direito_mapa_km,
         } as any)
         .eq("id", editing.id);
       if (error) throw error;
