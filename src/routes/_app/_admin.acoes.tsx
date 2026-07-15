@@ -478,6 +478,7 @@ type FamiliaTransporteInfo = {
   direito_bolsa: boolean;
   direito_mapa_km: boolean;
   acoes_count: number;
+  acoes_nomes: string[];
 };
 
 function useFamiliasTransporteInfo() {
@@ -485,7 +486,7 @@ function useFamiliasTransporteInfo() {
     queryKey: ["familias-transporte-info"],
     staleTime: 60_000,
     queryFn: async () => {
-      const [famRes, insRes] = await Promise.all([
+      const [famRes, insRes, acoesRes] = await Promise.all([
         (supabase as any)
           .from("familias")
           .select("id, direito_bolsa, direito_mapa_km")
@@ -494,9 +495,20 @@ function useFamiliasTransporteInfo() {
           .from("inscricoes")
           .select("acao_id, pessoa:pessoas!inner(familia_id)")
           .neq("status", "cancelada"),
+        supabase
+          .from("acoes")
+          .select("id, nome, data_inicio")
+          .order("data_inicio", { ascending: false, nullsFirst: false }),
       ]);
       if (famRes.error) throw famRes.error;
       if (insRes.error) throw insRes.error;
+      if (acoesRes.error) throw acoesRes.error;
+      const acaoNome = new Map<string, string>();
+      const acaoOrdem = new Map<string, number>();
+      ((acoesRes.data ?? []) as any[]).forEach((a, i) => {
+        acaoNome.set(a.id, a.nome ?? "(sem nome)");
+        acaoOrdem.set(a.id, i);
+      });
       const pairs = new Set<string>();
       const counts = new Map<string, Set<string>>();
       for (const r of (insRes.data ?? []) as any[]) {
@@ -511,10 +523,13 @@ function useFamiliasTransporteInfo() {
       }
       const map = new Map<string, FamiliaTransporteInfo>();
       for (const f of (famRes.data ?? []) as any[]) {
+        const ids = Array.from(counts.get(f.id) ?? []);
+        ids.sort((a, b) => (acaoOrdem.get(a) ?? 1e9) - (acaoOrdem.get(b) ?? 1e9));
         map.set(f.id, {
           direito_bolsa: !!f.direito_bolsa,
           direito_mapa_km: !!f.direito_mapa_km,
-          acoes_count: counts.get(f.id)?.size ?? 0,
+          acoes_count: ids.length,
+          acoes_nomes: ids.map((id) => acaoNome.get(id) ?? "(sem nome)"),
         });
       }
       return map;
@@ -1248,7 +1263,7 @@ function InscricoesTab({ acaoId, fields }: { acaoId: string; fields: FieldDef[] 
                                   {!info.direito_bolsa && !info.direito_mapa_km && (
                                     <Badge variant="outline" className="text-[10px] text-muted-foreground">Sem direito a transporte</Badge>
                                   )}
-                                  <Badge variant="outline" className="text-[10px]">{info.acoes_count} açã{info.acoes_count === 1 ? "o" : "oes"}</Badge>
+                                  <Badge variant="outline" className="text-[10px] cursor-help" title={info.acoes_nomes.length ? info.acoes_nomes.join("\n") : "Sem ações"}>{info.acoes_count} {info.acoes_count === 1 ? "ação" : "ações"}</Badge>
                                 </div>
                               );
                             })()}
@@ -2232,7 +2247,7 @@ function AddPessoasDialog({
                                     {!info.direito_bolsa && !info.direito_mapa_km && (
                                       <Badge variant="outline" className="text-[10px] text-muted-foreground">Sem transporte</Badge>
                                     )}
-                                    <Badge variant="outline" className="text-[10px]">{info.acoes_count} açã{info.acoes_count === 1 ? "o" : "oes"}</Badge>
+                                    <Badge variant="outline" className="text-[10px] cursor-help" title={info.acoes_nomes.length ? info.acoes_nomes.join("\n") : "Sem ações"}>{info.acoes_count} {info.acoes_count === 1 ? "ação" : "ações"}</Badge>
                                   </>
                                 );
                               })()}
