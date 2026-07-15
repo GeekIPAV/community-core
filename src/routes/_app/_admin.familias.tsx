@@ -73,7 +73,7 @@ const STATUS_STYLES: Record<FamiliaStatus, string> = {
   "Fora do País": "bg-pink-100 text-pink-700 border-transparent dark:bg-pink-950 dark:text-pink-300",
 };
 
-type Familia = { id: string; nome: string; notas: string | null; status: FamiliaStatus; contacto_meeru_id: string | null; direito_bolsa: boolean | null; direito_mapa_km: boolean | null; updated_at: string | null };
+type Familia = { id: string; nome: string; notas: string | null; status: FamiliaStatus; contacto_meeru_id: string | null; direito_bolsa?: boolean | null; direito_mapa_km?: boolean | null; updated_at: string | null };
 
 function FamiliasPage() {
   const qc = useQueryClient();
