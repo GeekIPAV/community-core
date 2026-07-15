@@ -1095,6 +1095,8 @@ export type Database = {
           contacto_meeru_id: string | null
           created_at: string
           deleted_at: string | null
+          direito_bolsa: boolean
+          direito_mapa_km: boolean
           id: string
           nome: string
           notas: string | null
@@ -1105,6 +1107,8 @@ export type Database = {
           contacto_meeru_id?: string | null
           created_at?: string
           deleted_at?: string | null
+          direito_bolsa?: boolean
+          direito_mapa_km?: boolean
           id?: string
           nome: string
           notas?: string | null
@@ -1115,6 +1119,8 @@ export type Database = {
           contacto_meeru_id?: string | null
           created_at?: string
           deleted_at?: string | null
+          direito_bolsa?: boolean
+          direito_mapa_km?: boolean
           id?: string
           nome?: string
           notas?: string | null
