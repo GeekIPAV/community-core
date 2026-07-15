@@ -28,6 +28,7 @@ import { Link } from "@tanstack/react-router";
 import { formatDateBR } from "@/lib/utils";
 import { InlineText, InlineSelect, InlineMultiSelect } from "@/components/inline-edit";
 import { KM_RATE, TRIP_FACTOR } from "@/lib/bolsa-transporte";
+import { Switch } from "@/components/ui/switch";
 import { personIcon, flagFor } from "@/lib/person-display";
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -56,6 +57,8 @@ export type Familia = {
   notas: string | null;
   status: FamiliaStatus;
   contacto_meeru_id: string | null;
+  direito_bolsa?: boolean | null;
+  direito_mapa_km?: boolean | null;
   updated_at: string | null;
 };
 
