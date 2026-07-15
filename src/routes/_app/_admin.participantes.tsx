@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { ChevronDown, ChevronRight, Lock, LockOpen, Pencil, Plus, Trash2, Mail, Phone, MapPin, Cake, Briefcase, Globe, HeartHandshake, Users, IdCard, ShieldCheck, Heart, Search } from "lucide-react";
 import { Download } from "lucide-react";
 import { EtiquetasPicker } from "@/components/etiquetas-picker";
+import { AcoesHoverSummary } from "@/components/acoes-hover-summary";
 import { CurriculoSection } from "@/components/curriculo-section";
 import { InviteMemberButton } from "@/components/invite-member";
 import { downloadCSV, toCSV } from "@/lib/csv";
