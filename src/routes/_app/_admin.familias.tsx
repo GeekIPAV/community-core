@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { AcoesHoverSummary } from "@/components/acoes-hover-summary";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useEffect, useMemo, useState } from "react";
 import { SavedViews } from "@/components/saved-views";
@@ -325,6 +326,10 @@ function FamiliasPage() {
     { id: "cidade", header: "Cidade", accessorFn: (f) => Array.from(agregados?.get(f.id)?.cidades ?? []).sort().join(", "), cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Cidade" } satisfies ColumnFilterMeta },
     { id: "religiao", header: "Religião", accessorFn: (f) => Array.from(agregados?.get(f.id)?.religioes ?? []).sort().join(", "), cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Religião" } satisfies ColumnFilterMeta },
     { id: "inscricoes", header: "Inscrições", accessorFn: (f) => Array.from(agregados?.get(f.id)?.inscricoes ?? []).sort().join(", "), cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || "—"}</span>, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Inscrições" } satisfies ColumnFilterMeta },
+    { id: "acoes_count", header: "Ações", accessorFn: (f) => agregados?.get(f.id)?.inscricoes.size ?? 0, enableSorting: false, cell: ({ row, getValue }) => {
+        const n = getValue() as number;
+        return <AcoesHoverSummary familiaId={row.original.id} label={`${n} ${n === 1 ? "ação" : "ações"}`} />;
+      }, meta: { filterVariant: "number", label: "Ações" } satisfies ColumnFilterMeta },
     { id: "contacto_meeru", header: "Contacto MEERU", accessorFn: (f) => (f.contacto_meeru_id ? (equipaMap.get(f.contacto_meeru_id)?.nome_completo ?? "—") : ""), cell: ({ getValue, row }) => (
       inlineEdit
         ? <InlineSelect
