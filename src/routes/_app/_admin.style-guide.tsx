@@ -10,12 +10,13 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Palette, Type, Ruler, Component, RotateCcw, Save, Copy } from "lucide-react";
+import { Palette, Type, Ruler, Component, RotateCcw, Save, Copy, Library } from "lucide-react";
 import {
   EDITABLE_TOKENS,
   applyTokens,
   type DesignTokens,
 } from "@/lib/theme-provider";
+import { LibraryTab } from "@/components/style-guide/library-tab";
 
 export const Route = createFileRoute("/_app/_admin/style-guide")({
   component: StyleGuidePage,
@@ -125,11 +126,12 @@ function StyleGuidePage() {
         </header>
 
         <Tabs defaultValue="colors" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 max-w-xl">
+          <TabsList className="grid w-full grid-cols-5 max-w-2xl">
             <TabsTrigger value="colors"><Palette className="h-3.5 w-3.5 mr-1.5" /> Cores</TabsTrigger>
             <TabsTrigger value="typography"><Type className="h-3.5 w-3.5 mr-1.5" /> Tipografia</TabsTrigger>
             <TabsTrigger value="spacing"><Ruler className="h-3.5 w-3.5 mr-1.5" /> Espaçamento</TabsTrigger>
-            <TabsTrigger value="components"><Component className="h-3.5 w-3.5 mr-1.5" /> Componentes</TabsTrigger>
+            <TabsTrigger value="components"><Component className="h-3.5 w-3.5 mr-1.5" /> Primitivos</TabsTrigger>
+            <TabsTrigger value="library"><Library className="h-3.5 w-3.5 mr-1.5" /> Biblioteca</TabsTrigger>
           </TabsList>
 
           {/* ===== COLORS ===== */}
@@ -367,6 +369,11 @@ function StyleGuidePage() {
                 <Badge className="bg-sky-500 text-white hover:bg-sky-600">Info</Badge>
               </CardContent>
             </FrostedCard>
+          </TabsContent>
+
+          {/* ===== LIBRARY ===== */}
+          <TabsContent value="library">
+            <LibraryTab />
           </TabsContent>
         </Tabs>
       </div>
