@@ -634,6 +634,51 @@ export type Database = {
           },
         ]
       }
+      component_library: {
+        Row: {
+          categoria: string
+          created_at: string
+          descricao: string | null
+          id: string
+          ordem: number
+          preview_key: string | null
+          prompt_en: string | null
+          prompt_pt: string
+          snippet: string | null
+          titulo: string
+          tokens: string[]
+          updated_at: string
+        }
+        Insert: {
+          categoria?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          ordem?: number
+          preview_key?: string | null
+          prompt_en?: string | null
+          prompt_pt?: string
+          snippet?: string | null
+          titulo: string
+          tokens?: string[]
+          updated_at?: string
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          ordem?: number
+          preview_key?: string | null
+          prompt_en?: string | null
+          prompt_pt?: string
+          snippet?: string | null
+          titulo?: string
+          tokens?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       convites: {
         Row: {
           created_at: string
