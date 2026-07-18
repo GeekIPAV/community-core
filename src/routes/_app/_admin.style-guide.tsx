@@ -370,6 +370,11 @@ function StyleGuidePage() {
               </CardContent>
             </FrostedCard>
           </TabsContent>
+
+          {/* ===== LIBRARY ===== */}
+          <TabsContent value="library">
+            <LibraryTab />
+          </TabsContent>
         </Tabs>
       </div>
     </div>
