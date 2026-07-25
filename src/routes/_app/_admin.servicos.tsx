@@ -1183,7 +1183,7 @@ function RegistosTab() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Registo | null>(null);
   const [form, setForm] = useState<Partial<Registo>>({});
-  const [filterEstado, setFilterEstado] = useState<string>("__all");
+  const [filterEstado, setFilterEstado] = useState<string[]>([]);
   const [filterColabs, setFilterColabs] = useState<string[]>([]);
   const [filterSessao, setFilterSessao] = useState<"all" | "session" | "individual">("all");
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -1243,7 +1243,10 @@ function RegistosTab() {
 
   const filtered = useMemo(() => {
     let rows = data ?? [];
-    if (filterEstado !== "__all") rows = rows.filter((r) => r.estado === filterEstado);
+    if (filterEstado.length > 0) {
+      const set = new Set(filterEstado);
+      rows = rows.filter((r) => set.has(r.estado));
+    }
     if (filterColabs.length > 0) {
       const set = new Set(filterColabs);
       rows = rows.filter((r) => set.has(r.colaborador_id));
