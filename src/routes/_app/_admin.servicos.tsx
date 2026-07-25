@@ -1569,7 +1569,14 @@ function RegistosTab() {
               </li>
               {resumoPorColab.map((r) => (
                 <li key={r.id} className="grid grid-cols-[1fr_auto_auto_auto] gap-x-6 items-center py-1.5">
-                  <span className="truncate">{r.nome}</span>
+                  <Link
+                    to="/servicos/colaborador/$id"
+                    params={{ id: r.id }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="truncate text-primary hover:underline"
+                  >
+                    {r.nome}
+                  </Link>
                   <span className="tabular-nums text-right text-amber-600 dark:text-amber-400">{r.pendente > 0 ? fmtEUR(r.pendente) : "—"}</span>
                   <span className="tabular-nums text-right text-blue-600 dark:text-blue-400">{r.aprovado > 0 ? fmtEUR(r.aprovado) : "—"}</span>
                   <span className="tabular-nums text-right font-medium">{fmtEUR(r.total)}</span>
