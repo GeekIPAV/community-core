@@ -1468,7 +1468,7 @@ function RegistosTab() {
     { id: "_colab", accessorKey: "_colab", header: "Colaborador", size: 200,
       meta: { label: "Colaborador", filterVariant: "text" },
       cell: ({ row }) => (
-        <Link to="/servicos/colaborador/$id" params={{ id: row.original.colaborador_id }} className="font-medium hover:underline truncate block">
+        <Link to="/servicos/colaborador/$id" params={{ id: row.original.colaborador_id }} onClick={(e) => e.stopPropagation()} className="font-medium hover:underline truncate block">
           {row.original._colab}
         </Link>
       ) },
@@ -1920,7 +1920,7 @@ function PagamentosTab() {
     { id: "_colab", accessorKey: "_colab", header: "Colaborador", size: 220,
       meta: { label: "Colaborador", filterVariant: "text" },
       cell: ({ row }) => (
-        <Link to="/servicos/colaborador/$id" params={{ id: row.original.colaborador_id }} className="font-medium hover:underline truncate block">
+        <Link to="/servicos/colaborador/$id" params={{ id: row.original.colaborador_id }} onClick={(e) => e.stopPropagation()} className="font-medium hover:underline truncate block">
           {row.original._colab}
         </Link>
       ) },
