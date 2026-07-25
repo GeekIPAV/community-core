@@ -1187,6 +1187,7 @@ function RegistosTab() {
   const [filterColabs, setFilterColabs] = useState<string[]>([]);
   const [filterSessao, setFilterSessao] = useState<"all" | "session" | "individual">("all");
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [resumoOpen, setResumoOpen] = useState(false);
 
   const { data: colabs } = useQuery({
     queryKey: ["colaboradores_lookup"],
