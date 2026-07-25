@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -1188,7 +1188,7 @@ function RegistosTab() {
   const [filterSessao, setFilterSessao] = useState<"all" | "session" | "individual">("all");
   const [bulkOpen, setBulkOpen] = useState(false);
   const [resumoOpen, setResumoOpen] = useState(false);
-  const navigate = useNavigate();
+  
 
 
   const { data: colabs } = useQuery({
@@ -1580,13 +1580,7 @@ function RegistosTab() {
                 </li>
                 {resumoPorColab.map((r) => (
                   <li key={r.id} className="grid grid-cols-[1fr_auto_auto_auto] gap-x-6 items-center py-1.5">
-                    <button
-                      type="button"
-                      className="truncate text-primary hover:underline text-left"
-                      onClick={() => navigate({ to: "/servicos/colaborador/$id", params: { id: r.id } })}
-                    >
-                      {r.nome}
-                    </button>
+                    <span className="truncate text-foreground">{r.nome}</span>
                     <span className="tabular-nums text-right text-amber-600 dark:text-amber-400">{r.pendente > 0 ? fmtEUR(r.pendente) : "—"}</span>
                     <span className="tabular-nums text-right text-blue-600 dark:text-blue-400">{r.aprovado > 0 ? fmtEUR(r.aprovado) : "—"}</span>
                     <span className="tabular-nums text-right font-medium">{fmtEUR(r.total)}</span>
