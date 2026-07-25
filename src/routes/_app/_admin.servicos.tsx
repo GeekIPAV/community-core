@@ -1183,7 +1183,7 @@ function RegistosTab() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Registo | null>(null);
   const [form, setForm] = useState<Partial<Registo>>({});
-  const [filterEstado, setFilterEstado] = useState<string>("__all");
+  const [filterEstado, setFilterEstado] = useState<string[]>([]);
   const [filterColabs, setFilterColabs] = useState<string[]>([]);
   const [filterSessao, setFilterSessao] = useState<"all" | "session" | "individual">("all");
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -1243,7 +1243,10 @@ function RegistosTab() {
 
   const filtered = useMemo(() => {
     let rows = data ?? [];
-    if (filterEstado !== "__all") rows = rows.filter((r) => r.estado === filterEstado);
+    if (filterEstado.length > 0) {
+      const set = new Set(filterEstado);
+      rows = rows.filter((r) => set.has(r.estado));
+    }
     if (filterColabs.length > 0) {
       const set = new Set(filterColabs);
       rows = rows.filter((r) => set.has(r.colaborador_id));
@@ -1595,13 +1598,14 @@ function RegistosTab() {
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex flex-wrap gap-2">
-          <Select value={filterEstado} onValueChange={setFilterEstado}>
-            <SelectTrigger className="w-40 h-9"><SelectValue placeholder="Estado" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all">Todos os estados</SelectItem>
-              {ESTADOS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <div className="w-56">
+            <InlineMultiSelect
+              values={filterEstado}
+              options={(ESTADOS as unknown as string[]).map((e) => ({ value: e, label: e }))}
+              onSave={(v) => setFilterEstado(v)}
+              placeholder="Todos os estados"
+            />
+          </div>
           <div className="w-64">
             <InlineMultiSelect
               values={filterColabs}
