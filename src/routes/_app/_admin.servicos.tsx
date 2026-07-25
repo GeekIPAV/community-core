@@ -1572,7 +1572,6 @@ function RegistosTab() {
                   <Link
                     to="/servicos/colaborador/$id"
                     params={{ id: r.id }}
-                    onClick={(e) => e.stopPropagation()}
                     className="truncate text-primary hover:underline"
                   >
                     {r.nome}
