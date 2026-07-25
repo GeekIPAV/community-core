@@ -287,7 +287,7 @@ function ColaboradorDetailPage() {
         <SummaryCard label="Pago" value={fmtEUR(totals.pagoTotal)} tone="text-emerald-600 dark:text-emerald-400" />
       </div>
 
-      <Tabs defaultValue="pagamentos">
+      <Tabs defaultValue="servicos">
         <TabsList>
           <TabsTrigger value="servicos"><Receipt className="mr-2 h-4 w-4" />Serviços</TabsTrigger>
           <TabsTrigger value="pagamentos"><Wallet className="mr-2 h-4 w-4" />Pagamentos</TabsTrigger>
