@@ -1598,13 +1598,14 @@ function RegistosTab() {
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex flex-wrap gap-2">
-          <Select value={filterEstado} onValueChange={setFilterEstado}>
-            <SelectTrigger className="w-40 h-9"><SelectValue placeholder="Estado" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all">Todos os estados</SelectItem>
-              {ESTADOS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <div className="w-56">
+            <InlineMultiSelect
+              values={filterEstado}
+              options={(ESTADOS as unknown as string[]).map((e) => ({ value: e, label: e }))}
+              onSave={(v) => setFilterEstado(v)}
+              placeholder="Todos os estados"
+            />
+          </div>
           <div className="w-64">
             <InlineMultiSelect
               values={filterColabs}
