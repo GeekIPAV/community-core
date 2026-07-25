@@ -1187,6 +1187,7 @@ function RegistosTab() {
   const [filterColabs, setFilterColabs] = useState<string[]>([]);
   const [filterSessao, setFilterSessao] = useState<"all" | "session" | "individual">("all");
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [resumoOpen, setResumoOpen] = useState(false);
 
   const { data: colabs } = useQuery({
     queryKey: ["colaboradores_lookup"],
@@ -1546,45 +1547,51 @@ function RegistosTab() {
         <SummaryCard label="Pago" value={fmtEUR(totals.pago)} variant="success" />
       </div>
 
-      <details className="rounded-lg border bg-card group">
-        <summary className="flex items-center justify-between gap-3 px-4 py-2.5 cursor-pointer select-none text-sm hover:bg-muted/40 rounded-lg">
+      <div className="rounded-lg border bg-card">
+        <button
+          type="button"
+          onClick={() => setResumoOpen((v) => !v)}
+          className="w-full flex items-center justify-between gap-3 px-4 py-2.5 cursor-pointer select-none text-sm hover:bg-muted/40 rounded-lg text-left"
+        >
           <span className="flex items-center gap-2">
-            <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" />
+            <ChevronRight className={`h-4 w-4 transition-transform ${resumoOpen ? "rotate-90" : ""}`} />
             <span className="font-medium">Resumo a pagar por colaboradora</span>
             <span className="text-muted-foreground">
               ({resumoPorColab.length} {resumoPorColab.length === 1 ? "colaboradora" : "colaboradoras"} · {fmtEUR(resumoTotal)})
             </span>
           </span>
-        </summary>
-        <div className="px-4 pb-3 pt-1 text-sm">
-          {resumoPorColab.length === 0 ? (
-            <p className="text-muted-foreground">Sem valores por pagar no filtro atual.</p>
-          ) : (
-            <ul className="divide-y">
-              <li className="grid grid-cols-[1fr_auto_auto_auto] gap-x-6 py-1.5 text-xs uppercase tracking-wide text-muted-foreground">
-                <span>Colaboradora</span>
-                <span className="text-right">Pendente</span>
-                <span className="text-right">Aprovado</span>
-                <span className="text-right">Total</span>
-              </li>
-              {resumoPorColab.map((r) => (
-                <li key={r.id} className="grid grid-cols-[1fr_auto_auto_auto] gap-x-6 items-center py-1.5">
-                  <Link
-                    to="/servicos/colaborador/$id"
-                    params={{ id: r.id }}
-                    className="truncate text-primary hover:underline"
-                  >
-                    {r.nome}
-                  </Link>
-                  <span className="tabular-nums text-right text-amber-600 dark:text-amber-400">{r.pendente > 0 ? fmtEUR(r.pendente) : "—"}</span>
-                  <span className="tabular-nums text-right text-blue-600 dark:text-blue-400">{r.aprovado > 0 ? fmtEUR(r.aprovado) : "—"}</span>
-                  <span className="tabular-nums text-right font-medium">{fmtEUR(r.total)}</span>
+        </button>
+        {resumoOpen && (
+          <div className="px-4 pb-3 pt-1 text-sm border-t border-border">
+            {resumoPorColab.length === 0 ? (
+              <p className="text-muted-foreground py-2">Sem valores por pagar no filtro atual.</p>
+            ) : (
+              <ul className="divide-y">
+                <li className="grid grid-cols-[1fr_auto_auto_auto] gap-x-6 py-1.5 text-xs uppercase tracking-wide text-muted-foreground">
+                  <span>Colaboradora</span>
+                  <span className="text-right">Pendente</span>
+                  <span className="text-right">Aprovado</span>
+                  <span className="text-right">Total</span>
                 </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </details>
+                {resumoPorColab.map((r) => (
+                  <li key={r.id} className="grid grid-cols-[1fr_auto_auto_auto] gap-x-6 items-center py-1.5">
+                    <Link
+                      to="/servicos/colaborador/$id"
+                      params={{ id: r.id }}
+                      className="truncate text-primary hover:underline"
+                    >
+                      {r.nome}
+                    </Link>
+                    <span className="tabular-nums text-right text-amber-600 dark:text-amber-400">{r.pendente > 0 ? fmtEUR(r.pendente) : "—"}</span>
+                    <span className="tabular-nums text-right text-blue-600 dark:text-blue-400">{r.aprovado > 0 ? fmtEUR(r.aprovado) : "—"}</span>
+                    <span className="tabular-nums text-right font-medium">{fmtEUR(r.total)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex flex-wrap gap-2">
