@@ -131,8 +131,9 @@ export function CasoNovoSheet({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("familias")
-        .select("id, nome, pessoas(count)")
+        .select("id, nome, pessoas:pessoas!pessoas_familia_id_fkey(count)")
         .ilike("nome", `%${pesquisaFam}%`)
+        .is("deleted_at", null)
         .order("nome").limit(20);
       if (error) throw error;
       return ((data ?? []) as any[]).map((f) => ({
@@ -147,7 +148,7 @@ export function CasoNovoSheet({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("familias")
-        .select("id, nome, pessoas(count)")
+        .select("id, nome, pessoas:pessoas!pessoas_familia_id_fkey(count)")
         .eq("id", familiaIdSel).maybeSingle();
       if (error) throw error;
       if (!data) return null;
