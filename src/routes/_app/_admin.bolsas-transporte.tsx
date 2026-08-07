@@ -740,12 +740,13 @@ function BolsasTransportePage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("mapa_km")
-        .select("*, familias(nome)")
+        .select("*, familias(nome), acoes(nome)")
         .order("data", { ascending: false });
       if (error) throw error;
-      return ((data ?? []) as Array<MapaKmRow & { familias: { nome: string } | null }>).map((r) => ({
+      return ((data ?? []) as Array<MapaKmRow & { familias: { nome: string } | null; acoes: { nome: string } | null }>).map((r) => ({
         ...r,
         familia_nome: r.familias?.nome ?? "—",
+        acao_nome: r.acoes?.nome ?? null,
       })) as MapaKmRow[];
     },
   });
