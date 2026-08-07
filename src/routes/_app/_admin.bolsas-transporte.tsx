@@ -81,6 +81,8 @@ type MapaKmRow = {
   id: string;
   familia_id: string;
   familia_nome?: string;
+  acao_id?: string | null;
+  acao_nome?: string | null;
   data: string;
   motivo: string;
   km: number;
@@ -738,12 +740,13 @@ function BolsasTransportePage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("mapa_km")
-        .select("*, familias(nome)")
+        .select("*, familias(nome), acoes(nome)")
         .order("data", { ascending: false });
       if (error) throw error;
-      return ((data ?? []) as Array<MapaKmRow & { familias: { nome: string } | null }>).map((r) => ({
+      return ((data ?? []) as Array<MapaKmRow & { familias: { nome: string } | null; acoes: { nome: string } | null }>).map((r) => ({
         ...r,
         familia_nome: r.familias?.nome ?? "—",
+        acao_nome: r.acoes?.nome ?? null,
       })) as MapaKmRow[];
     },
   });
@@ -788,10 +791,11 @@ function BolsasTransportePage() {
   });
 
   const updateMapaKm = useMutation({
-    mutationFn: async ({ id, ...row }: Partial<Omit<MapaKmRow, "valor" | "familia_nome">> & { id: string }) => {
-      const safe = { ...row } as Partial<Omit<MapaKmRow, "valor" | "familia_nome">>;
+    mutationFn: async ({ id, ...row }: Partial<Omit<MapaKmRow, "valor" | "familia_nome" | "acao_nome">> & { id: string }) => {
+      const safe = { ...row } as Record<string, unknown>;
       delete (safe as { valor?: unknown }).valor;
       delete (safe as { familia_nome?: unknown }).familia_nome;
+      delete (safe as { acao_nome?: unknown }).acao_nome;
       const { error } = await supabase
         .from("mapa_km")
         .update({ ...safe, updated_at: new Date().toISOString() })
@@ -1310,9 +1314,10 @@ function BolsasTransportePage() {
           <Button
             variant="outline"
             onClick={() => {
-              const headers = ["Família", "Data", "Motivo", "KM", "Matrícula", "Carros", "Valor", "Estado", "Método", "Notas"];
+              const headers = ["Família", "Ação", "Data", "Motivo", "KM", "Matrícula", "Carros", "Valor", "Estado", "Método", "Notas"];
               const rowsCsv = kmFiltered.map((r) => ({
                 "Família": r.familia_nome ?? "",
+                "Ação": r.acao_nome ?? "",
                 "Data": r.data ? new Date(r.data).toLocaleDateString("pt-PT") : "",
                 "Motivo": r.motivo,
                 "KM": String(r.km),
@@ -1343,6 +1348,7 @@ function BolsasTransportePage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Família</TableHead>
+                  <TableHead>Ação</TableHead>
                   <TableHead>Data</TableHead>
                   <TableHead>Motivo</TableHead>
                   <TableHead className="text-right">KM</TableHead>
@@ -1359,6 +1365,15 @@ function BolsasTransportePage() {
                 {kmFiltered.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell className="font-medium whitespace-nowrap">{r.familia_nome}</TableCell>
+                    <TableCell className="max-w-[180px]">
+                      {r.acao_nome ? (
+                        <span className="inline-flex max-w-full truncate rounded-full bg-muted px-2 py-0.5 text-xs" title={r.acao_nome}>
+                          {r.acao_nome}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Avulso</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-muted-foreground text-xs whitespace-nowrap">{formatDate(r.data)}</TableCell>
                     <TableCell className="max-w-[200px] truncate" title={r.motivo}>{r.motivo}</TableCell>
                     <TableCell className="text-right tabular-nums">{r.km}</TableCell>
