@@ -30,6 +30,7 @@ import { InlineText, InlineSelect, InlineMultiSelect } from "@/components/inline
 import { KM_RATE, TRIP_FACTOR } from "@/lib/bolsa-transporte";
 import { Switch } from "@/components/ui/switch";
 import { personIcon, flagFor } from "@/lib/person-display";
+import { CasoNovoSheet } from "@/components/caso-novo-sheet";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const PESSOA_STATUS_OPTS = ["ativo", "suspeito_duplicado", "fundido", "arquivado"];
@@ -2094,6 +2095,8 @@ function ContextoRelacionalTab({ familiaId }: { familiaId: string }) {
 }
 
 function CasosFamiliaTab({ familiaId }: { familiaId: string }) {
+  const qc = useQueryClient();
+  const [novoOpen, setNovoOpen] = useState(false);
   const { data: casos = [], isLoading } = useQuery({
     queryKey: ["familia-casos", familiaId],
     queryFn: async () => {
@@ -2107,17 +2110,41 @@ function CasosFamiliaTab({ familiaId }: { familiaId: string }) {
     },
   });
 
+  const novoSheet = (
+    <CasoNovoSheet
+      open={novoOpen}
+      onOpenChange={setNovoOpen}
+      mode="staff"
+      familiaId={familiaId}
+      onCreated={() => qc.invalidateQueries({ queryKey: ["familia-casos", familiaId] })}
+    />
+  );
+
+  const header = (
+    <div className="flex items-center justify-end">
+      <Button size="sm" onClick={() => setNovoOpen(true)}>
+        <Plus className="mr-2 h-4 w-4" /> Novo caso
+      </Button>
+    </div>
+  );
+
   if (isLoading) return <div className="text-sm text-muted-foreground">A carregar…</div>;
   if (casos.length === 0) {
     return (
-      <div className="rounded-md border p-8 text-center space-y-2">
-        <FolderOpen className="h-8 w-8 text-muted-foreground/40 mx-auto" />
-        <p className="text-sm text-muted-foreground">Sem casos de apoio para esta família.</p>
+      <div className="space-y-3">
+        {header}
+        <div className="rounded-md border p-8 text-center space-y-2">
+          <FolderOpen className="h-8 w-8 text-muted-foreground/40 mx-auto" />
+          <p className="text-sm text-muted-foreground">Sem casos de apoio para esta família.</p>
+        </div>
+        {novoSheet}
       </div>
     );
   }
   return (
-    <div className="rounded-md border overflow-hidden">
+    <div className="space-y-3">
+      {header}
+      <div className="rounded-md border overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
@@ -2146,6 +2173,8 @@ function CasosFamiliaTab({ familiaId }: { familiaId: string }) {
           ))}
         </TableBody>
       </Table>
+      </div>
+      {novoSheet}
     </div>
   );
 }
