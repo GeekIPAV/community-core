@@ -101,12 +101,16 @@ export function CasoNovoSheet({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, tipo_user_id, is_admin, auth_user_id, tipos_user!inner(nome)")
+        .select("id, nome_completo, tipo_user_id, is_admin, auth_user_id, tipos_user(nome)")
         .eq("status", "ativo")
-        .not("auth_user_id", "is", null);
+        .is("deleted_at", null)
+        .order("nome_completo");
       if (error) throw error;
       return ((data ?? []) as any[])
-        .filter((p) => p.is_admin || p.tipos_user?.nome?.toLowerCase() === "equipa")
+        .filter((p) => {
+          const tipo = (p.tipos_user?.nome ?? "").toLowerCase();
+          return p.is_admin || tipo === "equipa" || tipo === "admin";
+        })
         .map((p) => ({ id: p.id as string, nome_completo: p.nome_completo as string }));
     },
   });
