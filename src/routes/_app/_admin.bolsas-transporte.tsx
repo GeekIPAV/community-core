@@ -1314,9 +1314,10 @@ function BolsasTransportePage() {
           <Button
             variant="outline"
             onClick={() => {
-              const headers = ["Família", "Data", "Motivo", "KM", "Matrícula", "Carros", "Valor", "Estado", "Método", "Notas"];
+              const headers = ["Família", "Ação", "Data", "Motivo", "KM", "Matrícula", "Carros", "Valor", "Estado", "Método", "Notas"];
               const rowsCsv = kmFiltered.map((r) => ({
                 "Família": r.familia_nome ?? "",
+                "Ação": r.acao_nome ?? "",
                 "Data": r.data ? new Date(r.data).toLocaleDateString("pt-PT") : "",
                 "Motivo": r.motivo,
                 "KM": String(r.km),
@@ -1347,6 +1348,7 @@ function BolsasTransportePage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Família</TableHead>
+                  <TableHead>Ação</TableHead>
                   <TableHead>Data</TableHead>
                   <TableHead>Motivo</TableHead>
                   <TableHead className="text-right">KM</TableHead>
@@ -1363,6 +1365,15 @@ function BolsasTransportePage() {
                 {kmFiltered.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell className="font-medium whitespace-nowrap">{r.familia_nome}</TableCell>
+                    <TableCell className="max-w-[180px]">
+                      {r.acao_nome ? (
+                        <span className="inline-flex max-w-full truncate rounded-full bg-muted px-2 py-0.5 text-xs" title={r.acao_nome}>
+                          {r.acao_nome}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Avulso</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-muted-foreground text-xs whitespace-nowrap">{formatDate(r.data)}</TableCell>
                     <TableCell className="max-w-[200px] truncate" title={r.motivo}>{r.motivo}</TableCell>
                     <TableCell className="text-right tabular-nums">{r.km}</TableCell>
