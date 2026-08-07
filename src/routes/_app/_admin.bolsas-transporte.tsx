@@ -81,6 +81,8 @@ type MapaKmRow = {
   id: string;
   familia_id: string;
   familia_nome?: string;
+  acao_id?: string | null;
+  acao_nome?: string | null;
   data: string;
   motivo: string;
   km: number;
