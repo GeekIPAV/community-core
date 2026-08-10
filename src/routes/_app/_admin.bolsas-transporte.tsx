@@ -341,7 +341,7 @@ function BolsasTransportePage() {
         .eq("bolsa_transporte", true)
         .order("data_inicio", { ascending: false, nullsFirst: false });
       if (acoesErr) throw acoesErr;
-      if (!acoes?.length) return { acoes: [], inscricoes: [], pessoas: [], familias: [], cidades: [] as CidadeBolsa[], pagamentos: [] as BolsaPagamento[] };
+      if (!acoes?.length) return { acoes: [], inscricoes: [], pessoas: [], familias: [], tiposUser: [] as { id: string; nome: string }[], cidades: [] as CidadeBolsa[], pagamentos: [] as BolsaPagamento[] };
 
       const acaoIds = acoes.map((a) => a.id);
       const { data: inscricoes, error: iErr } = await supabase
