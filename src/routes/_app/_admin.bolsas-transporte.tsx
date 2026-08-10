@@ -63,9 +63,21 @@ type AcaoGrupo = {
   data_inicio: string | null;
   local: string | null;
   inscricoes: InscricaoComBolsa[];
+  faltantes: Faltante[];
   totalValor: number;
   nPago: number;
   nPorPagar: number;
+};
+
+// Pessoa elegível (presente + tipo Membro) que ainda não tem registo de bolsa
+type Faltante = {
+  inscricao_id: string;
+  pessoa_id: string;
+  pessoa_nome: string;
+  acao_id: string;
+  familia_id: string | null;
+  familia_nome: string | null;
+  valor_calculado: number;
 };
 
 type FamiliaResumo = {
