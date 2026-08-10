@@ -63,9 +63,21 @@ type AcaoGrupo = {
   data_inicio: string | null;
   local: string | null;
   inscricoes: InscricaoComBolsa[];
+  faltantes: Faltante[];
   totalValor: number;
   nPago: number;
   nPorPagar: number;
+};
+
+// Pessoa elegível (presente + tipo Membro) que ainda não tem registo de bolsa
+type Faltante = {
+  inscricao_id: string;
+  pessoa_id: string;
+  pessoa_nome: string;
+  acao_id: string;
+  familia_id: string | null;
+  familia_nome: string | null;
+  valor_calculado: number;
 };
 
 type FamiliaResumo = {
@@ -329,7 +341,7 @@ function BolsasTransportePage() {
         .eq("bolsa_transporte", true)
         .order("data_inicio", { ascending: false, nullsFirst: false });
       if (acoesErr) throw acoesErr;
-      if (!acoes?.length) return { acoes: [], inscricoes: [], pessoas: [], familias: [], cidades: [] as CidadeBolsa[], pagamentos: [] as BolsaPagamento[] };
+      if (!acoes?.length) return { acoes: [], inscricoes: [], pessoas: [], familias: [], tiposUser: [] as { id: string; nome: string }[], cidades: [] as CidadeBolsa[], pagamentos: [] as BolsaPagamento[] };
 
       const acaoIds = acoes.map((a) => a.id);
       const { data: inscricoes, error: iErr } = await supabase
@@ -341,10 +353,13 @@ function BolsasTransportePage() {
 
       const pessoaIds = [...new Set((inscricoes ?? []).map((i) => i.pessoa_id))];
       const pessoasRes = pessoaIds.length
-        ? await supabase.from("pessoas").select("id, nome_completo, familia_id, cidade_residencia").in("id", pessoaIds)
+        ? await supabase.from("pessoas").select("id, nome_completo, familia_id, cidade_residencia, tipo_user_id").in("id", pessoaIds)
         : { data: [], error: null };
       if (pessoasRes.error) throw pessoasRes.error;
       const pessoas = pessoasRes.data ?? [];
+
+      const { data: tiposUser, error: tuErr } = await supabase.from("tipos_user").select("id, nome");
+      if (tuErr) throw tuErr;
 
       const familiaIds = [...new Set(pessoas.map((p) => p.familia_id).filter(Boolean) as string[])];
       const familiasRes = familiaIds.length
@@ -370,6 +385,7 @@ function BolsasTransportePage() {
         inscricoes: inscricoes ?? [],
         pessoas,
         familias,
+        tiposUser: tiposUser ?? [],
         cidades: (cidades ?? []) as CidadeBolsa[],
         pagamentos: (pagRes.data ?? []) as BolsaPagamento[],
       };
@@ -382,6 +398,15 @@ function BolsasTransportePage() {
     const familiaMap = new Map(rawData.familias.map((f) => [f.id, f]));
     const pagamentoMap = new Map(rawData.pagamentos.map((p) => [p.inscricao_id, p]));
     const acaoMap = new Map(rawData.acoes.map((a) => [a.id, a]));
+    const tipoNomeById = new Map((rawData.tiposUser ?? []).map((t) => [t.id, (t.nome ?? "").toLowerCase()]));
+    const calcValor = (pessoa: { cidade_residencia: string | null }, v: ReturnType<typeof parseViatura>) => {
+      if (v.viatura_propria) {
+        const km = typeof v.viatura_km === "number" ? v.viatura_km : 0;
+        return Math.round(km * KM_RATE * TRIP_FACTOR * 100) / 100;
+      }
+      const cidade = matchCidade(pessoa.cidade_residencia, rawData.cidades);
+      return cidade ? Math.round(cidade.valor_sentido * TRIP_FACTOR * 100) / 100 : 0;
+    };
 
     // Group grupos per ação to detect duplicates
     const grupoPorAcao = new Map<string, Map<string, number>>();
@@ -396,6 +421,7 @@ function BolsasTransportePage() {
     }
 
     const inscricoesFull: InscricaoComBolsa[] = [];
+    const faltantesPorAcao = new Map<string, Faltante[]>();
     for (const i of rawData.inscricoes) {
       const pessoa = pessoaMap.get(i.pessoa_id);
       if (!pessoa) continue;
@@ -406,15 +432,25 @@ function BolsasTransportePage() {
       const grupoNorm = v.viatura_grupo ? normalizeGrupo(v.viatura_grupo) : "";
       const isDup = !!(v.viatura_propria && grupoNorm && (grupoPorAcao.get(i.acao_id)?.get(grupoNorm) ?? 0) > 1);
       const pagamento = pagamentoMap.get(i.id) ?? null;
-      if (!pagamento) continue;
+      const valorCalc = calcValor(pessoa, v);
 
-      let valorCalc = 0;
-      if (v.viatura_propria) {
-        const km = typeof v.viatura_km === "number" ? v.viatura_km : 0;
-        valorCalc = Math.round(km * KM_RATE * TRIP_FACTOR * 100) / 100;
-      } else {
-        const cidade = matchCidade(pessoa.cidade_residencia, rawData.cidades);
-        if (cidade) valorCalc = Math.round(cidade.valor_sentido * TRIP_FACTOR * 100) / 100;
+      if (!pagamento) {
+        // Elegível mas sem registo de bolsa: presente + tipo Membro
+        const tipoNome = pessoa.tipo_user_id ? tipoNomeById.get(pessoa.tipo_user_id) ?? "" : "";
+        if (i.status === "presente" && tipoNome === "membro") {
+          const lista = faltantesPorAcao.get(i.acao_id) ?? [];
+          lista.push({
+            inscricao_id: i.id,
+            pessoa_id: pessoa.id,
+            pessoa_nome: pessoa.nome_completo,
+            acao_id: i.acao_id,
+            familia_id: familia?.id ?? null,
+            familia_nome: familia?.nome ?? null,
+            valor_calculado: valorCalc,
+          });
+          faltantesPorAcao.set(i.acao_id, lista);
+        }
+        continue;
       }
 
       inscricoesFull.push({
@@ -446,6 +482,7 @@ function BolsasTransportePage() {
         data_inicio: a.data_inicio,
         local: a.local,
         inscricoes: [],
+        faltantes: faltantesPorAcao.get(a.id) ?? [],
         totalValor: 0,
         nPago: 0,
         nPorPagar: 0,
@@ -460,7 +497,7 @@ function BolsasTransportePage() {
       if (estado === "pago") { g.nPago++; g.totalValor += valor; }
       else if (estado === "por_pagar") { g.nPorPagar++; g.totalValor += valor; }
     }
-    const acoesGrupos = Array.from(gruposMap.values()).filter((g) => g.inscricoes.length > 0);
+    const acoesGrupos = Array.from(gruposMap.values()).filter((g) => g.inscricoes.length > 0 || g.faltantes.length > 0);
 
     // Group by família
     const famMap = new Map<string, FamiliaResumo>();
@@ -560,6 +597,31 @@ function BolsasTransportePage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const criarFaltantes = useMutation({
+    mutationFn: async (faltantes: Faltante[]) => {
+      if (!faltantes.length) return 0;
+      const { error } = await supabase.from("bolsas_pagamentos").insert(
+        faltantes.map((f) => ({
+          inscricao_id: f.inscricao_id,
+          pessoa_id: f.pessoa_id,
+          acao_id: f.acao_id,
+          valor: f.valor_calculado,
+          estado: "por_pagar",
+        })),
+      );
+      if (error) throw error;
+      return faltantes.length;
+    },
+    onSuccess: (n) => {
+      toast.success(`${n} bolsa(s) adicionada(s)`);
+      qc.refetchQueries({ queryKey: ["bolsas-pagamentos-full"] });
+      qc.invalidateQueries({ queryKey: ["bolsas-acao"] });
+      qc.invalidateQueries({ queryKey: ["bolsa-ativas"] });
+      qc.invalidateQueries({ queryKey: ["familia-bolsas"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const updateCampo = (i: InscricaoComBolsa, campo: "metodo_pagamento" | "notas", valor: string) =>
     upsertPagamento.mutate({
       inscricao_id: i.inscricao_id,
@@ -632,9 +694,18 @@ function BolsasTransportePage() {
             g.nome.toLowerCase().includes(s)
           );
         });
-        return { ...g, inscricoes };
+        const faltantes = g.faltantes.filter((f) => {
+          if (estadoFilter !== "todos" && estadoFilter !== "por_pagar") return false;
+          if (!s) return true;
+          return (
+            f.pessoa_nome.toLowerCase().includes(s) ||
+            (f.familia_nome ?? "").toLowerCase().includes(s) ||
+            g.nome.toLowerCase().includes(s)
+          );
+        });
+        return { ...g, inscricoes, faltantes };
       })
-      .filter((g) => g.inscricoes.length > 0);
+      .filter((g) => g.inscricoes.length > 0 || g.faltantes.length > 0);
   }, [acoesGrupos, search, estadoFilter]);
 
   const kpis = useMemo(() => {
@@ -997,6 +1068,9 @@ function BolsasTransportePage() {
                   <div className="flex items-center gap-2 shrink-0 ml-3">
                     {acao.nPorPagar > 0 && <Badge className="bg-amber-100 text-amber-800 border-amber-200">{acao.nPorPagar} por pagar</Badge>}
                     {acao.nPago > 0 && <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">{acao.nPago} pagos</Badge>}
+                    {acao.faltantes.length > 0 && (
+                      <Badge variant="outline" className="border-amber-300 text-amber-700">{acao.faltantes.length} sem bolsa</Badge>
+                    )}
                     <span className="text-sm font-medium tabular-nums">{formatEuro(acao.totalValor)}</span>
                     {(() => {
                       const familiaIds = [...new Set(
@@ -1016,6 +1090,53 @@ function BolsasTransportePage() {
                   </div>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
+                  {acao.faltantes.length > 0 && (
+                    <div className="border border-t-0 border-b-0 bg-amber-50/60 px-4 py-3 space-y-2">
+                      <div className="flex items-center gap-2 text-xs text-amber-800">
+                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                        <span className="font-medium">
+                          {acao.faltantes.length} membro(s) elegível(is) sem bolsa nesta ação
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="ml-auto h-7 text-xs"
+                          disabled={criarFaltantes.isPending}
+                          onClick={() => criarFaltantes.mutate(acao.faltantes)}
+                        >
+                          <Plus className="mr-1 h-3.5 w-3.5" /> Adicionar todos
+                        </Button>
+                      </div>
+                      {Array.from(
+                        acao.faltantes.reduce((m, f) => {
+                          const key = f.familia_id ?? `__solo_${f.pessoa_id}`;
+                          const list = m.get(key) ?? [];
+                          list.push(f);
+                          m.set(key, list);
+                          return m;
+                        }, new Map<string, Faltante[]>()),
+                      ).map(([key, lista]) => (
+                        <div key={key} className="flex items-center gap-2 text-xs">
+                          <span className="font-medium">{lista[0].familia_nome ?? lista[0].pessoa_nome}</span>
+                          <span className="text-muted-foreground truncate">
+                            {lista.map((f) => f.pessoa_nome).join(", ")}
+                          </span>
+                          <span className="ml-auto tabular-nums text-muted-foreground">
+                            {formatEuro(lista.reduce((s, f) => s + f.valor_calculado, 0))}
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 text-xs"
+                            disabled={criarFaltantes.isPending}
+                            onClick={() => criarFaltantes.mutate(lista)}
+                          >
+                            <Plus className="mr-1 h-3 w-3" /> Adicionar em falta
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <div className="border border-t-0 rounded-b-lg overflow-x-auto">
                     <Table>
                       <TableHeader>
