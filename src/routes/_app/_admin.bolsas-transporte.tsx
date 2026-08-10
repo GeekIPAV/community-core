@@ -669,9 +669,18 @@ function BolsasTransportePage() {
             g.nome.toLowerCase().includes(s)
           );
         });
-        return { ...g, inscricoes };
+        const faltantes = g.faltantes.filter((f) => {
+          if (estadoFilter !== "todos" && estadoFilter !== "por_pagar") return false;
+          if (!s) return true;
+          return (
+            f.pessoa_nome.toLowerCase().includes(s) ||
+            (f.familia_nome ?? "").toLowerCase().includes(s) ||
+            g.nome.toLowerCase().includes(s)
+          );
+        });
+        return { ...g, inscricoes, faltantes };
       })
-      .filter((g) => g.inscricoes.length > 0);
+      .filter((g) => g.inscricoes.length > 0 || g.faltantes.length > 0);
   }, [acoesGrupos, search, estadoFilter]);
 
   const kpis = useMemo(() => {
