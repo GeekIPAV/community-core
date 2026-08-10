@@ -1068,6 +1068,9 @@ function BolsasTransportePage() {
                   <div className="flex items-center gap-2 shrink-0 ml-3">
                     {acao.nPorPagar > 0 && <Badge className="bg-amber-100 text-amber-800 border-amber-200">{acao.nPorPagar} por pagar</Badge>}
                     {acao.nPago > 0 && <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">{acao.nPago} pagos</Badge>}
+                    {acao.faltantes.length > 0 && (
+                      <Badge variant="outline" className="border-amber-300 text-amber-700">{acao.faltantes.length} sem bolsa</Badge>
+                    )}
                     <span className="text-sm font-medium tabular-nums">{formatEuro(acao.totalValor)}</span>
                     {(() => {
                       const familiaIds = [...new Set(
@@ -1087,6 +1090,53 @@ function BolsasTransportePage() {
                   </div>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
+                  {acao.faltantes.length > 0 && (
+                    <div className="border border-t-0 border-b-0 bg-amber-50/60 px-4 py-3 space-y-2">
+                      <div className="flex items-center gap-2 text-xs text-amber-800">
+                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                        <span className="font-medium">
+                          {acao.faltantes.length} membro(s) elegível(is) sem bolsa nesta ação
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="ml-auto h-7 text-xs"
+                          disabled={criarFaltantes.isPending}
+                          onClick={() => criarFaltantes.mutate(acao.faltantes)}
+                        >
+                          <Plus className="mr-1 h-3.5 w-3.5" /> Adicionar todos
+                        </Button>
+                      </div>
+                      {Array.from(
+                        acao.faltantes.reduce((m, f) => {
+                          const key = f.familia_id ?? `__solo_${f.pessoa_id}`;
+                          const list = m.get(key) ?? [];
+                          list.push(f);
+                          m.set(key, list);
+                          return m;
+                        }, new Map<string, Faltante[]>()),
+                      ).map(([key, lista]) => (
+                        <div key={key} className="flex items-center gap-2 text-xs">
+                          <span className="font-medium">{lista[0].familia_nome ?? lista[0].pessoa_nome}</span>
+                          <span className="text-muted-foreground truncate">
+                            {lista.map((f) => f.pessoa_nome).join(", ")}
+                          </span>
+                          <span className="ml-auto tabular-nums text-muted-foreground">
+                            {formatEuro(lista.reduce((s, f) => s + f.valor_calculado, 0))}
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 text-xs"
+                            disabled={criarFaltantes.isPending}
+                            onClick={() => criarFaltantes.mutate(lista)}
+                          >
+                            <Plus className="mr-1 h-3 w-3" /> Adicionar em falta
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <div className="border border-t-0 rounded-b-lg overflow-x-auto">
                     <Table>
                       <TableHeader>
