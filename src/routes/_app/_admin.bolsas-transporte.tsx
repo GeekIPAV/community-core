@@ -398,6 +398,15 @@ function BolsasTransportePage() {
     const familiaMap = new Map(rawData.familias.map((f) => [f.id, f]));
     const pagamentoMap = new Map(rawData.pagamentos.map((p) => [p.inscricao_id, p]));
     const acaoMap = new Map(rawData.acoes.map((a) => [a.id, a]));
+    const tipoNomeById = new Map((rawData.tiposUser ?? []).map((t) => [t.id, (t.nome ?? "").toLowerCase()]));
+    const calcValor = (pessoa: { cidade_residencia: string | null }, v: ReturnType<typeof parseViatura>) => {
+      if (v.viatura_propria) {
+        const km = typeof v.viatura_km === "number" ? v.viatura_km : 0;
+        return Math.round(km * KM_RATE * TRIP_FACTOR * 100) / 100;
+      }
+      const cidade = matchCidade(pessoa.cidade_residencia, rawData.cidades);
+      return cidade ? Math.round(cidade.valor_sentido * TRIP_FACTOR * 100) / 100 : 0;
+    };
 
     // Group grupos per ação to detect duplicates
     const grupoPorAcao = new Map<string, Map<string, number>>();
@@ -412,6 +421,7 @@ function BolsasTransportePage() {
     }
 
     const inscricoesFull: InscricaoComBolsa[] = [];
+    const faltantesPorAcao = new Map<string, Faltante[]>();
     for (const i of rawData.inscricoes) {
       const pessoa = pessoaMap.get(i.pessoa_id);
       if (!pessoa) continue;
@@ -422,15 +432,25 @@ function BolsasTransportePage() {
       const grupoNorm = v.viatura_grupo ? normalizeGrupo(v.viatura_grupo) : "";
       const isDup = !!(v.viatura_propria && grupoNorm && (grupoPorAcao.get(i.acao_id)?.get(grupoNorm) ?? 0) > 1);
       const pagamento = pagamentoMap.get(i.id) ?? null;
-      if (!pagamento) continue;
+      const valorCalc = calcValor(pessoa, v);
 
-      let valorCalc = 0;
-      if (v.viatura_propria) {
-        const km = typeof v.viatura_km === "number" ? v.viatura_km : 0;
-        valorCalc = Math.round(km * KM_RATE * TRIP_FACTOR * 100) / 100;
-      } else {
-        const cidade = matchCidade(pessoa.cidade_residencia, rawData.cidades);
-        if (cidade) valorCalc = Math.round(cidade.valor_sentido * TRIP_FACTOR * 100) / 100;
+      if (!pagamento) {
+        // Elegível mas sem registo de bolsa: presente + tipo Membro
+        const tipoNome = pessoa.tipo_user_id ? tipoNomeById.get(pessoa.tipo_user_id) ?? "" : "";
+        if (i.status === "presente" && tipoNome === "membro") {
+          const lista = faltantesPorAcao.get(i.acao_id) ?? [];
+          lista.push({
+            inscricao_id: i.id,
+            pessoa_id: pessoa.id,
+            pessoa_nome: pessoa.nome_completo,
+            acao_id: i.acao_id,
+            familia_id: familia?.id ?? null,
+            familia_nome: familia?.nome ?? null,
+            valor_calculado: valorCalc,
+          });
+          faltantesPorAcao.set(i.acao_id, lista);
+        }
+        continue;
       }
 
       inscricoesFull.push({
@@ -462,6 +482,7 @@ function BolsasTransportePage() {
         data_inicio: a.data_inicio,
         local: a.local,
         inscricoes: [],
+        faltantes: faltantesPorAcao.get(a.id) ?? [],
         totalValor: 0,
         nPago: 0,
         nPorPagar: 0,
@@ -476,7 +497,7 @@ function BolsasTransportePage() {
       if (estado === "pago") { g.nPago++; g.totalValor += valor; }
       else if (estado === "por_pagar") { g.nPorPagar++; g.totalValor += valor; }
     }
-    const acoesGrupos = Array.from(gruposMap.values()).filter((g) => g.inscricoes.length > 0);
+    const acoesGrupos = Array.from(gruposMap.values()).filter((g) => g.inscricoes.length > 0 || g.faltantes.length > 0);
 
     // Group by família
     const famMap = new Map<string, FamiliaResumo>();
