@@ -353,10 +353,13 @@ function BolsasTransportePage() {
 
       const pessoaIds = [...new Set((inscricoes ?? []).map((i) => i.pessoa_id))];
       const pessoasRes = pessoaIds.length
-        ? await supabase.from("pessoas").select("id, nome_completo, familia_id, cidade_residencia").in("id", pessoaIds)
+        ? await supabase.from("pessoas").select("id, nome_completo, familia_id, cidade_residencia, tipo_user_id").in("id", pessoaIds)
         : { data: [], error: null };
       if (pessoasRes.error) throw pessoasRes.error;
       const pessoas = pessoasRes.data ?? [];
+
+      const { data: tiposUser, error: tuErr } = await supabase.from("tipos_user").select("id, nome");
+      if (tuErr) throw tuErr;
 
       const familiaIds = [...new Set(pessoas.map((p) => p.familia_id).filter(Boolean) as string[])];
       const familiasRes = familiaIds.length
@@ -382,6 +385,7 @@ function BolsasTransportePage() {
         inscricoes: inscricoes ?? [],
         pessoas,
         familias,
+        tiposUser: tiposUser ?? [],
         cidades: (cidades ?? []) as CidadeBolsa[],
         pagamentos: (pagRes.data ?? []) as BolsaPagamento[],
       };
