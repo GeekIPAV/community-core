@@ -597,6 +597,47 @@ function BolsasTransportePage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const criarFaltantes = useMutation({
+    mutationFn: async (faltantes: Faltante[]) => {
+      if (!faltantes.length) return 0;
+      const { error } = await supabase.from("bolsas_pagamentos").insert(
+        faltantes.map((f) => ({
+          inscricao_id: f.inscricao_id,
+          pessoa_id: f.pessoa_id,
+          acao_id: f.acao_id,
+          valor: f.valor_calculado,
+          estado: "por_pagar",
+        })),
+      );
+      if (error) throw error;
+      return faltantes.length;
+    },
+    onSuccess: (n) => {
+      toast.success(`${n} bolsa(s) adicionada(s)`);
+      qc.refetchQueries({ queryKey: ["bolsas-pagamentos-full"] });
+      qc.invalidateQueries({ queryKey: ["bolsas-acao"] });
+      qc.invalidateQueries({ queryKey: ["bolsa-ativas"] });
+      qc.invalidateQueries({ queryKey: ["familia-bolsas"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteBolsaLegacy = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from("bolsas_pagamentos").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Bolsa removida");
+      qc.removeQueries({ queryKey: ["bolsas-pagamentos-full"] });
+      qc.refetchQueries({ queryKey: ["bolsas-pagamentos-full"] });
+      qc.invalidateQueries({ queryKey: ["bolsas-acao"] });
+      qc.invalidateQueries({ queryKey: ["bolsa-ativas"] });
+      qc.invalidateQueries({ queryKey: ["familia-bolsas"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const updateCampo = (i: InscricaoComBolsa, campo: "metodo_pagamento" | "notas", valor: string) =>
     upsertPagamento.mutate({
       inscricao_id: i.inscricao_id,
