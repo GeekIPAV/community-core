@@ -23,6 +23,9 @@ type Row = {
   competencias: string[];
   disponibilidade: string | null;
   updated_at: string;
+  carta_conducao: boolean | null;
+  carta_conducao_categorias: string[] | null;
+  linguas: { lingua: string; nivel: string }[] | null;
   pessoa: {
     id: string;
     nome_completo: string;
@@ -45,7 +48,7 @@ function CurriculosAdminPage() {
     queryFn: async () => {
       const { data, error } = await (supabase.from("curriculos") as any)
         .select(
-          "id, pessoa_id, cv_url, carta_motivacao_url, areas_interesse, competencias, disponibilidade, updated_at, pessoa:pessoas!curriculos_pessoa_id_fkey(id, nome_completo, email, telefone, data_nascimento, profissao)"
+          "id, pessoa_id, cv_url, carta_motivacao_url, areas_interesse, competencias, disponibilidade, updated_at, carta_conducao, carta_conducao_categorias, linguas, pessoa:pessoas!curriculos_pessoa_id_fkey(id, nome_completo, email, telefone, data_nascimento, profissao)"
         )
         .order("updated_at", { ascending: false });
       if (error) throw error;
@@ -101,6 +104,7 @@ function CurriculosAdminPage() {
       if (areaFilter && !r.areas_interesse?.includes(areaFilter)) return false;
       if (!term) return true;
       const fields = [r.pessoa?.nome_completo, r.pessoa?.email, r.pessoa?.profissao, ...(r.competencias ?? []), ...(r.areas_interesse ?? [])]
+        .concat((r.linguas ?? []).map((l) => l.lingua))
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
@@ -201,6 +205,18 @@ function CurriculosAdminPage() {
               )}
               {r.disponibilidade && (
                 <p className="text-xs"><span className="text-muted-foreground">Disponibilidade:</span> {r.disponibilidade}</p>
+              )}
+              {(r.linguas?.length ?? 0) > 0 && (
+                <p className="text-xs">
+                  <span className="text-muted-foreground">Línguas:</span>{" "}
+                  {r.linguas!.map((l) => `${l.lingua} (${l.nivel})`).join(", ")}
+                </p>
+              )}
+              {r.carta_conducao && (
+                <p className="text-xs">
+                  <span className="text-muted-foreground">Carta de condução:</span> Sim
+                  {(r.carta_conducao_categorias?.length ?? 0) > 0 && ` · ${r.carta_conducao_categorias!.join(", ")}`}
+                </p>
               )}
               <div className="pt-1 mt-auto">
                 <Button

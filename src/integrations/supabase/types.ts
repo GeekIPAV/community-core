@@ -750,6 +750,8 @@ export type Database = {
       curriculos: {
         Row: {
           areas_interesse: string[]
+          carta_conducao: boolean
+          carta_conducao_categorias: string[]
           carta_motivacao_nome_ficheiro: string | null
           carta_motivacao_texto: string | null
           carta_motivacao_url: string | null
@@ -759,12 +761,15 @@ export type Database = {
           cv_url: string | null
           disponibilidade: string | null
           id: string
+          linguas: Json
           notas: string | null
           pessoa_id: string
           updated_at: string
         }
         Insert: {
           areas_interesse?: string[]
+          carta_conducao?: boolean
+          carta_conducao_categorias?: string[]
           carta_motivacao_nome_ficheiro?: string | null
           carta_motivacao_texto?: string | null
           carta_motivacao_url?: string | null
@@ -774,12 +779,15 @@ export type Database = {
           cv_url?: string | null
           disponibilidade?: string | null
           id?: string
+          linguas?: Json
           notas?: string | null
           pessoa_id: string
           updated_at?: string
         }
         Update: {
           areas_interesse?: string[]
+          carta_conducao?: boolean
+          carta_conducao_categorias?: string[]
           carta_motivacao_nome_ficheiro?: string | null
           carta_motivacao_texto?: string | null
           carta_motivacao_url?: string | null
@@ -789,6 +797,7 @@ export type Database = {
           cv_url?: string | null
           disponibilidade?: string | null
           id?: string
+          linguas?: Json
           notas?: string | null
           pessoa_id?: string
           updated_at?: string

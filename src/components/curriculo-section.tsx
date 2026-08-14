@@ -8,8 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Upload, Loader2, X, Save, Plus, Download, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+
+export type Lingua = { lingua: string; nivel: string };
 
 type Curriculo = {
   id: string;
@@ -23,9 +26,15 @@ type Curriculo = {
   competencias: string[];
   disponibilidade: string | null;
   notas: string | null;
+  carta_conducao: boolean | null;
+  carta_conducao_categorias: string[] | null;
+  linguas: Lingua[] | null;
 };
 
 type Area = { id: string; nome: string; categoria: string | null };
+
+const CATEGORIAS_CARTA = ["AM", "A1", "A2", "A", "B1", "B", "BE", "C1", "C", "CE", "D1", "D", "DE"];
+export const NIVEIS_LINGUA = ["Nativo", "C2", "C1", "B2", "B1", "A2", "A1"];
 
 const ALLOWED = [
   "application/pdf",
@@ -70,12 +79,20 @@ export function CurriculoSection({ pessoaId, onDeleted }: { pessoaId: string; on
   const [novaCompetencia, setNovaCompetencia] = useState("");
   const [disponibilidade, setDisponibilidade] = useState("");
   const [notas, setNotas] = useState("");
+  const [cartaConducao, setCartaConducao] = useState(false);
+  const [cartaCategorias, setCartaCategorias] = useState<string[]>([]);
+  const [linguas, setLinguas] = useState<Lingua[]>([]);
+  const [novaLingua, setNovaLingua] = useState("");
+  const [novoNivel, setNovoNivel] = useState("B1");
 
   useEffect(() => {
     setAreasSel(curriculo?.areas_interesse ?? []);
     setCompetencias(curriculo?.competencias ?? []);
     setDisponibilidade(curriculo?.disponibilidade ?? "");
     setNotas(curriculo?.notas ?? "");
+    setCartaConducao(curriculo?.carta_conducao ?? false);
+    setCartaCategorias(curriculo?.carta_conducao_categorias ?? []);
+    setLinguas(Array.isArray(curriculo?.linguas) ? (curriculo!.linguas as Lingua[]) : []);
   }, [curriculo?.id, curriculo?.pessoa_id]);
 
   const ensureRow = async (): Promise<Curriculo> => {
@@ -146,6 +163,9 @@ export function CurriculoSection({ pessoaId, onDeleted }: { pessoaId: string; on
           competencias,
           disponibilidade: disponibilidade.trim() || null,
           notas: notas.trim() || null,
+          carta_conducao: cartaConducao,
+          carta_conducao_categorias: cartaConducao ? cartaCategorias : [],
+          linguas,
         })
         .eq("id", row.id);
       if (error) throw error;
@@ -201,6 +221,20 @@ export function CurriculoSection({ pessoaId, onDeleted }: { pessoaId: string; on
     if (!competencias.includes(v)) setCompetencias([...competencias, v]);
     setNovaCompetencia("");
   };
+
+  const addLingua = () => {
+    const v = novaLingua.trim();
+    if (!v) return;
+    if (linguas.some((l) => l.lingua.toLowerCase() === v.toLowerCase())) {
+      setLinguas(linguas.map((l) => (l.lingua.toLowerCase() === v.toLowerCase() ? { ...l, nivel: novoNivel } : l)));
+    } else {
+      setLinguas([...linguas, { lingua: v, nivel: novoNivel }]);
+    }
+    setNovaLingua("");
+  };
+
+  const toggleCategoria = (c: string) =>
+    setCartaCategorias((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
 
   return (
     <div className="space-y-6">
@@ -297,7 +331,96 @@ export function CurriculoSection({ pessoaId, onDeleted }: { pessoaId: string; on
             placeholder="Ex.: Tempo inteiro, fins de semana…"
           />
         </div>
-        <div className="md:col-span-2 space-y-1.5">
+      </div>
+
+      <div className="rounded-lg border p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="carta-conducao"
+            checked={cartaConducao}
+            onCheckedChange={(v) => setCartaConducao(v === true)}
+          />
+          <Label htmlFor="carta-conducao" className="text-sm font-semibold cursor-pointer">
+            Carta de condução
+          </Label>
+        </div>
+        {cartaConducao && (
+          <div>
+            <p className="text-xs text-muted-foreground mb-1.5">Categorias</p>
+            <div className="flex flex-wrap gap-1.5">
+              {CATEGORIAS_CARTA.map((c) => {
+                const on = cartaCategorias.includes(c);
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => toggleCategoria(c)}
+                    className={
+                      "text-xs rounded-full border px-2.5 py-1 transition " +
+                      (on ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-accent")
+                    }
+                  >
+                    {c}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-lg border p-4 space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold">Línguas</h3>
+          <p className="text-xs text-muted-foreground">Línguas faladas e respetivo nível.</p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Input
+            value={novaLingua}
+            onChange={(e) => setNovaLingua(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addLingua(); } }}
+            placeholder="Ex.: Árabe, Português, Inglês…"
+            className="flex-1"
+          />
+          <Select value={novoNivel} onValueChange={setNovoNivel}>
+            <SelectTrigger className="sm:w-36"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {NIVEIS_LINGUA.map((n) => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Button type="button" variant="outline" onClick={addLingua}>
+            <Plus className="h-4 w-4" /> Adicionar
+          </Button>
+        </div>
+        {linguas.length > 0 && (
+          <div className="space-y-1.5">
+            {linguas.map((l, i) => (
+              <div key={`${l.lingua}-${i}`} className="flex items-center gap-2 rounded-md border bg-muted/30 px-2.5 py-1.5">
+                <span className="text-sm flex-1 truncate">{l.lingua}</span>
+                <Select
+                  value={l.nivel}
+                  onValueChange={(v) => setLinguas(linguas.map((x, j) => (j === i ? { ...x, nivel: v } : x)))}
+                >
+                  <SelectTrigger className="h-7 w-32 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {NIVEIS_LINGUA.map((n) => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <button
+                  type="button"
+                  className="text-muted-foreground hover:text-destructive"
+                  onClick={() => setLinguas(linguas.filter((_, j) => j !== i))}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 gap-4">
+        <div className="space-y-1.5">
           <Label>Notas</Label>
           <Textarea rows={3} value={notas} onChange={(e) => setNotas(e.target.value)} />
         </div>
