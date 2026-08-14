@@ -325,7 +325,7 @@ export function CurriculoSection({ pessoaId, onDeleted }: { pessoaId: string; on
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label>Disponibilidade</Label>
-
+          <Input
           <Input
             value={disponibilidade}
             onChange={(e) => setDisponibilidade(e.target.value)}
