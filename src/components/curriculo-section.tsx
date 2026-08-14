@@ -8,8 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Upload, Loader2, X, Save, Plus, Download, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+
+export type Lingua = { lingua: string; nivel: string };
 
 type Curriculo = {
   id: string;
@@ -23,9 +26,15 @@ type Curriculo = {
   competencias: string[];
   disponibilidade: string | null;
   notas: string | null;
+  carta_conducao: boolean | null;
+  carta_conducao_categorias: string[] | null;
+  linguas: Lingua[] | null;
 };
 
 type Area = { id: string; nome: string; categoria: string | null };
+
+const CATEGORIAS_CARTA = ["AM", "A1", "A2", "A", "B1", "B", "BE", "C1", "C", "CE", "D1", "D", "DE"];
+export const NIVEIS_LINGUA = ["Nativo", "C2", "C1", "B2", "B1", "A2", "A1"];
 
 const ALLOWED = [
   "application/pdf",
