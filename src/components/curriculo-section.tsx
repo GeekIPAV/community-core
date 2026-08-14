@@ -222,6 +222,20 @@ export function CurriculoSection({ pessoaId, onDeleted }: { pessoaId: string; on
     setNovaCompetencia("");
   };
 
+  const addLingua = () => {
+    const v = novaLingua.trim();
+    if (!v) return;
+    if (linguas.some((l) => l.lingua.toLowerCase() === v.toLowerCase())) {
+      setLinguas(linguas.map((l) => (l.lingua.toLowerCase() === v.toLowerCase() ? { ...l, nivel: novoNivel } : l)));
+    } else {
+      setLinguas([...linguas, { lingua: v, nivel: novoNivel }]);
+    }
+    setNovaLingua("");
+  };
+
+  const toggleCategoria = (c: string) =>
+    setCartaCategorias((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
