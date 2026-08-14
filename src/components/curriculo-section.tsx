@@ -331,7 +331,96 @@ export function CurriculoSection({ pessoaId, onDeleted }: { pessoaId: string; on
             placeholder="Ex.: Tempo inteiro, fins de semana…"
           />
         </div>
-        <div className="md:col-span-2 space-y-1.5">
+      </div>
+
+      <div className="rounded-lg border p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="carta-conducao"
+            checked={cartaConducao}
+            onCheckedChange={(v) => setCartaConducao(v === true)}
+          />
+          <Label htmlFor="carta-conducao" className="text-sm font-semibold cursor-pointer">
+            Carta de condução
+          </Label>
+        </div>
+        {cartaConducao && (
+          <div>
+            <p className="text-xs text-muted-foreground mb-1.5">Categorias</p>
+            <div className="flex flex-wrap gap-1.5">
+              {CATEGORIAS_CARTA.map((c) => {
+                const on = cartaCategorias.includes(c);
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => toggleCategoria(c)}
+                    className={
+                      "text-xs rounded-full border px-2.5 py-1 transition " +
+                      (on ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-accent")
+                    }
+                  >
+                    {c}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-lg border p-4 space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold">Línguas</h3>
+          <p className="text-xs text-muted-foreground">Línguas faladas e respetivo nível.</p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Input
+            value={novaLingua}
+            onChange={(e) => setNovaLingua(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addLingua(); } }}
+            placeholder="Ex.: Árabe, Português, Inglês…"
+            className="flex-1"
+          />
+          <Select value={novoNivel} onValueChange={setNovoNivel}>
+            <SelectTrigger className="sm:w-36"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {NIVEIS_LINGUA.map((n) => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Button type="button" variant="outline" onClick={addLingua}>
+            <Plus className="h-4 w-4" /> Adicionar
+          </Button>
+        </div>
+        {linguas.length > 0 && (
+          <div className="space-y-1.5">
+            {linguas.map((l, i) => (
+              <div key={`${l.lingua}-${i}`} className="flex items-center gap-2 rounded-md border bg-muted/30 px-2.5 py-1.5">
+                <span className="text-sm flex-1 truncate">{l.lingua}</span>
+                <Select
+                  value={l.nivel}
+                  onValueChange={(v) => setLinguas(linguas.map((x, j) => (j === i ? { ...x, nivel: v } : x)))}
+                >
+                  <SelectTrigger className="h-7 w-32 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {NIVEIS_LINGUA.map((n) => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <button
+                  type="button"
+                  className="text-muted-foreground hover:text-destructive"
+                  onClick={() => setLinguas(linguas.filter((_, j) => j !== i))}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 gap-4">
+        <div className="space-y-1.5">
           <Label>Notas</Label>
           <Textarea rows={3} value={notas} onChange={(e) => setNotas(e.target.value)} />
         </div>
