@@ -79,12 +79,20 @@ export function CurriculoSection({ pessoaId, onDeleted }: { pessoaId: string; on
   const [novaCompetencia, setNovaCompetencia] = useState("");
   const [disponibilidade, setDisponibilidade] = useState("");
   const [notas, setNotas] = useState("");
+  const [cartaConducao, setCartaConducao] = useState(false);
+  const [cartaCategorias, setCartaCategorias] = useState<string[]>([]);
+  const [linguas, setLinguas] = useState<Lingua[]>([]);
+  const [novaLingua, setNovaLingua] = useState("");
+  const [novoNivel, setNovoNivel] = useState("B1");
 
   useEffect(() => {
     setAreasSel(curriculo?.areas_interesse ?? []);
     setCompetencias(curriculo?.competencias ?? []);
     setDisponibilidade(curriculo?.disponibilidade ?? "");
     setNotas(curriculo?.notas ?? "");
+    setCartaConducao(curriculo?.carta_conducao ?? false);
+    setCartaCategorias(curriculo?.carta_conducao_categorias ?? []);
+    setLinguas(Array.isArray(curriculo?.linguas) ? (curriculo!.linguas as Lingua[]) : []);
   }, [curriculo?.id, curriculo?.pessoa_id]);
 
   const ensureRow = async (): Promise<Curriculo> => {
@@ -155,6 +163,9 @@ export function CurriculoSection({ pessoaId, onDeleted }: { pessoaId: string; on
           competencias,
           disponibilidade: disponibilidade.trim() || null,
           notas: notas.trim() || null,
+          carta_conducao: cartaConducao,
+          carta_conducao_categorias: cartaConducao ? cartaCategorias : [],
+          linguas,
         })
         .eq("id", row.id);
       if (error) throw error;
