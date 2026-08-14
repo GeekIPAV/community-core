@@ -326,7 +326,6 @@ export function CurriculoSection({ pessoaId, onDeleted }: { pessoaId: string; on
         <div className="space-y-1.5">
           <Label>Disponibilidade</Label>
           <Input
-          <Input
             value={disponibilidade}
             onChange={(e) => setDisponibilidade(e.target.value)}
             placeholder="Ex.: Tempo inteiro, fins de semana…"
