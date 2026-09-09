@@ -3715,9 +3715,9 @@ function AcoesPageInner() {
                 <Label>Imagem do evento</Label>
                 <ImageUpload
                   value={form.imagem_url}
-                  onChange={(url) => setForm({ ...form, imagem_url: url ?? "", imagem_position: "50% 50%" })}
+                  onChange={(url) => setForm((current) => ({ ...current, imagem_url: url ?? "", imagem_position: "50% 50%" }))}
                   position={form.imagem_position}
-                  onPositionChange={(p) => setForm({ ...form, imagem_position: p })}
+                  onPositionChange={(p) => setForm((current) => ({ ...current, imagem_position: p }))}
                 />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
@@ -3964,9 +3964,9 @@ function AcoesPageInner() {
                 <Label>Imagem do evento</Label>
                 <ImageUpload
                   value={editing.imagem_url}
-                  onChange={(url) => setEditing({ ...editing, imagem_url: url ?? "", imagem_position: "50% 50%" })}
+                  onChange={(url) => setEditing((current) => current ? ({ ...current, imagem_url: url ?? "", imagem_position: "50% 50%" }) : current)}
                   position={editing.imagem_position}
-                  onPositionChange={(p) => setEditing({ ...editing, imagem_position: p })}
+                  onPositionChange={(p) => setEditing((current) => current ? ({ ...current, imagem_position: p }) : current)}
                 />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
