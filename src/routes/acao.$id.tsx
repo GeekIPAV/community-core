@@ -496,6 +496,9 @@ function EditarAcaoDialog({ open, onOpenChange, acao }: { open: boolean; onOpenC
     projeto_ids: (acao.projeto_ids ?? []) as string[],
   });
 
+  // Só repor o formulário quando o diálogo abre (ou muda de ação).
+  // Não depender do objeto `acao`: um refetch (ex.: ao voltar o foco à janela
+  // depois de escolher uma foto ou uma data) apagava o que o utilizador tinha preenchido.
   useEffect(() => {
     if (open) {
       setForm({
@@ -513,7 +516,9 @@ function EditarAcaoDialog({ open, onOpenChange, acao }: { open: boolean; onOpenC
         projeto_ids: (acao.projeto_ids ?? []) as string[],
       });
     }
-  }, [open, acao]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, acao.id]);
+
 
   const { data: projetos } = useQuery({
     queryKey: ["projetos_lookup"],
@@ -547,8 +552,10 @@ function EditarAcaoDialog({ open, onOpenChange, acao }: { open: boolean; onOpenC
     onSuccess: () => {
       toast.success("Ação atualizada!");
       qc.invalidateQueries({ queryKey: ["acao", acao.id] });
+      qc.invalidateQueries({ queryKey: ["acoes"] });
       onOpenChange(false);
     },
+
     onError: (e: Error) => toast.error(e.message),
   });
 
