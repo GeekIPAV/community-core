@@ -552,8 +552,10 @@ function EditarAcaoDialog({ open, onOpenChange, acao }: { open: boolean; onOpenC
     onSuccess: () => {
       toast.success("Ação atualizada!");
       qc.invalidateQueries({ queryKey: ["acao", acao.id] });
+      qc.invalidateQueries({ queryKey: ["acoes"] });
       onOpenChange(false);
     },
+
     onError: (e: Error) => toast.error(e.message),
   });
 
