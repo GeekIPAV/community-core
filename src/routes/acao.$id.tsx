@@ -585,9 +585,9 @@ function EditarAcaoDialog({ open, onOpenChange, acao }: { open: boolean; onOpenC
             <Label>Imagem</Label>
             <ImageUpload
               value={form.imagem_url}
-              onChange={(url) => setForm({ ...form, imagem_url: url ?? "", imagem_position: "50% 50%" })}
+              onChange={(url) => setForm((current) => ({ ...current, imagem_url: url ?? "", imagem_position: "50% 50%" }))}
               position={form.imagem_position}
-              onPositionChange={(p) => setForm({ ...form, imagem_position: p })}
+              onPositionChange={(p) => setForm((current) => ({ ...current, imagem_position: p }))}
             />
           </div>
           <div className="space-y-1">
