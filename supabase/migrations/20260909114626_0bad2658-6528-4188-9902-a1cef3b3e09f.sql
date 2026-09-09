@@ -1,0 +1,1 @@
+CREATE POLICY "tipos_user_staff_select" ON public.tipos_user FOR SELECT TO authenticated USING (public.is_current_user_staff());
