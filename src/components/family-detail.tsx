@@ -87,6 +87,7 @@ type FamiliaAtividadeRow = {
   descricao: string | null;
   created_at: string;
   atividade: { id: string; nome: string; categoria: string | null } | null;
+  voluntarios: { pessoa: { id: string; nome_completo: string } | null }[] | null;
 };
 
 function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
@@ -99,6 +100,22 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
   const [novaNome, setNovaNome] = useState("");
   const [novaCategoria, setNovaCategoria] = useState<string>("");
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+  const [voluntariosSel, setVoluntariosSel] = useState<string[]>([]);
+
+  const { data: voluntarios } = useQuery({
+    queryKey: ["voluntarios-lookup"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pessoas")
+        .select("id, nome_completo")
+        .eq("is_voluntario", true)
+        .eq("status", "ativo")
+        .is("deleted_at", null)
+        .order("nome_completo");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome_completo: string }[];
+    },
+  });
 
   const { data: catalogo } = useQuery({
     queryKey: ["atividades-catalogo"],
@@ -119,7 +136,7 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("familia_atividades")
-        .select("id, data, descricao, created_at, atividade:atividades_catalogo(id, nome, categoria)")
+        .select("id, data, descricao, created_at, atividade:atividades_catalogo(id, nome, categoria), voluntarios:familia_atividade_voluntarios(pessoa:pessoas(id, nome_completo))")
         .eq("familia_id", familiaId)
         .order("data", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false });
@@ -131,21 +148,33 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
   const add = useMutation({
     mutationFn: async () => {
       if (!atividadeId) throw new Error("Escolha uma atividade");
-      const { error } = await supabase.from("familia_atividades").insert({
-        familia_id: familiaId,
-        atividade_id: atividadeId,
-        data: dataVal || null,
-        descricao: descricao.trim() || null,
-      });
+      const { data: inserted, error } = await supabase
+        .from("familia_atividades")
+        .insert({
+          familia_id: familiaId,
+          atividade_id: atividadeId,
+          data: dataVal || null,
+          descricao: descricao.trim() || null,
+        })
+        .select("id")
+        .single();
       if (error) throw error;
+      if (voluntariosSel.length > 0) {
+        const { error: e2 } = await supabase.from("familia_atividade_voluntarios").insert(
+          voluntariosSel.map((pid) => ({ familia_atividade_id: (inserted as any).id as string, pessoa_id: pid })),
+        );
+        if (e2) throw e2;
+      }
     },
     onSuccess: () => {
       toast.success("Atividade registada");
       qc.invalidateQueries({ queryKey: ["familia-atividades", familiaId] });
+      qc.invalidateQueries({ queryKey: ["pessoa-atividades-voluntario"] });
       setAddOpen(false);
       setAtividadeId("");
       setDataVal("");
       setDescricao("");
+      setVoluntariosSel([]);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -201,16 +230,17 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
               <TableHead className="w-32">Data</TableHead>
               <TableHead>Atividade</TableHead>
               <TableHead className="w-40">Categoria</TableHead>
+              <TableHead className="w-48">Voluntários</TableHead>
               <TableHead>Descrição</TableHead>
               <TableHead className="w-16 text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading && (
-              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">A carregar…</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">A carregar…</TableCell></TableRow>
             )}
             {!isLoading && (!rows || rows.length === 0) && (
-              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sem atividades registadas</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sem atividades registadas</TableCell></TableRow>
             )}
             {(() => {
               if (!rows) return null;
@@ -224,7 +254,7 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
               const sorted = Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
               return sorted.flatMap(([cat, items]) => [
                 <TableRow key={`grp-${cat}`} className="bg-muted/50 hover:bg-muted/50">
-                  <TableCell colSpan={5} className="font-semibold">
+                  <TableCell colSpan={6} className="font-semibold">
                     {cat} <span className="text-muted-foreground font-normal">({items.length})</span>
                   </TableCell>
                 </TableRow>,
@@ -233,6 +263,19 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
                     <TableCell className="text-muted-foreground whitespace-nowrap">{r.data ? formatDateBR(r.data) : "—"}</TableCell>
                     <TableCell className="font-medium">{r.atividade?.nome ?? "—"}</TableCell>
                     <TableCell>{r.atividade?.categoria ? <Badge variant="secondary">{r.atividade.categoria}</Badge> : <span className="text-xs text-muted-foreground">—</span>}</TableCell>
+                    <TableCell>
+                      {(r.voluntarios ?? []).length === 0 ? (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {(r.voluntarios ?? []).map((v) => (
+                            <Badge key={v.pessoa?.id ?? Math.random()} variant="outline" className="text-xs">
+                              {v.pessoa?.nome_completo ?? "—"}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell className="text-muted-foreground whitespace-pre-wrap">{r.descricao || "—"}</TableCell>
                     <TableCell className="text-right">
                       <Button
@@ -260,14 +303,16 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Atividade</Label>
+              <Label>Atividade (por área)</Label>
               <div className="flex gap-2">
                 <Select value={atividadeId} onValueChange={setAtividadeId}>
                   <SelectTrigger className="flex-1"><SelectValue placeholder="Escolher…" /></SelectTrigger>
                   <SelectContent className="max-h-[60vh]">
                     {categorias.map((cat) => (
-                      <div key={cat}>
-                        <div className="px-2 py-1 text-xs font-medium text-muted-foreground">{cat}</div>
+                      <div key={cat} className="border-b last:border-b-0 py-1">
+                        <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground bg-muted/50 rounded-sm">
+                          {cat}
+                        </div>
                         {(catalogo ?? []).filter((c) => (c.categoria || "(Sem categoria)") === cat).map((c) => (
                           <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
                         ))}
@@ -283,6 +328,29 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
             <div className="space-y-2">
               <Label>Data</Label>
               <Input type="date" value={dataVal} onChange={(e) => setDataVal(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Voluntários que participaram</Label>
+              <div className="max-h-40 overflow-auto rounded-md border p-2 flex flex-wrap gap-1">
+                {(voluntarios ?? []).length === 0 && (
+                  <span className="text-xs text-muted-foreground">Sem voluntários registados</span>
+                )}
+                {(voluntarios ?? []).map((v) => {
+                  const on = voluntariosSel.includes(v.id);
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() =>
+                        setVoluntariosSel((s) => (on ? s.filter((x) => x !== v.id) : [...s, v.id]))
+                      }
+                      className={`rounded-full border px-2 py-1 text-xs transition-colors ${on ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"}`}
+                    >
+                      {v.nome_completo}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Descrição</Label>

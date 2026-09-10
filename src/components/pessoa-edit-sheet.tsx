@@ -84,6 +84,34 @@ export function PessoaEditSheet({
     },
   });
 
+  const { data: atividadesVol } = useQuery({
+    queryKey: ["pessoa-atividades-voluntario", pessoaId],
+    enabled: !!pessoaId && open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("familia_atividade_voluntarios")
+        .select("familia_atividades(id, data, descricao, familias(nome), atividades_catalogo(nome, categoria))")
+        .eq("pessoa_id", pessoaId!);
+      if (error) throw error;
+      return ((data ?? []) as any[])
+        .map((r) => r.familia_atividades)
+        .filter(Boolean)
+        .map((a: any) => ({
+          id: a.id as string,
+          data: (a.data ?? null) as string | null,
+          familia: (a.familias?.nome ?? "—") as string,
+          nome: (a.atividades_catalogo?.nome ?? "—") as string,
+          categoria: (a.atividades_catalogo?.categoria ?? "(Sem categoria)") as string,
+        }))
+        .sort((x, y) => (y.data ?? "").localeCompare(x.data ?? ""));
+    },
+  });
+
+  const atividadesPorArea = (atividadesVol ?? []).reduce<Record<string, typeof atividadesVol>>((acc, a) => {
+    (acc[a.categoria] ||= [] as any).push(a);
+    return acc;
+  }, {});
+
   const save = useMutation({
     mutationFn: async () => {
       if (!form) return;
@@ -206,6 +234,36 @@ export function PessoaEditSheet({
               <Field label="Notas" className="col-span-2">
                 <Textarea value={form.notas ?? ""} onChange={(e) => setForm({ ...form, notas: e.target.value })} />
               </Field>
+              <div className="col-span-2 pt-2">
+                <Label className="mb-2 block text-xs text-muted-foreground">
+                  Atividades em que participou como voluntário ({atividadesVol?.length ?? 0})
+                </Label>
+                {(atividadesVol ?? []).length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Sem atividades registadas.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {Object.entries(atividadesPorArea)
+                      .sort((a, b) => a[0].localeCompare(b[0]))
+                      .map(([area, items]) => (
+                        <div key={area} className="rounded-md border">
+                          <div className="bg-muted/50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            {area} ({items?.length ?? 0})
+                          </div>
+                          <ul className="divide-y">
+                            {(items ?? []).map((a) => (
+                              <li key={a.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                                <span className="font-medium truncate">{a.nome}</span>
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                  {a.familia}{a.data ? ` · ${a.data}` : ""}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </ScrollArea>
