@@ -303,14 +303,16 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Atividade</Label>
+              <Label>Atividade (por área)</Label>
               <div className="flex gap-2">
                 <Select value={atividadeId} onValueChange={setAtividadeId}>
                   <SelectTrigger className="flex-1"><SelectValue placeholder="Escolher…" /></SelectTrigger>
                   <SelectContent className="max-h-[60vh]">
                     {categorias.map((cat) => (
-                      <div key={cat}>
-                        <div className="px-2 py-1 text-xs font-medium text-muted-foreground">{cat}</div>
+                      <div key={cat} className="border-b last:border-b-0 py-1">
+                        <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground bg-muted/50 rounded-sm">
+                          {cat}
+                        </div>
                         {(catalogo ?? []).filter((c) => (c.categoria || "(Sem categoria)") === cat).map((c) => (
                           <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
                         ))}
@@ -326,6 +328,29 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
             <div className="space-y-2">
               <Label>Data</Label>
               <Input type="date" value={dataVal} onChange={(e) => setDataVal(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Voluntários que participaram</Label>
+              <div className="max-h-40 overflow-auto rounded-md border p-2 flex flex-wrap gap-1">
+                {(voluntarios ?? []).length === 0 && (
+                  <span className="text-xs text-muted-foreground">Sem voluntários registados</span>
+                )}
+                {(voluntarios ?? []).map((v) => {
+                  const on = voluntariosSel.includes(v.id);
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() =>
+                        setVoluntariosSel((s) => (on ? s.filter((x) => x !== v.id) : [...s, v.id]))
+                      }
+                      className={`rounded-full border px-2 py-1 text-xs transition-colors ${on ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"}`}
+                    >
+                      {v.nome_completo}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Descrição</Label>
