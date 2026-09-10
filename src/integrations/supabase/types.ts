@@ -1052,6 +1052,46 @@ export type Database = {
         }
         Relationships: []
       }
+      familia_atividade_voluntarios: {
+        Row: {
+          created_at: string
+          familia_atividade_id: string
+          pessoa_id: string
+        }
+        Insert: {
+          created_at?: string
+          familia_atividade_id: string
+          pessoa_id: string
+        }
+        Update: {
+          created_at?: string
+          familia_atividade_id?: string
+          pessoa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "familia_atividade_voluntarios_familia_atividade_id_fkey"
+            columns: ["familia_atividade_id"]
+            isOneToOne: false
+            referencedRelation: "familia_atividades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "familia_atividade_voluntarios_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "familia_atividade_voluntarios_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       familia_atividades: {
         Row: {
           atividade_id: string
