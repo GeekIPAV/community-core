@@ -100,6 +100,22 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
   const [novaNome, setNovaNome] = useState("");
   const [novaCategoria, setNovaCategoria] = useState<string>("");
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+  const [voluntariosSel, setVoluntariosSel] = useState<string[]>([]);
+
+  const { data: voluntarios } = useQuery({
+    queryKey: ["voluntarios-lookup"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pessoas")
+        .select("id, nome_completo")
+        .eq("is_voluntario", true)
+        .eq("status", "ativo")
+        .is("deleted_at", null)
+        .order("nome_completo");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome_completo: string }[];
+    },
+  });
 
   const { data: catalogo } = useQuery({
     queryKey: ["atividades-catalogo"],
