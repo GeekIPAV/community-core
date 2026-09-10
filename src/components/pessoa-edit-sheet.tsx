@@ -84,6 +84,34 @@ export function PessoaEditSheet({
     },
   });
 
+  const { data: atividadesVol } = useQuery({
+    queryKey: ["pessoa-atividades-voluntario", pessoaId],
+    enabled: !!pessoaId && open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("familia_atividade_voluntarios")
+        .select("familia_atividades(id, data, descricao, familias(nome), atividades_catalogo(nome, categoria))")
+        .eq("pessoa_id", pessoaId!);
+      if (error) throw error;
+      return ((data ?? []) as any[])
+        .map((r) => r.familia_atividades)
+        .filter(Boolean)
+        .map((a: any) => ({
+          id: a.id as string,
+          data: (a.data ?? null) as string | null,
+          familia: (a.familias?.nome ?? "—") as string,
+          nome: (a.atividades_catalogo?.nome ?? "—") as string,
+          categoria: (a.atividades_catalogo?.categoria ?? "(Sem categoria)") as string,
+        }))
+        .sort((x, y) => (y.data ?? "").localeCompare(x.data ?? ""));
+    },
+  });
+
+  const atividadesPorArea = (atividadesVol ?? []).reduce<Record<string, typeof atividadesVol>>((acc, a) => {
+    (acc[a.categoria] ||= [] as any).push(a);
+    return acc;
+  }, {});
+
   const save = useMutation({
     mutationFn: async () => {
       if (!form) return;
