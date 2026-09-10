@@ -237,10 +237,10 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
           </TableHeader>
           <TableBody>
             {isLoading && (
-              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">A carregar…</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">A carregar…</TableCell></TableRow>
             )}
             {!isLoading && (!rows || rows.length === 0) && (
-              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sem atividades registadas</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sem atividades registadas</TableCell></TableRow>
             )}
             {(() => {
               if (!rows) return null;
