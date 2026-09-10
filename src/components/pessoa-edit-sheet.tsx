@@ -234,6 +234,36 @@ export function PessoaEditSheet({
               <Field label="Notas" className="col-span-2">
                 <Textarea value={form.notas ?? ""} onChange={(e) => setForm({ ...form, notas: e.target.value })} />
               </Field>
+              <div className="col-span-2 pt-2">
+                <Label className="mb-2 block text-xs text-muted-foreground">
+                  Atividades em que participou como voluntário ({atividadesVol?.length ?? 0})
+                </Label>
+                {(atividadesVol ?? []).length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Sem atividades registadas.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {Object.entries(atividadesPorArea)
+                      .sort((a, b) => a[0].localeCompare(b[0]))
+                      .map(([area, items]) => (
+                        <div key={area} className="rounded-md border">
+                          <div className="bg-muted/50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            {area} ({items?.length ?? 0})
+                          </div>
+                          <ul className="divide-y">
+                            {(items ?? []).map((a) => (
+                              <li key={a.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                                <span className="font-medium truncate">{a.nome}</span>
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                  {a.familia}{a.data ? ` · ${a.data}` : ""}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </ScrollArea>
