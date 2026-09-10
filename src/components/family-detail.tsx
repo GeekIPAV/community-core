@@ -87,6 +87,7 @@ type FamiliaAtividadeRow = {
   descricao: string | null;
   created_at: string;
   atividade: { id: string; nome: string; categoria: string | null } | null;
+  voluntarios: { pessoa: { id: string; nome_completo: string } | null }[] | null;
 };
 
 function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
