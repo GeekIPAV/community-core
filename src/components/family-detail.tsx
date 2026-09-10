@@ -230,6 +230,7 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
               <TableHead className="w-32">Data</TableHead>
               <TableHead>Atividade</TableHead>
               <TableHead className="w-40">Categoria</TableHead>
+              <TableHead className="w-48">Voluntários</TableHead>
               <TableHead>Descrição</TableHead>
               <TableHead className="w-16 text-right">Ações</TableHead>
             </TableRow>
