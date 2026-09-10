@@ -136,7 +136,7 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("familia_atividades")
-        .select("id, data, descricao, created_at, atividade:atividades_catalogo(id, nome, categoria)")
+        .select("id, data, descricao, created_at, atividade:atividades_catalogo(id, nome, categoria), voluntarios:familia_atividade_voluntarios(pessoa:pessoas(id, nome_completo))")
         .eq("familia_id", familiaId)
         .order("data", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false });
@@ -148,13 +148,23 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
   const add = useMutation({
     mutationFn: async () => {
       if (!atividadeId) throw new Error("Escolha uma atividade");
-      const { error } = await supabase.from("familia_atividades").insert({
-        familia_id: familiaId,
-        atividade_id: atividadeId,
-        data: dataVal || null,
-        descricao: descricao.trim() || null,
-      });
+      const { data: inserted, error } = await supabase
+        .from("familia_atividades")
+        .insert({
+          familia_id: familiaId,
+          atividade_id: atividadeId,
+          data: dataVal || null,
+          descricao: descricao.trim() || null,
+        })
+        .select("id")
+        .single();
       if (error) throw error;
+      if (voluntariosSel.length > 0) {
+        const { error: e2 } = await supabase.from("familia_atividade_voluntarios").insert(
+          voluntariosSel.map((pid) => ({ familia_atividade_id: (inserted as any).id as string, pessoa_id: pid })),
+        );
+        if (e2) throw e2;
+      }
     },
     onSuccess: () => {
       toast.success("Atividade registada");
