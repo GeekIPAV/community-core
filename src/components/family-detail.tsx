@@ -254,7 +254,7 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
               const sorted = Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
               return sorted.flatMap(([cat, items]) => [
                 <TableRow key={`grp-${cat}`} className="bg-muted/50 hover:bg-muted/50">
-                  <TableCell colSpan={5} className="font-semibold">
+                  <TableCell colSpan={6} className="font-semibold">
                     {cat} <span className="text-muted-foreground font-normal">({items.length})</span>
                   </TableCell>
                 </TableRow>,
@@ -263,6 +263,19 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
                     <TableCell className="text-muted-foreground whitespace-nowrap">{r.data ? formatDateBR(r.data) : "—"}</TableCell>
                     <TableCell className="font-medium">{r.atividade?.nome ?? "—"}</TableCell>
                     <TableCell>{r.atividade?.categoria ? <Badge variant="secondary">{r.atividade.categoria}</Badge> : <span className="text-xs text-muted-foreground">—</span>}</TableCell>
+                    <TableCell>
+                      {(r.voluntarios ?? []).length === 0 ? (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {(r.voluntarios ?? []).map((v) => (
+                            <Badge key={v.pessoa?.id ?? Math.random()} variant="outline" className="text-xs">
+                              {v.pessoa?.nome_completo ?? "—"}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell className="text-muted-foreground whitespace-pre-wrap">{r.descricao || "—"}</TableCell>
                     <TableCell className="text-right">
                       <Button
