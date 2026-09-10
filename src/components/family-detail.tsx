@@ -169,10 +169,12 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
     onSuccess: () => {
       toast.success("Atividade registada");
       qc.invalidateQueries({ queryKey: ["familia-atividades", familiaId] });
+      qc.invalidateQueries({ queryKey: ["pessoa-atividades-voluntario"] });
       setAddOpen(false);
       setAtividadeId("");
       setDataVal("");
       setDescricao("");
+      setVoluntariosSel([]);
     },
     onError: (e: Error) => toast.error(e.message),
   });
