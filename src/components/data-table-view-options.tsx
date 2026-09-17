@@ -41,7 +41,7 @@ export function DataTableViewOptions<T>({ table }: { table: Table<T> }) {
         <Tooltip>
           <TooltipTrigger asChild>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" className="h-9 w-9" aria-label="Escolher colunas">
+              <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Escolher colunas">
                 <Settings2 className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
