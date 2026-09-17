@@ -824,6 +824,19 @@ function BolsasTransportePage() {
     },
   });
 
+  const { data: folhasKm } = useQuery({
+    queryKey: ["folhas-km"],
+    staleTime: 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("folhas_km")
+        .select("id, nome, periodo, total_km, total_valor, estado, created_at")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const { data: familiasList } = useQuery({
     queryKey: ["familias-lista-bolsa"],
     staleTime: 10 * 60_000,
@@ -1466,6 +1479,36 @@ function BolsasTransportePage() {
           </Button>
 
         </div>
+
+        {(folhasKm ?? []).length > 0 && (
+          <div className="rounded-md border overflow-x-auto">
+            <div className="border-b bg-muted/30 px-4 py-2 text-xs font-semibold uppercase tracking-wide">Folhas de KM</div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Pessoa</TableHead>
+                  <TableHead>Período</TableHead>
+                  <TableHead>Criada em</TableHead>
+                  <TableHead className="text-right">KM</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead>Estado</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(folhasKm ?? []).map((f) => (
+                  <TableRow key={f.id}>
+                    <TableCell className="font-medium whitespace-nowrap">{f.nome}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{f.periodo ?? "—"}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(f.created_at)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{Number(f.total_km).toLocaleString("pt-PT")}</TableCell>
+                    <TableCell className="text-right tabular-nums font-medium">{formatEuro(Number(f.total_valor))}</TableCell>
+                    <TableCell className="text-xs">{f.estado === "enviada" ? "Enviada" : f.estado === "erro" ? "Erro no envio" : "Rascunho"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
 
         {loadingMapaKm ? (
           <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>

@@ -4,7 +4,6 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { useLocalStorage } from "@/hooks/use-local-storage";
 import { enviarFolhaKm } from "@/lib/folha-km.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,19 +61,37 @@ async function loadLogoDataUrl(): Promise<string | null> {
 export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const { pessoa, session } = useAuth();
   const qc = useQueryClient();
-  const [guardado, setGuardado] = useLocalStorage<Pessoa | null>("folha-km-pessoa", null);
   const [dados, setDados] = useState<Pessoa>({ nome: "", morada: "", nif: "", iban: "", matricula: "", email: "" });
-  const [valorKm, setValorKm] = useState(String(KM_RATE).replace(".", ","));
   const [periodo, setPeriodo] = useState("");
   const [linhas, setLinhas] = useState<Linha[]>([novaLinha()]);
   const [prefilled, setPrefilled] = useState(false);
 
-  // Pré-preenchimento: dados guardados > perfil/colaborador
+  // Pré-preenchimento: última folha do próprio utilizador > perfil/colaborador
   useEffect(() => {
     if (!open || prefilled) return;
     setPrefilled(true);
     (async () => {
-      const base: Pessoa = guardado ?? { nome: "", morada: "", nif: "", iban: "", matricula: "", email: "" };
+      const authId = session?.user?.id ?? null;
+      let base: Pessoa = { nome: "", morada: "", nif: "", iban: "", matricula: "", email: "" };
+      if (authId) {
+        const { data: ultima } = await supabase
+          .from("folhas_km")
+          .select("nome, morada, nif, iban, matricula, email")
+          .eq("auth_user_id", authId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (ultima) {
+          base = {
+            nome: ultima.nome ?? "",
+            morada: ultima.morada ?? "",
+            nif: ultima.nif ?? "",
+            iban: ultima.iban ?? "",
+            matricula: ultima.matricula ?? "",
+            email: ultima.email ?? "",
+          };
+        }
+      }
       const authEmail = session?.user?.email ?? "";
       let fromDb: Partial<Pessoa> = {};
       if (pessoa?.id) {
@@ -106,7 +123,7 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
         email: base.email || fromDb.email || authEmail || "",
       });
     })();
-  }, [open, prefilled, guardado, pessoa, session]);
+  }, [open, prefilled, pessoa, session]);
 
   useEffect(() => {
     if (!open) {
@@ -116,7 +133,7 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
     }
   }, [open]);
 
-  const rate = num(valorKm) || KM_RATE;
+  const rate = KM_RATE;
   const linhasValidas = useMemo(() => linhas.filter((l) => num(l.km) > 0), [linhas]);
   const totalKm = useMemo(() => linhasValidas.reduce((s, l) => s + num(l.km), 0), [linhasValidas]);
   const totalValor = useMemo(() => Math.round(totalKm * rate * 100) / 100, [totalKm, rate]);
@@ -245,7 +262,6 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
       if (!dados.nome.trim()) throw new Error("Indique o nome da pessoa.");
       if (linhasValidas.length === 0) throw new Error("Adicione pelo menos uma deslocação com KM.");
 
-      setGuardado(dados);
 
       const { data: folha, error } = await supabase
         .from("folhas_km")
@@ -359,8 +375,8 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
             <p className="text-sm font-semibold">Valores de Referência</p>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <Label className="text-xs">Por KM (€)</Label>
-                <Input value={valorKm} onChange={(e) => setValorKm(e.target.value)} />
+                <Label className="text-xs">Por KM</Label>
+                <p className="flex h-9 items-center text-sm font-semibold tabular-nums">{formatEuro(rate)}</p>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Período (opcional)</Label>
