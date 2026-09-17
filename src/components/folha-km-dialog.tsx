@@ -241,9 +241,26 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   };
 
   const rate = KM_RATE;
-  const linhasValidas = useMemo(() => linhas.filter((l) => num(l.km) > 0), [linhas]);
+  const linhaCompleta = (l: Linha) =>
+    !!l.data.trim() && !!l.descricao.trim() && !!l.percurso.trim() && num(l.km) > 0;
+  const linhasValidas = useMemo(() => linhas.filter(linhaCompleta), [linhas]);
   const totalKm = useMemo(() => linhasValidas.reduce((s, l) => s + num(l.km), 0), [linhasValidas]);
   const totalValor = useMemo(() => Math.round(totalKm * rate * 100) / 100, [totalKm, rate]);
+
+  const camposPessoaObrigatorios: Array<{ chave: keyof Pessoa; label: string }> = [
+    { chave: "nome", label: "Nome" },
+    { chave: "morada", label: "Morada" },
+    { chave: "nif", label: "NIF" },
+    { chave: "iban", label: "IBAN" },
+    { chave: "matricula", label: "Matrícula" },
+    { chave: "email", label: "Email" },
+  ];
+  const camposPessoaFaltam = useMemo(
+    () => camposPessoaObrigatorios.filter((c) => !dados[c.chave].trim()).map((c) => c.label),
+    [dados]
+  );
+  const formularioValido =
+    camposPessoaFaltam.length === 0 && linhasValidas.length > 0 && !!assinatura;
 
   const gerarPdf = async (): Promise<{ doc: jsPDF; base64: string; filename: string }> => {
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
