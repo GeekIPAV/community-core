@@ -1764,6 +1764,20 @@ function BolsasTransportePage() {
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                              disabled={folhaBusyId === r.id}
+                              onClick={() => criarFolhaDeMapaKm(r)}
+                            >
+                              {folhaBusyId === r.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FilePlus2 className="h-3.5 w-3.5" />}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Criar folha de KM para esta família</TooltipContent>
+                        </Tooltip>
                         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setDeleteKmId(r.id)}>
                           <Trash2 className="h-3.5 w-3.5 text-destructive" />
                         </Button>
