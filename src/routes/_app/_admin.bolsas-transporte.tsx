@@ -1782,8 +1782,11 @@ function BolsasTransportePage() {
                 </tr>
               </tfoot>
             </Table>
-          </div>
+            </CardContent>
+          </Card>
         )}
+        </div>
+        </TooltipProvider>
 
         <div className="flex items-start gap-3 rounded-md border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
           <Car className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
@@ -1791,6 +1794,13 @@ function BolsasTransportePage() {
         </div>
 
         <FolhaKmDialog open={folhaKmOpen} onOpenChange={setFolhaKmOpen} />
+        <FolhaKmDialog
+          key={folhaEdit?.folhaId ?? "none"}
+          open={!!folhaEdit}
+          onOpenChange={(o) => { if (!o) setFolhaEdit(null); }}
+          folhaId={folhaEdit?.folhaId}
+          familiaId={folhaEdit?.familiaId}
+        />
 
 
         <Dialog open={addKmOpen} onOpenChange={(o) => { if (!o) { setAddKmOpen(false); setEditKmRow(null); } }}>
