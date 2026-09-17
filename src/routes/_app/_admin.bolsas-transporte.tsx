@@ -951,6 +951,8 @@ function BolsasTransportePage() {
   const [kmSearch, setKmSearch] = useState("");
   const [kmEstadoFilter, setKmEstadoFilter] = useState<"todos" | MapaKmRow["estado"]>("todos");
   const [kmFamiliaFilter, setKmFamiliaFilter] = useState<string>("todas");
+  const [folhaSearch, setFolhaSearch] = useState("");
+  const [folhaEstadoFilter, setFolhaEstadoFilter] = useState<"todos" | "rascunho" | "enviada" | "erro_envio">("todos");
   const [addKmOpen, setAddKmOpen] = useState(false);
   const [folhaKmOpen, setFolhaKmOpen] = useState(false);
   const [folhaEdit, setFolhaEdit] = useState<{ folhaId: string; familiaId?: string } | null>(null);
@@ -1075,6 +1077,19 @@ function BolsasTransportePage() {
       totalV: rows.reduce((s, r) => s + Number(r.valor), 0),
     };
   }, [mapaKmData]);
+
+  const folhaEstadoNormalizado = (estado: string | null | undefined): "rascunho" | "enviada" | "erro_envio" =>
+    estado === "enviada" ? "enviada" : estado === "erro_envio" || estado === "erro" ? "erro_envio" : "rascunho";
+
+  const folhasFiltered = useMemo(() => {
+    const rows = folhasKm ?? [];
+    const s = folhaSearch.trim().toLowerCase();
+    return rows.filter((f) => {
+      if (folhaEstadoFilter !== "todos" && folhaEstadoNormalizado(f.estado) !== folhaEstadoFilter) return false;
+      if (s && !f.nome.toLowerCase().includes(s)) return false;
+      return true;
+    });
+  }, [folhasKm, folhaSearch, folhaEstadoFilter]);
 
   const kmFiltered = useMemo(() => {
     const rows = mapaKmData ?? [];
@@ -1617,21 +1632,39 @@ function BolsasTransportePage() {
               </CardTitle>
               <CardDescription>Folhas individuais submetidas por cada pessoa.</CardDescription>
             </CardHeader>
-            <CardContent className="p-0 overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Pessoa</TableHead>
-                  <TableHead>Período</TableHead>
-                  <TableHead>Criada em</TableHead>
-                  <TableHead className="text-right">KM</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="w-28 text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(folhasKm ?? []).map((f) => (
+            <CardContent className="p-0">
+              <div className="flex flex-col md:flex-row gap-2 px-4 py-3 border-b">
+                <Input
+                  placeholder="Pesquisar pessoa…"
+                  value={folhaSearch}
+                  onChange={(e) => setFolhaSearch(e.target.value)}
+                  className="md:max-w-xs"
+                />
+                <Select value={folhaEstadoFilter} onValueChange={(v) => setFolhaEstadoFilter(v as typeof folhaEstadoFilter)}>
+                  <SelectTrigger className="md:w-44"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os estados</SelectItem>
+                    <SelectItem value="rascunho">Rascunho</SelectItem>
+                    <SelectItem value="enviada">Enviada</SelectItem>
+                    <SelectItem value="erro_envio">Erro no envio</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Pessoa</TableHead>
+                    <TableHead>Período</TableHead>
+                    <TableHead>Criada em</TableHead>
+                    <TableHead className="text-right">KM</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead>Estado de envio</TableHead>
+                    <TableHead className="w-28 text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {folhasFiltered.map((f) => (
                   <TableRow key={f.id}>
                     <TableCell className="font-medium whitespace-nowrap">{f.nome}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{f.periodo ?? "—"}</TableCell>
@@ -1677,8 +1710,9 @@ function BolsasTransportePage() {
                     </TableCell>
                   </TableRow>
                 ))}
-              </TableBody>
-            </Table>
+                </TableBody>
+              </Table>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -1703,17 +1737,17 @@ function BolsasTransportePage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Família</TableHead>
-                  <TableHead>Ação</TableHead>
+                  <TableHead>Evento</TableHead>
                   <TableHead>Data</TableHead>
                   <TableHead>Motivo</TableHead>
                   <TableHead className="text-right">KM</TableHead>
                   <TableHead>Matrícula</TableHead>
                   <TableHead className="text-right">Carros</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Método</TableHead>
+                  <TableHead>Estado de pagamento</TableHead>
+                  <TableHead>Método de pagamento</TableHead>
                   <TableHead>Notas</TableHead>
-                  <TableHead></TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1764,28 +1798,33 @@ function BolsasTransportePage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7"
-                          onClick={() => {
-                            setEditKmRow(r);
-                            setKmForm({
-                              familia_id: r.familia_id,
-                              data: r.data,
-                              motivo: r.motivo,
-                              km: String(r.km),
-                              matricula: r.matricula ?? "",
-                              n_carros: String(r.n_carros),
-                              estado: r.estado,
-                              metodo_pagamento: r.metodo_pagamento ?? "",
-                              notas: r.notas ?? "",
-                            });
-                            setAddKmOpen(true);
-                          }}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                              onClick={() => {
+                                setEditKmRow(r);
+                                setKmForm({
+                                  familia_id: r.familia_id,
+                                  data: r.data,
+                                  motivo: r.motivo,
+                                  km: String(r.km),
+                                  matricula: r.matricula ?? "",
+                                  n_carros: String(r.n_carros),
+                                  estado: r.estado,
+                                  metodo_pagamento: r.metodo_pagamento ?? "",
+                                  notas: r.notas ?? "",
+                                });
+                                setAddKmOpen(true);
+                              }}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Editar despesa</TooltipContent>
+                        </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
@@ -1800,9 +1839,14 @@ function BolsasTransportePage() {
                           </TooltipTrigger>
                           <TooltipContent>Criar folha de KM para esta família</TooltipContent>
                         </Tooltip>
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setDeleteKmId(r.id)}>
-                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setDeleteKmId(r.id)}>
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Eliminar despesa</TooltipContent>
+                        </Tooltip>
                       </div>
                     </TableCell>
                   </TableRow>
