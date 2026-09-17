@@ -941,6 +941,108 @@ function BolsasTransportePage() {
   const [kmFamiliaFilter, setKmFamiliaFilter] = useState<string>("todas");
   const [addKmOpen, setAddKmOpen] = useState(false);
   const [folhaKmOpen, setFolhaKmOpen] = useState(false);
+  const [folhaEdit, setFolhaEdit] = useState<{ folhaId: string; familiaId?: string } | null>(null);
+  const [folhaBusyId, setFolhaBusyId] = useState<string | null>(null);
+
+  // Vai buscar a folha completa + assinatura da pessoa e gera o PDF
+  const construirPdfFolha = async (id: string) => {
+    const { data: f, error } = await supabase.from("folhas_km").select("*").eq("id", id).maybeSingle();
+    if (error || !f) throw new Error("Não foi possível carregar a folha.");
+    let assinatura: string | null = null;
+    if (f.pessoa_id) {
+      const { data: p } = await supabase.from("pessoas").select("assinatura").eq("id", f.pessoa_id).maybeSingle();
+      assinatura = p?.assinatura ?? null;
+    }
+    const linhas = (Array.isArray(f.linhas) ? (f.linhas as unknown as Array<Record<string, unknown>>) : []).map((l) => ({
+      data: String(l.data ?? ""),
+      descricao: String(l.descricao ?? ""),
+      percurso: String(l.percurso ?? ""),
+      km: Number(l.km ?? 0),
+      valor: Number(l.valor ?? 0),
+    }));
+    const pdf = await gerarPdfFolhaKm({
+      dados: {
+        nome: f.nome ?? "",
+        morada: f.morada ?? "",
+        nif: f.nif ?? "",
+        iban: f.iban ?? "",
+        matricula: f.matricula ?? "",
+        email: f.email ?? "",
+      },
+      linhas,
+      totalKm: Number(f.total_km ?? 0),
+      totalValor: Number(f.total_valor ?? 0),
+      valorKm: Number(f.valor_km ?? KM_RATE),
+      assinatura,
+    });
+    return { folha: f, ...pdf };
+  };
+
+  const descarregarFolha = async (id: string) => {
+    setFolhaBusyId(id);
+    try {
+      const { doc, filename } = await construirPdfFolha(id);
+      doc.save(filename);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao gerar o PDF.");
+    } finally {
+      setFolhaBusyId(null);
+    }
+  };
+
+  const reenviarFolha = async (id: string) => {
+    setFolhaBusyId(id);
+    try {
+      const { folha, base64, filename } = await construirPdfFolha(id);
+      await enviarFolhaKm({
+        data: {
+          folhaId: id,
+          nome: folha.nome ?? "",
+          emailPessoa: folha.email ?? null,
+          periodo: folha.periodo ?? null,
+          totalKm: Number(folha.total_km ?? 0),
+          totalValor: Number(folha.total_valor ?? 0),
+          ficheiroNome: filename,
+          ficheiroBase64: base64,
+        },
+      });
+      toast.success("Folha reenviada por email.");
+      qc.invalidateQueries({ queryKey: ["folhas-km"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao reenviar a folha.");
+    } finally {
+      setFolhaBusyId(null);
+    }
+  };
+
+  // Cria uma folha rascunho a partir de uma linha de mapa_km e abre o diálogo de edição
+  const criarFolhaDeMapaKm = async (r: MapaKmRow) => {
+    setFolhaBusyId(r.id);
+    try {
+      const km = Number(r.km) || 0;
+      const valor = Math.round(km * KM_RATE * 100) / 100;
+      const { data, error } = await supabase
+        .from("folhas_km")
+        .insert({
+          pessoa_id: null,
+          nome: `Família ${r.familia_nome ?? ""}`.trim(),
+          matricula: r.matricula,
+          valor_km: KM_RATE,
+          linhas: [{ data: r.data, descricao: r.motivo, percurso: "", km, valor }],
+          total_km: km,
+          total_valor: valor,
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+      qc.invalidateQueries({ queryKey: ["folhas-km"] });
+      setFolhaEdit({ folhaId: data.id, familiaId: r.familia_id });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao criar a folha.");
+    } finally {
+      setFolhaBusyId(null);
+    }
+  };
 
   const [editKmRow, setEditKmRow] = useState<MapaKmRow | null>(null);
   const [deleteKmId, setDeleteKmId] = useState<string | null>(null);
