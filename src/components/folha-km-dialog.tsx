@@ -45,9 +45,9 @@ const num = (s: string) => {
 
 const fmtData = (d: string) => (d ? new Date(d).toLocaleDateString("pt-PT") : "");
 
-async function loadLogoDataUrl(): Promise<string | null> {
+async function loadImageDataUrl(url: string): Promise<string | null> {
   try {
-    const res = await fetch(logoUrl);
+    const res = await fetch(url);
     const blob = await res.blob();
     return await new Promise((resolve) => {
       const reader = new FileReader();
