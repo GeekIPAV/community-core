@@ -143,6 +143,7 @@ export function PessoaMapaKmSection({
       totalValor: Number(f.total_valor ?? 0),
       valorKm: Number(f.valor_km ?? KM_RATE),
       assinatura,
+      periodo: f.periodo ?? null,
     });
     return { folha: f, ...pdf };
   };
