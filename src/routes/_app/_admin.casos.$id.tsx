@@ -253,7 +253,7 @@ function CasoDetailPage() {
             <div className="flex items-start gap-2">
               <User className="h-4 w-4 mt-0.5 text-muted-foreground" />
               <div className="flex-1">
-                <div className="text-xs text-muted-foreground">Mediadora</div>
+                <div className="text-xs text-muted-foreground">Mediador/a</div>
                 <Select
                   value={caso.mediadora_id ?? "_none"}
                   onValueChange={(v) => updateCaso.mutate({ mediadora_id: v === "_none" ? null : v })}
@@ -724,10 +724,10 @@ function TransferSheet({
 
   const submit = useMutation({
     mutationFn: async () => {
-      if (!novaMediadora) throw new Error("Escolhe a nova mediadora");
+      if (!novaMediadora) throw new Error("Escolhe o novo mediador/a");
       if (!notas.trim()) throw new Error("As notas de transição são obrigatórias");
       const entrada = equipa.find((e) => e.id === novaMediadora);
-      const saidaNome = caso.mediadora?.nome_completo ?? "Sem mediadora";
+      const saidaNome = caso.mediadora?.nome_completo ?? "Sem mediador/a";
 
       await supabase.from("caso_transferencias" as any).insert({
         caso_id: casoId,
@@ -759,11 +759,11 @@ function TransferSheet({
       <SheetContent className="w-full sm:max-w-md">
         <SheetHeader>
           <SheetTitle>Transferir caso</SheetTitle>
-          <SheetDescription>Atribui o caso a outra mediadora com contexto essencial.</SheetDescription>
+          <SheetDescription>Atribui o caso a outro mediador/a com contexto essencial.</SheetDescription>
         </SheetHeader>
         <div className="mt-4 space-y-4">
           <div className="space-y-2">
-            <Label>Nova mediadora <span className="text-destructive">*</span></Label>
+            <Label>Novo mediador/a <span className="text-destructive">*</span></Label>
             <Select value={novaMediadora} onValueChange={setNovaMediadora}>
               <SelectTrigger><SelectValue placeholder="Selecionar…" /></SelectTrigger>
               <SelectContent>
@@ -780,7 +780,7 @@ function TransferSheet({
           <div className="space-y-2">
             <Label>Notas de transição <span className="text-destructive">*</span></Label>
             <Textarea rows={6} value={notas} onChange={(e) => setNotas(e.target.value)}
-              placeholder="Contexto essencial para a nova mediadora: estado atual, acordos feitos, próximos passos urgentes, sensibilidades…" />
+              placeholder="Contexto essencial para o novo mediador/a: estado atual, acordos feitos, próximos passos urgentes, sensibilidades…" />
           </div>
         </div>
         <SheetFooter className="mt-6">

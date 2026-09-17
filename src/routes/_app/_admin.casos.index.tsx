@@ -142,8 +142,8 @@ function CasosListPage() {
       meta: { label: "Título", filterVariant: "text" },
     },
     {
-      id: "mediadora", accessorFn: (r) => r.mediadora_nome ?? "Por atribuir", header: "Mediadora", size: 180,
-      meta: { label: "Mediadora", filterVariant: "text" },
+      id: "mediadora", accessorFn: (r) => r.mediadora_nome ?? "Por atribuir", header: "Mediador/a", size: 180,
+      meta: { label: "Mediador/a", filterVariant: "text" },
       cell: ({ row }) => row.original.mediadora_nome
         ? <span className="text-sm">{row.original.mediadora_nome}</span>
         : <Badge variant="outline" className="border-amber-400 text-amber-700 dark:text-amber-300 font-normal">Por atribuir</Badge>,
@@ -224,7 +224,7 @@ function CasosListPage() {
         <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/20 px-4 py-2.5 text-sm">
           <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200">
             <AlertCircle className="h-4 w-4" />
-            <span>{stats.semMediadora} casos por atribuir a uma mediadora</span>
+            <span>{stats.semMediadora} casos por atribuir a um mediador/a</span>
           </div>
         </div>
       )}

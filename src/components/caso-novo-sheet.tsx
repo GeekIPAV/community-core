@@ -411,7 +411,7 @@ export function CasoNovoSheet({
               </div>
 
               <div className="space-y-2">
-                <Label>Mediadora responsável</Label>
+                <Label>Mediador/a responsável</Label>
                 <Select value={mediadoraId} onValueChange={(v) => setMediadoraId(v === "_none" ? "" : v)}>
                   <SelectTrigger><SelectValue placeholder="Por atribuir (fica em fila)" /></SelectTrigger>
                   <SelectContent>
