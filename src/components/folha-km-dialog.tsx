@@ -518,23 +518,23 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="space-y-1 sm:col-span-2">
-              <Label className="text-xs">Nome</Label>
+              <Label className="text-xs">Nome *</Label>
               <Input value={dados.nome} onChange={(e) => setDados({ ...dados, nome: e.target.value })} />
             </div>
             <div className="space-y-1 sm:col-span-2">
-              <Label className="text-xs">Morada</Label>
+              <Label className="text-xs">Morada *</Label>
               <Input value={dados.morada} onChange={(e) => setDados({ ...dados, morada: e.target.value })} />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">NIF</Label>
+              <Label className="text-xs">NIF *</Label>
               <Input value={dados.nif} onChange={(e) => setDados({ ...dados, nif: e.target.value })} />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">IBAN</Label>
+              <Label className="text-xs">IBAN *</Label>
               <Input value={dados.iban} onChange={(e) => setDados({ ...dados, iban: e.target.value })} />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Matrícula</Label>
+              <Label className="text-xs">Matrícula *</Label>
               <Input
                 value={dados.matricula}
                 onChange={(e) => setDados({ ...dados, matricula: e.target.value.toUpperCase() })}
@@ -542,7 +542,7 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Email</Label>
+              <Label className="text-xs">Email *</Label>
               <Input value={dados.email} onChange={(e) => setDados({ ...dados, email: e.target.value })} />
             </div>
           </div>
