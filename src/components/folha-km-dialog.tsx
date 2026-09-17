@@ -14,6 +14,7 @@ import { Plus, Trash2, Send, Loader2, Download } from "lucide-react";
 import { toast } from "sonner";
 import { KM_RATE, formatEuro } from "@/lib/bolsa-transporte";
 import logoUrl from "@/assets/meeru-logo.png";
+import { SignaturePad } from "@/components/signature-pad";
 import assinaturaFinanceiroUrl from "@/assets/assinatura-financeiro.jpg";
 import assinaturaPresidenteUrl from "@/assets/assinatura-presidente.jpg";
 
