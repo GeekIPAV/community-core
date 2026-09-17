@@ -230,9 +230,12 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   }, [dados, perfil, assinatura, alvoId]);
 
   const atualizarPerfil = async () => {
-    if (!alvoId || camposEmFalta.length === 0) return;
+    if (!alvoId) return;
     const patch: Record<string, string> = {};
-    for (const c of camposEmFalta) patch[c.coluna] = c.valor;
+    for (const c of camposEmFalta) {
+      if (camposSelecionados[c.coluna]) patch[c.coluna] = c.valor;
+    }
+    if (Object.keys(patch).length === 0) return;
     const { error } = await supabase.from("pessoas").update(patch as never).eq("id", alvoId);
     if (error) {
       toast.error("Não foi possível atualizar o perfil.");
@@ -670,8 +673,12 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
           )}
           <Button
             onClick={() => {
-              if (camposEmFalta.length > 0) setConfirmarPerfil(true);
-              else submeter.mutate();
+              if (camposEmFalta.length > 0) {
+                setCamposSelecionados(
+                  Object.fromEntries(camposEmFalta.map((c) => [c.coluna, true]))
+                );
+                setConfirmarPerfil(true);
+              } else submeter.mutate();
             }}
             disabled={submeter.isPending || !formularioValido}
           >
