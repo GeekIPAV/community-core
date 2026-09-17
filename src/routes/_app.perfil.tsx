@@ -42,6 +42,9 @@ type PessoaFull = {
   religiao: string | null;
   profissao: string | null;
   notas: string | null;
+  iban: string | null;
+  matricula: string | null;
+  assinatura: string | null;
   familia_id: string | null;
   status: string;
   is_admin: boolean;
@@ -95,7 +98,7 @@ function PerfilPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, email, telefone, nif, cartao_cidadao, morada, data_nascimento, genero, nacionalidade, cidade_residencia, religiao, profissao, notas, familia_id, status, is_admin, is_voluntario, tipo_user_id")
+        .select("id, nome_completo, email, telefone, nif, cartao_cidadao, morada, data_nascimento, genero, nacionalidade, cidade_residencia, religiao, profissao, notas, iban, matricula, assinatura, familia_id, status, is_admin, is_voluntario, tipo_user_id")
         .eq("id", ctxPessoa!.id)
         .maybeSingle();
       if (error) throw error;
