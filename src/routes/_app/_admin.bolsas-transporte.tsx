@@ -1798,28 +1798,33 @@ function BolsasTransportePage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7"
-                          onClick={() => {
-                            setEditKmRow(r);
-                            setKmForm({
-                              familia_id: r.familia_id,
-                              data: r.data,
-                              motivo: r.motivo,
-                              km: String(r.km),
-                              matricula: r.matricula ?? "",
-                              n_carros: String(r.n_carros),
-                              estado: r.estado,
-                              metodo_pagamento: r.metodo_pagamento ?? "",
-                              notas: r.notas ?? "",
-                            });
-                            setAddKmOpen(true);
-                          }}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                              onClick={() => {
+                                setEditKmRow(r);
+                                setKmForm({
+                                  familia_id: r.familia_id,
+                                  data: r.data,
+                                  motivo: r.motivo,
+                                  km: String(r.km),
+                                  matricula: r.matricula ?? "",
+                                  n_carros: String(r.n_carros),
+                                  estado: r.estado,
+                                  metodo_pagamento: r.metodo_pagamento ?? "",
+                                  notas: r.notas ?? "",
+                                });
+                                setAddKmOpen(true);
+                              }}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Editar despesa</TooltipContent>
+                        </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
