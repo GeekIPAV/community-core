@@ -392,10 +392,7 @@ export function SavedViews<T>({
                 className="h-7 w-7 shrink-0"
                 onClick={() => {
                   const v = views.find((x) => x.id === activeId);
-                  if (!v) return;
-                  setRenaming(v);
-                  setNewName(v.name);
-                  setSelectedIcon(v.snapshot.viewIcon ?? (v.is_admin_view ? "Users" : DEFAULT_VIEW_ICON));
+                  if (v) openEdit(v);
                 }}
                 aria-label="Editar nome e ícone da vista"
               >
