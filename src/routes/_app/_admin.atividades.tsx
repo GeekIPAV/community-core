@@ -293,6 +293,15 @@ function AtividadesPage() {
       </Dialog>
 
       <RegistarAtividadeDialog
+        open={atribuirOpen}
+        onOpenChange={setAtribuirOpen}
+        escolherFamilias
+        titulo="Atribuir atividade a famílias"
+        descricaoDialogo="Escolha a atividade e as famílias (por nome da família ou de uma pessoa)."
+        onRegistado={() => qc.invalidateQueries({ queryKey: ["familia-atividades-admin"] })}
+      />
+
+      <RegistarAtividadeDialog
         open={!!registarEm}
         onOpenChange={(o) => { if (!o) setRegistarEm(null); }}
         atividadeIdFixa={registarEm?.id}
