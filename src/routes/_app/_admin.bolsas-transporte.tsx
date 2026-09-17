@@ -19,6 +19,8 @@ import { Plus, Pencil, Trash2, Car, ChevronDown, AlertTriangle, Download } from 
 import { toast } from "sonner";
 import { matchCidade, parseViatura, formatEuro, KM_RATE, TRIP_FACTOR, normalizeGrupo, type CidadeBolsa } from "@/lib/bolsa-transporte";
 import { downloadCSV, toCSV } from "@/lib/csv";
+import { FolhaKmDialog } from "@/components/folha-km-dialog";
+
 
 export const Route = createFileRoute("/_app/_admin/bolsas-transporte")({
   component: BolsasTransportePage,
@@ -916,6 +918,8 @@ function BolsasTransportePage() {
   const [kmEstadoFilter, setKmEstadoFilter] = useState<"todos" | MapaKmRow["estado"]>("todos");
   const [kmFamiliaFilter, setKmFamiliaFilter] = useState<string>("todas");
   const [addKmOpen, setAddKmOpen] = useState(false);
+  const [folhaKmOpen, setFolhaKmOpen] = useState(false);
+
   const [editKmRow, setEditKmRow] = useState<MapaKmRow | null>(null);
   const [deleteKmId, setDeleteKmId] = useState<string | null>(null);
   const [kmForm, setKmForm] = useState(emptyKmForm);
