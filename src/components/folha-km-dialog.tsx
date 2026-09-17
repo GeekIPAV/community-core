@@ -114,6 +114,62 @@ export function FolhaKmDialog({
     if (!open || prefilled) return;
     setPrefilled(true);
     (async () => {
+      // Modo edição: carregar a folha existente
+      if (folhaId) {
+        const { data: f } = await supabase.from("folhas_km").select("*").eq("id", folhaId).maybeSingle();
+        if (f) {
+          setDados({
+            nome: f.nome ?? "",
+            morada: f.morada ?? "",
+            nif: f.nif ?? "",
+            iban: f.iban ?? "",
+            matricula: f.matricula ?? "",
+            email: f.email ?? "",
+          });
+          const guardadas = Array.isArray(f.linhas) ? (f.linhas as unknown as Array<Record<string, unknown>>) : [];
+          setLinhas(
+            guardadas.length
+              ? guardadas.map((l) => ({
+                  id: Math.random().toString(36).slice(2),
+                  data: String(l.data ?? ""),
+                  descricao: String(l.descricao ?? ""),
+                  percurso: String(l.percurso ?? ""),
+                  km: String(l.km ?? ""),
+                }))
+              : [novaLinha()]
+          );
+          setPeriodo(f.periodo ?? null);
+          if (f.pessoa_id) {
+            setAlvoId(f.pessoa_id);
+            const { data: p } = await supabase
+              .from("pessoas")
+              .select("nome_completo, email, nif, morada, iban, matricula, assinatura")
+              .eq("id", f.pessoa_id)
+              .maybeSingle();
+            if (p) {
+              setPerfil({
+                nome: p.nome_completo ?? "",
+                morada: p.morada ?? "",
+                nif: p.nif ?? "",
+                iban: p.iban ?? "",
+                matricula: p.matricula ?? "",
+                email: p.email ?? "",
+                assinatura: p.assinatura ?? null,
+              });
+              if (p.assinatura) setAssinatura(p.assinatura);
+            }
+          } else if (familiaId) {
+            const { data: membros } = await supabase
+              .from("pessoas")
+              .select("id")
+              .eq("familia_id", familiaId)
+              .is("deleted_at", null);
+            if (membros && membros.length === 1) await carregarPessoa(membros[0].id);
+          }
+        }
+        return;
+      }
+
       const authEmail = session?.user?.email ?? "";
       let perfilDb: Perfil | null = null;
       if (pessoa?.id) {
@@ -146,7 +202,7 @@ export function FolhaKmDialog({
         email: perfilDb?.email || authEmail || "",
       });
     })();
-  }, [open, prefilled, pessoa, session]);
+  }, [open, prefilled, pessoa, session, folhaId, familiaId]);
 
   useEffect(() => {
     if (!open) {
@@ -156,6 +212,7 @@ export function FolhaKmDialog({
       setPerfil(null);
       setConfirmarPerfil(false);
       setAlvoId(null);
+      setPeriodo(null);
     }
   }, [open]);
 
