@@ -402,7 +402,7 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
       const { data: folha, error } = await supabase
         .from("folhas_km")
         .insert({
-          pessoa_id: pessoa?.id ?? null,
+          pessoa_id: alvoId ?? pessoa?.id ?? null,
           auth_user_id: session?.user?.id ?? null,
           nome: dados.nome,
           morada: dados.morada || null,
@@ -460,7 +460,43 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
         </DialogHeader>
 
         <div className="rounded-md border p-3 space-y-2">
-          <p className="text-sm font-semibold">Identificação da Pessoa</p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-semibold">Identificação da Pessoa</p>
+            <Popover open={seletorAberto} onOpenChange={setSeletorAberto}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="justify-between gap-2">
+                  {alvoId && alvoId !== pessoa?.id ? dados.nome || "Outra pessoa" : "Selecionar outra pessoa"}
+                  <ChevronsUpDown className="h-3.5 w-3.5 opacity-60" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-0" align="end">
+                <Command>
+                  <CommandInput placeholder="Procurar pessoa…" />
+                  <CommandList>
+                    <CommandEmpty>Sem resultados.</CommandEmpty>
+                    <CommandGroup>
+                      {pessoasLista.map((p) => (
+                        <CommandItem
+                          key={p.id}
+                          value={`${p.nome_completo ?? ""} ${p.email ?? ""}`}
+                          onSelect={async () => {
+                            setSeletorAberto(false);
+                            await carregarPessoa(p.id);
+                          }}
+                        >
+                          <Check className={cn("mr-2 h-4 w-4", alvoId === p.id ? "opacity-100" : "opacity-0")} />
+                          <span className="truncate">
+                            {p.nome_completo}
+                            {p.email ? <span className="text-muted-foreground"> · {p.email}</span> : null}
+                          </span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="space-y-1 sm:col-span-2">
               <Label className="text-xs">Nome</Label>
