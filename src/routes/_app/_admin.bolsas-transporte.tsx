@@ -1593,6 +1593,27 @@ function BolsasTransportePage() {
                     <SelectItem value="erro_envio">Erro no envio</SelectItem>
                   </SelectContent>
                 </Select>
+                <div className="flex-1" />
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const headers = ["Pessoa", "Período", "Criada em", "KM", "Valor", "Estado de envio"];
+                    const rowsCsv = folhasFiltered.map((f) => ({
+                      "Pessoa": f.nome ?? "",
+                      "Período": f.periodo ?? "",
+                      "Criada em": f.created_at ? new Date(f.created_at).toLocaleDateString("pt-PT") : "",
+                      "KM": String(f.total_km ?? 0),
+                      "Valor": Number(f.total_valor ?? 0).toFixed(2).replace(".", ","),
+                      "Estado de envio": f.estado === "enviada" ? "Enviada" : f.estado === "erro_envio" ? "Erro no envio" : "Rascunho",
+                    }));
+                    downloadCSV(`folhas-km-${new Date().toISOString().slice(0, 10)}.csv`, toCSV(rowsCsv, headers));
+                  }}
+                >
+                  <Download className="mr-2 h-4 w-4" /> Exportar
+                </Button>
+                <Button onClick={() => setFolhaKmOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" /> Novo registo
+                </Button>
               </div>
               <div className="overflow-x-auto">
               <Table>
@@ -1726,9 +1747,6 @@ function BolsasTransportePage() {
                 </Button>
                 <Button variant="outline" onClick={() => { setEditKmRow(null); setKmForm(emptyKmForm); setAddKmOpen(true); }}>
                   <Plus className="mr-2 h-4 w-4" /> Registo por família
-                </Button>
-                <Button onClick={() => setFolhaKmOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" /> Novo registo
                 </Button>
               </div>
               <div className="overflow-x-auto">
