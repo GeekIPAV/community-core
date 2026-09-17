@@ -1708,6 +1708,19 @@ function PessoaPerfil({
         </div>
 
         <div className="rounded-lg border p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Pagamento</h3>
+          <InfoRow icon={CreditCard} label="IBAN" value={pessoa.iban || "—"} />
+          <InfoRow icon={Car} label="Matrícula" value={pessoa.matricula || "—"} />
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">Assinatura</p>
+            <SignaturePad
+              value={pessoa.assinatura ?? null}
+              onChange={(dataUrl) => saveAssinatura.mutate(dataUrl)}
+            />
+          </div>
+        </div>
+
+        <div className="rounded-lg border p-4 space-y-3">
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Envolvimento</h3>
           <InfoRow icon={Users} label="Tipo de utilizador" value={tipoNome || "—"} />
           <InfoRow icon={Users} label="Projetos" value={projetoNomes.length ? projetoNomes.join(", ") : "—"} />
