@@ -28,6 +28,8 @@ import { Link } from "@tanstack/react-router";
 import { formatDateBR } from "@/lib/utils";
 import { InlineText, InlineSelect, InlineMultiSelect } from "@/components/inline-edit";
 import { KM_RATE, TRIP_FACTOR } from "@/lib/bolsa-transporte";
+import { useVoluntariosLookup } from "@/components/registar-atividade-dialog";
+
 import { Switch } from "@/components/ui/switch";
 import { personIcon, flagFor } from "@/lib/person-display";
 import { CasoNovoSheet } from "@/components/caso-novo-sheet";
