@@ -613,7 +613,7 @@ function FamiliasPage() {
             }
             if (Object.keys(dbPatch).length === 0) return;
             const { error } = await supabase.from("familias").update(dbPatch as any).in("id", unique);
-            if (error) return handleSupabaseError(error);
+            if (error) { handleSupabaseError(error); return; }
             toast.success(`${unique.length} famílias atualizadas`);
             invalidate();
           }}
@@ -623,7 +623,7 @@ function FamiliasPage() {
               .from("familias")
               .update({ deleted_at: new Date().toISOString() } as any)
               .in("id", unique);
-            if (error) return handleSupabaseError(error);
+            if (error) { handleSupabaseError(error); return; }
             toast.success(`${unique.length} famílias eliminadas`);
             invalidate();
           }}
