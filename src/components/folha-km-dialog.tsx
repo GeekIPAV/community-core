@@ -372,16 +372,9 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="rounded-md border p-3 space-y-2">
-            <p className="text-sm font-semibold">Valores de Referência</p>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label className="text-xs">Por KM</Label>
-                <p className="flex h-9 items-center text-sm font-semibold tabular-nums">{formatEuro(rate)}</p>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Período (opcional)</Label>
-                <Input value={periodo} onChange={(e) => setPeriodo(e.target.value)} placeholder="Ex: Setembro 2026" />
-              </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Período (opcional)</Label>
+              <Input value={periodo} onChange={(e) => setPeriodo(e.target.value)} placeholder="Ex: Setembro 2026" />
             </div>
           </div>
           <div className="rounded-md border bg-muted/40 p-3">
