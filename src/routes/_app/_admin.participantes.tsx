@@ -27,6 +27,8 @@ import { ChevronDown, ChevronRight, Pencil, Plus, Trash2, Mail, Phone, MapPin, C
 import { EtiquetasPicker } from "@/components/etiquetas-picker";
 import { AcoesHoverSummary } from "@/components/acoes-hover-summary";
 import { CurriculoSection } from "@/components/curriculo-section";
+import { PessoaMapaKmSection } from "@/components/pessoa-mapa-km-section";
+import { SignaturePad } from "@/components/signature-pad";
 import { InviteMemberButton } from "@/components/invite-member";
 import type { VisibilityState } from "@tanstack/react-table";
 import { SmartTable, type SmartColumnDef } from "@/components/smart-table";
@@ -66,6 +68,9 @@ type Pessoa = {
   cidade_residencia: string | null;
   religiao: string | null;
   profissao: string | null;
+  iban: string | null;
+  matricula: string | null;
+  assinatura: string | null;
   projeto_ids: string[];
   updated_at: string | null;
   parceiro_id: string | null;
@@ -183,7 +188,7 @@ function ParticipantesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, email, telefone, nif, cartao_cidadao, morada, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao, profissao, projeto_ids, updated_at, parceiro_id")
+        .select("id, nome_completo, email, telefone, nif, cartao_cidadao, morada, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao, profissao, iban, matricula, assinatura, projeto_ids, updated_at, parceiro_id")
         .is("deleted_at", null)
         .order("nome_completo", { ascending: true });
       if (error) throw error;
@@ -515,6 +520,9 @@ function ParticipantesPage() {
           cidade_residencia: editing.cidade_residencia || null,
           religiao: editing.religiao || null,
           profissao: editing.profissao || null,
+          iban: editing.iban || null,
+          matricula: editing.matricula || null,
+          assinatura: editing.assinatura || null,
           projeto_ids: editing.projeto_ids ?? [],
           parceiro_id:
             hasParceiroTipoFor(editing.id, editing.tipo_user_id ?? null)
@@ -828,6 +836,7 @@ function ParticipantesPage() {
                 <TabsTrigger value="dados">Dados</TabsTrigger>
                 <TabsTrigger value="acoes">Ações / Eventos</TabsTrigger>
                 <TabsTrigger value="etiquetas">Etiquetas</TabsTrigger>
+                <TabsTrigger value="mapa-km">Mapa de KM</TabsTrigger>
                 {(calcIdade(editing.data_nascimento) ?? 0) >= 18 && (
                   <TabsTrigger value="curriculo">Currículo</TabsTrigger>
                 )}
@@ -843,7 +852,7 @@ function ParticipantesPage() {
                     if (found) { setEditing({ ...found }); return; }
                     const { data: p } = await supabase
                       .from("pessoas")
-                      .select("id, nome_completo, email, telefone, nif, cartao_cidadao, morada, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao, profissao, projeto_ids, updated_at, parceiro_id")
+                      .select("id, nome_completo, email, telefone, nif, cartao_cidadao, morada, data_nascimento, familia_id, status, notas, tipo_user_id, genero, nacionalidade, cidade_residencia, religiao, profissao, iban, matricula, assinatura, projeto_ids, updated_at, parceiro_id")
                       .eq("id", id)
                       .maybeSingle();
                     if (p) setEditing({ ...(p as any), projeto_ids: (p as any).projeto_ids ?? [] });
@@ -944,6 +953,18 @@ function ParticipantesPage() {
                   <SelectContent>{STATUS_OPTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                 </Select>
               </Field>
+              <div className="col-span-2 pt-2">
+                <p className="text-sm font-medium">Dados de pagamento</p>
+                <p className="text-xs text-muted-foreground">Usados para preencher as folhas de quilómetros.</p>
+              </div>
+              <Field label="IBAN"><Input value={editing.iban ?? ""} onChange={(e) => setEditing({ ...editing, iban: e.target.value })} /></Field>
+              <Field label="Matrícula"><Input value={editing.matricula ?? ""} onChange={(e) => setEditing({ ...editing, matricula: e.target.value })} /></Field>
+              <Field label="Assinatura" className="col-span-2">
+                <SignaturePad
+                  value={editing.assinatura ?? null}
+                  onChange={(dataUrl) => setEditing({ ...editing, assinatura: dataUrl })}
+                />
+              </Field>
               <Field label="Notas" className="col-span-2"><Textarea value={editing.notas ?? ""} onChange={(e) => setEditing({ ...editing, notas: e.target.value })} /></Field>
               </div>
               </TabsContent>
@@ -952,6 +973,9 @@ function ParticipantesPage() {
               </TabsContent>
               <TabsContent value="etiquetas" className="mt-4">
                 <EtiquetasPicker pessoaId={editing.id} />
+              </TabsContent>
+              <TabsContent value="mapa-km" className="mt-4">
+                <PessoaMapaKmSection pessoaId={editing.id} familiaId={editing.familia_id} />
               </TabsContent>
               {(calcIdade(editing.data_nascimento) ?? 0) >= 18 && (
                 <TabsContent value="curriculo" className="mt-4">
