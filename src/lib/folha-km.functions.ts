@@ -5,7 +5,7 @@ export type EnviarFolhaKmInput = {
   folhaId: string;
   nome: string;
   emailPessoa: string | null;
-  periodo: string | null;
+  periodo?: string | null;
   totalKm: number;
   totalValor: number;
   ficheiroNome: string;
