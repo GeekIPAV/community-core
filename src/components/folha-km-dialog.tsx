@@ -660,12 +660,18 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
           >
             <Download className="mr-2 h-4 w-4" /> Pré-visualizar PDF
           </Button>
+          {!formularioValido && (
+            <p className="text-xs text-destructive">
+              Preencha todos os campos, adicione pelo menos uma linha completa (data, descrição, percurso e KM) e
+              assine a folha.
+            </p>
+          )}
           <Button
             onClick={() => {
               if (camposEmFalta.length > 0) setConfirmarPerfil(true);
               else submeter.mutate();
             }}
-            disabled={submeter.isPending || !assinatura}
+            disabled={submeter.isPending || !formularioValido}
           >
             {submeter.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
             Gerar e enviar
