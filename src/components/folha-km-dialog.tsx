@@ -14,6 +14,7 @@ import { Plus, Trash2, Send, Loader2, Download } from "lucide-react";
 import { toast } from "sonner";
 import { KM_RATE, formatEuro } from "@/lib/bolsa-transporte";
 import logoUrl from "@/assets/meeru-logo.png";
+import { SignaturePad } from "@/components/signature-pad";
 import assinaturaFinanceiroUrl from "@/assets/assinatura-financeiro.jpg";
 import assinaturaPresidenteUrl from "@/assets/assinatura-presidente.jpg";
 
@@ -66,6 +67,7 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   const [dados, setDados] = useState<Pessoa>({ nome: "", morada: "", nif: "", iban: "", matricula: "", email: "" });
   const [linhas, setLinhas] = useState<Linha[]>([novaLinha()]);
   const [prefilled, setPrefilled] = useState(false);
+  const [assinatura, setAssinatura] = useState<string | null>(null);
 
   // Pré-preenchimento: última folha do próprio utilizador > perfil/colaborador
   useEffect(() => {
@@ -258,6 +260,13 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
     if (assFin) {
       try {
         doc.addImage(assFin, "JPEG", xAss, ySig + 2, 46, 15);
+      } catch {
+        /* ignora assinatura inválida */
+      }
+    }
+    if (assinatura) {
+      try {
+        doc.addImage(assinatura, "PNG", 30, ySig - 14, 46, 15);
       } catch {
         /* ignora assinatura inválida */
       }
@@ -461,6 +470,11 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
         </Button>
 
         <p className="text-[11px] leading-relaxed text-muted-foreground">{DECLARACAO}</p>
+
+        <div className="space-y-2">
+          <Label className="text-xs">Assinatura</Label>
+          <SignaturePad value={assinatura} onChange={setAssinatura} />
+        </div>
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
