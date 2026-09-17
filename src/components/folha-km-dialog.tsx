@@ -250,6 +250,26 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
     doc.text("Diretor Financeiro: ____________________________", W / 2 - 30, ySig + 10);
     doc.text("Presidente da Direção: ____________________________", W / 2 - 30, ySig + 20);
 
+    const [assFin, assPres] = await Promise.all([
+      loadImageDataUrl(assinaturaFinanceiroUrl),
+      loadImageDataUrl(assinaturaPresidenteUrl),
+    ]);
+    const xAss = W / 2 + 2;
+    if (assFin) {
+      try {
+        doc.addImage(assFin, "JPEG", xAss, ySig + 2, 46, 15);
+      } catch {
+        /* ignora assinatura inválida */
+      }
+    }
+    if (assPres) {
+      try {
+        doc.addImage(assPres, "JPEG", xAss, ySig + 13, 46, 10);
+      } catch {
+        /* ignora assinatura inválida */
+      }
+    }
+
     const dataUri = doc.output("datauristring");
     const base64 = dataUri.split(",")[1] ?? "";
     const slug = dados.nome.toLowerCase().normalize("NFD").replace(/[^\w]+/g, "-").replace(/(^-|-$)/g, "");
