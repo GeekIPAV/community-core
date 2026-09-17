@@ -582,6 +582,16 @@ export function FolhaKmDialog({
               assine a folha.
             </p>
           )}
+          {modoEdicao && (
+            <Button
+              variant="secondary"
+              onClick={() => guardar.mutate()}
+              disabled={guardar.isPending || camposPessoaFaltam.length > 0 || linhasValidas.length === 0}
+            >
+              {guardar.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              Guardar alterações
+            </Button>
+          )}
           <Button
             onClick={() => {
               if (camposEmFalta.length > 0) {
@@ -594,7 +604,7 @@ export function FolhaKmDialog({
             disabled={submeter.isPending || !formularioValido}
           >
             {submeter.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-            Gerar e enviar
+            {modoEdicao ? "Guardar e enviar" : "Gerar e enviar"}
           </Button>
         </DialogFooter>
 
