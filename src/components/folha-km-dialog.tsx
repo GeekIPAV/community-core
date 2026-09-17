@@ -410,8 +410,10 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
 
   const submeter = useMutation({
     mutationFn: async () => {
-      if (!dados.nome.trim()) throw new Error("Indique o nome da pessoa.");
-      if (linhasValidas.length === 0) throw new Error("Adicione pelo menos uma deslocação com KM.");
+      if (camposPessoaFaltam.length > 0)
+        throw new Error(`Preencha todos os campos: ${camposPessoaFaltam.join(", ")}.`);
+      if (linhasValidas.length === 0)
+        throw new Error("Adicione pelo menos uma linha preenchida (data, descrição, percurso e KM).");
       if (!assinatura) throw new Error("A folha tem de estar assinada antes de poder ser enviada.");
 
 
