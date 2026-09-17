@@ -264,6 +264,7 @@ function ColabSelfArea({ colaboradorId, nome }: { colaboradorId: string; nome: s
         <TabsContent value="servicos" className="space-y-4 mt-4">
           <SmartTable
             tableId="meus_registos"
+            savedViewsKey="views:meus-registos"
             columns={registosColumns}
             data={registosRows}
             toolbarActions={
@@ -278,6 +279,7 @@ function ColabSelfArea({ colaboradorId, nome }: { colaboradorId: string; nome: s
         <TabsContent value="pagamentos" className="mt-4">
           <SmartTable
             tableId="meus_pagamentos"
+            savedViewsKey="views:meus-pagamentos"
             columns={pagamentosColumns}
             data={pagamentos ?? []}
             emptyMessage="Sem pagamentos recebidos."

@@ -561,6 +561,7 @@ function FamiliasPage() {
               value={globalFilter}
               onChange={(e) => setGlobalFilter(e.target.value)}
               placeholder="Pesquisar famílias…"
+              data-smart-table-search
               className="pl-8 h-9"
             />
           </div>

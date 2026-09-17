@@ -725,6 +725,7 @@ function ParticipantesPage() {
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Pesquisar…"
+              data-smart-table-search
               className="pl-8 h-9"
               value={q}
               onChange={(e) => setQ(e.target.value)}

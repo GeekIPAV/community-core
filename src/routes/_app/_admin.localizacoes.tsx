@@ -236,6 +236,7 @@ function LocalizacoesPage() {
 
       <SmartTable
         tableId="localizacoes"
+        savedViewsKey="views:localizacoes"
         columns={columns}
         data={data}
         isLoading={isLoading}

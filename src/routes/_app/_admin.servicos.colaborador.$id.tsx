@@ -311,6 +311,7 @@ function ColaboradorDetailPage() {
 
           <SmartTable
             tableId={`registos_colab_${id}`}
+            savedViewsKey="views:colaborador-registos"
             columns={registosColumns}
             data={registosRows}
             editableColumns={["quantidade", "outros_custos", "estado"]}
@@ -327,6 +328,7 @@ function ColaboradorDetailPage() {
         <TabsContent value="pagamentos" className="space-y-4 mt-4">
           <SmartTable
             tableId={`pagamentos_colab_${id}`}
+            savedViewsKey="views:colaborador-pagamentos"
             columns={pagamentosColumns}
             data={pagamentos ?? []}
             editableColumns={["referencia", "metodo", "total", "data_pagamento", "notas"]}

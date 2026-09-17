@@ -199,6 +199,7 @@ function RelatoriosListPage() {
 
       <SmartTable
         tableId="relatorios-v1"
+        savedViewsKey="views:relatorios"
         columns={columns}
         data={relatorios}
         isLoading={isLoading}
