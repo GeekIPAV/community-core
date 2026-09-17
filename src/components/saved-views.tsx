@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { PICKABLE_ICONS, renderIcon } from "@/components/sidebar-icons";
 
 export type ViewSnapshot = {
   columnFilters?: any;
@@ -24,6 +25,7 @@ export type ViewSnapshot = {
   grouping?: string[];
   search?: string;
   extra?: Record<string, any>;
+  viewIcon?: string;
 };
 
 type SavedView = {
@@ -35,6 +37,72 @@ type SavedView = {
 };
 
 const ALL_KEY = "__all__";
+const DEFAULT_VIEW_ICON = "List";
+
+const ICON_LABELS: Record<string, string> = {
+  Globe: "Globo",
+  BarChart3: "Gráfico",
+  User: "Pessoa",
+  Users: "Pessoas",
+  Users2: "Grupo",
+  Briefcase: "Mala",
+  AlertTriangle: "Alerta",
+  CalendarDays: "Calendário",
+  CalendarCheck: "Calendário confirmado",
+  Activity: "Atividade",
+  Wallet: "Carteira",
+  CreditCard: "Cartão",
+  ClipboardList: "Lista de tarefas",
+  Settings2: "Controlos",
+  Settings: "Definições",
+  LayoutDashboard: "Painel",
+  Bus: "Transporte",
+  MapPin: "Localização",
+  FileText: "Documento",
+  FileSpreadsheet: "Tabela",
+  FileBarChart: "Relatório",
+  Handshake: "Parceria",
+  Mail: "Email",
+  UserCog: "Gestão de pessoa",
+  Trash2: "Eliminados",
+  ShieldAlert: "Segurança",
+  Palette: "Paleta",
+  ChartBar: "Barras",
+  Folder: "Pasta",
+  Star: "Estrela",
+  Heart: "Coração",
+  Tag: "Etiqueta",
+};
+
+function ViewIconPicker({ value, onChange }: { value: string; onChange: (icon: string) => void }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-medium">Ícone da vista</p>
+      <div className="grid max-h-40 grid-cols-8 gap-1 overflow-y-auto rounded-md border p-2">
+        {PICKABLE_ICONS.map((icon) => (
+          <Tooltip key={icon}>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "h-8 w-8",
+                  value === icon && "bg-primary/15 text-primary ring-1 ring-primary",
+                )}
+                onClick={() => onChange(icon)}
+                aria-label={`Escolher ícone: ${ICON_LABELS[icon] ?? icon}`}
+              >
+                {renderIcon(icon, "h-4 w-4")}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{ICON_LABELS[icon] ?? icon}</TooltipContent>
+          </Tooltip>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function SavedViews<T>({
   storageKey,
@@ -60,6 +128,7 @@ export function SavedViews<T>({
   const [saveOpen, setSaveOpen] = useState(false);
   const [renaming, setRenaming] = useState<SavedView | null>(null);
   const [newName, setNewName] = useState("");
+  const [selectedIcon, setSelectedIcon] = useState(DEFAULT_VIEW_ICON);
   const activeLocalKey = `${storageKey}:active`;
 
   const loadViews = async () => {
@@ -114,7 +183,7 @@ export function SavedViews<T>({
     }
   };
 
-  const captureSnapshot = (): ViewSnapshot => {
+  const captureSnapshot = (viewIcon?: string): ViewSnapshot => {
     const s = table.getState();
     return {
       columnFilters: s.columnFilters,
@@ -124,6 +193,7 @@ export function SavedViews<T>({
       grouping: s.grouping,
       search,
       extra,
+      ...(viewIcon ? { viewIcon } : {}),
     };
   };
 
@@ -165,7 +235,7 @@ export function SavedViews<T>({
       .insert({
         storage_key: storageKey,
         name,
-        snapshot: captureSnapshot() as any,
+        snapshot: captureSnapshot(selectedIcon) as any,
         created_by: uid,
       })
       .select("id, name, snapshot, created_by, is_admin_view")
@@ -178,6 +248,7 @@ export function SavedViews<T>({
     setActive((data as SavedView).id);
     setSaveOpen(false);
     setNewName("");
+    setSelectedIcon(DEFAULT_VIEW_ICON);
     toast.success("Vista guardada");
   };
 
@@ -205,19 +276,21 @@ export function SavedViews<T>({
     if (!renaming) return;
     const name = newName.trim();
     if (!name) return;
+    const snapshot = { ...renaming.snapshot, viewIcon: selectedIcon };
     const { error } = await supabase
       .from("vistas_guardadas")
-      .update({ name })
+      .update({ name, snapshot: snapshot as any })
       .eq("id", renaming.id);
     if (error) {
       toast.error(error.message);
       return;
     }
     setViews((prev) =>
-      prev.map((v) => (v.id === renaming.id ? { ...v, name } : v)),
+      prev.map((v) => (v.id === renaming.id ? { ...v, name, snapshot } : v)),
     );
     setRenaming(null);
     setNewName("");
+    setSelectedIcon(DEFAULT_VIEW_ICON);
   };
 
   const remove = async (v: SavedView) => {
@@ -273,7 +346,11 @@ export function SavedViews<T>({
           )}
           aria-label={`${v.name}, ${v.is_admin_view ? "vista partilhada" : "vista pessoal"}`}
         >
-          {v.is_admin_view ? <Users className="h-3.5 w-3.5 opacity-70" /> : <List className="h-3.5 w-3.5 opacity-70" />}
+          {v.snapshot.viewIcon
+            ? renderIcon(v.snapshot.viewIcon, "h-3.5 w-3.5 opacity-70")
+            : v.is_admin_view
+              ? <Users className="h-3.5 w-3.5 opacity-70" />
+              : <List className="h-3.5 w-3.5 opacity-70" />}
           {v.name}
         </Button>
       ))}
@@ -298,13 +375,14 @@ export function SavedViews<T>({
                   if (!v) return;
                   setRenaming(v);
                   setNewName(v.name);
+                  setSelectedIcon(v.snapshot.viewIcon ?? (v.is_admin_view ? "Users" : DEFAULT_VIEW_ICON));
                 }}
-                aria-label="Renomear vista"
+                aria-label="Editar nome e ícone da vista"
               >
                 <Pencil className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Renomear vista</TooltipContent>
+            <TooltipContent>Editar vista</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -333,6 +411,7 @@ export function SavedViews<T>({
             className="h-7 w-7 shrink-0"
             onClick={() => {
               setNewName("");
+              setSelectedIcon(DEFAULT_VIEW_ICON);
               setSaveOpen(true);
             }}
             aria-label="Nova vista"
@@ -355,16 +434,22 @@ export function SavedViews<T>({
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && saveCurrent()}
           />
+          <ViewIconPicker value={selectedIcon} onChange={setSelectedIcon} />
           <DialogFooter>
             <Button onClick={saveCurrent}>Guardar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!renaming} onOpenChange={(o) => !o && setRenaming(null)}>
+      <Dialog open={!!renaming} onOpenChange={(o) => {
+        if (!o) {
+          setRenaming(null);
+          setSelectedIcon(DEFAULT_VIEW_ICON);
+        }
+      }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Renomear vista</DialogTitle>
+            <DialogTitle>Editar vista</DialogTitle>
           </DialogHeader>
           <Input
             autoFocus
@@ -372,6 +457,7 @@ export function SavedViews<T>({
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && rename()}
           />
+          <ViewIconPicker value={selectedIcon} onChange={setSelectedIcon} />
           <DialogFooter>
             <Button onClick={rename}>Guardar</Button>
           </DialogFooter>
