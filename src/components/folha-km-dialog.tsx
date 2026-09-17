@@ -62,9 +62,7 @@ async function loadLogoDataUrl(): Promise<string | null> {
 export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const { pessoa, session } = useAuth();
   const qc = useQueryClient();
-  const [guardado, setGuardado] = useLocalStorage<Pessoa | null>("folha-km-pessoa", null);
   const [dados, setDados] = useState<Pessoa>({ nome: "", morada: "", nif: "", iban: "", matricula: "", email: "" });
-  const [valorKm, setValorKm] = useState(String(KM_RATE).replace(".", ","));
   const [periodo, setPeriodo] = useState("");
   const [linhas, setLinhas] = useState<Linha[]>([novaLinha()]);
   const [prefilled, setPrefilled] = useState(false);
