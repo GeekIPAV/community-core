@@ -1454,9 +1454,13 @@ function BolsasTransportePage() {
           >
             <Download className="mr-2 h-4 w-4" /> Exportar
           </Button>
-          <Button onClick={() => { setEditKmRow(null); setKmForm(emptyKmForm); setAddKmOpen(true); }}>
+          <Button variant="outline" onClick={() => { setEditKmRow(null); setKmForm(emptyKmForm); setAddKmOpen(true); }}>
+            <Plus className="mr-2 h-4 w-4" /> Registo por família
+          </Button>
+          <Button onClick={() => setFolhaKmOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Novo registo
           </Button>
+
         </div>
 
         {loadingMapaKm ? (
