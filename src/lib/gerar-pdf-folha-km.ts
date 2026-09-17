@@ -113,7 +113,7 @@ export async function gerarPdfFolhaKm(params: {
     let yy = y + 6 + linhasNome.length * 5 + 0.5;
     for (const linha of detalhes) {
       if (!linha) continue;
-      const partes = doc.splitTextToSize(linha, W / 2 - M - 6) as string[];
+      const partes = doc.splitTextToSize(linha, largura) as string[];
       doc.text(partes, x, yy);
       yy += partes.length * 4.2;
     }
