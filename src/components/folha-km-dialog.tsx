@@ -8,6 +8,7 @@ import { enviarFolhaKm } from "@/lib/folha-km.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, Send, Loader2, Download, Check, ChevronsUpDown } from "lucide-react";
@@ -75,6 +76,7 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   const [assinatura, setAssinatura] = useState<string | null>(null);
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [confirmarPerfil, setConfirmarPerfil] = useState(false);
+  const [camposSelecionados, setCamposSelecionados] = useState<Record<string, boolean>>({});
   const [alvoId, setAlvoId] = useState<string | null>(null);
   const [seletorAberto, setSeletorAberto] = useState(false);
 
@@ -228,9 +230,12 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   }, [dados, perfil, assinatura, alvoId]);
 
   const atualizarPerfil = async () => {
-    if (!alvoId || camposEmFalta.length === 0) return;
+    if (!alvoId) return;
     const patch: Record<string, string> = {};
-    for (const c of camposEmFalta) patch[c.coluna] = c.valor;
+    for (const c of camposEmFalta) {
+      if (camposSelecionados[c.coluna]) patch[c.coluna] = c.valor;
+    }
+    if (Object.keys(patch).length === 0) return;
     const { error } = await supabase.from("pessoas").update(patch as never).eq("id", alvoId);
     if (error) {
       toast.error("Não foi possível atualizar o perfil.");
@@ -668,8 +673,12 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
           )}
           <Button
             onClick={() => {
-              if (camposEmFalta.length > 0) setConfirmarPerfil(true);
-              else submeter.mutate();
+              if (camposEmFalta.length > 0) {
+                setCamposSelecionados(
+                  Object.fromEntries(camposEmFalta.map((c) => [c.coluna, true]))
+                );
+                setConfirmarPerfil(true);
+              } else submeter.mutate();
             }}
             disabled={submeter.isPending || !formularioValido}
           >
@@ -683,15 +692,29 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
             <DialogHeader>
               <DialogTitle>Atualizar o seu perfil?</DialogTitle>
               <DialogDescription>
-                Estes dados ainda não estão guardados no seu perfil. Quer guardá-los para aparecerem automaticamente
-                da próxima vez?
+                Escolha quais destes dados, ainda não guardados no seu perfil, quer guardar para aparecerem
+                automaticamente da próxima vez.
               </DialogDescription>
             </DialogHeader>
-            <ul className="list-disc pl-5 text-sm">
+            <div className="space-y-2">
               {camposEmFalta.map((c) => (
-                <li key={c.coluna}>{c.label}</li>
+                <label
+                  key={c.coluna}
+                  className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer hover:bg-muted/50"
+                >
+                  <Checkbox
+                    checked={!!camposSelecionados[c.coluna]}
+                    onCheckedChange={(v) =>
+                      setCamposSelecionados((s) => ({ ...s, [c.coluna]: v === true }))
+                    }
+                  />
+                  <span>{c.label}</span>
+                  <span className="ml-auto max-w-[45%] truncate text-xs text-muted-foreground">
+                    {c.coluna === "assinatura" ? "Desenho" : c.valor}
+                  </span>
+                </label>
               ))}
-            </ul>
+            </div>
             <DialogFooter className="gap-2">
               <Button
                 variant="outline"
@@ -703,13 +726,14 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
                 Não, só enviar
               </Button>
               <Button
+                disabled={camposEmFalta.every((c) => !camposSelecionados[c.coluna])}
                 onClick={async () => {
                   setConfirmarPerfil(false);
                   await atualizarPerfil();
                   submeter.mutate();
                 }}
               >
-                Sim, atualizar perfil
+                Guardar selecionados e enviar
               </Button>
             </DialogFooter>
           </DialogContent>
