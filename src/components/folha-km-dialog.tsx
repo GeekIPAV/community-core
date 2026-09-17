@@ -4,7 +4,6 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { useLocalStorage } from "@/hooks/use-local-storage";
 import { enviarFolhaKm } from "@/lib/folha-km.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
