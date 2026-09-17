@@ -180,7 +180,7 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
     if (!pessoa?.id || camposEmFalta.length === 0) return;
     const patch: Record<string, string> = {};
     for (const c of camposEmFalta) patch[c.coluna] = c.valor;
-    const { error } = await supabase.from("pessoas").update(patch).eq("id", pessoa.id);
+    const { error } = await supabase.from("pessoas").update(patch as never).eq("id", pessoa.id);
     if (error) {
       toast.error("Não foi possível atualizar o perfil.");
       return;
