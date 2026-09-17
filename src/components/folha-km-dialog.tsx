@@ -62,7 +62,6 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   const { pessoa, session } = useAuth();
   const qc = useQueryClient();
   const [dados, setDados] = useState<Pessoa>({ nome: "", morada: "", nif: "", iban: "", matricula: "", email: "" });
-  const [periodo, setPeriodo] = useState("");
   const [linhas, setLinhas] = useState<Linha[]>([novaLinha()]);
   const [prefilled, setPrefilled] = useState(false);
 
@@ -129,7 +128,6 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
     if (!open) {
       setPrefilled(false);
       setLinhas([novaLinha()]);
-      setPeriodo("");
     }
   }, [open]);
 
@@ -154,7 +152,7 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(20);
-    doc.text(`Folha de KM${periodo ? ` — ${periodo}` : ""}`, W / 2, 18, { align: "center" });
+    doc.text("Folha de KM", W / 2, 18, { align: "center" });
     doc.setFont("helvetica", "normal");
     doc.setFontSize(11);
     doc.text("Mapa de Ajudas de Custo e compensação por uso de viatura própria", W / 2, 26, { align: "center" });
@@ -275,7 +273,6 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
           matricula: dados.matricula || null,
           email: dados.email || null,
           valor_km: rate,
-          periodo: periodo || null,
           linhas: linhasValidas.map((l) => ({
             data: l.data,
             descricao: l.descricao,
@@ -298,7 +295,6 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
           folhaId: folha.id,
           nome: dados.nome,
           emailPessoa: dados.email || session?.user?.email || null,
-          periodo: periodo || null,
           totalKm,
           totalValor,
           ficheiroNome: filename,
