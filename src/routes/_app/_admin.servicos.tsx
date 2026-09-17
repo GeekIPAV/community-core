@@ -270,6 +270,7 @@ function ColaboradoresTab() {
     <div className="space-y-4">
       <SmartTable
         tableId="colaboradores"
+        savedViewsKey="views:colaboradores"
         columns={columns}
         data={rows}
         isLoading={isLoading}
@@ -1124,6 +1125,7 @@ function TiposServicoTab() {
     <div className="space-y-4">
       <SmartTable
         tableId="tipos_servico"
+        savedViewsKey="views:tipos-servico"
         columns={columns}
         data={data}
         isLoading={isLoading}
@@ -1643,6 +1645,7 @@ function RegistosTab() {
 
       <SmartTable
         tableId="registos_servico"
+        savedViewsKey="views:registos-servico"
         columns={columns}
         data={rowsData}
         isLoading={isLoading}
@@ -1969,6 +1972,7 @@ function PagamentosTab() {
     <div className="space-y-4">
       <SmartTable
         tableId="pagamentos"
+        savedViewsKey="views:pagamentos"
         columns={columns}
         data={rows}
         isLoading={isLoading}

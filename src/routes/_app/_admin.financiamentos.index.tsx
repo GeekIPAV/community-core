@@ -331,6 +331,7 @@ function FinanciamentosListPage() {
 
       <SmartTable
         tableId="financiamentos-v2"
+        savedViewsKey="views:financiamentos"
         columns={columns}
         data={financiamentos}
         isLoading={isLoading}

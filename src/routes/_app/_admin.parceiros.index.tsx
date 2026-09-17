@@ -264,6 +264,7 @@ function ParceirosPage() {
 
       <SmartTable
         tableId="parceiros-v1"
+        savedViewsKey="views:parceiros"
         columns={columns}
         data={parceiros}
         isLoading={isLoading}

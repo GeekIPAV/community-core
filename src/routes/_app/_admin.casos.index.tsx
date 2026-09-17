@@ -231,6 +231,7 @@ function CasosListPage() {
 
       <SmartTable
         tableId="casos-v1"
+        savedViewsKey="views:casos"
         columns={columns}
         data={casos}
         isLoading={isLoading}

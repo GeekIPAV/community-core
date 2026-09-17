@@ -545,6 +545,7 @@ function ServicosTab({
 
       <SmartTable
         tableId={`colab_servicos_${colaboradorId}`}
+        savedViewsKey="views:colaboradora-servicos"
         columns={columns}
         data={rows}
         onRowClick={(r) => setEditing(r)}

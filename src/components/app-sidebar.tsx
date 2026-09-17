@@ -53,13 +53,13 @@ export type SidebarItemRow = {
 };
 
 // ---------- Hardcoded fallback (rendered before query resolves / on error) ----------
-const FALLBACK_GROUPS: SidebarGroupRow[] = [
+export const FALLBACK_GROUPS: SidebarGroupRow[] = [
   { id: "g1", key: "community", label: "Comunidade", icon: null, position: 1, is_visible: true, visible_to: ["admin","staff","user"] },
   { id: "g2", key: "participantes", label: "Gestão de Participantes", icon: null, position: 2, is_visible: true, visible_to: ["admin","staff"] },
   { id: "g3", key: "acoes", label: "GESTÃO", icon: null, position: 3, is_visible: true, visible_to: ["admin","staff"] },
   { id: "g5", key: "admin", label: "Administração", icon: null, position: 5, is_visible: true, visible_to: ["admin"] },
 ];
-const FALLBACK_ITEMS: SidebarItemRow[] = [
+export const FALLBACK_ITEMS: SidebarItemRow[] = [
   { id:"i1", group_id:"g1", key:"portal", label:"Portal Público", url:"/", icon:"Globe", position:1, is_visible:true, visible_to:["admin","staff","user"], badge_query:null, sub_group:null },
   { id:"i2", group_id:"g1", key:"resultados", label:"Resultados", url:"/resultados", icon:"BarChart3", position:2, is_visible:true, visible_to:["admin","staff","user"], badge_query:null, sub_group:null },
   { id:"i3", group_id:"g1", key:"perfil", label:"O Meu Perfil", url:"/perfil", icon:"User", position:3, is_visible:true, visible_to:["admin","staff","user"], badge_query:null, sub_group:null },
@@ -105,7 +105,7 @@ export function useEffectiveRoles(): string[] {
   return roles;
 }
 
-function canSee(visibleTo: string[], roles: string[]) {
+export function canSee(visibleTo: string[], roles: string[]) {
   if (!visibleTo || visibleTo.length === 0) return true;
   if (roles.includes("admin")) return true;
   return visibleTo.some((r) => roles.includes(r));
