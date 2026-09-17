@@ -19,6 +19,8 @@ import { Plus, Pencil, Trash2, Car, ChevronDown, AlertTriangle, Download } from 
 import { toast } from "sonner";
 import { matchCidade, parseViatura, formatEuro, KM_RATE, TRIP_FACTOR, normalizeGrupo, type CidadeBolsa } from "@/lib/bolsa-transporte";
 import { downloadCSV, toCSV } from "@/lib/csv";
+import { FolhaKmDialog } from "@/components/folha-km-dialog";
+
 
 export const Route = createFileRoute("/_app/_admin/bolsas-transporte")({
   component: BolsasTransportePage,
@@ -916,6 +918,8 @@ function BolsasTransportePage() {
   const [kmEstadoFilter, setKmEstadoFilter] = useState<"todos" | MapaKmRow["estado"]>("todos");
   const [kmFamiliaFilter, setKmFamiliaFilter] = useState<string>("todas");
   const [addKmOpen, setAddKmOpen] = useState(false);
+  const [folhaKmOpen, setFolhaKmOpen] = useState(false);
+
   const [editKmRow, setEditKmRow] = useState<MapaKmRow | null>(null);
   const [deleteKmId, setDeleteKmId] = useState<string | null>(null);
   const [kmForm, setKmForm] = useState(emptyKmForm);
@@ -1454,9 +1458,13 @@ function BolsasTransportePage() {
           >
             <Download className="mr-2 h-4 w-4" /> Exportar
           </Button>
-          <Button onClick={() => { setEditKmRow(null); setKmForm(emptyKmForm); setAddKmOpen(true); }}>
+          <Button variant="outline" onClick={() => { setEditKmRow(null); setKmForm(emptyKmForm); setAddKmOpen(true); }}>
+            <Plus className="mr-2 h-4 w-4" /> Registo por família
+          </Button>
+          <Button onClick={() => setFolhaKmOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Novo registo
           </Button>
+
         </div>
 
         {loadingMapaKm ? (
@@ -1577,6 +1585,9 @@ function BolsasTransportePage() {
           <Car className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <span>Cada carro é reembolsado a <strong className="text-foreground">0,36€/km × 2</strong> (ida e volta). O valor é calculado automaticamente: km × 0,36 × 2 × nº de carros.</span>
         </div>
+
+        <FolhaKmDialog open={folhaKmOpen} onOpenChange={setFolhaKmOpen} />
+
 
         <Dialog open={addKmOpen} onOpenChange={(o) => { if (!o) { setAddKmOpen(false); setEditKmRow(null); } }}>
           <DialogContent className="max-w-lg">
