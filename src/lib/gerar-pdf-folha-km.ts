@@ -104,11 +104,13 @@ export async function gerarPdfFolhaKm(params: {
     doc.text(rotulo.toUpperCase(), x, y);
     doc.setFontSize(10);
     doc.setTextColor(...INK);
-    doc.text(nome, x, y + 6, { maxWidth: W / 2 - M - 6 });
+    const largura = W / 2 - M - 6;
+    const linhasNome = doc.splitTextToSize(nome, largura) as string[];
+    doc.text(linhasNome, x, y + 6);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8.5);
     doc.setTextColor(...GRAY);
-    let yy = y + 11.5;
+    let yy = y + 6 + linhasNome.length * 5 + 0.5;
     for (const linha of detalhes) {
       if (!linha) continue;
       const partes = doc.splitTextToSize(linha, W / 2 - M - 6) as string[];
