@@ -1586,6 +1586,9 @@ function BolsasTransportePage() {
           <span>Cada carro é reembolsado a <strong className="text-foreground">0,36€/km × 2</strong> (ida e volta). O valor é calculado automaticamente: km × 0,36 × 2 × nº de carros.</span>
         </div>
 
+        <FolhaKmDialog open={folhaKmOpen} onOpenChange={setFolhaKmOpen} />
+
+
         <Dialog open={addKmOpen} onOpenChange={(o) => { if (!o) { setAddKmOpen(false); setEditKmRow(null); } }}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
