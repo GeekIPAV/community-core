@@ -309,10 +309,15 @@ export function SavedViews<T>({
   };
 
   const activeView = views.find((v) => v.id === activeId) ?? null;
-  const canEditActive =
-    !!activeView &&
-    (realIsAdmin ||
-      (activeView.is_admin_view === false && activeView.created_by === currentUserId));
+  const canEdit = (v: SavedView) =>
+    realIsAdmin || (v.is_admin_view === false && v.created_by === currentUserId);
+  const canEditActive = !!activeView && canEdit(activeView);
+
+  const openEdit = (v: SavedView) => {
+    setRenaming(v);
+    setNewName(v.name);
+    setSelectedIcon(v.snapshot.viewIcon ?? (v.is_admin_view ? "Users" : DEFAULT_VIEW_ICON));
+  };
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -333,27 +338,41 @@ export function SavedViews<T>({
         Todos
       </Button>
       {views.map((v) => (
-        <Button
-          key={v.id}
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => activateView(v)}
-          className={cn(
-            "h-7 shrink-0 gap-1.5 rounded-none border-b-2 border-transparent px-2 text-xs font-normal",
-            activeId === v.id
-              ? "border-primary text-foreground"
-              : "text-muted-foreground hover:text-foreground",
+        <div key={v.id} className="group/view relative shrink-0">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => activateView(v)}
+            className={cn(
+              "h-7 shrink-0 gap-1.5 rounded-none border-b-2 border-transparent px-2 text-xs font-normal",
+              activeId === v.id
+                ? "border-primary text-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+            aria-label={`${v.name}, ${v.is_admin_view ? "vista partilhada" : "vista pessoal"}`}
+          >
+            {v.snapshot.viewIcon
+              ? renderIcon(v.snapshot.viewIcon, "h-3.5 w-3.5 opacity-70")
+              : v.is_admin_view
+                ? <Users className="h-3.5 w-3.5 opacity-70" />
+                : <List className="h-3.5 w-3.5 opacity-70" />}
+            {v.name}
+          </Button>
+          {canEdit(v) && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                openEdit(v);
+              }}
+              className="absolute -right-1 -top-1 hidden h-4 w-4 items-center justify-center rounded-full bg-muted text-muted-foreground shadow-sm ring-1 ring-border hover:text-foreground group-hover/view:flex"
+              aria-label={`Editar vista ${v.name}`}
+            >
+              <Pencil className="h-2.5 w-2.5" />
+            </button>
           )}
-          aria-label={`${v.name}, ${v.is_admin_view ? "vista partilhada" : "vista pessoal"}`}
-        >
-          {v.snapshot.viewIcon
-            ? renderIcon(v.snapshot.viewIcon, "h-3.5 w-3.5 opacity-70")
-            : v.is_admin_view
-              ? <Users className="h-3.5 w-3.5 opacity-70" />
-              : <List className="h-3.5 w-3.5 opacity-70" />}
-          {v.name}
-        </Button>
+        </div>
       ))}
       {activeId !== ALL_KEY && canEditActive && (
         <>
@@ -373,10 +392,7 @@ export function SavedViews<T>({
                 className="h-7 w-7 shrink-0"
                 onClick={() => {
                   const v = views.find((x) => x.id === activeId);
-                  if (!v) return;
-                  setRenaming(v);
-                  setNewName(v.name);
-                  setSelectedIcon(v.snapshot.viewIcon ?? (v.is_admin_view ? "Users" : DEFAULT_VIEW_ICON));
+                  if (v) openEdit(v);
                 }}
                 aria-label="Editar nome e ícone da vista"
               >
