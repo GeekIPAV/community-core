@@ -18,6 +18,7 @@ import { CurriculoSection } from "@/components/curriculo-section";
 import { FamilyDetailDialog } from "@/components/family-detail";
 import type { Familia } from "@/components/family-detail";
 import { MeuApoioSection } from "@/components/meu-apoio-section";
+import { SignaturePad } from "@/components/signature-pad";
 import {
   Mail, Phone, MapPin, Cake, Briefcase, Globe, HeartHandshake, Users, IdCard,
   ShieldCheck, Heart, Pencil, Save, X, Calendar,
@@ -375,6 +376,23 @@ function DadosSection({ pessoa, isEquipa, onSaved }: { pessoa: PessoaFull; isEqu
         <div className="space-y-1"><Label>Religião</Label><Input value={field("religiao")} onChange={(e) => set("religiao", e.target.value)} /></div>
         <div className="space-y-1"><Label>Profissão</Label><Input value={field("profissao")} onChange={(e) => set("profissao", e.target.value)} /></div>
         <div className="md:col-span-2 space-y-1"><Label>Notas</Label><Textarea rows={3} value={field("notas")} onChange={(e) => set("notas", e.target.value)} /></div>
+        {isEquipa && (
+          <>
+            <div className="space-y-1"><Label>IBAN</Label><Input value={field("iban")} onChange={(e) => set("iban", e.target.value)} placeholder="PT50…" /></div>
+            <div className="space-y-1"><Label>Matrícula</Label><Input value={field("matricula")} onChange={(e) => set("matricula", e.target.value.toUpperCase())} placeholder="AA-00-AA" /></div>
+            <div className="md:col-span-2 space-y-1">
+              <Label>Assinatura</Label>
+              {form.assinatura ? (
+                <div className="space-y-2">
+                  <img src={form.assinatura} alt="Assinatura" className="h-20 rounded border bg-white object-contain" />
+                  <Button type="button" variant="outline" size="sm" onClick={() => set("assinatura", null)}>Remover assinatura</Button>
+                </div>
+              ) : (
+                <SignaturePad value={null} onChange={(v) => set("assinatura", v)} />
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
