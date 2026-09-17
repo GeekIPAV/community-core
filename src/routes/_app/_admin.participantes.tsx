@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -11,7 +10,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { SavedViews } from "@/components/saved-views";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -22,34 +20,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useEffect, useMemo, useState } from "react";
-import { useDebounce } from "@/hooks/use-debounce";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, Lock, LockOpen, Pencil, Plus, Trash2, Mail, Phone, MapPin, Cake, Briefcase, Globe, HeartHandshake, Users, IdCard, ShieldCheck, Heart, Search } from "lucide-react";
-import { Download } from "lucide-react";
+import { Pencil, Plus, Trash2, Mail, Phone, MapPin, Cake, Briefcase, Globe, HeartHandshake, Users, IdCard, ShieldCheck, Heart, Search } from "lucide-react";
 import { EtiquetasPicker } from "@/components/etiquetas-picker";
 import { AcoesHoverSummary } from "@/components/acoes-hover-summary";
 import { CurriculoSection } from "@/components/curriculo-section";
 import { InviteMemberButton } from "@/components/invite-member";
-import { downloadCSV, toCSV } from "@/lib/csv";
-import {
-  useReactTable,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
-  getGroupedRowModel,
-  getExpandedRowModel,
-  flexRender,
-  type ColumnDef,
-  type SortingState,
-  type VisibilityState,
-  type ColumnOrderState,
-  type GroupingState,
-  type ExpandedState,
-} from "@tanstack/react-table";
-import { AdvancedTableFilters, advancedFilterFn, type ColumnFilterMeta } from "@/components/advanced-table-filters";
-import { DataTableViewOptions } from "@/components/data-table-view-options";
-import { DraggableTableHeaders } from "@/components/draggable-table-headers";
+import type { VisibilityState } from "@tanstack/react-table";
+import { SmartTable, type SmartColumnDef } from "@/components/smart-table";
 import { useMobileColumnVisibility } from "@/hooks/use-mobile-columns";
 import { personIcon, flagFor } from "@/lib/person-display";
 import { applyOptimisticRowPatch, rollbackOptimisticRows } from "@/lib/optimistic-row-update";
@@ -112,6 +91,37 @@ const BULK_COLUMNS = [
   "projeto",
 ] as const;
 
+const DEFAULT_HIDDEN_COLUMNS: VisibilityState = {
+  // Escondidas por omissão para evitar scroll horizontal — reativáveis em "Colunas".
+  cartao_cidadao: false,
+  morada: false,
+  data_nascimento: false,
+  genero: false,
+  nacionalidade: false,
+  cidade_residencia: false,
+  religiao: false,
+  profissao: false,
+  projeto_ids: false,
+  nif: false,
+};
+
+const GROUP_BY_OPTIONS = [
+  { value: "familia_id", label: "Família" },
+  { value: "nacionalidade", label: "Nacionalidade" },
+  { value: "religiao", label: "Religião" },
+  { value: "genero", label: "Género" },
+  { value: "projeto_ids", label: "Projetos" },
+  { value: "cidade_residencia", label: "Cidade" },
+  { value: "status", label: "Estado" },
+  { value: "tipos_participante", label: "Tipo" },
+];
+
+const EDITABLE_COLUMNS = [
+  "nome_completo", "email", "telefone", "nif", "cartao_cidadao", "morada",
+  "data_nascimento", "genero", "nacionalidade", "cidade_residencia",
+  "religiao", "profissao", "familia_id", "status",
+];
+
 const emptyForm: Omit<Pessoa, "id" | "status"> & { status?: string } = {
   nome_completo: "",
   email: "",
@@ -168,7 +178,7 @@ function ParticipantesPage() {
 
   const [deleteOne, setDeleteOne] = useState<Pessoa | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
-  const [inlineEdit, setInlineEdit] = useState(false);
+  const bulkClearRef = useRef<() => void>(() => {});
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["pessoas"],
@@ -631,6 +641,7 @@ function ParticipantesPage() {
       toast.success(`${n} pessoas atualizadas`);
       invalidate();
       setBulkEditOpen(false);
+      bulkClearRef.current?.();
       setSelected(new Set());
       setBulkFamilia("__noop");
       setBulkStatus("__noop");
