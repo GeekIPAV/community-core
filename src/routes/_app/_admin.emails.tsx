@@ -258,6 +258,7 @@ function TemplateEditor({ template, onSaved }: { template: Template; onSaved: ()
 const SAMPLE: Record<string, string> = {
   pessoa_nome: "Ana Silva",
   pessoa_email: "ana@exemplo.pt",
+  mes: "setembro de 2026",
   acao_nome: "Workshop de fotografia",
   acao_data: "15 de junho, 18:00",
   acao_local: "Sede Meeru, Lisboa",
