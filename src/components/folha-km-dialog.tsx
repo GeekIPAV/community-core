@@ -143,7 +143,7 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
     const W = doc.internal.pageSize.getWidth();
     const gold: [number, number, number] = [230, 168, 68];
 
-    const logo = await loadLogoDataUrl();
+    const logo = await loadImageDataUrl(logoUrl);
     if (logo) {
       try {
         doc.addImage(logo, "PNG", W - 48, 8, 36, 22);
