@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -538,6 +539,7 @@ export function SmartTable<T>({
                 )}`}{" "}
             de {filteredRows.length} resultados
           </span>
+          <TooltipProvider delayDuration={300}>
           <div className="flex items-center gap-1">
             <Select
               value={String(effectivePageSize)}
@@ -557,32 +559,43 @@ export function SmartTable<T>({
                 ))}
               </SelectContent>
             </Select>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              disabled={pageIndex === 0}
-              onClick={() => setPageIndex(Math.max(0, pageIndex - 1))}
-              aria-label="Página anterior"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  disabled={pageIndex === 0}
+                  onClick={() => setPageIndex(Math.max(0, pageIndex - 1))}
+                  aria-label="Página anterior"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Página anterior</TooltipContent>
+            </Tooltip>
             <span className="px-1">
               Pág. {pageIndex + 1} / {totalPages}
             </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              disabled={pageIndex >= totalPages - 1}
-              onClick={() =>
-                setPageIndex(Math.min(totalPages - 1, pageIndex + 1))
-              }
-              aria-label="Página seguinte"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  disabled={pageIndex >= totalPages - 1}
+                  onClick={() =>
+                    setPageIndex(Math.min(totalPages - 1, pageIndex + 1))
+                  }
+                  aria-label="Página seguinte"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Página seguinte</TooltipContent>
+            </Tooltip>
           </div>
+          </TooltipProvider>
         </div>
       )}
       {enableSelection && onBulkEdit && (
