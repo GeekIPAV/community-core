@@ -290,6 +290,8 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
     mutationFn: async () => {
       if (!dados.nome.trim()) throw new Error("Indique o nome da pessoa.");
       if (linhasValidas.length === 0) throw new Error("Adicione pelo menos uma deslocação com KM.");
+      if (!assinatura) throw new Error("A folha tem de estar assinada antes de poder ser enviada.");
+
 
 
       const { data: folha, error } = await supabase
