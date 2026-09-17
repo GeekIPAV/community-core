@@ -692,15 +692,29 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
             <DialogHeader>
               <DialogTitle>Atualizar o seu perfil?</DialogTitle>
               <DialogDescription>
-                Estes dados ainda não estão guardados no seu perfil. Quer guardá-los para aparecerem automaticamente
-                da próxima vez?
+                Escolha quais destes dados, ainda não guardados no seu perfil, quer guardar para aparecerem
+                automaticamente da próxima vez.
               </DialogDescription>
             </DialogHeader>
-            <ul className="list-disc pl-5 text-sm">
+            <div className="space-y-2">
               {camposEmFalta.map((c) => (
-                <li key={c.coluna}>{c.label}</li>
+                <label
+                  key={c.coluna}
+                  className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer hover:bg-muted/50"
+                >
+                  <Checkbox
+                    checked={!!camposSelecionados[c.coluna]}
+                    onCheckedChange={(v) =>
+                      setCamposSelecionados((s) => ({ ...s, [c.coluna]: v === true }))
+                    }
+                  />
+                  <span>{c.label}</span>
+                  <span className="ml-auto max-w-[45%] truncate text-xs text-muted-foreground">
+                    {c.coluna === "assinatura" ? "Desenho" : c.valor}
+                  </span>
+                </label>
               ))}
-            </ul>
+            </div>
             <DialogFooter className="gap-2">
               <Button
                 variant="outline"
@@ -712,13 +726,14 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
                 Não, só enviar
               </Button>
               <Button
+                disabled={camposEmFalta.every((c) => !camposSelecionados[c.coluna])}
                 onClick={async () => {
                   setConfirmarPerfil(false);
                   await atualizarPerfil();
                   submeter.mutate();
                 }}
               >
-                Sim, atualizar perfil
+                Guardar selecionados e enviar
               </Button>
             </DialogFooter>
           </DialogContent>
