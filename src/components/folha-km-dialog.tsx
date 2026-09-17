@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
+import type { jsPDF } from "jspdf";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { enviarFolhaKm } from "@/lib/folha-km.functions";
@@ -11,25 +10,14 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Send, Loader2, Download, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, Trash2, Send, Loader2, Download, Check, ChevronsUpDown, Save } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { KM_RATE, formatEuro } from "@/lib/bolsa-transporte";
-import logoUrl from "@/assets/meeru-logo.png";
 import { SignaturePad } from "@/components/signature-pad";
-import assinaturaFinanceiroUrl from "@/assets/assinatura-financeiro.jpg";
-import assinaturaPresidenteUrl from "@/assets/assinatura-presidente.jpg";
-
-const ENTIDADE = {
-  nome: "Associação para o Desenvolvimento MEERU | Abrir Caminho",
-  morada: "Praça Francisco Sá Carneiro, n.º 271, Galerias Esq.",
-  nif: "515346683",
-};
-
-const DECLARACAO =
-  "A descriminação no presente mapa, referentes a Ajudas de Custo e/ou compensação por uso de viatura própria (quilómetros percorridos), é da minha inteira responsabilidade, tendo sido devidamente conferido antes de apresentado à Entidade Patronal, do qual com a minha assinatura o dou como devidamente quitado.";
+import { DECLARACAO, gerarPdfFolhaKm } from "@/lib/gerar-pdf-folha-km";
 
 type Linha = { id: string; data: string; descricao: string; percurso: string; km: string };
 
@@ -50,26 +38,20 @@ const num = (s: string) => {
   return Number.isFinite(n) ? n : 0;
 };
 
-const fmtData = (d: string) => (d ? new Date(d).toLocaleDateString("pt-PT") : "");
-
-async function loadImageDataUrl(url: string): Promise<string | null> {
-  try {
-    const res = await fetch(url);
-    const blob = await res.blob();
-    return await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(typeof reader.result === "string" ? reader.result : null);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
-    });
-  } catch {
-    return null;
-  }
-}
-
-export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+export function FolhaKmDialog({
+  open,
+  onOpenChange,
+  folhaId,
+  familiaId,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  folhaId?: string;
+  familiaId?: string;
+}) {
   const { pessoa, session } = useAuth();
   const qc = useQueryClient();
+  const modoEdicao = !!folhaId;
   const [dados, setDados] = useState<Pessoa>({ nome: "", morada: "", nif: "", iban: "", matricula: "", email: "" });
   const [linhas, setLinhas] = useState<Linha[]>([novaLinha()]);
   const [prefilled, setPrefilled] = useState(false);
@@ -79,17 +61,20 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   const [camposSelecionados, setCamposSelecionados] = useState<Record<string, boolean>>({});
   const [alvoId, setAlvoId] = useState<string | null>(null);
   const [seletorAberto, setSeletorAberto] = useState(false);
+  const [periodo, setPeriodo] = useState<string | null>(null);
 
   const { data: pessoasLista = [] } = useQuery({
     enabled: open,
-    queryKey: ["folha-km-pessoas"],
+    queryKey: ["folha-km-pessoas", familiaId ?? "todas"],
     queryFn: async () => {
-      const { data } = await supabase
+      let q = supabase
         .from("pessoas")
         .select("id, nome_completo, email")
         .is("deleted_at", null)
         .order("nome_completo")
         .limit(2000);
+      if (familiaId) q = q.eq("familia_id", familiaId);
+      const { data } = await q;
       return data ?? [];
     },
   });
@@ -129,6 +114,62 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
     if (!open || prefilled) return;
     setPrefilled(true);
     (async () => {
+      // Modo edição: carregar a folha existente
+      if (folhaId) {
+        const { data: f } = await supabase.from("folhas_km").select("*").eq("id", folhaId).maybeSingle();
+        if (f) {
+          setDados({
+            nome: f.nome ?? "",
+            morada: f.morada ?? "",
+            nif: f.nif ?? "",
+            iban: f.iban ?? "",
+            matricula: f.matricula ?? "",
+            email: f.email ?? "",
+          });
+          const guardadas = Array.isArray(f.linhas) ? (f.linhas as unknown as Array<Record<string, unknown>>) : [];
+          setLinhas(
+            guardadas.length
+              ? guardadas.map((l) => ({
+                  id: Math.random().toString(36).slice(2),
+                  data: String(l.data ?? ""),
+                  descricao: String(l.descricao ?? ""),
+                  percurso: String(l.percurso ?? ""),
+                  km: String(l.km ?? ""),
+                }))
+              : [novaLinha()]
+          );
+          setPeriodo(f.periodo ?? null);
+          if (f.pessoa_id) {
+            setAlvoId(f.pessoa_id);
+            const { data: p } = await supabase
+              .from("pessoas")
+              .select("nome_completo, email, nif, morada, iban, matricula, assinatura")
+              .eq("id", f.pessoa_id)
+              .maybeSingle();
+            if (p) {
+              setPerfil({
+                nome: p.nome_completo ?? "",
+                morada: p.morada ?? "",
+                nif: p.nif ?? "",
+                iban: p.iban ?? "",
+                matricula: p.matricula ?? "",
+                email: p.email ?? "",
+                assinatura: p.assinatura ?? null,
+              });
+              if (p.assinatura) setAssinatura(p.assinatura);
+            }
+          } else if (familiaId) {
+            const { data: membros } = await supabase
+              .from("pessoas")
+              .select("id")
+              .eq("familia_id", familiaId)
+              .is("deleted_at", null);
+            if (membros && membros.length === 1) await carregarPessoa(membros[0].id);
+          }
+        }
+        return;
+      }
+
       const authEmail = session?.user?.email ?? "";
       let perfilDb: Perfil | null = null;
       if (pessoa?.id) {
@@ -161,7 +202,7 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
         email: perfilDb?.email || authEmail || "",
       });
     })();
-  }, [open, prefilled, pessoa, session]);
+  }, [open, prefilled, pessoa, session, folhaId, familiaId]);
 
   useEffect(() => {
     if (!open) {
@@ -171,6 +212,7 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
       setPerfil(null);
       setConfirmarPerfil(false);
       setAlvoId(null);
+      setPeriodo(null);
     }
   }, [open]);
 
@@ -232,151 +274,65 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   const formularioValido =
     camposPessoaFaltam.length === 0 && linhasValidas.length > 0 && !!assinatura;
 
-  const gerarPdf = async (): Promise<{ doc: jsPDF; base64: string; filename: string }> => {
-    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-    const W = doc.internal.pageSize.getWidth();
-    const gold: [number, number, number] = [230, 168, 68];
-
-    const logo = await loadImageDataUrl(logoUrl);
-    if (logo) {
-      try {
-        doc.addImage(logo, "PNG", W - 48, 8, 36, 22);
-      } catch {
-        /* ignora logo inválido */
-      }
-    }
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(20);
-    doc.text("Folha de KM", W / 2, 18, { align: "center" });
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
-    doc.text("Mapa de Ajudas de Custo e compensação por uso de viatura própria", W / 2, 26, { align: "center" });
-
-    autoTable(doc, {
-      startY: 34,
-      margin: { left: 12, right: W / 2 + 4 },
-      theme: "grid",
-      head: [[{ content: "Identificação da Entidade", colSpan: 2, styles: { halign: "center" } }]],
-      headStyles: { fillColor: gold, textColor: 255, fontStyle: "bold" },
-      styles: { fontSize: 9, cellPadding: 2 },
-      columnStyles: { 0: { fontStyle: "bold", cellWidth: 28 } },
-      body: [
-        ["Nome", ENTIDADE.nome],
-        ["Morada", ENTIDADE.morada],
-        ["NIF", ENTIDADE.nif],
-      ],
+  const gerarPdf = async (): Promise<{ doc: jsPDF; base64: string; filename: string }> =>
+    gerarPdfFolhaKm({
+      dados,
+      linhas: linhasValidas.map((l) => ({
+        data: l.data,
+        descricao: l.descricao,
+        percurso: l.percurso,
+        km: num(l.km),
+        valor: Math.round(num(l.km) * rate * 100) / 100,
+      })),
+      totalKm,
+      totalValor,
+      valorKm: rate,
+      assinatura,
     });
 
-    autoTable(doc, {
-      startY: 34,
-      margin: { left: W / 2 + 4, right: 12 },
-      theme: "grid",
-      head: [[{ content: "Identificação da Pessoa", colSpan: 2, styles: { halign: "center" } }]],
-      headStyles: { fillColor: gold, textColor: 255, fontStyle: "bold" },
-      styles: { fontSize: 9, cellPadding: 2 },
-      columnStyles: { 0: { fontStyle: "bold", cellWidth: 28 } },
-      body: [
-        ["Nome", dados.nome],
-        ["Morada", dados.morada],
-        ["NIF", dados.nif],
-        ["IBAN", dados.iban],
-        ["Matrícula", dados.matricula],
-      ],
-    });
+  const payloadLinhas = () =>
+    linhasValidas.map((l) => ({
+      data: l.data,
+      descricao: l.descricao,
+      percurso: l.percurso,
+      km: num(l.km),
+      valor: Math.round(num(l.km) * rate * 100) / 100,
+    }));
 
-    const y1 = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
+  const payloadFolha = () => ({
+    pessoa_id: alvoId ?? pessoa?.id ?? null,
+    nome: dados.nome,
+    morada: dados.morada || null,
+    nif: dados.nif || null,
+    iban: dados.iban || null,
+    matricula: dados.matricula || null,
+    email: dados.email || null,
+    valor_km: rate,
+    linhas: payloadLinhas(),
+    total_km: totalKm,
+    total_valor: totalValor,
+  });
 
-    autoTable(doc, {
-      startY: y1,
-      margin: { left: 12, right: W / 2 + 4 },
-      theme: "grid",
-      head: [[{ content: "Valores de Referência", colSpan: 2, styles: { halign: "center" } }]],
-      headStyles: { fillColor: gold, textColor: 255, fontStyle: "bold" },
-      styles: { fontSize: 9, cellPadding: 2 },
-      columnStyles: { 0: { fontStyle: "bold", cellWidth: 28 } },
-      body: [["Por KM", formatEuro(rate)]],
-    });
-
-    autoTable(doc, {
-      startY: y1,
-      margin: { left: W / 2 + 4, right: 12 },
-      theme: "grid",
-      head: [[{ content: "Valores totais", colSpan: 2, styles: { halign: "center" } }]],
-      headStyles: { fillColor: gold, textColor: 255, fontStyle: "bold" },
-      styles: { fontSize: 9, cellPadding: 2 },
-      columnStyles: { 0: { fontStyle: "bold", cellWidth: 40 } },
-      body: [[`${totalKm.toLocaleString("pt-PT")} km`, formatEuro(totalValor)]],
-    });
-
-    const y2 = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
-
-    autoTable(doc, {
-      startY: y2,
-      margin: { left: 12, right: 12 },
-      theme: "grid",
-      head: [["Data", "Descrição da deslocação", "Percurso", "Total KM", "Valor (€)"]],
-      headStyles: { fillColor: gold, textColor: 255, fontStyle: "bold", halign: "center" },
-      styles: { fontSize: 9, cellPadding: 2 },
-      columnStyles: {
-        0: { cellWidth: 26, halign: "center" },
-        3: { cellWidth: 24, halign: "center" },
-        4: { cellWidth: 28, halign: "right" },
-      },
-      body: linhasValidas.map((l) => [
-        fmtData(l.data),
-        l.descricao,
-        l.percurso,
-        num(l.km).toLocaleString("pt-PT"),
-        formatEuro(Math.round(num(l.km) * rate * 100) / 100),
-      ]),
-      foot: [["", "", "Total", totalKm.toLocaleString("pt-PT"), formatEuro(totalValor)]],
-      footStyles: { fillColor: [245, 245, 245], textColor: 20, fontStyle: "bold", halign: "right" },
-    });
-
-    const y3 = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
-    doc.setFontSize(8);
-    doc.text(doc.splitTextToSize(DECLARACAO, W - 24), 12, y3);
-
-    doc.setFontSize(9);
-    const ySig = Math.min(y3 + 30, doc.internal.pageSize.getHeight() - 20);
-    doc.text("Assinatura:", 12, ySig);
-    doc.text("Diretor Financeiro:", W / 2 - 30, ySig + 10);
-    doc.text("Presidente da Direção:", W / 2 - 30, ySig + 20);
-
-    const [assFin, assPres] = await Promise.all([
-      loadImageDataUrl(assinaturaFinanceiroUrl),
-      loadImageDataUrl(assinaturaPresidenteUrl),
-    ]);
-    const xAss = W / 2 + 2;
-    if (assFin) {
-      try {
-        doc.addImage(assFin, "JPEG", xAss, ySig + 2, 46, 15);
-      } catch {
-        /* ignora assinatura inválida */
-      }
-    }
-    if (assinatura) {
-      try {
-        doc.addImage(assinatura, "PNG", 30, ySig - 14, 46, 15);
-      } catch {
-        /* ignora assinatura inválida */
-      }
-    }
-    if (assPres) {
-      try {
-        doc.addImage(assPres, "JPEG", xAss, ySig + 13, 46, 10);
-      } catch {
-        /* ignora assinatura inválida */
-      }
-    }
-
-    const dataUri = doc.output("datauristring");
-    const base64 = dataUri.split(",")[1] ?? "";
-    const slug = dados.nome.toLowerCase().normalize("NFD").replace(/[^\w]+/g, "-").replace(/(^-|-$)/g, "");
-    const filename = `folha-km-${slug || "meeru"}-${new Date().toISOString().slice(0, 10)}.pdf`;
-    return { doc, base64, filename };
-  };
+  const guardar = useMutation({
+    mutationFn: async () => {
+      if (!folhaId) return;
+      if (camposPessoaFaltam.length > 0)
+        throw new Error(`Preencha todos os campos: ${camposPessoaFaltam.join(", ")}.`);
+      if (linhasValidas.length === 0)
+        throw new Error("Adicione pelo menos uma linha preenchida (data, descrição, percurso e KM).");
+      const { error } = await supabase
+        .from("folhas_km")
+        .update({ ...payloadFolha(), updated_at: new Date().toISOString() })
+        .eq("id", folhaId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Folha de KM guardada.");
+      qc.invalidateQueries({ queryKey: ["folhas-km"] });
+      onOpenChange(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const submeter = useMutation({
     mutationFn: async () => {
@@ -386,42 +342,32 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
         throw new Error("Adicione pelo menos uma linha preenchida (data, descrição, percurso e KM).");
       if (!assinatura) throw new Error("A folha tem de estar assinada antes de poder ser enviada.");
 
-
-
-      const { data: folha, error } = await supabase
-        .from("folhas_km")
-        .insert({
-          pessoa_id: alvoId ?? pessoa?.id ?? null,
-          auth_user_id: session?.user?.id ?? null,
-          nome: dados.nome,
-          morada: dados.morada || null,
-          nif: dados.nif || null,
-          iban: dados.iban || null,
-          matricula: dados.matricula || null,
-          email: dados.email || null,
-          valor_km: rate,
-          linhas: linhasValidas.map((l) => ({
-            data: l.data,
-            descricao: l.descricao,
-            percurso: l.percurso,
-            km: num(l.km),
-            valor: Math.round(num(l.km) * rate * 100) / 100,
-          })),
-          total_km: totalKm,
-          total_valor: totalValor,
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
+      let id = folhaId;
+      if (folhaId) {
+        const { error } = await supabase
+          .from("folhas_km")
+          .update({ ...payloadFolha(), updated_at: new Date().toISOString() })
+          .eq("id", folhaId);
+        if (error) throw error;
+      } else {
+        const { data: folha, error } = await supabase
+          .from("folhas_km")
+          .insert({ ...payloadFolha(), auth_user_id: session?.user?.id ?? null })
+          .select("id")
+          .single();
+        if (error) throw error;
+        id = folha.id;
+      }
 
       const { doc, base64, filename } = await gerarPdf();
       doc.save(filename);
 
       await enviarFolhaKm({
         data: {
-          folhaId: folha.id,
+          folhaId: id!,
           nome: dados.nome,
           emailPessoa: dados.email || session?.user?.email || null,
+          periodo,
           totalKm,
           totalValor,
           ficheiroNome: filename,
@@ -636,6 +582,16 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
               assine a folha.
             </p>
           )}
+          {modoEdicao && (
+            <Button
+              variant="secondary"
+              onClick={() => guardar.mutate()}
+              disabled={guardar.isPending || camposPessoaFaltam.length > 0 || linhasValidas.length === 0}
+            >
+              {guardar.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              Guardar alterações
+            </Button>
+          )}
           <Button
             onClick={() => {
               if (camposEmFalta.length > 0) {
@@ -648,7 +604,7 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
             disabled={submeter.isPending || !formularioValido}
           >
             {submeter.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-            Gerar e enviar
+            {modoEdicao ? "Guardar e enviar" : "Gerar e enviar"}
           </Button>
         </DialogFooter>
 
