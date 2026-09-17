@@ -23,14 +23,13 @@ import {
 } from "@/components/ui/dialog";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, Pencil, Plus, Trash2, Mail, Phone, MapPin, Cake, Briefcase, Globe, HeartHandshake, Users, IdCard, ShieldCheck, Heart, Search } from "lucide-react";
+import { ChevronDown, ChevronRight, Pencil, Plus, Trash2, Mail, Phone, MapPin, Cake, Briefcase, Globe, HeartHandshake, Users, IdCard, ShieldCheck, Heart } from "lucide-react";
 import { EtiquetasPicker } from "@/components/etiquetas-picker";
 import { AcoesHoverSummary } from "@/components/acoes-hover-summary";
 import { CurriculoSection } from "@/components/curriculo-section";
 import { InviteMemberButton } from "@/components/invite-member";
 import type { VisibilityState } from "@tanstack/react-table";
 import { SmartTable, type SmartColumnDef } from "@/components/smart-table";
-import { useMobileColumnVisibility } from "@/hooks/use-mobile-columns";
 import { personIcon, flagFor } from "@/lib/person-display";
 import { applyOptimisticRowPatch, rollbackOptimisticRows } from "@/lib/optimistic-row-update";
 import { handleSupabaseError } from "@/lib/handle-supabase-error";
@@ -146,7 +145,6 @@ const emptyForm: Omit<Pessoa, "id" | "status"> & { status?: string } = {
 
 function ParticipantesPage() {
   const qc = useQueryClient();
-  const [q, setQ] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const [addOpen, setAddOpen] = useState(false);
@@ -178,7 +176,6 @@ function ParticipantesPage() {
   const [bulkProjetos, setBulkProjetos] = useState<string[]>([]);
 
   const [deleteOne, setDeleteOne] = useState<Pessoa | null>(null);
-  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const bulkClearRef = useRef<() => void>(() => {});
 
   const { data, isLoading, error } = useQuery({
