@@ -38,9 +38,20 @@ const num = (s: string) => {
   return Number.isFinite(n) ? n : 0;
 };
 
-export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+export function FolhaKmDialog({
+  open,
+  onOpenChange,
+  folhaId,
+  familiaId,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  folhaId?: string;
+  familiaId?: string;
+}) {
   const { pessoa, session } = useAuth();
   const qc = useQueryClient();
+  const modoEdicao = !!folhaId;
   const [dados, setDados] = useState<Pessoa>({ nome: "", morada: "", nif: "", iban: "", matricula: "", email: "" });
   const [linhas, setLinhas] = useState<Linha[]>([novaLinha()]);
   const [prefilled, setPrefilled] = useState(false);
@@ -50,17 +61,20 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   const [camposSelecionados, setCamposSelecionados] = useState<Record<string, boolean>>({});
   const [alvoId, setAlvoId] = useState<string | null>(null);
   const [seletorAberto, setSeletorAberto] = useState(false);
+  const [periodo, setPeriodo] = useState<string | null>(null);
 
   const { data: pessoasLista = [] } = useQuery({
     enabled: open,
-    queryKey: ["folha-km-pessoas"],
+    queryKey: ["folha-km-pessoas", familiaId ?? "todas"],
     queryFn: async () => {
-      const { data } = await supabase
+      let q = supabase
         .from("pessoas")
         .select("id, nome_completo, email")
         .is("deleted_at", null)
         .order("nome_completo")
         .limit(2000);
+      if (familiaId) q = q.eq("familia_id", familiaId);
+      const { data } = await q;
       return data ?? [];
     },
   });
