@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { useVoluntariosLookup } from "@/components/registar-atividade-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -60,6 +61,7 @@ export function CasoNovoSheet({
   const [objetivo, setObjetivo] = useState("");
   const [prioridade, setPrioridade] = useState("Normal");
   const [mediadoraId, setMediadoraId] = useState<string>("");
+  const [voluntarioId, setVoluntarioId] = useState<string>("");
   const [objetivos, setObjetivos] = useState<string[]>([]);
   const [novoObjetivo, setNovoObjetivo] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -73,7 +75,7 @@ export function CasoNovoSheet({
       setPessoaId(lockedPessoaId ?? "");
       setFamiliaIdSel(lockedPessoaId ? "" : (familiaId ?? ""));
       setArea(""); setTitulo(""); setDescricao(""); setObjetivo("");
-      setPrioridade("Normal"); setMediadoraId(""); setObjetivos([]); setNovoObjetivo("");
+      setPrioridade("Normal"); setMediadoraId(""); setVoluntarioId(""); setObjetivos([]); setNovoObjetivo("");
     }
   }, [open, lockedPessoaId, familiaId]);
 
@@ -94,6 +96,8 @@ export function CasoNovoSheet({
       return (data ?? []) as Pessoa[];
     },
   });
+
+  const { data: voluntarios } = useVoluntariosLookup(open && mode === "staff");
 
   const { data: equipa } = useQuery({
     enabled: open && mode === "staff",
@@ -190,6 +194,7 @@ export function CasoNovoSheet({
         prioridade: isAuto ? "Normal" : prioridade,
         estado: isAuto ? "Novo" : (mediadoraId ? "Em análise" : "Novo"),
         mediadora_id: isAuto ? null : (mediadoraId || null),
+        voluntario_id: isAuto ? null : (voluntarioId || null),
         created_by_auth_id: session?.user?.id ?? null,
       };
       const { data: caso, error } = await supabase
@@ -418,6 +423,19 @@ export function CasoNovoSheet({
                     <SelectItem value="_none">— Por atribuir —</SelectItem>
                     {(equipa ?? []).map((m) => (
                       <SelectItem key={m.id} value={m.id}>{m.nome_completo}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Voluntário/a acompanhante</Label>
+                <Select value={voluntarioId} onValueChange={(v) => setVoluntarioId(v === "_none" ? "" : v)}>
+                  <SelectTrigger><SelectValue placeholder="Sem voluntário/a" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">— Sem voluntário/a —</SelectItem>
+                    {(voluntarios ?? []).map((v) => (
+                      <SelectItem key={v.id} value={v.id}>{v.nome_completo}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

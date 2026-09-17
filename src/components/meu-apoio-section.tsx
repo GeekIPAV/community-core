@@ -121,10 +121,10 @@ function MyCasoCard({ caso, pessoaId }: { caso: any; pessoaId: string }) {
       </div>
 
       {caso.mediadora?.nome_completo ? (
-        <div className="text-sm">A tua mediadora: <span className="font-medium">{caso.mediadora.nome_completo}</span></div>
+        <div className="text-sm">O teu mediador/a: <span className="font-medium">{caso.mediadora.nome_completo}</span></div>
       ) : (
         <div className="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-300">
-          <Clock className="h-3.5 w-3.5" /> A aguardar atribuição de mediadora
+          <Clock className="h-3.5 w-3.5" /> A aguardar atribuição de mediador/a
         </div>
       )}
 
@@ -150,7 +150,7 @@ function MyCasoCard({ caso, pessoaId }: { caso: any; pessoaId: string }) {
       {!concluido && (
         <div className="border-t pt-3 space-y-2">
           <Textarea rows={2} value={resposta} onChange={(e) => setResposta(e.target.value)}
-            placeholder="Escreve uma resposta para a tua mediadora…" />
+            placeholder="Escreve uma resposta para o teu mediador/a…" />
           <div className="flex justify-end">
             <Button size="sm" onClick={() => enviar.mutate()} disabled={!resposta.trim() || enviar.isPending}>
               Enviar resposta
