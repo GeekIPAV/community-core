@@ -382,14 +382,7 @@ function DadosSection({ pessoa, isEquipa, onSaved }: { pessoa: PessoaFull; isEqu
             <div className="space-y-1"><Label>Matrícula</Label><Input value={field("matricula")} onChange={(e) => set("matricula", e.target.value.toUpperCase())} placeholder="AA-00-AA" /></div>
             <div className="md:col-span-2 space-y-1">
               <Label>Assinatura</Label>
-              {form.assinatura ? (
-                <div className="space-y-2">
-                  <img src={form.assinatura} alt="Assinatura" className="h-20 rounded border bg-white object-contain" />
-                  <Button type="button" variant="outline" size="sm" onClick={() => set("assinatura", null)}>Remover assinatura</Button>
-                </div>
-              ) : (
-                <SignaturePad value={null} onChange={(v) => set("assinatura", v)} />
-              )}
+              <SignaturePad value={form.assinatura ?? null} onChange={(v) => set("assinatura", v)} />
             </div>
           </>
         )}
