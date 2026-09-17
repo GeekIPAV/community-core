@@ -241,9 +241,26 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   };
 
   const rate = KM_RATE;
-  const linhasValidas = useMemo(() => linhas.filter((l) => num(l.km) > 0), [linhas]);
+  const linhaCompleta = (l: Linha) =>
+    !!l.data.trim() && !!l.descricao.trim() && !!l.percurso.trim() && num(l.km) > 0;
+  const linhasValidas = useMemo(() => linhas.filter(linhaCompleta), [linhas]);
   const totalKm = useMemo(() => linhasValidas.reduce((s, l) => s + num(l.km), 0), [linhasValidas]);
   const totalValor = useMemo(() => Math.round(totalKm * rate * 100) / 100, [totalKm, rate]);
+
+  const camposPessoaObrigatorios: Array<{ chave: keyof Pessoa; label: string }> = [
+    { chave: "nome", label: "Nome" },
+    { chave: "morada", label: "Morada" },
+    { chave: "nif", label: "NIF" },
+    { chave: "iban", label: "IBAN" },
+    { chave: "matricula", label: "Matrícula" },
+    { chave: "email", label: "Email" },
+  ];
+  const camposPessoaFaltam = useMemo(
+    () => camposPessoaObrigatorios.filter((c) => !dados[c.chave].trim()).map((c) => c.label),
+    [dados]
+  );
+  const formularioValido =
+    camposPessoaFaltam.length === 0 && linhasValidas.length > 0 && !!assinatura;
 
   const gerarPdf = async (): Promise<{ doc: jsPDF; base64: string; filename: string }> => {
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
@@ -393,8 +410,10 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
 
   const submeter = useMutation({
     mutationFn: async () => {
-      if (!dados.nome.trim()) throw new Error("Indique o nome da pessoa.");
-      if (linhasValidas.length === 0) throw new Error("Adicione pelo menos uma deslocação com KM.");
+      if (camposPessoaFaltam.length > 0)
+        throw new Error(`Preencha todos os campos: ${camposPessoaFaltam.join(", ")}.`);
+      if (linhasValidas.length === 0)
+        throw new Error("Adicione pelo menos uma linha preenchida (data, descrição, percurso e KM).");
       if (!assinatura) throw new Error("A folha tem de estar assinada antes de poder ser enviada.");
 
 
@@ -499,23 +518,23 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="space-y-1 sm:col-span-2">
-              <Label className="text-xs">Nome</Label>
+              <Label className="text-xs">Nome *</Label>
               <Input value={dados.nome} onChange={(e) => setDados({ ...dados, nome: e.target.value })} />
             </div>
             <div className="space-y-1 sm:col-span-2">
-              <Label className="text-xs">Morada</Label>
+              <Label className="text-xs">Morada *</Label>
               <Input value={dados.morada} onChange={(e) => setDados({ ...dados, morada: e.target.value })} />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">NIF</Label>
+              <Label className="text-xs">NIF *</Label>
               <Input value={dados.nif} onChange={(e) => setDados({ ...dados, nif: e.target.value })} />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">IBAN</Label>
+              <Label className="text-xs">IBAN *</Label>
               <Input value={dados.iban} onChange={(e) => setDados({ ...dados, iban: e.target.value })} />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Matrícula</Label>
+              <Label className="text-xs">Matrícula *</Label>
               <Input
                 value={dados.matricula}
                 onChange={(e) => setDados({ ...dados, matricula: e.target.value.toUpperCase() })}
@@ -523,7 +542,7 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Email</Label>
+              <Label className="text-xs">Email *</Label>
               <Input value={dados.email} onChange={(e) => setDados({ ...dados, email: e.target.value })} />
             </div>
           </div>
@@ -641,12 +660,18 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
           >
             <Download className="mr-2 h-4 w-4" /> Pré-visualizar PDF
           </Button>
+          {!formularioValido && (
+            <p className="text-xs text-destructive">
+              Preencha todos os campos, adicione pelo menos uma linha completa (data, descrição, percurso e KM) e
+              assine a folha.
+            </p>
+          )}
           <Button
             onClick={() => {
               if (camposEmFalta.length > 0) setConfirmarPerfil(true);
               else submeter.mutate();
             }}
-            disabled={submeter.isPending || !assinatura}
+            disabled={submeter.isPending || !formularioValido}
           >
             {submeter.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
             Gerar e enviar
