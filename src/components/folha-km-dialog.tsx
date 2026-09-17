@@ -67,12 +67,32 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   const [linhas, setLinhas] = useState<Linha[]>([novaLinha()]);
   const [prefilled, setPrefilled] = useState(false);
 
-  // Pré-preenchimento: dados guardados > perfil/colaborador
+  // Pré-preenchimento: última folha do próprio utilizador > perfil/colaborador
   useEffect(() => {
     if (!open || prefilled) return;
     setPrefilled(true);
     (async () => {
-      const base: Pessoa = guardado ?? { nome: "", morada: "", nif: "", iban: "", matricula: "", email: "" };
+      const authId = session?.user?.id ?? null;
+      let base: Pessoa = { nome: "", morada: "", nif: "", iban: "", matricula: "", email: "" };
+      if (authId) {
+        const { data: ultima } = await supabase
+          .from("folhas_km")
+          .select("nome, morada, nif, iban, matricula, email")
+          .eq("auth_user_id", authId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (ultima) {
+          base = {
+            nome: ultima.nome ?? "",
+            morada: ultima.morada ?? "",
+            nif: ultima.nif ?? "",
+            iban: ultima.iban ?? "",
+            matricula: ultima.matricula ?? "",
+            email: ultima.email ?? "",
+          };
+        }
+      }
       const authEmail = session?.user?.email ?? "";
       let fromDb: Partial<Pessoa> = {};
       if (pessoa?.id) {
