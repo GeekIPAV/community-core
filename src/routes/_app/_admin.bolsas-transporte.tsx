@@ -1632,21 +1632,39 @@ function BolsasTransportePage() {
               </CardTitle>
               <CardDescription>Folhas individuais submetidas por cada pessoa.</CardDescription>
             </CardHeader>
-            <CardContent className="p-0 overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Pessoa</TableHead>
-                  <TableHead>Período</TableHead>
-                  <TableHead>Criada em</TableHead>
-                  <TableHead className="text-right">KM</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="w-28 text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(folhasKm ?? []).map((f) => (
+            <CardContent className="p-0">
+              <div className="flex flex-col md:flex-row gap-2 px-4 py-3 border-b">
+                <Input
+                  placeholder="Pesquisar pessoa…"
+                  value={folhaSearch}
+                  onChange={(e) => setFolhaSearch(e.target.value)}
+                  className="md:max-w-xs"
+                />
+                <Select value={folhaEstadoFilter} onValueChange={(v) => setFolhaEstadoFilter(v as typeof folhaEstadoFilter)}>
+                  <SelectTrigger className="md:w-44"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os estados</SelectItem>
+                    <SelectItem value="rascunho">Rascunho</SelectItem>
+                    <SelectItem value="enviada">Enviada</SelectItem>
+                    <SelectItem value="erro_envio">Erro no envio</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Pessoa</TableHead>
+                    <TableHead>Período</TableHead>
+                    <TableHead>Criada em</TableHead>
+                    <TableHead className="text-right">KM</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead>Estado de envio</TableHead>
+                    <TableHead className="w-28 text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {folhasFiltered.map((f) => (
                   <TableRow key={f.id}>
                     <TableCell className="font-medium whitespace-nowrap">{f.nome}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{f.periodo ?? "—"}</TableCell>
