@@ -38,6 +38,8 @@ export function CommandPalette({
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
   const { isAdmin, isStaff } = useAuth();
+  const roles = useEffectiveRoles();
+  const { data: sidebarData } = useSidebarConfig();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -80,10 +82,28 @@ export function CommandPalette({
     },
   });
 
-  const navItems = useMemo(
-    () => NAV.filter((n) => !n.admin || isAdmin || isStaff),
-    [isAdmin, isStaff],
-  );
+  const navItems = useMemo(() => {
+    const src = sidebarData ?? { groups: FALLBACK_GROUPS, items: FALLBACK_ITEMS };
+    const visibleGroups = src.groups
+      .filter((g) => g.is_visible && canSee(g.visible_to, roles))
+      .sort((a, b) => a.position - b.position);
+    const out: { key: string; label: string; to: string; icon: string; group: string }[] = [];
+    for (const g of visibleGroups) {
+      const its = src.items
+        .filter((i) => i.group_id === g.id && i.is_visible && canSee(i.visible_to, roles))
+        .sort((a, b) => a.position - b.position);
+      for (const it of its) {
+        out.push({
+          key: it.id,
+          label: it.sub_group ? `${it.sub_group} · ${it.label}` : it.label,
+          to: it.url,
+          icon: it.icon,
+          group: g.label,
+        });
+      }
+    }
+    return out;
+  }, [sidebarData, roles]);
 
   const go = (to: string, params?: Record<string, string>) => {
     setOpen(false);
@@ -98,9 +118,10 @@ export function CommandPalette({
         <CommandEmpty>Nada encontrado.</CommandEmpty>
         <CommandGroup heading="Páginas">
           {navItems.map((n) => (
-            <CommandItem key={n.to} value={`page-${n.label}`} onSelect={() => go(n.to)}>
-              <n.icon className="mr-2 h-4 w-4" />
-              {n.label}
+            <CommandItem key={n.key} value={`page-${n.group}-${n.label}`} onSelect={() => go(n.to)}>
+              <span className="mr-2">{renderIcon(n.icon)}</span>
+              <span className="flex-1 truncate">{n.label}</span>
+              <span className="ml-2 text-xs text-muted-foreground">{n.group}</span>
             </CommandItem>
           ))}
         </CommandGroup>
