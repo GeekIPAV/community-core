@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Send, Loader2, Download } from "lucide-react";
+import { Plus, Trash2, Send, Loader2, Download, Check, ChevronsUpDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { KM_RATE, formatEuro } from "@/lib/bolsa-transporte";
 import logoUrl from "@/assets/meeru-logo.png";
@@ -72,6 +75,52 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   const [assinatura, setAssinatura] = useState<string | null>(null);
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [confirmarPerfil, setConfirmarPerfil] = useState(false);
+  const [alvoId, setAlvoId] = useState<string | null>(null);
+  const [seletorAberto, setSeletorAberto] = useState(false);
+
+  const { data: pessoasLista = [] } = useQuery({
+    enabled: open,
+    queryKey: ["folha-km-pessoas"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("pessoas")
+        .select("id, nome_completo, email")
+        .is("deleted_at", null)
+        .order("nome_completo")
+        .limit(2000);
+      return data ?? [];
+    },
+  });
+
+  const carregarPessoa = async (id: string) => {
+    const { data: p } = await supabase
+      .from("pessoas")
+      .select("nome_completo, email, nif, morada, iban, matricula, assinatura")
+      .eq("id", id)
+      .maybeSingle();
+    if (!p) return;
+    const perfilDb: Perfil = {
+      nome: p.nome_completo ?? "",
+      morada: p.morada ?? "",
+      nif: p.nif ?? "",
+      iban: p.iban ?? "",
+      matricula: p.matricula ?? "",
+      email: p.email ?? "",
+      assinatura: p.assinatura ?? null,
+    };
+    setAlvoId(id);
+    setPerfil(perfilDb);
+    setAssinatura(perfilDb.assinatura);
+    setDados({
+      nome: perfilDb.nome,
+      morada: perfilDb.morada,
+      nif: perfilDb.nif,
+      iban: perfilDb.iban,
+      matricula: perfilDb.matricula,
+      email: perfilDb.email,
+    });
+  };
+
 
   // Pré-preenchimento: perfil da pessoa > última folha > colaborador
   useEffect(() => {
@@ -126,6 +175,7 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
           setPerfil(perfilDb);
           if (p.assinatura) setAssinatura(p.assinatura);
         }
+        setAlvoId(pessoa.id);
         fromDb = {
           nome: c?.nome_completo ?? "",
           email: c?.email ?? "",
@@ -153,6 +203,7 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
       setAssinatura(null);
       setPerfil(null);
       setConfirmarPerfil(false);
+      setAlvoId(null);
     }
   }, [open]);
 
@@ -160,7 +211,7 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
 
   // Campos em falta no perfil que estão preenchidos no formulário
   const camposEmFalta = useMemo(() => {
-    if (!pessoa?.id) return [] as Array<{ coluna: string; label: string; valor: string }>;
+    if (!alvoId) return [] as Array<{ coluna: string; label: string; valor: string }>;
     const alvos: Array<{ coluna: keyof Perfil; label: string; valor: string }> = [
       { coluna: "morada", label: "Morada", valor: dados.morada },
       { coluna: "nif", label: "NIF", valor: dados.nif },
@@ -174,13 +225,13 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
       lista.push({ coluna: "assinatura", label: "Assinatura", valor: assinatura });
     }
     return lista;
-  }, [dados, perfil, assinatura, pessoa]);
+  }, [dados, perfil, assinatura, alvoId]);
 
   const atualizarPerfil = async () => {
-    if (!pessoa?.id || camposEmFalta.length === 0) return;
+    if (!alvoId || camposEmFalta.length === 0) return;
     const patch: Record<string, string> = {};
     for (const c of camposEmFalta) patch[c.coluna] = c.valor;
-    const { error } = await supabase.from("pessoas").update(patch as never).eq("id", pessoa.id);
+    const { error } = await supabase.from("pessoas").update(patch as never).eq("id", alvoId);
     if (error) {
       toast.error("Não foi possível atualizar o perfil.");
       return;
@@ -351,7 +402,7 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
       const { data: folha, error } = await supabase
         .from("folhas_km")
         .insert({
-          pessoa_id: pessoa?.id ?? null,
+          pessoa_id: alvoId ?? pessoa?.id ?? null,
           auth_user_id: session?.user?.id ?? null,
           nome: dados.nome,
           morada: dados.morada || null,
@@ -409,7 +460,43 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
         </DialogHeader>
 
         <div className="rounded-md border p-3 space-y-2">
-          <p className="text-sm font-semibold">Identificação da Pessoa</p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-semibold">Identificação da Pessoa</p>
+            <Popover open={seletorAberto} onOpenChange={setSeletorAberto}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="justify-between gap-2">
+                  {alvoId && alvoId !== pessoa?.id ? dados.nome || "Outra pessoa" : "Selecionar outra pessoa"}
+                  <ChevronsUpDown className="h-3.5 w-3.5 opacity-60" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-0" align="end">
+                <Command>
+                  <CommandInput placeholder="Procurar pessoa…" />
+                  <CommandList>
+                    <CommandEmpty>Sem resultados.</CommandEmpty>
+                    <CommandGroup>
+                      {pessoasLista.map((p) => (
+                        <CommandItem
+                          key={p.id}
+                          value={`${p.nome_completo ?? ""} ${p.email ?? ""}`}
+                          onSelect={async () => {
+                            setSeletorAberto(false);
+                            await carregarPessoa(p.id);
+                          }}
+                        >
+                          <Check className={cn("mr-2 h-4 w-4", alvoId === p.id ? "opacity-100" : "opacity-0")} />
+                          <span className="truncate">
+                            {p.nome_completo}
+                            {p.email ? <span className="text-muted-foreground"> · {p.email}</span> : null}
+                          </span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="space-y-1 sm:col-span-2">
               <Label className="text-xs">Nome</Label>
