@@ -107,10 +107,7 @@ export function CasoNovoSheet({
         .order("nome_completo");
       if (error) throw error;
       return ((data ?? []) as any[])
-        .filter((p) => {
-          const tipo = (p.tipos_user?.nome ?? "").toLowerCase();
-          return p.is_admin || tipo === "equipa" || tipo === "admin";
-        })
+        .filter((p) => ((p.tipos_user as any)?.nome ?? "").toLowerCase() === "equipa")
         .map((p) => ({ id: p.id as string, nome_completo: p.nome_completo as string }));
     },
   });
