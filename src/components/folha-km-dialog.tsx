@@ -470,6 +470,11 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
 
         <p className="text-[11px] leading-relaxed text-muted-foreground">{DECLARACAO}</p>
 
+        <div className="space-y-2">
+          <Label className="text-xs">Assinatura</Label>
+          <SignaturePad value={assinatura} onChange={setAssinatura} />
+        </div>
+
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button
