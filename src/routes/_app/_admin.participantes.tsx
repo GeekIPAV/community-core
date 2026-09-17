@@ -1634,15 +1634,23 @@ function PessoaPerfil({
   const isAdmin = pessoaExtra?.is_admin ?? pessoa.is_admin ?? false;
 
   const qcPerfil = useQueryClient();
+  const [assinaturaLocal, setAssinaturaLocal] = useState<string | null>(pessoa.assinatura ?? null);
+  useEffect(() => {
+    setAssinaturaLocal(pessoa.assinatura ?? null);
+  }, [pessoa.id, pessoa.assinatura]);
   const saveAssinatura = useMutation({
     mutationFn: async (assinatura: string | null) => {
       const { error } = await supabase.from("pessoas").update({ assinatura }).eq("id", pessoa.id);
       if (error) throw error;
+      return assinatura;
     },
-    onSuccess: () => {
+    onSuccess: (assinatura) => {
+      setAssinaturaLocal(assinatura);
       toast.success("Assinatura atualizada.");
       qcPerfil.invalidateQueries({ queryKey: ["pessoas"] });
       qcPerfil.invalidateQueries({ queryKey: ["participantes"] });
+      qcPerfil.invalidateQueries({ queryKey: ["pessoa-perfil", pessoa.id] });
+      qcPerfil.invalidateQueries({ queryKey: ["folhas-km"] });
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao guardar a assinatura."),
   });
@@ -1728,8 +1736,12 @@ function PessoaPerfil({
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground">Assinatura</p>
             <SignaturePad
-              value={pessoa.assinatura ?? null}
-              onChange={(dataUrl) => saveAssinatura.mutate(dataUrl)}
+              key={assinaturaLocal ?? "vazio"}
+              value={assinaturaLocal}
+              onChange={(dataUrl) => {
+                setAssinaturaLocal(dataUrl);
+                saveAssinatura.mutate(dataUrl);
+              }}
             />
           </div>
         </div>
