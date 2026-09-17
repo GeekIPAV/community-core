@@ -124,45 +124,18 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   };
 
 
-  // Pré-preenchimento: perfil da pessoa > última folha > colaborador
+  // Pré-preenchimento: exclusivamente os dados do perfil da pessoa
   useEffect(() => {
     if (!open || prefilled) return;
     setPrefilled(true);
     (async () => {
-      const authId = session?.user?.id ?? null;
-      let base: Pessoa = { nome: "", morada: "", nif: "", iban: "", matricula: "", email: "" };
-      if (authId) {
-        const { data: ultima } = await supabase
-          .from("folhas_km")
-          .select("nome, morada, nif, iban, matricula, email")
-          .eq("auth_user_id", authId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (ultima) {
-          base = {
-            nome: ultima.nome ?? "",
-            morada: ultima.morada ?? "",
-            nif: ultima.nif ?? "",
-            iban: ultima.iban ?? "",
-            matricula: ultima.matricula ?? "",
-            email: ultima.email ?? "",
-          };
-        }
-      }
       const authEmail = session?.user?.email ?? "";
-      let fromDb: Partial<Pessoa> = {};
       let perfilDb: Perfil | null = null;
       if (pessoa?.id) {
         const { data: p } = await supabase
           .from("pessoas")
           .select("nome_completo, email, nif, morada, iban, matricula, assinatura")
           .eq("id", pessoa.id)
-          .maybeSingle();
-        const { data: c } = await supabase
-          .from("colaboradores")
-          .select("nome_completo, email, nif, morada, iban, matricula")
-          .eq("pessoa_id", pessoa.id)
           .maybeSingle();
         if (p) {
           perfilDb = {
@@ -178,22 +151,14 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
           if (p.assinatura) setAssinatura(p.assinatura);
         }
         setAlvoId(pessoa.id);
-        fromDb = {
-          nome: c?.nome_completo ?? "",
-          email: c?.email ?? "",
-          nif: c?.nif ?? "",
-          morada: c?.morada ?? "",
-          iban: c?.iban ?? "",
-          matricula: c?.matricula ?? "",
-        };
       }
       setDados({
-        nome: perfilDb?.nome || base.nome || fromDb.nome || pessoa?.nome_completo || "",
-        morada: perfilDb?.morada || base.morada || fromDb.morada || "",
-        nif: perfilDb?.nif || base.nif || fromDb.nif || "",
-        iban: perfilDb?.iban || base.iban || fromDb.iban || "",
-        matricula: perfilDb?.matricula || base.matricula || fromDb.matricula || "",
-        email: perfilDb?.email || base.email || fromDb.email || authEmail || "",
+        nome: perfilDb?.nome || pessoa?.nome_completo || "",
+        morada: perfilDb?.morada || "",
+        nif: perfilDb?.nif || "",
+        iban: perfilDb?.iban || "",
+        matricula: perfilDb?.matricula || "",
+        email: perfilDb?.email || authEmail || "",
       });
     })();
   }, [open, prefilled, pessoa, session]);
