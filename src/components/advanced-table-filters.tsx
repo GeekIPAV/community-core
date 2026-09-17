@@ -9,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export type FilterVariant = "text" | "number" | "date" | "select";
 
@@ -259,9 +260,16 @@ export function AdvancedTableFilters<T>({ table }: { table: Table<T> }) {
                         options={col ? getMeta(col).filterOptions : undefined}
                       />
                     </div>
-                    <Button size="icon" variant="ghost" onClick={() => removeRule(rule.id)} className="h-8 w-8">
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    <TooltipProvider delayDuration={300}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button size="icon" variant="ghost" onClick={() => removeRule(rule.id)} className="h-8 w-8" aria-label="Remover regra">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Remover regra</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                 );
               })}
