@@ -981,6 +981,9 @@ function ParticipantesPage() {
               <TabsContent value="etiquetas" className="mt-4">
                 <EtiquetasPicker pessoaId={editing.id} />
               </TabsContent>
+              <TabsContent value="atividades" className="mt-4">
+                <PessoaAtividadesSection pessoaId={editing.id} familiaId={editing.familia_id ?? null} />
+              </TabsContent>
               <TabsContent value="mapa-km" className="mt-4">
                 <PessoaMapaKmSection pessoaId={editing.id} familiaId={editing.familia_id} />
               </TabsContent>
