@@ -207,16 +207,28 @@ export function AdvancedTableFilters<T>({ table }: { table: Table<T> }) {
   const activeCount = allRules.length;
 
   return (
+    <TooltipProvider delayDuration={300}>
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="h-9 gap-2">
-          <Filter className="h-4 w-4" />
-          Filtros avançados
-          {activeCount > 0 && (
-            <Badge variant="secondary" className="ml-1 h-5 px-1.5">{activeCount}</Badge>
-          )}
-        </Button>
-      </PopoverTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <Button
+              variant={activeCount > 0 ? "secondary" : "ghost"}
+              size="icon"
+              className="relative h-8 w-8"
+              aria-label={activeCount > 0 ? `Filtros avançados, ${activeCount} ativos` : "Filtros avançados"}
+            >
+              <Filter className="h-4 w-4" />
+              {activeCount > 0 && (
+                <Badge className="absolute -right-1.5 -top-1.5 h-4 min-w-4 px-1 text-[10px] leading-none">
+                  {activeCount}
+                </Badge>
+              )}
+            </Button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent>{activeCount > 0 ? `Filtros avançados (${activeCount})` : "Filtros avançados"}</TooltipContent>
+      </Tooltip>
       <PopoverContent align="start" className="w-[min(640px,90vw)] p-3">
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -282,6 +294,7 @@ export function AdvancedTableFilters<T>({ table }: { table: Table<T> }) {
         </div>
       </PopoverContent>
     </Popover>
+    </TooltipProvider>
   );
 }
 

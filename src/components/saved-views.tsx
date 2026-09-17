@@ -9,11 +9,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Check, Pencil, Plus, Trash2, Users } from "lucide-react";
+import { Check, List, Pencil, Plus, Trash2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export type ViewSnapshot = {
   columnFilters?: any;
@@ -240,83 +241,107 @@ export function SavedViews<T>({
       (activeView.is_admin_view === false && activeView.created_by === currentUserId));
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <button
+    <TooltipProvider delayDuration={300}>
+    <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto [scrollbar-width:thin]">
+      <Button
         type="button"
+        variant="ghost"
+        size="sm"
         onClick={activateAll}
         className={cn(
-          "h-8 rounded-md border px-3 text-sm",
+          "h-7 shrink-0 gap-1.5 rounded-none border-b-2 border-transparent px-2 text-xs font-normal",
           activeId === ALL_KEY
-            ? "bg-background shadow-sm border-foreground/20"
-            : "bg-muted/40 text-muted-foreground hover:bg-muted",
+            ? "border-primary text-foreground"
+            : "text-muted-foreground hover:text-foreground",
         )}
       >
+        <List className="h-3.5 w-3.5 opacity-70" />
         Todos
-      </button>
+      </Button>
       {views.map((v) => (
-        <button
+        <Button
           key={v.id}
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={() => activateView(v)}
           className={cn(
-            "h-8 rounded-md border px-3 text-sm inline-flex items-center gap-1",
+            "h-7 shrink-0 gap-1.5 rounded-none border-b-2 border-transparent px-2 text-xs font-normal",
             activeId === v.id
-              ? "bg-background shadow-sm border-foreground/20"
-              : "bg-muted/40 text-muted-foreground hover:bg-muted",
+              ? "border-primary text-foreground"
+              : "text-muted-foreground hover:text-foreground",
           )}
-          title={v.is_admin_view ? "Vista partilhada" : "Vista pessoal"}
+          aria-label={`${v.name}, ${v.is_admin_view ? "vista partilhada" : "vista pessoal"}`}
         >
-          {v.is_admin_view && <Users className="h-3 w-3 opacity-60" />}
+          {v.is_admin_view ? <Users className="h-3.5 w-3.5 opacity-70" /> : <List className="h-3.5 w-3.5 opacity-70" />}
           {v.name}
-        </button>
+        </Button>
       ))}
       {activeId !== ALL_KEY && canEditActive && (
         <>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={updateActive}
-            title="Atualizar vista com filtros atuais"
-          >
-            <Check className="h-4 w-4 mr-1" /> Atualizar
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              const v = views.find((x) => x.id === activeId);
-              if (!v) return;
-              setRenaming(v);
-              setNewName(v.name);
-            }}
-            title="Renomear vista"
-          >
-            <Pencil className="h-4 w-4 mr-1" /> Renomear
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              const v = views.find((x) => x.id === activeId);
-              if (v) remove(v);
-            }}
-            title="Apagar vista"
-            className="text-destructive hover:text-destructive"
-          >
-            <Trash2 className="h-4 w-4 mr-1" /> Apagar
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={updateActive} aria-label="Atualizar vista com os filtros atuais">
+                <Check className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Atualizar vista</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0"
+                onClick={() => {
+                  const v = views.find((x) => x.id === activeId);
+                  if (!v) return;
+                  setRenaming(v);
+                  setNewName(v.name);
+                }}
+                aria-label="Renomear vista"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Renomear vista</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
+                onClick={() => {
+                  const v = views.find((x) => x.id === activeId);
+                  if (v) remove(v);
+                }}
+                aria-label="Apagar vista"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Apagar vista</TooltipContent>
+          </Tooltip>
         </>
       )}
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => {
-          setNewName("");
-          setSaveOpen(true);
-        }}
-      >
-        <Plus className="h-4 w-4 mr-1" /> Nova vista
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 shrink-0"
+            onClick={() => {
+              setNewName("");
+              setSaveOpen(true);
+            }}
+            aria-label="Nova vista"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Nova vista</TooltipContent>
+      </Tooltip>
 
       <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
         <DialogContent className="max-w-sm">
@@ -353,5 +378,6 @@ export function SavedViews<T>({
         </DialogContent>
       </Dialog>
     </div>
+    </TooltipProvider>
   );
 }

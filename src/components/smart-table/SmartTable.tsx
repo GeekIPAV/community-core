@@ -11,9 +11,13 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   ArrowDown,
   ArrowUp,
-  ArrowUpDown,
+  CalendarDays,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Hash,
+  List,
+  Text,
 } from "lucide-react";
 import {
   Table,
@@ -78,6 +82,13 @@ function labelOf(col: any): string {
   const h = col.columnDef?.header;
   if (typeof h === "string") return h;
   return String(col.id);
+}
+function HeaderTypeIcon({ column }: { column: any }) {
+  if (column.id === "__select") return null;
+  const meta = getMeta(column);
+  const type = meta.filterVariant ?? meta.editType ?? "text";
+  const Icon = type === "number" ? Hash : type === "date" ? CalendarDays : type === "select" ? List : Text;
+  return <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" aria-hidden />;
 }
 function rawText(row: any, col: any): string {
   const meta = getMeta(col);
@@ -421,7 +432,7 @@ export function SmartTable<T>({
       >
         <Table className="table-fixed">
           <TableHeader className={cn(shouldVirtualize && "sticky top-0 z-10 bg-background")}>
-            <TableRow className="bg-muted/40 hover:bg-muted/40">
+            <TableRow className="border-border/30 bg-muted/20 hover:bg-muted/20">
               {table.getHeaderGroups()[0]?.headers.map((header) => {
                 const canSort = header.column.getCanSort();
                 const canResize = header.column.getCanResize();
@@ -432,7 +443,7 @@ export function SmartTable<T>({
                     key={header.id}
                     style={{ width: size, minWidth: header.column.columnDef.minSize ?? 60 }}
                     className={cn(
-                      "group/h relative h-10 select-none px-3 text-xs font-semibold uppercase tracking-normal text-muted-foreground",
+                      "group/h relative h-9 select-none px-3 text-xs font-medium text-muted-foreground",
                       sorted && "text-foreground",
                     )}
                   >
@@ -447,6 +458,7 @@ export function SmartTable<T>({
                           )}
                           aria-label={`Ordenar por ${String(labelOf(header.column))}`}
                         >
+                          <HeaderTypeIcon column={header.column} />
                           <span className="truncate">
                             {flexRender(header.column.columnDef.header, header.getContext())}
                           </span>
@@ -455,11 +467,12 @@ export function SmartTable<T>({
                           ) : sorted === "desc" ? (
                             <ArrowDown className="h-3.5 w-3.5 shrink-0 text-primary" />
                           ) : (
-                            <ArrowUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+                            <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-0 transition-opacity group-hover/h:opacity-50" />
                           )}
                         </button>
                       ) : (
-                        <span className="truncate">
+                        <span className="flex items-center gap-1.5 truncate">
+                          <HeaderTypeIcon column={header.column} />
                           {flexRender(header.column.columnDef.header, header.getContext())}
                         </span>
                       )}
@@ -470,8 +483,8 @@ export function SmartTable<T>({
                         onTouchStart={header.getResizeHandler()}
                         onClick={(e) => e.stopPropagation()}
                         className={cn(
-                          "absolute right-0 top-1/2 hidden h-6 w-1 -translate-y-1/2 cursor-col-resize touch-none select-none rounded-full md:block",
-                          "bg-border transition-colors group-hover/h:bg-primary/60 hover:bg-primary",
+                          "absolute right-0 top-1/2 hidden h-6 w-1 -translate-y-1/2 cursor-col-resize touch-none select-none rounded-full bg-transparent transition-colors md:block",
+                          "group-hover/h:bg-border hover:bg-primary",
                           header.column.getIsResizing() && "h-full bg-primary",
                         )}
                         aria-hidden
@@ -642,7 +655,7 @@ function DataRow<T>({
   return (
     <TableRow
       className={cn(
-        "h-10 border-b border-border/40 text-sm text-foreground hover:bg-muted/40",
+        "h-10 border-b border-border/25 text-sm text-foreground hover:bg-muted/35",
         onRowClick && "cursor-pointer",
         getRowClassName?.(row.original),
       )}

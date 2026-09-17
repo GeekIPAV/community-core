@@ -84,15 +84,16 @@ export function SmartTableToolbar<T>({
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 border-b border-border/60 bg-background px-4 py-3">
+      <div className="border-b border-border/40 bg-background px-3 py-2">
+        <div className="flex flex-wrap items-center gap-1.5">
         {!hideSearch && (
-          <div className="relative w-full min-w-0 sm:w-64 sm:flex-none">
+          <div className="relative min-w-44 flex-1 sm:max-w-64">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder={searchPlaceholder}
-              className="h-9 pl-8 pr-7"
+              className="h-8 border-transparent bg-muted/45 pl-8 pr-7 shadow-none hover:bg-muted/65 focus-visible:border-ring"
               data-smart-table-search
             />
             {search && (
@@ -113,19 +114,24 @@ export function SmartTableToolbar<T>({
           </div>
         )}
 
-        <div className="flex min-w-0 flex-wrap items-center gap-1.5 sm:border-l sm:border-border/70 sm:pl-4">
+        <div className="flex min-w-0 items-center gap-0.5">
           <AdvancedTableFilters table={table} />
           <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn("h-9 gap-2", groupBy && "border-primary text-foreground")}
-              >
-                <Layers className="h-4 w-4" />
-                {activeGroupLabel ?? "Agrupar"}
-              </Button>
-            </PopoverTrigger>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={groupBy ? "secondary" : "ghost"}
+                    size="icon"
+                    className="h-8 w-8"
+                    aria-label={activeGroupLabel ? `Agrupado por ${activeGroupLabel}` : "Agrupar"}
+                  >
+                    <Layers className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+              </TooltipTrigger>
+              <TooltipContent>{activeGroupLabel ? `Agrupado por ${activeGroupLabel}` : "Agrupar"}</TooltipContent>
+            </Tooltip>
             <PopoverContent align="start" className="w-64 p-2">
               <div className="mb-2 px-1 text-xs font-medium text-muted-foreground">Agrupar por…</div>
               <button
@@ -155,10 +161,9 @@ export function SmartTableToolbar<T>({
               ))}
             </PopoverContent>
           </Popover>
-          {savedViewsKey && <SavedViews table={table} storageKey={savedViewsKey} />}
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5 sm:border-l sm:border-border/70 sm:pl-4">
+        <div className="ml-auto flex items-center gap-0.5 border-l border-border/50 pl-1.5">
           {hasEditableColumns && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -166,7 +171,7 @@ export function SmartTableToolbar<T>({
                   variant={editMode ? "default" : "outline"}
                   size="icon"
                   onClick={() => onEditModeChange(!editMode)}
-                  className="h-9 w-9"
+                  className="h-8 w-8"
                   aria-label={editMode ? "Terminar edição na tabela" : "Editar na tabela"}
                 >
                   {editMode ? <Lock className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
@@ -179,7 +184,7 @@ export function SmartTableToolbar<T>({
           {!disableExport && onExport && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="icon" className="h-9 w-9" onClick={onExport} aria-label="Exportar CSV">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onExport} aria-label="Exportar CSV">
                   <Download className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -189,13 +194,19 @@ export function SmartTableToolbar<T>({
         </div>
 
         {toolbarActions && (
-          <div className="flex flex-wrap items-center gap-2 sm:border-l sm:border-border/70 sm:pl-4">
+          <div className="flex items-center gap-1 border-l border-border/50 pl-1.5">
             {toolbarActions}
           </div>
         )}
-        <div className="ml-auto flex items-center">
-          <span className="text-xs text-muted-foreground whitespace-nowrap">{rowCount} resultados</span>
+        <div className="flex items-center pl-1">
+          <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">{rowCount} resultados</span>
         </div>
+        </div>
+        {savedViewsKey && (
+          <div className="mt-1.5 min-w-0 border-t border-border/30 pt-1">
+            <SavedViews table={table} storageKey={savedViewsKey} />
+          </div>
+        )}
       </div>
       {hasSelection && (
         <div className="flex flex-wrap items-center gap-2 border-b border-primary/40 bg-primary/5 px-4 py-2">
