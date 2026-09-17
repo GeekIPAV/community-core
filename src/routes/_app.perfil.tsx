@@ -309,7 +309,7 @@ function DadosSection({ pessoa, isEquipa, onSaved }: { pessoa: PessoaFull; isEqu
             <InfoRow icon={IdCard} label="NIF" value={pessoa.nif} />
             <InfoRow icon={IdCard} label="Cartão de Cidadão" value={pessoa.cartao_cidadao} />
           </div>
-          {isEquipa && (
+          {(
             <div className="rounded-lg border p-4 space-y-3">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Dados para reembolsos</h3>
               <InfoRow icon={IdCard} label="IBAN" value={pessoa.iban} />
@@ -376,7 +376,7 @@ function DadosSection({ pessoa, isEquipa, onSaved }: { pessoa: PessoaFull; isEqu
         <div className="space-y-1"><Label>Religião</Label><Input value={field("religiao")} onChange={(e) => set("religiao", e.target.value)} /></div>
         <div className="space-y-1"><Label>Profissão</Label><Input value={field("profissao")} onChange={(e) => set("profissao", e.target.value)} /></div>
         <div className="md:col-span-2 space-y-1"><Label>Notas</Label><Textarea rows={3} value={field("notas")} onChange={(e) => set("notas", e.target.value)} /></div>
-        {isEquipa && (
+        {(
           <>
             <div className="space-y-1"><Label>IBAN</Label><Input value={field("iban")} onChange={(e) => set("iban", e.target.value)} placeholder="PT50…" /></div>
             <div className="space-y-1"><Label>Matrícula</Label><Input value={field("matricula")} onChange={(e) => set("matricula", e.target.value.toUpperCase())} placeholder="AA-00-AA" /></div>
