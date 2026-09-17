@@ -951,6 +951,8 @@ function BolsasTransportePage() {
   const [kmSearch, setKmSearch] = useState("");
   const [kmEstadoFilter, setKmEstadoFilter] = useState<"todos" | MapaKmRow["estado"]>("todos");
   const [kmFamiliaFilter, setKmFamiliaFilter] = useState<string>("todas");
+  const [folhaSearch, setFolhaSearch] = useState("");
+  const [folhaEstadoFilter, setFolhaEstadoFilter] = useState<"todos" | "rascunho" | "enviada" | "erro_envio">("todos");
   const [addKmOpen, setAddKmOpen] = useState(false);
   const [folhaKmOpen, setFolhaKmOpen] = useState(false);
   const [folhaEdit, setFolhaEdit] = useState<{ folhaId: string; familiaId?: string } | null>(null);
@@ -1075,6 +1077,19 @@ function BolsasTransportePage() {
       totalV: rows.reduce((s, r) => s + Number(r.valor), 0),
     };
   }, [mapaKmData]);
+
+  const folhaEstadoNormalizado = (estado: string | null | undefined): "rascunho" | "enviada" | "erro_envio" =>
+    estado === "enviada" ? "enviada" : estado === "erro_envio" || estado === "erro" ? "erro_envio" : "rascunho";
+
+  const folhasFiltered = useMemo(() => {
+    const rows = folhasKm ?? [];
+    const s = folhaSearch.trim().toLowerCase();
+    return rows.filter((f) => {
+      if (folhaEstadoFilter !== "todos" && folhaEstadoNormalizado(f.estado) !== folhaEstadoFilter) return false;
+      if (s && !f.nome.toLowerCase().includes(s)) return false;
+      return true;
+    });
+  }, [folhasKm, folhaSearch, folhaEstadoFilter]);
 
   const kmFiltered = useMemo(() => {
     const rows = mapaKmData ?? [];
