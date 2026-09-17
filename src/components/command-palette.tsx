@@ -13,28 +13,14 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import {
-  Users, Users2, Briefcase, CalendarDays, Activity, AlertTriangle,
-  BarChart3, Globe, User, MapPin, Bus, UserCog, Trash2, LayoutDashboard, FolderOpen, FileBarChart,
-} from "lucide-react";
-
-const NAV = [
-  { label: "Portal Público", to: "/", icon: Globe, admin: false },
-  { label: "Resultados", to: "/resultados", icon: BarChart3, admin: false },
-  { label: "O Meu Perfil", to: "/perfil", icon: User, admin: false },
-  { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard, admin: true },
-  { label: "Participantes", to: "/participantes", icon: Users, admin: true },
-  { label: "Famílias", to: "/familias", icon: Users2, admin: true },
-  { label: "Projetos", to: "/projetos", icon: Briefcase, admin: true },
-  { label: "Relatórios", to: "/relatorios", icon: FileBarChart, admin: true },
-  { label: "Acompanhamento", to: "/casos", icon: FolderOpen, admin: true },
-  { label: "Ações", to: "/acoes", icon: CalendarDays, admin: true },
-  { label: "Atividades", to: "/atividades", icon: Activity, admin: true },
-  { label: "Duplicados", to: "/duplicados", icon: AlertTriangle, admin: true },
-  { label: "Localizações", to: "/localizacoes", icon: MapPin, admin: true },
-  { label: "Bolsa de Transporte", to: "/bolsas-transporte", icon: Bus, admin: true },
-  { label: "Tipos de Utilizador", to: "/tipos-user", icon: UserCog, admin: true },
-  { label: "Eliminados", to: "/eliminados", icon: Trash2, admin: true },
-];
+  useSidebarConfig,
+  useEffectiveRoles,
+  canSee,
+  FALLBACK_GROUPS,
+  FALLBACK_ITEMS,
+} from "@/components/app-sidebar";
+import { renderIcon } from "@/components/sidebar-icons";
+import { Users, CalendarDays } from "lucide-react";
 
 export function CommandPalette({
   open: openProp,
