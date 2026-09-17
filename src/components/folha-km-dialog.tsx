@@ -62,6 +62,7 @@ export function FolhaKmDialog({
   const [alvoId, setAlvoId] = useState<string | null>(null);
   const [seletorAberto, setSeletorAberto] = useState(false);
   const [periodo, setPeriodo] = useState<string | null>(null);
+  const [rate, setRate] = useState(KM_RATE);
 
   const { data: pessoasLista = [] } = useQuery({
     enabled: open,
@@ -139,6 +140,7 @@ export function FolhaKmDialog({
               : [novaLinha()]
           );
           setPeriodo(f.periodo ?? null);
+          if (f.valor_km != null && Number(f.valor_km) > 0) setRate(Number(f.valor_km));
           if (f.pessoa_id) {
             setAlvoId(f.pessoa_id);
             const { data: p } = await supabase
@@ -213,6 +215,7 @@ export function FolhaKmDialog({
       setConfirmarPerfil(false);
       setAlvoId(null);
       setPeriodo(null);
+      setRate(KM_RATE);
     }
   }, [open]);
 
@@ -252,7 +255,6 @@ export function FolhaKmDialog({
     toast.success("Perfil atualizado com estes dados.");
   };
 
-  const rate = KM_RATE;
   const linhaCompleta = (l: Linha) =>
     !!l.data.trim() && !!l.descricao.trim() && !!l.percurso.trim() && num(l.km) > 0;
   const linhasValidas = useMemo(() => linhas.filter(linhaCompleta), [linhas]);
@@ -300,7 +302,7 @@ export function FolhaKmDialog({
     }));
 
   const payloadFolha = () => ({
-    pessoa_id: alvoId ?? pessoa?.id ?? null,
+    pessoa_id: modoEdicao ? alvoId : (alvoId ?? pessoa?.id ?? null),
     nome: dados.nome,
     morada: dados.morada || null,
     nif: dados.nif || null,
