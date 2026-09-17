@@ -527,13 +527,21 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
 
         <p className="text-[11px] leading-relaxed text-muted-foreground">{DECLARACAO}</p>
 
-        <div className="space-y-2">
-          <Label className="text-xs">Assinatura *</Label>
-          <SignaturePad value={assinatura} onChange={setAssinatura} />
-          {!assinatura && (
-            <p className="text-xs text-destructive">A assinatura é obrigatória para gerar e enviar a folha.</p>
-          )}
-        </div>
+        {perfilTemAssinatura ? (
+          <div className="space-y-1">
+            <Label className="text-xs">Assinatura</Label>
+            <img src={assinatura ?? ""} alt="Assinatura" className="h-16 rounded border bg-white object-contain" />
+            <p className="text-xs text-muted-foreground">Assinatura guardada no seu perfil.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Label className="text-xs">Assinatura *</Label>
+            <SignaturePad value={assinatura} onChange={setAssinatura} />
+            {!assinatura && (
+              <p className="text-xs text-destructive">A assinatura é obrigatória para gerar e enviar a folha.</p>
+            )}
+          </div>
+        )}
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
@@ -546,11 +554,54 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
           >
             <Download className="mr-2 h-4 w-4" /> Pré-visualizar PDF
           </Button>
-          <Button onClick={() => submeter.mutate()} disabled={submeter.isPending || !assinatura}>
+          <Button
+            onClick={() => {
+              if (camposEmFalta.length > 0) setConfirmarPerfil(true);
+              else submeter.mutate();
+            }}
+            disabled={submeter.isPending || !assinatura}
+          >
             {submeter.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
             Gerar e enviar
           </Button>
         </DialogFooter>
+
+        <Dialog open={confirmarPerfil} onOpenChange={setConfirmarPerfil}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Atualizar o seu perfil?</DialogTitle>
+              <DialogDescription>
+                Estes dados ainda não estão guardados no seu perfil. Quer guardá-los para aparecerem automaticamente
+                da próxima vez?
+              </DialogDescription>
+            </DialogHeader>
+            <ul className="list-disc pl-5 text-sm">
+              {camposEmFalta.map((c) => (
+                <li key={c.coluna}>{c.label}</li>
+              ))}
+            </ul>
+            <DialogFooter className="gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setConfirmarPerfil(false);
+                  submeter.mutate();
+                }}
+              >
+                Não, só enviar
+              </Button>
+              <Button
+                onClick={async () => {
+                  setConfirmarPerfil(false);
+                  await atualizarPerfil();
+                  submeter.mutate();
+                }}
+              >
+                Sim, atualizar perfil
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );
