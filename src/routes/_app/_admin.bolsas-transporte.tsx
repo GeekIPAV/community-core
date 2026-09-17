@@ -1563,62 +1563,6 @@ function BolsasTransportePage() {
           </Card>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-2">
-          <Input
-            placeholder="Pesquisar família ou motivo…"
-            value={kmSearch}
-            onChange={(e) => setKmSearch(e.target.value)}
-            className="md:max-w-xs"
-          />
-          <Select value={kmFamiliaFilter} onValueChange={setKmFamiliaFilter}>
-            <SelectTrigger className="md:w-56"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas as famílias</SelectItem>
-              {(familiasList ?? []).map((f) => (
-                <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={kmEstadoFilter} onValueChange={(v) => setKmEstadoFilter(v as typeof kmEstadoFilter)}>
-            <SelectTrigger className="md:w-44"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os estados</SelectItem>
-              <SelectItem value="por_pagar">Por pagar</SelectItem>
-              <SelectItem value="pago">Pago</SelectItem>
-              <SelectItem value="cancelado">Cancelado</SelectItem>
-            </SelectContent>
-          </Select>
-          <div className="flex-1" />
-          <Button
-            variant="outline"
-            onClick={() => {
-              const headers = ["Família", "Ação", "Data", "Motivo", "KM", "Matrícula", "Carros", "Valor", "Estado", "Método", "Notas"];
-              const rowsCsv = kmFiltered.map((r) => ({
-                "Família": r.familia_nome ?? "",
-                "Ação": r.acao_nome ?? "",
-                "Data": r.data ? new Date(r.data).toLocaleDateString("pt-PT") : "",
-                "Motivo": r.motivo,
-                "KM": String(r.km),
-                "Matrícula": r.matricula ?? "",
-                "Carros": String(r.n_carros),
-                "Valor": r.valor.toFixed(2).replace(".", ","),
-                "Estado": r.estado === "pago" ? "Pago" : r.estado === "cancelado" ? "Cancelado" : "Por pagar",
-                "Método": r.metodo_pagamento ?? "",
-                "Notas": r.notas ?? "",
-              }));
-              downloadCSV(`mapa-km-${new Date().toISOString().slice(0, 10)}.csv`, toCSV(rowsCsv, headers));
-            }}
-          >
-            <Download className="mr-2 h-4 w-4" /> Exportar
-          </Button>
-          <Button variant="outline" onClick={() => { setEditKmRow(null); setKmForm(emptyKmForm); setAddKmOpen(true); }}>
-            <Plus className="mr-2 h-4 w-4" /> Registo por família
-          </Button>
-          <Button onClick={() => setFolhaKmOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Novo registo
-          </Button>
-
-        </div>
 
         <TooltipProvider delayDuration={200}>
         <div className="flex flex-col gap-6">
@@ -1731,7 +1675,63 @@ function BolsasTransportePage() {
               </CardTitle>
               <CardDescription>Deslocações das famílias reembolsadas a 0,36€/km (ida e volta).</CardDescription>
             </CardHeader>
-            <CardContent className="p-0 overflow-x-auto">
+            <CardContent className="p-0">
+              <div className="flex flex-col md:flex-row gap-2 px-4 py-3 border-b">
+                <Input
+                  placeholder="Pesquisar família ou motivo…"
+                  value={kmSearch}
+                  onChange={(e) => setKmSearch(e.target.value)}
+                  className="md:max-w-xs"
+                />
+                <Select value={kmFamiliaFilter} onValueChange={setKmFamiliaFilter}>
+                  <SelectTrigger className="md:w-56"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas as famílias</SelectItem>
+                    {(familiasList ?? []).map((f) => (
+                      <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={kmEstadoFilter} onValueChange={(v) => setKmEstadoFilter(v as typeof kmEstadoFilter)}>
+                  <SelectTrigger className="md:w-44"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os estados</SelectItem>
+                    <SelectItem value="por_pagar">Por pagar</SelectItem>
+                    <SelectItem value="pago">Pago</SelectItem>
+                    <SelectItem value="cancelado">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="flex-1" />
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const headers = ["Família", "Ação", "Data", "Motivo", "KM", "Matrícula", "Carros", "Valor", "Estado", "Método", "Notas"];
+                    const rowsCsv = kmFiltered.map((r) => ({
+                      "Família": r.familia_nome ?? "",
+                      "Ação": r.acao_nome ?? "",
+                      "Data": r.data ? new Date(r.data).toLocaleDateString("pt-PT") : "",
+                      "Motivo": r.motivo,
+                      "KM": String(r.km),
+                      "Matrícula": r.matricula ?? "",
+                      "Carros": String(r.n_carros),
+                      "Valor": r.valor.toFixed(2).replace(".", ","),
+                      "Estado": r.estado === "pago" ? "Pago" : r.estado === "cancelado" ? "Cancelado" : "Por pagar",
+                      "Método": r.metodo_pagamento ?? "",
+                      "Notas": r.notas ?? "",
+                    }));
+                    downloadCSV(`mapa-km-${new Date().toISOString().slice(0, 10)}.csv`, toCSV(rowsCsv, headers));
+                  }}
+                >
+                  <Download className="mr-2 h-4 w-4" /> Exportar
+                </Button>
+                <Button variant="outline" onClick={() => { setEditKmRow(null); setKmForm(emptyKmForm); setAddKmOpen(true); }}>
+                  <Plus className="mr-2 h-4 w-4" /> Registo por família
+                </Button>
+                <Button onClick={() => setFolhaKmOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" /> Novo registo
+                </Button>
+              </div>
+              <div className="overflow-x-auto">
 
             <Table>
               <TableHeader>
@@ -1862,6 +1862,7 @@ function BolsasTransportePage() {
                 </tr>
               </tfoot>
             </Table>
+              </div>
             </CardContent>
           </Card>
         )}
