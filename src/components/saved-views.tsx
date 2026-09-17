@@ -257,7 +257,8 @@ export function SavedViews<T>({
       setSaveOpen(true);
       return;
     }
-    const snap = captureSnapshot();
+    const activeView = views.find((view) => view.id === activeId);
+    const snap = captureSnapshot(activeView?.snapshot.viewIcon);
     const { error } = await supabase
       .from("vistas_guardadas")
       .update({ snapshot: snap as any })
@@ -422,7 +423,10 @@ export function SavedViews<T>({
         <TooltipContent>Nova vista</TooltipContent>
       </Tooltip>
 
-      <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
+      <Dialog open={saveOpen} onOpenChange={(open) => {
+        setSaveOpen(open);
+        if (!open) setSelectedIcon(DEFAULT_VIEW_ICON);
+      }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Guardar vista</DialogTitle>
