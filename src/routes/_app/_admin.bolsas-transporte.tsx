@@ -824,6 +824,19 @@ function BolsasTransportePage() {
     },
   });
 
+  const { data: folhasKm } = useQuery({
+    queryKey: ["folhas-km"],
+    staleTime: 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("folhas_km")
+        .select("id, nome, periodo, total_km, total_valor, estado, created_at")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const { data: familiasList } = useQuery({
     queryKey: ["familias-lista-bolsa"],
     staleTime: 10 * 60_000,
