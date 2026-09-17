@@ -203,151 +203,21 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   const formularioValido =
     camposPessoaFaltam.length === 0 && linhasValidas.length > 0 && !!assinatura;
 
-  const gerarPdf = async (): Promise<{ doc: jsPDF; base64: string; filename: string }> => {
-    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-    const W = doc.internal.pageSize.getWidth();
-    const gold: [number, number, number] = [230, 168, 68];
-
-    const logo = await loadImageDataUrl(logoUrl);
-    if (logo) {
-      try {
-        doc.addImage(logo, "PNG", W - 48, 8, 36, 22);
-      } catch {
-        /* ignora logo inválido */
-      }
-    }
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(20);
-    doc.text("Folha de KM", W / 2, 18, { align: "center" });
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
-    doc.text("Mapa de Ajudas de Custo e compensação por uso de viatura própria", W / 2, 26, { align: "center" });
-
-    autoTable(doc, {
-      startY: 34,
-      margin: { left: 12, right: W / 2 + 4 },
-      theme: "grid",
-      head: [[{ content: "Identificação da Entidade", colSpan: 2, styles: { halign: "center" } }]],
-      headStyles: { fillColor: gold, textColor: 255, fontStyle: "bold" },
-      styles: { fontSize: 9, cellPadding: 2 },
-      columnStyles: { 0: { fontStyle: "bold", cellWidth: 28 } },
-      body: [
-        ["Nome", ENTIDADE.nome],
-        ["Morada", ENTIDADE.morada],
-        ["NIF", ENTIDADE.nif],
-      ],
+  const gerarPdf = async (): Promise<{ doc: jsPDF; base64: string; filename: string }> =>
+    gerarPdfFolhaKm({
+      dados,
+      linhas: linhasValidas.map((l) => ({
+        data: l.data,
+        descricao: l.descricao,
+        percurso: l.percurso,
+        km: num(l.km),
+        valor: Math.round(num(l.km) * rate * 100) / 100,
+      })),
+      totalKm,
+      totalValor,
+      valorKm: rate,
+      assinatura,
     });
-
-    autoTable(doc, {
-      startY: 34,
-      margin: { left: W / 2 + 4, right: 12 },
-      theme: "grid",
-      head: [[{ content: "Identificação da Pessoa", colSpan: 2, styles: { halign: "center" } }]],
-      headStyles: { fillColor: gold, textColor: 255, fontStyle: "bold" },
-      styles: { fontSize: 9, cellPadding: 2 },
-      columnStyles: { 0: { fontStyle: "bold", cellWidth: 28 } },
-      body: [
-        ["Nome", dados.nome],
-        ["Morada", dados.morada],
-        ["NIF", dados.nif],
-        ["IBAN", dados.iban],
-        ["Matrícula", dados.matricula],
-      ],
-    });
-
-    const y1 = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
-
-    autoTable(doc, {
-      startY: y1,
-      margin: { left: 12, right: W / 2 + 4 },
-      theme: "grid",
-      head: [[{ content: "Valores de Referência", colSpan: 2, styles: { halign: "center" } }]],
-      headStyles: { fillColor: gold, textColor: 255, fontStyle: "bold" },
-      styles: { fontSize: 9, cellPadding: 2 },
-      columnStyles: { 0: { fontStyle: "bold", cellWidth: 28 } },
-      body: [["Por KM", formatEuro(rate)]],
-    });
-
-    autoTable(doc, {
-      startY: y1,
-      margin: { left: W / 2 + 4, right: 12 },
-      theme: "grid",
-      head: [[{ content: "Valores totais", colSpan: 2, styles: { halign: "center" } }]],
-      headStyles: { fillColor: gold, textColor: 255, fontStyle: "bold" },
-      styles: { fontSize: 9, cellPadding: 2 },
-      columnStyles: { 0: { fontStyle: "bold", cellWidth: 40 } },
-      body: [[`${totalKm.toLocaleString("pt-PT")} km`, formatEuro(totalValor)]],
-    });
-
-    const y2 = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
-
-    autoTable(doc, {
-      startY: y2,
-      margin: { left: 12, right: 12 },
-      theme: "grid",
-      head: [["Data", "Descrição da deslocação", "Percurso", "Total KM", "Valor (€)"]],
-      headStyles: { fillColor: gold, textColor: 255, fontStyle: "bold", halign: "center" },
-      styles: { fontSize: 9, cellPadding: 2 },
-      columnStyles: {
-        0: { cellWidth: 26, halign: "center" },
-        3: { cellWidth: 24, halign: "center" },
-        4: { cellWidth: 28, halign: "right" },
-      },
-      body: linhasValidas.map((l) => [
-        fmtData(l.data),
-        l.descricao,
-        l.percurso,
-        num(l.km).toLocaleString("pt-PT"),
-        formatEuro(Math.round(num(l.km) * rate * 100) / 100),
-      ]),
-      foot: [["", "", "Total", totalKm.toLocaleString("pt-PT"), formatEuro(totalValor)]],
-      footStyles: { fillColor: [245, 245, 245], textColor: 20, fontStyle: "bold", halign: "right" },
-    });
-
-    const y3 = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
-    doc.setFontSize(8);
-    doc.text(doc.splitTextToSize(DECLARACAO, W - 24), 12, y3);
-
-    doc.setFontSize(9);
-    const ySig = Math.min(y3 + 30, doc.internal.pageSize.getHeight() - 20);
-    doc.text("Assinatura:", 12, ySig);
-    doc.text("Diretor Financeiro:", W / 2 - 30, ySig + 10);
-    doc.text("Presidente da Direção:", W / 2 - 30, ySig + 20);
-
-    const [assFin, assPres] = await Promise.all([
-      loadImageDataUrl(assinaturaFinanceiroUrl),
-      loadImageDataUrl(assinaturaPresidenteUrl),
-    ]);
-    const xAss = W / 2 + 2;
-    if (assFin) {
-      try {
-        doc.addImage(assFin, "JPEG", xAss, ySig + 2, 46, 15);
-      } catch {
-        /* ignora assinatura inválida */
-      }
-    }
-    if (assinatura) {
-      try {
-        doc.addImage(assinatura, "PNG", 30, ySig - 14, 46, 15);
-      } catch {
-        /* ignora assinatura inválida */
-      }
-    }
-    if (assPres) {
-      try {
-        doc.addImage(assPres, "JPEG", xAss, ySig + 13, 46, 10);
-      } catch {
-        /* ignora assinatura inválida */
-      }
-    }
-
-    const dataUri = doc.output("datauristring");
-    const base64 = dataUri.split(",")[1] ?? "";
-    const slug = dados.nome.toLowerCase().normalize("NFD").replace(/[^\w]+/g, "-").replace(/(^-|-$)/g, "");
-    const filename = `folha-km-${slug || "meeru"}-${new Date().toISOString().slice(0, 10)}.pdf`;
-    return { doc, base64, filename };
-  };
 
   const submeter = useMutation({
     mutationFn: async () => {
