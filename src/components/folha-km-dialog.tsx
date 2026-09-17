@@ -248,9 +248,9 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
 
     doc.setFontSize(9);
     const ySig = Math.min(y3 + 30, doc.internal.pageSize.getHeight() - 20);
-    doc.text("Assinatura: ____________________________", 12, ySig);
-    doc.text("Diretor Financeiro: ____________________________", W / 2 - 30, ySig + 10);
-    doc.text("Presidente da Direção: ____________________________", W / 2 - 30, ySig + 20);
+    doc.text("Assinatura:", 12, ySig);
+    doc.text("Diretor Financeiro:", W / 2 - 30, ySig + 10);
+    doc.text("Presidente da Direção:", W / 2 - 30, ySig + 20);
 
     const [assFin, assPres] = await Promise.all([
       loadImageDataUrl(assinaturaFinanceiroUrl),
