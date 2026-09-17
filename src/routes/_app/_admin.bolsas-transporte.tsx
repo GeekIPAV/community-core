@@ -1710,8 +1710,9 @@ function BolsasTransportePage() {
                     </TableCell>
                   </TableRow>
                 ))}
-              </TableBody>
-            </Table>
+                </TableBody>
+              </Table>
+              </div>
             </CardContent>
           </Card>
         )}
