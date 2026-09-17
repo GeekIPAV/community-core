@@ -323,7 +323,7 @@ function ParticipantesPage() {
             </span>
           );
         },
-        meta: { filterVariant: "text", label: "Nome", editType: "text" },
+        meta: { filterVariant: "text", label: "Nome", editType: "text", textValue: (p: Pessoa) => [p.nome_completo, p.notas ?? ""].filter(Boolean).join(" — ") },
       },
       { id: "email", header: "Email", accessorKey: "email", size: 200, cell: ({ getValue }) => muted(getValue()), meta: { filterVariant: "text", label: "Email", editType: "text" } },
       { id: "telefone", header: "Telefone", accessorKey: "telefone", size: 140, cell: ({ getValue }) => muted(getValue()), meta: { filterVariant: "text", label: "Telefone", editType: "text" } },
