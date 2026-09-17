@@ -555,7 +555,9 @@ export function FolhaKmDialog({
           <div className="space-y-1">
             <Label className="text-xs">Assinatura</Label>
             <img src={assinatura ?? ""} alt="Assinatura" className="h-16 rounded border bg-white object-contain" />
-            <p className="text-xs text-muted-foreground">Assinatura guardada no seu perfil.</p>
+            <p className="text-xs text-muted-foreground">
+              Assinatura guardada no perfil{dados.nome ? ` de ${dados.nome}` : ""} — não é preciso assinar de novo.
+            </p>
           </div>
         ) : (
           <div className="space-y-2">
