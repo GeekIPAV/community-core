@@ -1736,8 +1736,12 @@ function PessoaPerfil({
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground">Assinatura</p>
             <SignaturePad
-              value={pessoa.assinatura ?? null}
-              onChange={(dataUrl) => saveAssinatura.mutate(dataUrl)}
+              key={assinaturaLocal ?? "vazio"}
+              value={assinaturaLocal}
+              onChange={(dataUrl) => {
+                setAssinaturaLocal(dataUrl);
+                saveAssinatura.mutate(dataUrl);
+              }}
             />
           </div>
         </div>
