@@ -101,7 +101,7 @@ export function CasoNovoSheet({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, tipo_user_id, is_admin, auth_user_id, tipos_user(nome)")
+        .select("id, nome_completo, tipo_user_id, is_admin, auth_user_id, tipos_user!pessoas_tipo_user_id_fkey(nome)")
         .eq("status", "ativo")
         .is("deleted_at", null)
         .order("nome_completo");
