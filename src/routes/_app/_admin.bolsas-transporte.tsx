@@ -1737,17 +1737,17 @@ function BolsasTransportePage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Família</TableHead>
-                  <TableHead>Ação</TableHead>
+                  <TableHead>Evento</TableHead>
                   <TableHead>Data</TableHead>
                   <TableHead>Motivo</TableHead>
                   <TableHead className="text-right">KM</TableHead>
                   <TableHead>Matrícula</TableHead>
                   <TableHead className="text-right">Carros</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Método</TableHead>
+                  <TableHead>Estado de pagamento</TableHead>
+                  <TableHead>Método de pagamento</TableHead>
                   <TableHead>Notas</TableHead>
-                  <TableHead></TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
