@@ -124,7 +124,7 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
         email: base.email || fromDb.email || authEmail || "",
       });
     })();
-  }, [open, prefilled, guardado, pessoa, session]);
+  }, [open, prefilled, pessoa, session]);
 
   useEffect(() => {
     if (!open) {
