@@ -925,6 +925,18 @@ function BolsasTransportePage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const deleteFolhaKm = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("folhas_km").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["folhas-km"] });
+      toast.success("Folha de KM eliminada");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const emptyKmForm = {
     familia_id: "",
     data: new Date().toISOString().slice(0, 10),
@@ -1046,6 +1058,7 @@ function BolsasTransportePage() {
 
   const [editKmRow, setEditKmRow] = useState<MapaKmRow | null>(null);
   const [deleteKmId, setDeleteKmId] = useState<string | null>(null);
+  const [deleteFolhaId, setDeleteFolhaId] = useState<string | null>(null);
   const [kmForm, setKmForm] = useState(emptyKmForm);
 
   const kmKpis = useMemo(() => {
@@ -1650,6 +1663,14 @@ function BolsasTransportePage() {
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>Reenviar PDF por email</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" disabled={folhaBusyId === f.id} onClick={() => setDeleteFolhaId(f.id)}>
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Eliminar folha</TooltipContent>
                         </Tooltip>
                       </div>
                     </TableCell>
