@@ -134,7 +134,7 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
     }
   }, [open]);
 
-  const rate = num(valorKm) || KM_RATE;
+  const rate = KM_RATE;
   const linhasValidas = useMemo(() => linhas.filter((l) => num(l.km) > 0), [linhas]);
   const totalKm = useMemo(() => linhasValidas.reduce((s, l) => s + num(l.km), 0), [linhasValidas]);
   const totalValor = useMemo(() => Math.round(totalKm * rate * 100) / 100, [totalKm, rate]);
