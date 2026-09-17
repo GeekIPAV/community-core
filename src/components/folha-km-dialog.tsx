@@ -376,8 +376,8 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
             <p className="text-sm font-semibold">Valores de Referência</p>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <Label className="text-xs">Por KM (€)</Label>
-                <Input value={valorKm} onChange={(e) => setValorKm(e.target.value)} />
+                <Label className="text-xs">Por KM</Label>
+                <p className="flex h-9 items-center text-sm font-semibold tabular-nums">{formatEuro(rate)}</p>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Período (opcional)</Label>
