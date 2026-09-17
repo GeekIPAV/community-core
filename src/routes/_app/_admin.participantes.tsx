@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -22,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2, Mail, Phone, MapPin, Cake, Briefcase, Globe, HeartHandshake, Users, IdCard, ShieldCheck, Heart, Search } from "lucide-react";
+import { ChevronDown, ChevronRight, Pencil, Plus, Trash2, Mail, Phone, MapPin, Cake, Briefcase, Globe, HeartHandshake, Users, IdCard, ShieldCheck, Heart, Search } from "lucide-react";
 import { EtiquetasPicker } from "@/components/etiquetas-picker";
 import { AcoesHoverSummary } from "@/components/acoes-hover-summary";
 import { CurriculoSection } from "@/components/curriculo-section";
@@ -299,29 +300,6 @@ function ParticipantesPage() {
 
   const familiaName = (id: string | null) =>
     id ? familias?.find((f) => f.id === id)?.nome ?? "—" : "—";
-
-  const debouncedQ = useDebounce(q, 300);
-  const searchFiltered = useMemo(() => {
-    const tabFiltered = data ?? [];
-    const s = debouncedQ.trim().toLowerCase();
-    if (!s) return tabFiltered;
-    const famName = (id: string | null) =>
-      id ? familias?.find((f) => f.id === id)?.nome ?? "" : "";
-    const tipoNm = (id: string | null) =>
-      id ? tipos?.find((t) => t.id === id)?.nome ?? "" : "";
-    const projNames = (ids: string[]) =>
-      (ids ?? []).map((id) => projetos?.find((x) => x.id === id)?.nome ?? "").join(" ");
-    return tabFiltered.filter((p) =>
-      [
-        p.nome_completo, p.email, p.telefone, p.nif, p.cartao_cidadao,
-        p.morada, p.data_nascimento, p.genero, p.nacionalidade,
-        p.cidade_residencia, p.religiao, p.profissao, p.notas, p.status,
-        famName(p.familia_id), tipoNm(p.tipo_user_id), projNames(p.projeto_ids),
-      ]
-        .filter(Boolean)
-        .some((v: any) => String(v).toLowerCase().includes(s)),
-    );
-  }, [data, debouncedQ, familias, tipos, projetos]);
 
   const saveField = async (id: string, field: keyof Pessoa, v: any) => {
     const prev = await applyOptimisticRowPatch<Pessoa>(qc, ["pessoas"], id, { [field]: v } as Partial<Pessoa>);
