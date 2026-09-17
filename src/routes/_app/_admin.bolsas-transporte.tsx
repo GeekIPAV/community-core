@@ -1839,9 +1839,14 @@ function BolsasTransportePage() {
                           </TooltipTrigger>
                           <TooltipContent>Criar folha de KM para esta família</TooltipContent>
                         </Tooltip>
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setDeleteKmId(r.id)}>
-                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setDeleteKmId(r.id)}>
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Eliminar despesa</TooltipContent>
+                        </Tooltip>
                       </div>
                     </TableCell>
                   </TableRow>
