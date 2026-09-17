@@ -66,6 +66,7 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   const [dados, setDados] = useState<Pessoa>({ nome: "", morada: "", nif: "", iban: "", matricula: "", email: "" });
   const [linhas, setLinhas] = useState<Linha[]>([novaLinha()]);
   const [prefilled, setPrefilled] = useState(false);
+  const [assinatura, setAssinatura] = useState<string | null>(null);
 
   // Pré-preenchimento: última folha do próprio utilizador > perfil/colaborador
   useEffect(() => {
