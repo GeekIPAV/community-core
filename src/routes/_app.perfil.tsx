@@ -18,6 +18,7 @@ import { CurriculoSection } from "@/components/curriculo-section";
 import { FamilyDetailDialog } from "@/components/family-detail";
 import type { Familia } from "@/components/family-detail";
 import { MeuApoioSection } from "@/components/meu-apoio-section";
+import { SignaturePad } from "@/components/signature-pad";
 import {
   Mail, Phone, MapPin, Cake, Briefcase, Globe, HeartHandshake, Users, IdCard,
   ShieldCheck, Heart, Pencil, Save, X, Calendar,
@@ -42,6 +43,9 @@ type PessoaFull = {
   religiao: string | null;
   profissao: string | null;
   notas: string | null;
+  iban: string | null;
+  matricula: string | null;
+  assinatura: string | null;
   familia_id: string | null;
   status: string;
   is_admin: boolean;
@@ -95,7 +99,7 @@ function PerfilPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, email, telefone, nif, cartao_cidadao, morada, data_nascimento, genero, nacionalidade, cidade_residencia, religiao, profissao, notas, familia_id, status, is_admin, is_voluntario, tipo_user_id")
+        .select("id, nome_completo, email, telefone, nif, cartao_cidadao, morada, data_nascimento, genero, nacionalidade, cidade_residencia, religiao, profissao, notas, iban, matricula, assinatura, familia_id, status, is_admin, is_voluntario, tipo_user_id")
         .eq("id", ctxPessoa!.id)
         .maybeSingle();
       if (error) throw error;
@@ -174,7 +178,7 @@ function PerfilPage() {
         </TabsList>
 
         <TabsContent value="dados" className="mt-6">
-          <DadosSection pessoa={pessoa} onSaved={async () => {
+          <DadosSection pessoa={pessoa} isEquipa={isEquipa} onSaved={async () => {
             await qc.invalidateQueries({ queryKey: ["meu-perfil", pessoa.id] });
             await refresh();
           }} />
@@ -249,10 +253,11 @@ function PerfilHeader({ pessoa, isAdmin }: { pessoa: PessoaFull; isAdmin: boolea
 const EDITABLE_FIELDS = [
   "nome_completo", "email", "telefone", "nif", "cartao_cidadao", "morada",
   "data_nascimento", "genero", "nacionalidade", "cidade_residencia", "religiao", "profissao", "notas",
+  "iban", "matricula", "assinatura",
 ] as const;
 type EditableKey = (typeof EDITABLE_FIELDS)[number];
 
-function DadosSection({ pessoa, onSaved }: { pessoa: PessoaFull; onSaved: () => void | Promise<void> }) {
+function DadosSection({ pessoa, isEquipa, onSaved }: { pessoa: PessoaFull; isEquipa?: boolean; onSaved: () => void | Promise<void> }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<PessoaFull>(pessoa);
   useEffect(() => { setForm(pessoa); }, [pessoa]);
@@ -304,6 +309,24 @@ function DadosSection({ pessoa, onSaved }: { pessoa: PessoaFull; onSaved: () => 
             <InfoRow icon={IdCard} label="NIF" value={pessoa.nif} />
             <InfoRow icon={IdCard} label="Cartão de Cidadão" value={pessoa.cartao_cidadao} />
           </div>
+          {isEquipa && (
+            <div className="rounded-lg border p-4 space-y-3">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Dados para reembolsos</h3>
+              <InfoRow icon={IdCard} label="IBAN" value={pessoa.iban} />
+              <InfoRow icon={IdCard} label="Matrícula" value={pessoa.matricula} />
+              <div className="flex items-start gap-2 text-sm">
+                <Pencil className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs text-muted-foreground">Assinatura</div>
+                  {pessoa.assinatura ? (
+                    <img src={pessoa.assinatura} alt="Assinatura" className="mt-1 h-16 rounded border bg-white object-contain" />
+                  ) : (
+                    <div className="font-medium">—</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
           {pessoa.notas && (
             <div className="rounded-lg border p-4 space-y-2">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Notas</h3>
@@ -353,6 +376,23 @@ function DadosSection({ pessoa, onSaved }: { pessoa: PessoaFull; onSaved: () => 
         <div className="space-y-1"><Label>Religião</Label><Input value={field("religiao")} onChange={(e) => set("religiao", e.target.value)} /></div>
         <div className="space-y-1"><Label>Profissão</Label><Input value={field("profissao")} onChange={(e) => set("profissao", e.target.value)} /></div>
         <div className="md:col-span-2 space-y-1"><Label>Notas</Label><Textarea rows={3} value={field("notas")} onChange={(e) => set("notas", e.target.value)} /></div>
+        {isEquipa && (
+          <>
+            <div className="space-y-1"><Label>IBAN</Label><Input value={field("iban")} onChange={(e) => set("iban", e.target.value)} placeholder="PT50…" /></div>
+            <div className="space-y-1"><Label>Matrícula</Label><Input value={field("matricula")} onChange={(e) => set("matricula", e.target.value.toUpperCase())} placeholder="AA-00-AA" /></div>
+            <div className="md:col-span-2 space-y-1">
+              <Label>Assinatura</Label>
+              {form.assinatura ? (
+                <div className="space-y-2">
+                  <img src={form.assinatura} alt="Assinatura" className="h-20 rounded border bg-white object-contain" />
+                  <Button type="button" variant="outline" size="sm" onClick={() => set("assinatura", null)}>Remover assinatura</Button>
+                </div>
+              ) : (
+                <SignaturePad value={null} onChange={(v) => set("assinatura", v)} />
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

@@ -31,6 +31,8 @@ type Linha = { id: string; data: string; descricao: string; percurso: string; km
 
 type Pessoa = { nome: string; morada: string; nif: string; iban: string; matricula: string; email: string };
 
+type Perfil = Pessoa & { assinatura: string | null };
+
 const novaLinha = (): Linha => ({
   id: Math.random().toString(36).slice(2),
   data: new Date().toISOString().slice(0, 10),
@@ -68,8 +70,10 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   const [linhas, setLinhas] = useState<Linha[]>([novaLinha()]);
   const [prefilled, setPrefilled] = useState(false);
   const [assinatura, setAssinatura] = useState<string | null>(null);
+  const [perfil, setPerfil] = useState<Perfil | null>(null);
+  const [confirmarPerfil, setConfirmarPerfil] = useState(false);
 
-  // Pré-preenchimento: última folha do próprio utilizador > perfil/colaborador
+  // Pré-preenchimento: perfil da pessoa > última folha > colaborador
   useEffect(() => {
     if (!open || prefilled) return;
     setPrefilled(true);
@@ -97,10 +101,11 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
       }
       const authEmail = session?.user?.email ?? "";
       let fromDb: Partial<Pessoa> = {};
+      let perfilDb: Perfil | null = null;
       if (pessoa?.id) {
         const { data: p } = await supabase
           .from("pessoas")
-          .select("nome_completo, email, nif, morada")
+          .select("nome_completo, email, nif, morada, iban, matricula, assinatura")
           .eq("id", pessoa.id)
           .maybeSingle();
         const { data: c } = await supabase
@@ -108,22 +113,35 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
           .select("nome_completo, email, nif, morada, iban, matricula")
           .eq("pessoa_id", pessoa.id)
           .maybeSingle();
+        if (p) {
+          perfilDb = {
+            nome: p.nome_completo ?? "",
+            morada: p.morada ?? "",
+            nif: p.nif ?? "",
+            iban: p.iban ?? "",
+            matricula: p.matricula ?? "",
+            email: p.email ?? "",
+            assinatura: p.assinatura ?? null,
+          };
+          setPerfil(perfilDb);
+          if (p.assinatura) setAssinatura(p.assinatura);
+        }
         fromDb = {
-          nome: c?.nome_completo ?? p?.nome_completo ?? "",
-          email: c?.email ?? p?.email ?? "",
-          nif: c?.nif ?? p?.nif ?? "",
-          morada: c?.morada ?? p?.morada ?? "",
+          nome: c?.nome_completo ?? "",
+          email: c?.email ?? "",
+          nif: c?.nif ?? "",
+          morada: c?.morada ?? "",
           iban: c?.iban ?? "",
           matricula: c?.matricula ?? "",
         };
       }
       setDados({
-        nome: base.nome || fromDb.nome || pessoa?.nome_completo || "",
-        morada: base.morada || fromDb.morada || "",
-        nif: base.nif || fromDb.nif || "",
-        iban: base.iban || fromDb.iban || "",
-        matricula: base.matricula || fromDb.matricula || "",
-        email: base.email || fromDb.email || authEmail || "",
+        nome: perfilDb?.nome || base.nome || fromDb.nome || pessoa?.nome_completo || "",
+        morada: perfilDb?.morada || base.morada || fromDb.morada || "",
+        nif: perfilDb?.nif || base.nif || fromDb.nif || "",
+        iban: perfilDb?.iban || base.iban || fromDb.iban || "",
+        matricula: perfilDb?.matricula || base.matricula || fromDb.matricula || "",
+        email: perfilDb?.email || base.email || fromDb.email || authEmail || "",
       });
     })();
   }, [open, prefilled, pessoa, session]);
@@ -133,8 +151,43 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
       setPrefilled(false);
       setLinhas([novaLinha()]);
       setAssinatura(null);
+      setPerfil(null);
+      setConfirmarPerfil(false);
     }
   }, [open]);
+
+  const perfilTemAssinatura = !!perfil?.assinatura;
+
+  // Campos em falta no perfil que estão preenchidos no formulário
+  const camposEmFalta = useMemo(() => {
+    if (!pessoa?.id) return [] as Array<{ coluna: string; label: string; valor: string }>;
+    const alvos: Array<{ coluna: keyof Perfil; label: string; valor: string }> = [
+      { coluna: "morada", label: "Morada", valor: dados.morada },
+      { coluna: "nif", label: "NIF", valor: dados.nif },
+      { coluna: "iban", label: "IBAN", valor: dados.iban },
+      { coluna: "matricula", label: "Matrícula", valor: dados.matricula },
+    ];
+    const lista = alvos
+      .filter((a) => a.valor.trim() && !(perfil?.[a.coluna] as string | undefined)?.trim())
+      .map((a) => ({ coluna: a.coluna as string, label: a.label, valor: a.valor.trim() }));
+    if (!perfil?.assinatura && assinatura) {
+      lista.push({ coluna: "assinatura", label: "Assinatura", valor: assinatura });
+    }
+    return lista;
+  }, [dados, perfil, assinatura, pessoa]);
+
+  const atualizarPerfil = async () => {
+    if (!pessoa?.id || camposEmFalta.length === 0) return;
+    const patch: Record<string, string> = {};
+    for (const c of camposEmFalta) patch[c.coluna] = c.valor;
+    const { error } = await supabase.from("pessoas").update(patch as never).eq("id", pessoa.id);
+    if (error) {
+      toast.error("Não foi possível atualizar o perfil.");
+      return;
+    }
+    setPerfil((p) => ({ ...(p ?? { nome: "", morada: "", nif: "", iban: "", matricula: "", email: "", assinatura: null }), ...patch } as Perfil));
+    toast.success("Perfil atualizado com estes dados.");
+  };
 
   const rate = KM_RATE;
   const linhasValidas = useMemo(() => linhas.filter((l) => num(l.km) > 0), [linhas]);
@@ -474,13 +527,21 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
 
         <p className="text-[11px] leading-relaxed text-muted-foreground">{DECLARACAO}</p>
 
-        <div className="space-y-2">
-          <Label className="text-xs">Assinatura *</Label>
-          <SignaturePad value={assinatura} onChange={setAssinatura} />
-          {!assinatura && (
-            <p className="text-xs text-destructive">A assinatura é obrigatória para gerar e enviar a folha.</p>
-          )}
-        </div>
+        {perfilTemAssinatura ? (
+          <div className="space-y-1">
+            <Label className="text-xs">Assinatura</Label>
+            <img src={assinatura ?? ""} alt="Assinatura" className="h-16 rounded border bg-white object-contain" />
+            <p className="text-xs text-muted-foreground">Assinatura guardada no seu perfil.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Label className="text-xs">Assinatura *</Label>
+            <SignaturePad value={assinatura} onChange={setAssinatura} />
+            {!assinatura && (
+              <p className="text-xs text-destructive">A assinatura é obrigatória para gerar e enviar a folha.</p>
+            )}
+          </div>
+        )}
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
@@ -493,11 +554,54 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
           >
             <Download className="mr-2 h-4 w-4" /> Pré-visualizar PDF
           </Button>
-          <Button onClick={() => submeter.mutate()} disabled={submeter.isPending || !assinatura}>
+          <Button
+            onClick={() => {
+              if (camposEmFalta.length > 0) setConfirmarPerfil(true);
+              else submeter.mutate();
+            }}
+            disabled={submeter.isPending || !assinatura}
+          >
             {submeter.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
             Gerar e enviar
           </Button>
         </DialogFooter>
+
+        <Dialog open={confirmarPerfil} onOpenChange={setConfirmarPerfil}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Atualizar o seu perfil?</DialogTitle>
+              <DialogDescription>
+                Estes dados ainda não estão guardados no seu perfil. Quer guardá-los para aparecerem automaticamente
+                da próxima vez?
+              </DialogDescription>
+            </DialogHeader>
+            <ul className="list-disc pl-5 text-sm">
+              {camposEmFalta.map((c) => (
+                <li key={c.coluna}>{c.label}</li>
+              ))}
+            </ul>
+            <DialogFooter className="gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setConfirmarPerfil(false);
+                  submeter.mutate();
+                }}
+              >
+                Não, só enviar
+              </Button>
+              <Button
+                onClick={async () => {
+                  setConfirmarPerfil(false);
+                  await atualizarPerfil();
+                  submeter.mutate();
+                }}
+              >
+                Sim, atualizar perfil
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );

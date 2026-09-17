@@ -8,6 +8,20 @@
       "when": 1789640804112,
       "tag": "0000_create_folhas_km",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789643571738,
+      "tag": "0001_add_pessoas_dados_bancarios_assinatura",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789643588814,
+      "tag": "0002_add_pessoas_matricula",
+      "breakpoints": true
     }
   ]
 }

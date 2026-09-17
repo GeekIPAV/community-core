@@ -1912,6 +1912,7 @@ export type Database = {
       }
       pessoas: {
         Row: {
+          assinatura: string | null
           auth_user_id: string | null
           cartao_cidadao: string | null
           cidade_residencia: string | null
@@ -1922,10 +1923,12 @@ export type Database = {
           familia_id: string | null
           fundido_em: string | null
           genero: string | null
+          iban: string | null
           id: string
           ignorar_duplicado: boolean
           is_admin: boolean
           is_voluntario: boolean
+          matricula: string | null
           morada: string | null
           nacionalidade: string | null
           nif: string | null
@@ -1941,6 +1944,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assinatura?: string | null
           auth_user_id?: string | null
           cartao_cidadao?: string | null
           cidade_residencia?: string | null
@@ -1951,10 +1955,12 @@ export type Database = {
           familia_id?: string | null
           fundido_em?: string | null
           genero?: string | null
+          iban?: string | null
           id?: string
           ignorar_duplicado?: boolean
           is_admin?: boolean
           is_voluntario?: boolean
+          matricula?: string | null
           morada?: string | null
           nacionalidade?: string | null
           nif?: string | null
@@ -1970,6 +1976,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assinatura?: string | null
           auth_user_id?: string | null
           cartao_cidadao?: string | null
           cidade_residencia?: string | null
@@ -1980,10 +1987,12 @@ export type Database = {
           familia_id?: string | null
           fundido_em?: string | null
           genero?: string | null
+          iban?: string | null
           id?: string
           ignorar_duplicado?: boolean
           is_admin?: boolean
           is_voluntario?: boolean
+          matricula?: string | null
           morada?: string | null
           nacionalidade?: string | null
           nif?: string | null
