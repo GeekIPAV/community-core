@@ -75,6 +75,52 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   const [assinatura, setAssinatura] = useState<string | null>(null);
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [confirmarPerfil, setConfirmarPerfil] = useState(false);
+  const [alvoId, setAlvoId] = useState<string | null>(null);
+  const [seletorAberto, setSeletorAberto] = useState(false);
+
+  const { data: pessoasLista = [] } = useQuery({
+    enabled: open,
+    queryKey: ["folha-km-pessoas"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("pessoas")
+        .select("id, nome_completo, email")
+        .is("deleted_at", null)
+        .order("nome_completo")
+        .limit(2000);
+      return data ?? [];
+    },
+  });
+
+  const carregarPessoa = async (id: string) => {
+    const { data: p } = await supabase
+      .from("pessoas")
+      .select("nome_completo, email, nif, morada, iban, matricula, assinatura")
+      .eq("id", id)
+      .maybeSingle();
+    if (!p) return;
+    const perfilDb: Perfil = {
+      nome: p.nome_completo ?? "",
+      morada: p.morada ?? "",
+      nif: p.nif ?? "",
+      iban: p.iban ?? "",
+      matricula: p.matricula ?? "",
+      email: p.email ?? "",
+      assinatura: p.assinatura ?? null,
+    };
+    setAlvoId(id);
+    setPerfil(perfilDb);
+    setAssinatura(perfilDb.assinatura);
+    setDados({
+      nome: perfilDb.nome,
+      morada: perfilDb.morada,
+      nif: perfilDb.nif,
+      iban: perfilDb.iban,
+      matricula: perfilDb.matricula,
+      email: perfilDb.email,
+    });
+  };
+
 
   // Pré-preenchimento: perfil da pessoa > última folha > colaborador
   useEffect(() => {
