@@ -31,6 +31,7 @@ function AtividadesPage() {
   const [editing, setEditing] = useState<Atividade | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [registarEm, setRegistarEm] = useState<Atividade | null>(null);
+  const [atribuirOpen, setAtribuirOpen] = useState(false);
 
   const { data: atividades, isLoading: loadingA } = useQuery({
     queryKey: ["atividades-catalogo-admin"],
@@ -174,9 +175,13 @@ function AtividadesPage() {
             Catálogo de atividades, com resumo de quantas vezes foram realizadas e em que famílias.
           </p>
         </div>
+        <div className="flex items-center gap-2">
+        <Button variant="secondary" onClick={() => setAtribuirOpen(true)}>
+          <Users className="mr-2 h-4 w-4" /> Atribuir atividade a famílias
+        </Button>
         <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) setForm({ nome: "", categoria: "" }); }}>
           <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" /> Nova atividade</Button>
+            <Button variant="outline"><Plus className="mr-2 h-4 w-4" /> Nova atividade</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -190,6 +195,7 @@ function AtividadesPage() {
             <DialogFooter><Button onClick={() => create.mutate()} disabled={create.isPending}>Guardar</Button></DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <div className="grid gap-3 md:grid-cols-3">
@@ -237,7 +243,9 @@ function AtividadesPage() {
                                 <span className="text-sm text-muted-foreground tabular-nums">{l.total} vez{l.total !== 1 ? "es" : ""}</span>
                                 <span className="text-sm text-muted-foreground tabular-nums">{l.porFamilia.length} família{l.porFamilia.length !== 1 ? "s" : ""}</span>
                                 <div className="flex items-center">
-                                  <Button size="icon" variant="ghost" title="Adicionar famílias" onClick={(e) => { e.stopPropagation(); setRegistarEm(l.atividade); }}><Users className="h-4 w-4" /></Button>
+                                  <Button size="sm" variant="secondary" className="mr-1" onClick={(e) => { e.stopPropagation(); setRegistarEm(l.atividade); }}>
+                                    <Users className="mr-2 h-4 w-4" /> Atribuir a famílias
+                                  </Button>
                                   <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); setEditing(l.atividade); }}><Pencil className="h-4 w-4" /></Button>
                                   <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); setDeleteId(l.atividade.id); }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                                 </div>
@@ -283,6 +291,15 @@ function AtividadesPage() {
           <DialogFooter><Button onClick={() => update.mutate()} disabled={update.isPending}>Guardar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <RegistarAtividadeDialog
+        open={atribuirOpen}
+        onOpenChange={setAtribuirOpen}
+        escolherFamilias
+        titulo="Atribuir atividade a famílias"
+        descricaoDialogo="Escolha a atividade e as famílias (por nome da família ou de uma pessoa)."
+        onRegistado={() => qc.invalidateQueries({ queryKey: ["familia-atividades-admin"] })}
+      />
 
       <RegistarAtividadeDialog
         open={!!registarEm}

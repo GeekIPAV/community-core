@@ -28,6 +28,7 @@ import { EtiquetasPicker } from "@/components/etiquetas-picker";
 import { AcoesHoverSummary } from "@/components/acoes-hover-summary";
 import { CurriculoSection } from "@/components/curriculo-section";
 import { PessoaMapaKmSection } from "@/components/pessoa-mapa-km-section";
+import { PessoaAtividadesSection } from "@/components/pessoa-atividades-section";
 import { SignaturePad } from "@/components/signature-pad";
 import { InviteMemberButton } from "@/components/invite-member";
 import type { VisibilityState } from "@tanstack/react-table";
@@ -839,6 +840,7 @@ function ParticipantesPage() {
                 <TabsTrigger value="dados">Dados</TabsTrigger>
                 <TabsTrigger value="acoes">Ações / Eventos</TabsTrigger>
                 <TabsTrigger value="etiquetas">Etiquetas</TabsTrigger>
+                <TabsTrigger value="atividades">Atividades</TabsTrigger>
                 <TabsTrigger value="mapa-km">Mapa de KM</TabsTrigger>
                 {(calcIdade(editing.data_nascimento) ?? 0) >= 18 && (
                   <TabsTrigger value="curriculo">Currículo</TabsTrigger>
@@ -979,6 +981,9 @@ function ParticipantesPage() {
               </TabsContent>
               <TabsContent value="etiquetas" className="mt-4">
                 <EtiquetasPicker pessoaId={editing.id} />
+              </TabsContent>
+              <TabsContent value="atividades" className="mt-4">
+                <PessoaAtividadesSection pessoaId={editing.id} familiaId={editing.familia_id ?? null} />
               </TabsContent>
               <TabsContent value="mapa-km" className="mt-4">
                 <PessoaMapaKmSection pessoaId={editing.id} familiaId={editing.familia_id} />

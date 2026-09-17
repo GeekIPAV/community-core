@@ -120,7 +120,7 @@ function CasoDetailPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pessoas")
-        .select("id, nome_completo, is_admin, tipos_user!inner(nome)")
+        .select("id, nome_completo, is_admin, tipos_user!pessoas_tipo_user_id_fkey(nome)")
         .eq("status", "ativo").not("auth_user_id", "is", null);
       if (error) throw error;
       return ((data ?? []) as any[])
