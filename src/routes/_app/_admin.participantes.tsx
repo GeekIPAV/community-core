@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, Pencil, Plus, Trash2, Mail, Phone, MapPin, Cake, Briefcase, Globe, HeartHandshake, Users, IdCard, ShieldCheck, Heart } from "lucide-react";
+import { ChevronDown, ChevronRight, Pencil, Plus, Trash2, Mail, Phone, MapPin, Cake, Briefcase, Globe, HeartHandshake, Users, IdCard, ShieldCheck, Heart, CreditCard, Car } from "lucide-react";
 import { EtiquetasPicker } from "@/components/etiquetas-picker";
 import { AcoesHoverSummary } from "@/components/acoes-hover-summary";
 import { CurriculoSection } from "@/components/curriculo-section";
@@ -1633,6 +1633,20 @@ function PessoaPerfil({
   const isVoluntario = pessoaExtra?.is_voluntario ?? pessoa.is_voluntario ?? false;
   const isAdmin = pessoaExtra?.is_admin ?? pessoa.is_admin ?? false;
 
+  const qcPerfil = useQueryClient();
+  const saveAssinatura = useMutation({
+    mutationFn: async (assinatura: string | null) => {
+      const { error } = await supabase.from("pessoas").update({ assinatura }).eq("id", pessoa.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Assinatura atualizada.");
+      qcPerfil.invalidateQueries({ queryKey: ["pessoas"] });
+      qcPerfil.invalidateQueries({ queryKey: ["participantes"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao guardar a assinatura."),
+  });
+
   const { data: agregado, isLoading: loadingAgregado } = useQuery({
     enabled: !!pessoa.familia_id,
     queryKey: ["pessoa-agregado", pessoa.familia_id],
@@ -1705,6 +1719,19 @@ function PessoaPerfil({
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Identificação</h3>
           <InfoRow icon={IdCard} label="NIF" value={pessoa.nif || "—"} />
           <InfoRow icon={IdCard} label="Cartão de Cidadão" value={pessoa.cartao_cidadao || "—"} />
+        </div>
+
+        <div className="rounded-lg border p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Pagamento</h3>
+          <InfoRow icon={CreditCard} label="IBAN" value={pessoa.iban || "—"} />
+          <InfoRow icon={Car} label="Matrícula" value={pessoa.matricula || "—"} />
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">Assinatura</p>
+            <SignaturePad
+              value={pessoa.assinatura ?? null}
+              onChange={(dataUrl) => saveAssinatura.mutate(dataUrl)}
+            />
+          </div>
         </div>
 
         <div className="rounded-lg border p-4 space-y-3">
