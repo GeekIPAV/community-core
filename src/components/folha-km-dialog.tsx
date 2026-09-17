@@ -325,63 +325,44 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-md border p-3">
-            <p className="mb-2 text-sm font-semibold">Identificação da Entidade</p>
-            <dl className="space-y-1 text-xs text-muted-foreground">
-              <div><span className="font-medium text-foreground">Nome: </span>{ENTIDADE.nome}</div>
-              <div><span className="font-medium text-foreground">Morada: </span>{ENTIDADE.morada}</div>
-              <div><span className="font-medium text-foreground">NIF: </span>{ENTIDADE.nif}</div>
-            </dl>
-          </div>
-
-          <div className="rounded-md border p-3 space-y-2">
-            <p className="text-sm font-semibold">Identificação da Pessoa</p>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <div className="space-y-1 sm:col-span-2">
-                <Label className="text-xs">Nome</Label>
-                <Input value={dados.nome} onChange={(e) => setDados({ ...dados, nome: e.target.value })} />
-              </div>
-              <div className="space-y-1 sm:col-span-2">
-                <Label className="text-xs">Morada</Label>
-                <Input value={dados.morada} onChange={(e) => setDados({ ...dados, morada: e.target.value })} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">NIF</Label>
-                <Input value={dados.nif} onChange={(e) => setDados({ ...dados, nif: e.target.value })} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">IBAN</Label>
-                <Input value={dados.iban} onChange={(e) => setDados({ ...dados, iban: e.target.value })} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Matrícula</Label>
-                <Input
-                  value={dados.matricula}
-                  onChange={(e) => setDados({ ...dados, matricula: e.target.value.toUpperCase() })}
-                  placeholder="AA-00-AA"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Email</Label>
-                <Input value={dados.email} onChange={(e) => setDados({ ...dados, email: e.target.value })} />
-              </div>
+        <div className="rounded-md border p-3 space-y-2">
+          <p className="text-sm font-semibold">Identificação da Pessoa</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="space-y-1 sm:col-span-2">
+              <Label className="text-xs">Nome</Label>
+              <Input value={dados.nome} onChange={(e) => setDados({ ...dados, nome: e.target.value })} />
+            </div>
+            <div className="space-y-1 sm:col-span-2">
+              <Label className="text-xs">Morada</Label>
+              <Input value={dados.morada} onChange={(e) => setDados({ ...dados, morada: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">NIF</Label>
+              <Input value={dados.nif} onChange={(e) => setDados({ ...dados, nif: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">IBAN</Label>
+              <Input value={dados.iban} onChange={(e) => setDados({ ...dados, iban: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Matrícula</Label>
+              <Input
+                value={dados.matricula}
+                onChange={(e) => setDados({ ...dados, matricula: e.target.value.toUpperCase() })}
+                placeholder="AA-00-AA"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Email</Label>
+              <Input value={dados.email} onChange={(e) => setDados({ ...dados, email: e.target.value })} />
             </div>
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-md border p-3 space-y-2">
-            <div className="space-y-1">
-              <Label className="text-xs">Período (opcional)</Label>
-              <Input value={periodo} onChange={(e) => setPeriodo(e.target.value)} placeholder="Ex: Setembro 2026" />
-            </div>
-          </div>
-          <div className="rounded-md border bg-muted/40 p-3">
-            <p className="text-sm font-semibold">Valores totais</p>
-            <p className="mt-2 text-2xl font-bold tabular-nums">{formatEuro(totalValor)}</p>
-            <p className="text-xs text-muted-foreground">{totalKm.toLocaleString("pt-PT")} km no total</p>
-          </div>
+        <div className="rounded-md border bg-muted/40 p-3">
+          <p className="text-sm font-semibold">Valores totais</p>
+          <p className="mt-2 text-2xl font-bold tabular-nums">{formatEuro(totalValor)}</p>
+          <p className="text-xs text-muted-foreground">{totalKm.toLocaleString("pt-PT")} km no total</p>
         </div>
 
         <div className="rounded-md border overflow-x-auto">
