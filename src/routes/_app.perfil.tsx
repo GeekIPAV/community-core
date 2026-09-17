@@ -308,6 +308,24 @@ function DadosSection({ pessoa, isEquipa, onSaved }: { pessoa: PessoaFull; isEqu
             <InfoRow icon={IdCard} label="NIF" value={pessoa.nif} />
             <InfoRow icon={IdCard} label="Cartão de Cidadão" value={pessoa.cartao_cidadao} />
           </div>
+          {isEquipa && (
+            <div className="rounded-lg border p-4 space-y-3">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Dados para reembolsos</h3>
+              <InfoRow icon={IdCard} label="IBAN" value={pessoa.iban} />
+              <InfoRow icon={IdCard} label="Matrícula" value={pessoa.matricula} />
+              <div className="flex items-start gap-2 text-sm">
+                <Pencil className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs text-muted-foreground">Assinatura</div>
+                  {pessoa.assinatura ? (
+                    <img src={pessoa.assinatura} alt="Assinatura" className="mt-1 h-16 rounded border bg-white object-contain" />
+                  ) : (
+                    <div className="font-medium">—</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
           {pessoa.notas && (
             <div className="rounded-lg border p-4 space-y-2">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Notas</h3>
