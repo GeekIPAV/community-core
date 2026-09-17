@@ -290,6 +290,50 @@ export function FolhaKmDialog({
       assinatura,
     });
 
+  const payloadLinhas = () =>
+    linhasValidas.map((l) => ({
+      data: l.data,
+      descricao: l.descricao,
+      percurso: l.percurso,
+      km: num(l.km),
+      valor: Math.round(num(l.km) * rate * 100) / 100,
+    }));
+
+  const payloadFolha = () => ({
+    pessoa_id: alvoId ?? pessoa?.id ?? null,
+    nome: dados.nome,
+    morada: dados.morada || null,
+    nif: dados.nif || null,
+    iban: dados.iban || null,
+    matricula: dados.matricula || null,
+    email: dados.email || null,
+    valor_km: rate,
+    linhas: payloadLinhas(),
+    total_km: totalKm,
+    total_valor: totalValor,
+  });
+
+  const guardar = useMutation({
+    mutationFn: async () => {
+      if (!folhaId) return;
+      if (camposPessoaFaltam.length > 0)
+        throw new Error(`Preencha todos os campos: ${camposPessoaFaltam.join(", ")}.`);
+      if (linhasValidas.length === 0)
+        throw new Error("Adicione pelo menos uma linha preenchida (data, descrição, percurso e KM).");
+      const { error } = await supabase
+        .from("folhas_km")
+        .update({ ...payloadFolha(), updated_at: new Date().toISOString() })
+        .eq("id", folhaId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Folha de KM guardada.");
+      qc.invalidateQueries({ queryKey: ["folhas-km"] });
+      onOpenChange(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const submeter = useMutation({
     mutationFn: async () => {
       if (camposPessoaFaltam.length > 0)
@@ -298,42 +342,32 @@ export function FolhaKmDialog({
         throw new Error("Adicione pelo menos uma linha preenchida (data, descrição, percurso e KM).");
       if (!assinatura) throw new Error("A folha tem de estar assinada antes de poder ser enviada.");
 
-
-
-      const { data: folha, error } = await supabase
-        .from("folhas_km")
-        .insert({
-          pessoa_id: alvoId ?? pessoa?.id ?? null,
-          auth_user_id: session?.user?.id ?? null,
-          nome: dados.nome,
-          morada: dados.morada || null,
-          nif: dados.nif || null,
-          iban: dados.iban || null,
-          matricula: dados.matricula || null,
-          email: dados.email || null,
-          valor_km: rate,
-          linhas: linhasValidas.map((l) => ({
-            data: l.data,
-            descricao: l.descricao,
-            percurso: l.percurso,
-            km: num(l.km),
-            valor: Math.round(num(l.km) * rate * 100) / 100,
-          })),
-          total_km: totalKm,
-          total_valor: totalValor,
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
+      let id = folhaId;
+      if (folhaId) {
+        const { error } = await supabase
+          .from("folhas_km")
+          .update({ ...payloadFolha(), updated_at: new Date().toISOString() })
+          .eq("id", folhaId);
+        if (error) throw error;
+      } else {
+        const { data: folha, error } = await supabase
+          .from("folhas_km")
+          .insert({ ...payloadFolha(), auth_user_id: session?.user?.id ?? null })
+          .select("id")
+          .single();
+        if (error) throw error;
+        id = folha.id;
+      }
 
       const { doc, base64, filename } = await gerarPdf();
       doc.save(filename);
 
       await enviarFolhaKm({
         data: {
-          folhaId: folha.id,
+          folhaId: id!,
           nome: dados.nome,
           emailPessoa: dados.email || session?.user?.email || null,
+          periodo,
           totalKm,
           totalValor,
           ficheiroNome: filename,
