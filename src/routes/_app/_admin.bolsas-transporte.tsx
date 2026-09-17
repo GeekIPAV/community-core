@@ -839,7 +839,7 @@ function BolsasTransportePage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("folhas_km")
-        .select("id, nome, periodo, total_km, total_valor, estado, created_at")
+        .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
