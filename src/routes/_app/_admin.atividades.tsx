@@ -237,7 +237,9 @@ function AtividadesPage() {
                                 <span className="text-sm text-muted-foreground tabular-nums">{l.total} vez{l.total !== 1 ? "es" : ""}</span>
                                 <span className="text-sm text-muted-foreground tabular-nums">{l.porFamilia.length} família{l.porFamilia.length !== 1 ? "s" : ""}</span>
                                 <div className="flex items-center">
-                                  <Button size="icon" variant="ghost" title="Adicionar famílias" onClick={(e) => { e.stopPropagation(); setRegistarEm(l.atividade); }}><Users className="h-4 w-4" /></Button>
+                                  <Button size="sm" variant="secondary" className="mr-1" onClick={(e) => { e.stopPropagation(); setRegistarEm(l.atividade); }}>
+                                    <Users className="mr-2 h-4 w-4" /> Atribuir a famílias
+                                  </Button>
                                   <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); setEditing(l.atividade); }}><Pencil className="h-4 w-4" /></Button>
                                   <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); setDeleteId(l.atividade.id); }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                                 </div>
