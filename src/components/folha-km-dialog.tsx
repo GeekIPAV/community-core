@@ -8,6 +8,7 @@ import { enviarFolhaKm } from "@/lib/folha-km.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, Send, Loader2, Download, Check, ChevronsUpDown } from "lucide-react";
@@ -75,6 +76,7 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   const [assinatura, setAssinatura] = useState<string | null>(null);
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [confirmarPerfil, setConfirmarPerfil] = useState(false);
+  const [camposSelecionados, setCamposSelecionados] = useState<Record<string, boolean>>({});
   const [alvoId, setAlvoId] = useState<string | null>(null);
   const [seletorAberto, setSeletorAberto] = useState(false);
 
