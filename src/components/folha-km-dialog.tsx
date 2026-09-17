@@ -175,6 +175,7 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
           setPerfil(perfilDb);
           if (p.assinatura) setAssinatura(p.assinatura);
         }
+        setAlvoId(pessoa.id);
         fromDb = {
           nome: c?.nome_completo ?? "",
           email: c?.email ?? "",
@@ -202,6 +203,7 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
       setAssinatura(null);
       setPerfil(null);
       setConfirmarPerfil(false);
+      setAlvoId(null);
     }
   }, [open]);
 
