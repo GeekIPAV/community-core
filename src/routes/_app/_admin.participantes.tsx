@@ -850,6 +850,9 @@ function ParticipantesPage() {
                   tipos={tipos ?? []}
                   projetos={projetos ?? []}
                   familias={familias ?? []}
+                  onAssinaturaChange={(assinatura) => {
+                    setEditing((atual) => atual ? { ...atual, assinatura } : atual);
+                  }}
                   onOpenMember={async (id) => {
                     const found = data?.find((p) => p.id === id);
                     if (found) { setEditing({ ...found }); return; }
@@ -1603,12 +1606,14 @@ function PessoaPerfil({
   tipos,
   projetos,
   familias,
+  onAssinaturaChange,
   onOpenMember,
 }: {
   pessoa: Pessoa & { is_voluntario?: boolean; is_admin?: boolean };
   tipos: PerfilOpt[];
   projetos: PerfilOpt[];
   familias: PerfilOpt[];
+  onAssinaturaChange?: (assinatura: string | null) => void;
   onOpenMember?: (id: string) => void | Promise<void>;
 }) {
   const tipoNome = tipos.find((t) => t.id === pessoa.tipo_user_id)?.nome ?? null;
@@ -1646,6 +1651,10 @@ function PessoaPerfil({
     },
     onSuccess: (assinatura) => {
       setAssinaturaLocal(assinatura);
+      onAssinaturaChange?.(assinatura);
+      qcPerfil.setQueryData<Pessoa[]>(["pessoas"], (atuais) =>
+        atuais?.map((item) => item.id === pessoa.id ? { ...item, assinatura } : item),
+      );
       toast.success("Assinatura atualizada.");
       qcPerfil.invalidateQueries({ queryKey: ["pessoas"] });
       qcPerfil.invalidateQueries({ queryKey: ["participantes"] });
@@ -1740,6 +1749,7 @@ function PessoaPerfil({
               value={assinaturaLocal}
               onChange={(dataUrl) => {
                 setAssinaturaLocal(dataUrl);
+                onAssinaturaChange?.(dataUrl);
                 saveAssinatura.mutate(dataUrl);
               }}
             />
