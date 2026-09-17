@@ -487,6 +487,7 @@ export type Database = {
           resultado_final: string | null
           titulo: string
           updated_at: string
+          voluntario_id: string | null
         }
         Insert: {
           area: string
@@ -508,6 +509,7 @@ export type Database = {
           resultado_final?: string | null
           titulo: string
           updated_at?: string
+          voluntario_id?: string | null
         }
         Update: {
           area?: string
@@ -529,6 +531,7 @@ export type Database = {
           resultado_final?: string | null
           titulo?: string
           updated_at?: string
+          voluntario_id?: string | null
         }
         Relationships: [
           {
@@ -562,6 +565,20 @@ export type Database = {
           {
             foreignKeyName: "casos_apoio_pessoa_id_fkey"
             columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "casos_apoio_voluntario_id_fkey"
+            columns: ["voluntario_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "casos_apoio_voluntario_id_fkey"
+            columns: ["voluntario_id"]
             isOneToOne: false
             referencedRelation: "pessoas_com_stats"
             referencedColumns: ["id"]

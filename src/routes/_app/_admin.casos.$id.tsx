@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
+import { useVoluntariosLookup } from "@/components/registar-atividade-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -20,7 +21,7 @@ import { Progress } from "@/components/ui/progress";
 import {
   ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Calendar, CalendarCheck, Clock,
   User, UserPlus, ArrowRightLeft, CheckCircle2, Archive, Plus, MessageCircle, FileText,
-  Phone, Users as UsersIcon, RefreshCw, MessagesSquare, Eye, EyeOff, Mail, Trash2, StickyNote,
+  Phone, Users as UsersIcon, RefreshCw, MessagesSquare, Eye, EyeOff, Mail, Trash2, StickyNote, Heart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -111,6 +112,8 @@ function CasoDetailPage() {
       return (data ?? []) as any[];
     },
   });
+
+  const { data: voluntarios = [] } = useVoluntariosLookup();
 
   const { data: equipa = [] } = useQuery({
     queryKey: ["equipa-mediadoras"],
@@ -253,7 +256,7 @@ function CasoDetailPage() {
             <div className="flex items-start gap-2">
               <User className="h-4 w-4 mt-0.5 text-muted-foreground" />
               <div className="flex-1">
-                <div className="text-xs text-muted-foreground">Mediadora</div>
+                <div className="text-xs text-muted-foreground">Mediador/a</div>
                 <Select
                   value={caso.mediadora_id ?? "_none"}
                   onValueChange={(v) => updateCaso.mutate({ mediadora_id: v === "_none" ? null : v })}
@@ -264,6 +267,24 @@ function CasoDetailPage() {
                   <SelectContent>
                     <SelectItem value="_none">— Por atribuir —</SelectItem>
                     {equipa.map((m) => <SelectItem key={m.id} value={m.id}>{m.nome_completo}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <Heart className="h-4 w-4 mt-0.5 text-muted-foreground" />
+              <div className="flex-1">
+                <div className="text-xs text-muted-foreground">Voluntário/a acompanhante</div>
+                <Select
+                  value={caso.voluntario_id ?? "_none"}
+                  onValueChange={(v) => updateCaso.mutate({ voluntario_id: v === "_none" ? null : v })}
+                >
+                  <SelectTrigger className="h-8 mt-1">
+                    <SelectValue placeholder="Sem voluntário/a" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">— Sem voluntário/a —</SelectItem>
+                    {(voluntarios ?? []).map((v) => <SelectItem key={v.id} value={v.id}>{v.nome_completo}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -724,10 +745,10 @@ function TransferSheet({
 
   const submit = useMutation({
     mutationFn: async () => {
-      if (!novaMediadora) throw new Error("Escolhe a nova mediadora");
+      if (!novaMediadora) throw new Error("Escolhe o novo mediador/a");
       if (!notas.trim()) throw new Error("As notas de transição são obrigatórias");
       const entrada = equipa.find((e) => e.id === novaMediadora);
-      const saidaNome = caso.mediadora?.nome_completo ?? "Sem mediadora";
+      const saidaNome = caso.mediadora?.nome_completo ?? "Sem mediador/a";
 
       await supabase.from("caso_transferencias" as any).insert({
         caso_id: casoId,
@@ -759,11 +780,11 @@ function TransferSheet({
       <SheetContent className="w-full sm:max-w-md">
         <SheetHeader>
           <SheetTitle>Transferir caso</SheetTitle>
-          <SheetDescription>Atribui o caso a outra mediadora com contexto essencial.</SheetDescription>
+          <SheetDescription>Atribui o caso a outro mediador/a com contexto essencial.</SheetDescription>
         </SheetHeader>
         <div className="mt-4 space-y-4">
           <div className="space-y-2">
-            <Label>Nova mediadora <span className="text-destructive">*</span></Label>
+            <Label>Novo mediador/a <span className="text-destructive">*</span></Label>
             <Select value={novaMediadora} onValueChange={setNovaMediadora}>
               <SelectTrigger><SelectValue placeholder="Selecionar…" /></SelectTrigger>
               <SelectContent>
@@ -780,7 +801,7 @@ function TransferSheet({
           <div className="space-y-2">
             <Label>Notas de transição <span className="text-destructive">*</span></Label>
             <Textarea rows={6} value={notas} onChange={(e) => setNotas(e.target.value)}
-              placeholder="Contexto essencial para a nova mediadora: estado atual, acordos feitos, próximos passos urgentes, sensibilidades…" />
+              placeholder="Contexto essencial para o novo mediador/a: estado atual, acordos feitos, próximos passos urgentes, sensibilidades…" />
           </div>
         </div>
         <SheetFooter className="mt-6">

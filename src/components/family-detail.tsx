@@ -28,6 +28,8 @@ import { Link } from "@tanstack/react-router";
 import { formatDateBR } from "@/lib/utils";
 import { InlineText, InlineSelect, InlineMultiSelect } from "@/components/inline-edit";
 import { KM_RATE, TRIP_FACTOR } from "@/lib/bolsa-transporte";
+import { useVoluntariosLookup } from "@/components/registar-atividade-dialog";
+
 import { Switch } from "@/components/ui/switch";
 import { personIcon, flagFor } from "@/lib/person-display";
 import { CasoNovoSheet } from "@/components/caso-novo-sheet";
@@ -102,20 +104,8 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [voluntariosSel, setVoluntariosSel] = useState<string[]>([]);
 
-  const { data: voluntarios } = useQuery({
-    queryKey: ["voluntarios-lookup"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pessoas")
-        .select("id, nome_completo")
-        .eq("is_voluntario", true)
-        .eq("status", "ativo")
-        .is("deleted_at", null)
-        .order("nome_completo");
-      if (error) throw error;
-      return (data ?? []) as { id: string; nome_completo: string }[];
-    },
-  });
+  const { data: voluntarios } = useVoluntariosLookup();
+
 
   const { data: catalogo } = useQuery({
     queryKey: ["atividades-catalogo"],
