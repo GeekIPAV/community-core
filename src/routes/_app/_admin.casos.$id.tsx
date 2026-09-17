@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
+import { useVoluntariosLookup } from "@/components/registar-atividade-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -111,6 +112,8 @@ function CasoDetailPage() {
       return (data ?? []) as any[];
     },
   });
+
+  const { data: voluntarios = [] } = useVoluntariosLookup();
 
   const { data: equipa = [] } = useQuery({
     queryKey: ["equipa-mediadoras"],
@@ -264,6 +267,24 @@ function CasoDetailPage() {
                   <SelectContent>
                     <SelectItem value="_none">— Por atribuir —</SelectItem>
                     {equipa.map((m) => <SelectItem key={m.id} value={m.id}>{m.nome_completo}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <Heart className="h-4 w-4 mt-0.5 text-muted-foreground" />
+              <div className="flex-1">
+                <div className="text-xs text-muted-foreground">Voluntário/a acompanhante</div>
+                <Select
+                  value={caso.voluntario_id ?? "_none"}
+                  onValueChange={(v) => updateCaso.mutate({ voluntario_id: v === "_none" ? null : v })}
+                >
+                  <SelectTrigger className="h-8 mt-1">
+                    <SelectValue placeholder="Sem voluntário/a" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">— Sem voluntário/a —</SelectItem>
+                    {(voluntarios ?? []).map((v) => <SelectItem key={v.id} value={v.id}>{v.nome_completo}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
