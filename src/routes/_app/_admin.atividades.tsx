@@ -175,9 +175,13 @@ function AtividadesPage() {
             Catálogo de atividades, com resumo de quantas vezes foram realizadas e em que famílias.
           </p>
         </div>
+        <div className="flex items-center gap-2">
+        <Button variant="secondary" onClick={() => setAtribuirOpen(true)}>
+          <Users className="mr-2 h-4 w-4" /> Atribuir atividade a famílias
+        </Button>
         <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) setForm({ nome: "", categoria: "" }); }}>
           <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" /> Nova atividade</Button>
+            <Button variant="outline"><Plus className="mr-2 h-4 w-4" /> Nova atividade</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
