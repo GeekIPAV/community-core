@@ -123,6 +123,12 @@ function EstadoBadge({ estado }: { estado: BolsaPagamento["estado"] }) {
   return <Badge className="bg-amber-100 text-amber-800 border-amber-200">Por pagar</Badge>;
 }
 
+function FolhaEstadoBadge({ estado }: { estado: string | null }) {
+  if (estado === "enviada") return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">Enviada</Badge>;
+  if (estado === "erro_envio" || estado === "erro") return <Badge variant="destructive">Erro no envio</Badge>;
+  return <Badge variant="outline" className="text-muted-foreground">Rascunho</Badge>;
+}
+
 function InlineEditCell({ value, onSave, placeholder = "—" }: { value: string | null; onSave: (v: string) => void; placeholder?: string }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value ?? "");
