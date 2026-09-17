@@ -28,6 +28,7 @@ import { EtiquetasPicker } from "@/components/etiquetas-picker";
 import { AcoesHoverSummary } from "@/components/acoes-hover-summary";
 import { CurriculoSection } from "@/components/curriculo-section";
 import { PessoaMapaKmSection } from "@/components/pessoa-mapa-km-section";
+import { PessoaAtividadesSection } from "@/components/pessoa-atividades-section";
 import { SignaturePad } from "@/components/signature-pad";
 import { InviteMemberButton } from "@/components/invite-member";
 import type { VisibilityState } from "@tanstack/react-table";
