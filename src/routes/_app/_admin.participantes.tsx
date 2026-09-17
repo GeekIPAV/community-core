@@ -313,184 +313,152 @@ function ParticipantesPage() {
     );
   }, [data, debouncedQ, familias, tipos, projetos]);
 
-  const tableColumns = useMemo<ColumnDef<Pessoa>[]>(() => {
-    const save = (id: string, field: keyof Pessoa) => async (v: any) => {
-      const prev = await applyOptimisticRowPatch<Pessoa>(qc, ["pessoas"], id, { [field]: v } as Partial<Pessoa>);
-      const { error } = await supabase.from("pessoas").update({ [field]: v } as any).eq("id", id);
-      if (error) {
-        rollbackOptimisticRows(qc, ["pessoas"], prev);
-        handleSupabaseError(error);
-        throw error;
-      }
-    };
+  const saveField = async (id: string, field: keyof Pessoa, v: any) => {
+    const prev = await applyOptimisticRowPatch<Pessoa>(qc, ["pessoas"], id, { [field]: v } as Partial<Pessoa>);
+    const { error } = await supabase.from("pessoas").update({ [field]: v } as any).eq("id", id);
+    if (error) {
+      rollbackOptimisticRows(qc, ["pessoas"], prev);
+      handleSupabaseError(error);
+      throw error;
+    }
+  };
+
+  const columns = useMemo<SmartColumnDef<Pessoa>[]>(() => {
     const muted = (v: any) => <span className="text-muted-foreground">{(v as string) || "—"}</span>;
-    const text = (field: keyof Pessoa, type: "text" | "date" = "text") =>
-      ({ getValue, row }: any) => (
-        inlineEdit
-          ? <InlineText value={getValue() as string | null} type={type} onSave={save(row.original.id, field)} />
-          : muted(getValue())
-      );
-    const sel = (field: keyof Pessoa, options: { value: string; label: string }[], placeholder: string, allowClear = true) =>
-      ({ row }: any) => {
-        const v = (row.original as any)[field] as string | null;
-        if (inlineEdit) {
-          return <InlineSelect value={v} options={options} placeholder={placeholder} allowClear={allowClear} onSave={save(row.original.id, field)} />;
-        }
-        return muted(options.find((o) => o.value === v)?.label ?? "");
-      };
     return [
-      { id: "nome_completo", header: "Nome", accessorKey: "nome_completo", cell: ({ getValue, row }) => {
-        const p = row.original as Pessoa;
-        const Icon = personIcon(p.genero, p.data_nascimento);
-        return (
-          <span className="font-medium inline-flex items-center gap-2">
-            <Icon aria-hidden className="h-5 w-5 shrink-0 text-primary" strokeWidth={2.25} />
-            <span>{(getValue() as string) ?? "—"}</span>
-          </span>
-        );
-      }, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nome" } satisfies ColumnFilterMeta },
-      { id: "email", header: "Email", accessorKey: "email", cell: text("email"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Email" } satisfies ColumnFilterMeta },
-      { id: "telefone", header: "Telefone", accessorKey: "telefone", cell: text("telefone"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Telefone" } satisfies ColumnFilterMeta },
-      { id: "nif", header: "NIF", accessorKey: "nif", cell: text("nif"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "NIF" } satisfies ColumnFilterMeta },
-      { id: "cartao_cidadao", header: "Cartão de Cidadão", accessorKey: "cartao_cidadao", cell: text("cartao_cidadao"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Cartão de Cidadão" } satisfies ColumnFilterMeta },
-      { id: "morada", header: "Morada", accessorKey: "morada", cell: text("morada"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Morada" } satisfies ColumnFilterMeta },
-      { id: "data_nascimento", header: "Data nascimento", accessorKey: "data_nascimento", cell: text("data_nascimento", "date"), filterFn: advancedFilterFn as any, meta: { filterVariant: "date", label: "Data nascimento" } satisfies ColumnFilterMeta },
-      { id: "idade", header: "Idade", accessorFn: (p) => calcIdade(p.data_nascimento), cell: ({ getValue }) => {
-        const idade = getValue() as number | null;
-        return idade !== null ? <span className="text-muted-foreground">{idade} anos</span> : <span className="text-muted-foreground">—</span>;
-      }, filterFn: advancedFilterFn as any, meta: { filterVariant: "number", label: "Idade" } satisfies ColumnFilterMeta },
-      { id: "genero", header: "Género", accessorKey: "genero", cell: sel("genero", GENERO_OPTS.map((g) => ({ value: g, label: g })), "não definido"), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: GENERO_OPTS, label: "Género" } satisfies ColumnFilterMeta },
-      { id: "nacionalidade", header: "Nacionalidade", accessorKey: "nacionalidade", cell: ({ getValue, row }) => {
-        const v = getValue() as string | null;
-        if (inlineEdit) return <InlineText value={v} onSave={save(row.original.id, "nacionalidade")} />;
-        if (!v) return <span className="text-muted-foreground">—</span>;
-        const flag = flagFor(v);
-        return <span className="inline-flex items-center gap-1.5"><span aria-hidden>{flag}</span><span>{v}</span></span>;
-      }, filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Nacionalidade" } satisfies ColumnFilterMeta },
-      { id: "cidade_residencia", header: "Cidade", accessorKey: "cidade_residencia", cell: text("cidade_residencia"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Cidade" } satisfies ColumnFilterMeta },
-      { id: "religiao", header: "Religião", accessorKey: "religiao", cell: text("religiao"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Religião" } satisfies ColumnFilterMeta },
-      { id: "profissao", header: "Profissão", accessorKey: "profissao", cell: text("profissao"), filterFn: advancedFilterFn as any, meta: { filterVariant: "text", label: "Profissão" } satisfies ColumnFilterMeta },
-      { id: "familia_id", header: "Família", accessorFn: (p) => p.familia_id ? (familias?.find((f) => f.id === p.familia_id)?.nome ?? "") : "", cell: sel("familia_id", (familias ?? []).map((f) => ({ value: f.id, label: f.nome })), "sem família"), filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: (familias ?? []).map((f) => f.nome), label: "Família" } satisfies ColumnFilterMeta },
       {
-        id: "status_familia",
-        header: "Status Família",
+        id: "nome_completo", header: "Nome", accessorKey: "nome_completo", size: 220,
+        cell: ({ getValue, row }) => {
+          const p = row.original;
+          const Icon = personIcon(p.genero, p.data_nascimento);
+          return (
+            <span className="font-medium inline-flex items-center gap-2">
+              <Icon aria-hidden className="h-5 w-5 shrink-0 text-primary" strokeWidth={2.25} />
+              <span>{(getValue() as string) ?? "—"}</span>
+            </span>
+          );
+        },
+        meta: { filterVariant: "text", label: "Nome", editType: "text" },
+      },
+      { id: "email", header: "Email", accessorKey: "email", size: 200, cell: ({ getValue }) => muted(getValue()), meta: { filterVariant: "text", label: "Email", editType: "text" } },
+      { id: "telefone", header: "Telefone", accessorKey: "telefone", size: 140, cell: ({ getValue }) => muted(getValue()), meta: { filterVariant: "text", label: "Telefone", editType: "text" } },
+      { id: "nif", header: "NIF", accessorKey: "nif", size: 120, cell: ({ getValue }) => muted(getValue()), meta: { filterVariant: "text", label: "NIF", editType: "text" } },
+      { id: "cartao_cidadao", header: "Cartão de Cidadão", accessorKey: "cartao_cidadao", size: 160, cell: ({ getValue }) => muted(getValue()), meta: { filterVariant: "text", label: "Cartão de Cidadão", editType: "text" } },
+      { id: "morada", header: "Morada", accessorKey: "morada", size: 200, cell: ({ getValue }) => muted(getValue()), meta: { filterVariant: "text", label: "Morada", editType: "text" } },
+      { id: "data_nascimento", header: "Data nascimento", accessorKey: "data_nascimento", size: 150, cell: ({ getValue }) => muted(getValue()), meta: { filterVariant: "date", label: "Data nascimento", editType: "date" } },
+      {
+        id: "idade", header: "Idade", size: 100, accessorFn: (p) => calcIdade(p.data_nascimento),
+        cell: ({ getValue }) => {
+          const idade = getValue() as number | null;
+          return idade !== null ? <span className="text-muted-foreground">{idade} anos</span> : <span className="text-muted-foreground">—</span>;
+        },
+        meta: { filterVariant: "number", label: "Idade" },
+      },
+      {
+        id: "genero", header: "Género", accessorKey: "genero", size: 130,
+        cell: ({ getValue }) => muted(getValue()),
+        meta: {
+          filterVariant: "select", filterOptions: GENERO_OPTS, label: "Género",
+          editType: "select", editSelectOptions: GENERO_OPTS.map((g) => ({ value: g, label: g })),
+        },
+      },
+      {
+        id: "nacionalidade", header: "Nacionalidade", accessorKey: "nacionalidade", size: 160,
+        cell: ({ getValue }) => {
+          const v = getValue() as string | null;
+          if (!v) return <span className="text-muted-foreground">—</span>;
+          return <span className="inline-flex items-center gap-1.5"><span aria-hidden>{flagFor(v)}</span><span>{v}</span></span>;
+        },
+        meta: { filterVariant: "text", label: "Nacionalidade", editType: "text" },
+      },
+      { id: "cidade_residencia", header: "Cidade", accessorKey: "cidade_residencia", size: 150, cell: ({ getValue }) => muted(getValue()), meta: { filterVariant: "text", label: "Cidade", editType: "text" } },
+      { id: "religiao", header: "Religião", accessorKey: "religiao", size: 140, cell: ({ getValue }) => muted(getValue()), meta: { filterVariant: "text", label: "Religião", editType: "text" } },
+      { id: "profissao", header: "Profissão", accessorKey: "profissao", size: 150, cell: ({ getValue }) => muted(getValue()), meta: { filterVariant: "text", label: "Profissão", editType: "text" } },
+      {
+        id: "familia_id", header: "Família", size: 180,
+        accessorFn: (p) => (p.familia_id ? (familias?.find((f) => f.id === p.familia_id)?.nome ?? "") : ""),
+        cell: ({ getValue }) => muted(getValue()),
+        meta: {
+          filterVariant: "select", filterOptions: (familias ?? []).map((f) => f.nome), label: "Família",
+          editType: "select", editSelectOptions: (familias ?? []).map((f) => ({ value: f.id, label: f.nome })),
+        },
+      },
+      {
+        id: "status_familia", header: "Status Família", size: 150,
         accessorFn: (p) => (p.familia_id ? (familias?.find((f) => f.id === p.familia_id)?.status ?? "") : ""),
         cell: ({ getValue }) => {
           const v = (getValue() as string) || "";
           return v ? <Badge variant="outline">{v}</Badge> : <span className="text-muted-foreground">—</span>;
         },
-        filterFn: advancedFilterFn as any,
         meta: {
           filterVariant: "select",
           filterOptions: Array.from(new Set((familias ?? []).map((f) => f.status ?? "").filter(Boolean))) as string[],
           label: "Status Família",
-        } satisfies ColumnFilterMeta,
-      },
-      {
-        id: "projeto_ids",
-        header: "Projetos",
-        accessorFn: (p) => (p.projeto_ids ?? []).map((id) => projetos?.find((x) => x.id === id)?.nome).filter(Boolean).join(", "),
-        cell: ({ row }) => {
-          const ids = row.original.projeto_ids ?? [];
-          const opts = (projetos ?? []).map((p) => ({ value: p.id, label: p.nome }));
-          if (inlineEdit) {
-            return <InlineMultiSelect values={ids} options={opts} placeholder="sem projetos" onSave={async (v: string[]) => { await save(row.original.id, "projeto_ids")(v); }} />;
-          }
-          const names = ids.map((id) => opts.find((o) => o.value === id)?.label).filter(Boolean) as string[];
-          return <span className="text-muted-foreground">{names.length ? names.join(", ") : "—"}</span>;
         },
-        filterFn: advancedFilterFn as any,
-        meta: { filterVariant: "select", filterOptions: (projetos ?? []).map((x) => x.nome), label: "Projetos" } satisfies ColumnFilterMeta,
       },
       {
-        id: "tipos_participante",
-        header: "Tipo",
+        id: "projeto_ids", header: "Projetos", size: 200,
+        accessorFn: (p) => (p.projeto_ids ?? []).map((id) => projetos?.find((x) => x.id === id)?.nome).filter(Boolean).join(", "),
+        cell: ({ getValue }) => muted(getValue()),
+        meta: { filterVariant: "select", filterOptions: (projetos ?? []).map((x) => x.nome), label: "Projetos" },
+      },
+      {
+        id: "tipos_participante", header: "Tipo", size: 180,
         accessorFn: (p) => {
-          const ids = Array.from(new Set([
-            ...(p.tipo_user_id ? [p.tipo_user_id] : []),
-            ...tiposDePessoa(p.id),
-          ]));
+          const ids = Array.from(new Set([...(p.tipo_user_id ? [p.tipo_user_id] : []), ...(pessoaTiposMap.get(p.id) ?? [])]));
           return ids.map((id) => tipos?.find((t) => t.id === id)?.nome ?? "").filter(Boolean).join(", ");
         },
         cell: ({ row }) => {
-          const p = row.original as Pessoa;
-          const ids = Array.from(new Set([
-            ...(p.tipo_user_id ? [p.tipo_user_id] : []),
-            ...tiposDePessoa(p.id),
-          ]));
+          const p = row.original;
+          const ids = Array.from(new Set([...(p.tipo_user_id ? [p.tipo_user_id] : []), ...(pessoaTiposMap.get(p.id) ?? [])]));
           if (ids.length === 0) return <span className="text-muted-foreground">—</span>;
           return (
             <div className="flex flex-wrap gap-1">
-              {ids.map((id) => {
-                const nome = tipos?.find((t) => t.id === id)?.nome ?? id;
-                return <Badge key={id} variant="secondary" className="font-normal">{nome}</Badge>;
-              })}
+              {ids.map((id) => (
+                <Badge key={id} variant="secondary" className="font-normal">{tipos?.find((t) => t.id === id)?.nome ?? id}</Badge>
+              ))}
             </div>
           );
         },
-        filterFn: advancedFilterFn as any,
-        meta: { filterVariant: "select", filterOptions: (tipos ?? []).map((t) => t.nome), label: "Tipo de utilizador" } satisfies ColumnFilterMeta,
+        meta: { filterVariant: "select", filterOptions: (tipos ?? []).map((t) => t.nome), label: "Tipo de utilizador" },
       },
-      { id: "status", header: "Estado", accessorKey: "status", cell: inlineEdit
-        ? ({ getValue, row }) => <InlineSelect value={getValue() as string} options={STATUS_OPTS.map((s) => ({ value: s, label: s }))} allowClear={false} onSave={save(row.original.id, "status")} />
-        : ({ getValue }) => {
-            const s = getValue() as string;
-            return <Badge variant={s === "ativo" ? "default" : s === "suspeito_duplicado" ? "destructive" : "outline"}>{s}</Badge>;
-          },
-        filterFn: advancedFilterFn as any, meta: { filterVariant: "select", filterOptions: STATUS_OPTS, label: "Estado" } satisfies ColumnFilterMeta },
-      { id: "updated_at", header: "Última edição", accessorKey: "updated_at",
+      {
+        id: "status", header: "Estado", accessorKey: "status", size: 140,
+        cell: ({ getValue }) => {
+          const s = getValue() as string;
+          return <Badge variant={s === "ativo" ? "default" : s === "suspeito_duplicado" ? "destructive" : "outline"}>{s}</Badge>;
+        },
+        meta: {
+          filterVariant: "select", filterOptions: STATUS_OPTS, label: "Estado",
+          editType: "select", editSelectOptions: STATUS_OPTS.map((s) => ({ value: s, label: s })),
+        },
+      },
+      {
+        id: "updated_at", header: "Última edição", accessorKey: "updated_at", size: 160,
         cell: ({ getValue }) => {
           const v = getValue() as string | null;
           return <span className="text-muted-foreground">{v ? new Date(v).toLocaleString("pt-PT") : "—"}</span>;
         },
-        filterFn: advancedFilterFn as any, meta: { filterVariant: "date", label: "Última edição" } satisfies ColumnFilterMeta },
-      { id: "acoes_count", header: "Ações", accessorFn: () => "", enableSorting: false,
+        meta: { filterVariant: "date", label: "Última edição" },
+      },
+      {
+        id: "acoes_count", header: "Ações", size: 120, enableSorting: false, accessorFn: () => "",
         cell: ({ row }) => <AcoesHoverSummary pessoaId={row.original.id} label="ver ações" />,
-        meta: { filterVariant: undefined, label: "Ações" } satisfies ColumnFilterMeta },
+        meta: { label: "Ações", noTruncate: true },
+      },
+      {
+        id: "__apagar", header: "", size: 60, enableSorting: false, enableHiding: false,
+        cell: ({ row }) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            <Button size="icon" variant="ghost" onClick={() => setDeleteOne(row.original)} title="Apagar">
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
+          </div>
+        ),
+        meta: { label: "Apagar", noTruncate: true },
+      },
     ];
-  }, [familias, tipos, projetos, qc, inlineEdit, pessoaTiposMap]);
-
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
-    // Hidden by default to evitar scroll horizontal — utilizador pode reativar em "Colunas"
-    cartao_cidadao: false,
-    morada: false,
-    data_nascimento: false,
-    genero: false,
-    nacionalidade: false,
-    cidade_residencia: false,
-    religiao: false,
-    profissao: false,
-    projeto_ids: false,
-    nif: false,
-  });
-  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([]);
-  const [grouping, setGrouping] = useState<GroupingState>([]);
-  const [expanded, setExpanded] = useState<ExpandedState>({});
-
-  const table = useReactTable({
-    columnResizeMode: "onChange",
-    defaultColumn: { minSize: 60, size: 160, maxSize: 800 },
-    data: searchFiltered,
-    columns: tableColumns,
-    state: { sorting, columnVisibility, columnOrder, grouping, expanded },
-    onSortingChange: setSorting,
-    onColumnVisibilityChange: setColumnVisibility,
-    onColumnOrderChange: setColumnOrder,
-    onGroupingChange: setGrouping,
-    onExpandedChange: setExpanded,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getGroupedRowModel: getGroupedRowModel(),
-    getExpandedRowModel: getExpandedRowModel(),
-    getRowId: (r) => r.id,
-  });
-
-  useMobileColumnVisibility(table, ["nome_completo", "telefone", "status"]);
-
-  const rows = table.getRowModel().rows;
-  const filtered = rows.map((r) => r.original);
+  }, [familias, tipos, projetos, pessoaTiposMap]);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["pessoas"] });
 
@@ -696,19 +664,6 @@ function ParticipantesPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const allChecked = filtered.length > 0 && filtered.every((p) => selected.has(p.id));
-  const toggleAll = () => {
-    const next = new Set(selected);
-    if (allChecked) filtered.forEach((p) => next.delete(p.id));
-    else filtered.forEach((p) => next.add(p.id));
-    setSelected(next);
-  };
-  const toggleOne = (id: string) => {
-    const next = new Set(selected);
-    next.has(id) ? next.delete(id) : next.add(id);
-    setSelected(next);
-  };
-
   return (
     <div className="space-y-6">
       <div className="space-y-4">
@@ -721,176 +676,44 @@ function ParticipantesPage() {
             <Plus className="mr-2 h-4 w-4" /> Adicionar
           </Button>
           <InviteMemberButton />
-          <div className="relative flex-1 min-w-[200px] sm:flex-none sm:w-64">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Pesquisar…"
-              data-smart-table-search
-              className="pl-8 h-9"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
-          </div>
-          <Select
-            value={grouping[0] ?? "__none"}
-            onValueChange={(v) => setGrouping(v === "__none" ? [] : [v])}
-          >
-            <SelectTrigger className="h-9 w-40">
-              <SelectValue placeholder="Agrupar por…" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none">Sem agrupar</SelectItem>
-              <SelectItem value="familia_id">Família</SelectItem>
-              <SelectItem value="nacionalidade">Nacionalidade</SelectItem>
-              <SelectItem value="religiao">Religião</SelectItem>
-              <SelectItem value="genero">Género</SelectItem>
-              <SelectItem value="projeto_ids">Projetos</SelectItem>
-              <SelectItem value="cidade_residencia">Cidade</SelectItem>
-              <SelectItem value="status">Estado</SelectItem>
-              <SelectItem value="tipos_participante">Tipo</SelectItem>
-            </SelectContent>
-          </Select>
-          <AdvancedTableFilters table={table} />
-          <DataTableViewOptions table={table} />
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant={inlineEdit ? "default" : "outline"}
-            size="sm"
-            className="h-9"
-            onClick={() => setInlineEdit((v) => !v)}
-          >
-            {inlineEdit ? <LockOpen className="mr-2 h-4 w-4" /> : <Lock className="mr-2 h-4 w-4" />}
-            {inlineEdit ? "A editar na tabela" : "Editar na tabela"}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9"
-            disabled={selected.size === 0}
-            onClick={() => setBulkEditOpen(true)}
-          >
-            <Pencil className="mr-2 h-4 w-4" /> Editar {selected.size > 0 ? `(${selected.size})` : ""}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9 text-destructive hover:text-destructive"
-            disabled={selected.size === 0}
-            onClick={() => setBulkDeleteOpen(true)}
-          >
-            <Trash2 className="mr-2 h-4 w-4" /> Apagar {selected.size > 0 ? `(${selected.size})` : ""}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9"
-            onClick={() => {
-              const visibleCols = table.getVisibleLeafColumns().filter((c) => c.id !== "select");
-              const headers = visibleCols.map((c) => {
-                const h = c.columnDef.header;
-                return typeof h === "string" ? h : c.id;
-              });
-              const rowsCsv = table.getFilteredRowModel().rows.map((row) => {
-                const r: Record<string, unknown> = {};
-                visibleCols.forEach((c, i) => {
-                  const v = row.getValue(c.id);
-                  r[headers[i]] = v == null ? "" : String(v);
-                });
-                return r;
-              });
-              const csv = toCSV(rowsCsv, headers);
-              downloadCSV(`participantes-${new Date().toISOString().slice(0, 10)}.csv`, csv);
-            }}
-          >
-            <Download className="mr-2 h-4 w-4" /> Exportar
-          </Button>
         </div>
       </div>
 
-      {isLoading && (
-        <div className="space-y-2">
-          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
-        </div>
-      )}
       {error && <p className="text-sm text-destructive">{(error as Error).message}</p>}
 
-      <SavedViews
-        storageKey="views:participantes"
-        table={table}
-        search={q}
-        onSearchChange={setQ}
+      <SmartTable<Pessoa>
+        tableId="participantes-v1"
+        savedViewsKey="views:participantes"
+        exportFilename="participantes"
+        columns={columns}
+        data={data ?? []}
+        isLoading={isLoading}
+        searchPlaceholder="Pesquisar participantes…"
+        emptyMessage="Sem resultados"
+        defaultColumnVisibility={DEFAULT_HIDDEN_COLUMNS}
+        groupByOptions={GROUP_BY_OPTIONS}
+        enableSelection
+        editableColumns={EDITABLE_COLUMNS}
+        onCellEdit={(rowId, columnId, value) =>
+          saveField(rowId, columnId as keyof Pessoa, value === "" ? null : value)
+        }
+        onBulkDelete={async (ids) => { await remove.mutateAsync(ids); }}
+        bulkActions={(ids, clear) => (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1.5"
+            onClick={() => {
+              setSelected(new Set(ids));
+              bulkClearRef.current = clear;
+              setBulkEditOpen(true);
+            }}
+          >
+            <Pencil className="h-3.5 w-3.5" /> Editar em massa
+          </Button>
+        )}
+        onRowClick={(p) => { setEditing({ ...p }); setEditOpen(true); }}
       />
-
-      {!isLoading && !error && (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10">
-                  <Checkbox checked={allChecked} onCheckedChange={toggleAll} />
-                </TableHead>
-                <DraggableTableHeaders table={table} onOrderChange={setColumnOrder} />
-                <TableHead className="w-16"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={table.getVisibleLeafColumns().length + 2} className="text-center text-muted-foreground">Sem resultados</TableCell>
-                </TableRow>
-              )}
-              {rows.map((row) => {
-                if (row.getIsGrouped()) {
-                  const colSpan = table.getVisibleLeafColumns().length + 2;
-                  const label = String(row.getGroupingValue(row.groupingColumnId!) ?? "") || "—";
-                  return (
-                    <TableRow
-                      key={row.id}
-                      className="cursor-pointer bg-muted/40 hover:bg-muted/60"
-                      onClick={() => row.toggleExpanded()}
-                    >
-                      <TableCell colSpan={colSpan} className="font-medium">
-                        <span className="inline-flex items-center gap-2">
-                          {row.getIsExpanded() ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                          {label} <span className="text-muted-foreground">({row.subRows.length})</span>
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  );
-                }
-                const p = row.original;
-                return (
-                  <TableRow
-                    key={row.id}
-                    className="cursor-pointer"
-                    onClick={() => { setEditing({ ...p }); setEditOpen(true); }}
-                  >
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <Checkbox checked={selected.has(p.id)} onCheckedChange={() => toggleOne(p.id)} />
-                    </TableCell>
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="break-words">
-                        {cell.getIsAggregated() || cell.getIsPlaceholder()
-                          ? null
-                          : flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <Button size="icon" variant="ghost" onClick={() => { setEditing({ ...p }); setEditOpen(true); }}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" onClick={() => setDeleteOne(p)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-      )}
 
       {/* Add dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
@@ -1274,26 +1097,6 @@ function ParticipantesPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Bulk delete */}
-      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Apagar {selected.size} pessoas</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação não pode ser revertida.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => remove.mutate(Array.from(selected))}
-              disabled={remove.isPending}
-            >
-              {remove.isPending ? "A apagar…" : "Apagar"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
       {/* Nova família inline */}
       <Dialog open={novaFamiliaOpen} onOpenChange={setNovaFamiliaOpen}>
         <DialogContent className="max-w-sm">
