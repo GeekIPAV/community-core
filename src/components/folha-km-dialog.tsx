@@ -263,6 +263,13 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
         /* ignora assinatura inválida */
       }
     }
+    if (assinatura) {
+      try {
+        doc.addImage(assinatura, "PNG", 30, ySig - 14, 46, 15);
+      } catch {
+        /* ignora assinatura inválida */
+      }
+    }
     if (assPres) {
       try {
         doc.addImage(assPres, "JPEG", xAss, ySig + 13, 46, 10);
