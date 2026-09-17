@@ -177,7 +177,7 @@ function PerfilPage() {
         </TabsList>
 
         <TabsContent value="dados" className="mt-6">
-          <DadosSection pessoa={pessoa} onSaved={async () => {
+          <DadosSection pessoa={pessoa} isEquipa={isEquipa} onSaved={async () => {
             await qc.invalidateQueries({ queryKey: ["meu-perfil", pessoa.id] });
             await refresh();
           }} />
