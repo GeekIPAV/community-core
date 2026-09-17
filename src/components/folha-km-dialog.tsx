@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
+import type { jsPDF } from "jspdf";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { enviarFolhaKm } from "@/lib/folha-km.functions";
@@ -11,25 +10,14 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Send, Loader2, Download, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, Trash2, Send, Loader2, Download, Check, ChevronsUpDown, Save } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { KM_RATE, formatEuro } from "@/lib/bolsa-transporte";
-import logoUrl from "@/assets/meeru-logo.png";
 import { SignaturePad } from "@/components/signature-pad";
-import assinaturaFinanceiroUrl from "@/assets/assinatura-financeiro.jpg";
-import assinaturaPresidenteUrl from "@/assets/assinatura-presidente.jpg";
-
-const ENTIDADE = {
-  nome: "Associação para o Desenvolvimento MEERU | Abrir Caminho",
-  morada: "Praça Francisco Sá Carneiro, n.º 271, Galerias Esq.",
-  nif: "515346683",
-};
-
-const DECLARACAO =
-  "A descriminação no presente mapa, referentes a Ajudas de Custo e/ou compensação por uso de viatura própria (quilómetros percorridos), é da minha inteira responsabilidade, tendo sido devidamente conferido antes de apresentado à Entidade Patronal, do qual com a minha assinatura o dou como devidamente quitado.";
+import { DECLARACAO, gerarPdfFolhaKm } from "@/lib/gerar-pdf-folha-km";
 
 type Linha = { id: string; data: string; descricao: string; percurso: string; km: string };
 
@@ -49,23 +37,6 @@ const num = (s: string) => {
   const n = Number(String(s).replace(",", "."));
   return Number.isFinite(n) ? n : 0;
 };
-
-const fmtData = (d: string) => (d ? new Date(d).toLocaleDateString("pt-PT") : "");
-
-async function loadImageDataUrl(url: string): Promise<string | null> {
-  try {
-    const res = await fetch(url);
-    const blob = await res.blob();
-    return await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(typeof reader.result === "string" ? reader.result : null);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
-    });
-  } catch {
-    return null;
-  }
-}
 
 export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const { pessoa, session } = useAuth();
