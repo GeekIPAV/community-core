@@ -14,6 +14,8 @@ import { Plus, Trash2, Send, Loader2, Download } from "lucide-react";
 import { toast } from "sonner";
 import { KM_RATE, formatEuro } from "@/lib/bolsa-transporte";
 import logoUrl from "@/assets/meeru-logo.png";
+import assinaturaFinanceiroUrl from "@/assets/assinatura-financeiro.jpg";
+import assinaturaPresidenteUrl from "@/assets/assinatura-presidente.jpg";
 
 const ENTIDADE = {
   nome: "Associação para o Desenvolvimento MEERU | Abrir Caminho",
@@ -43,9 +45,9 @@ const num = (s: string) => {
 
 const fmtData = (d: string) => (d ? new Date(d).toLocaleDateString("pt-PT") : "");
 
-async function loadLogoDataUrl(): Promise<string | null> {
+async function loadImageDataUrl(url: string): Promise<string | null> {
   try {
-    const res = await fetch(logoUrl);
+    const res = await fetch(url);
     const blob = await res.blob();
     return await new Promise((resolve) => {
       const reader = new FileReader();
@@ -141,7 +143,7 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
     const W = doc.internal.pageSize.getWidth();
     const gold: [number, number, number] = [230, 168, 68];
 
-    const logo = await loadLogoDataUrl();
+    const logo = await loadImageDataUrl(logoUrl);
     if (logo) {
       try {
         doc.addImage(logo, "PNG", W - 48, 8, 36, 22);
@@ -247,6 +249,26 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
     doc.text("Assinatura: ____________________________", 12, ySig);
     doc.text("Diretor Financeiro: ____________________________", W / 2 - 30, ySig + 10);
     doc.text("Presidente da Direção: ____________________________", W / 2 - 30, ySig + 20);
+
+    const [assFin, assPres] = await Promise.all([
+      loadImageDataUrl(assinaturaFinanceiroUrl),
+      loadImageDataUrl(assinaturaPresidenteUrl),
+    ]);
+    const xAss = W / 2 + 2;
+    if (assFin) {
+      try {
+        doc.addImage(assFin, "JPEG", xAss, ySig + 2, 46, 15);
+      } catch {
+        /* ignora assinatura inválida */
+      }
+    }
+    if (assPres) {
+      try {
+        doc.addImage(assPres, "JPEG", xAss, ySig + 13, 46, 10);
+      } catch {
+        /* ignora assinatura inválida */
+      }
+    }
 
     const dataUri = doc.output("datauristring");
     const base64 = dataUri.split(",")[1] ?? "";
