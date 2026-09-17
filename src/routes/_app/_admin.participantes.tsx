@@ -839,6 +839,7 @@ function ParticipantesPage() {
                 <TabsTrigger value="dados">Dados</TabsTrigger>
                 <TabsTrigger value="acoes">Ações / Eventos</TabsTrigger>
                 <TabsTrigger value="etiquetas">Etiquetas</TabsTrigger>
+                <TabsTrigger value="atividades">Atividades</TabsTrigger>
                 <TabsTrigger value="mapa-km">Mapa de KM</TabsTrigger>
                 {(calcIdade(editing.data_nascimento) ?? 0) >= 18 && (
                   <TabsTrigger value="curriculo">Currículo</TabsTrigger>
