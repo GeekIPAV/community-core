@@ -31,6 +31,7 @@ function AtividadesPage() {
   const [editing, setEditing] = useState<Atividade | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [registarEm, setRegistarEm] = useState<Atividade | null>(null);
+  const [atribuirOpen, setAtribuirOpen] = useState(false);
 
   const { data: atividades, isLoading: loadingA } = useQuery({
     queryKey: ["atividades-catalogo-admin"],
