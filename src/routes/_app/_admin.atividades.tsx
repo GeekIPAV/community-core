@@ -195,6 +195,7 @@ function AtividadesPage() {
             <DialogFooter><Button onClick={() => create.mutate()} disabled={create.isPending}>Guardar</Button></DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <div className="grid gap-3 md:grid-cols-3">
