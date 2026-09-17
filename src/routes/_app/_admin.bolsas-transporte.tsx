@@ -2006,6 +2006,20 @@ function BolsasTransportePage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        <AlertDialog open={!!deleteFolhaId} onOpenChange={(o) => { if (!o) setDeleteFolhaId(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Eliminar folha de KM?</AlertDialogTitle>
+              <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={() => { if (deleteFolhaId) deleteFolhaKm.mutate(deleteFolhaId); setDeleteFolhaId(null); }}>
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </TabsContent>
 
       <TabsContent value="cidades" className="space-y-6">
