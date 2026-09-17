@@ -309,10 +309,15 @@ export function SavedViews<T>({
   };
 
   const activeView = views.find((v) => v.id === activeId) ?? null;
-  const canEditActive =
-    !!activeView &&
-    (realIsAdmin ||
-      (activeView.is_admin_view === false && activeView.created_by === currentUserId));
+  const canEdit = (v: SavedView) =>
+    realIsAdmin || (v.is_admin_view === false && v.created_by === currentUserId);
+  const canEditActive = !!activeView && canEdit(activeView);
+
+  const openEdit = (v: SavedView) => {
+    setRenaming(v);
+    setNewName(v.name);
+    setSelectedIcon(v.snapshot.viewIcon ?? (v.is_admin_view ? "Users" : DEFAULT_VIEW_ICON));
+  };
 
   return (
     <TooltipProvider delayDuration={300}>
