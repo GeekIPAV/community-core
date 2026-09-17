@@ -1928,6 +1928,7 @@ export type Database = {
           ignorar_duplicado: boolean
           is_admin: boolean
           is_voluntario: boolean
+          matricula: string | null
           morada: string | null
           nacionalidade: string | null
           nif: string | null
@@ -1959,6 +1960,7 @@ export type Database = {
           ignorar_duplicado?: boolean
           is_admin?: boolean
           is_voluntario?: boolean
+          matricula?: string | null
           morada?: string | null
           nacionalidade?: string | null
           nif?: string | null
@@ -1990,6 +1992,7 @@ export type Database = {
           ignorar_duplicado?: boolean
           is_admin?: boolean
           is_voluntario?: boolean
+          matricula?: string | null
           morada?: string | null
           nacionalidade?: string | null
           nif?: string | null
