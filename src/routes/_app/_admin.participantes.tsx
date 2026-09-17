@@ -642,7 +642,6 @@ function ParticipantesPage() {
       toast.success(`${n} ${n === 1 ? "pessoa apagada" : "pessoas apagadas"}`);
       invalidate();
       setDeleteOne(null);
-      setBulkDeleteOpen(false);
       setSelected(new Set());
       setEditOpen(false);
       setEditing(null);
