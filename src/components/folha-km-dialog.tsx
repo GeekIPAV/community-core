@@ -211,7 +211,7 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
 
   // Campos em falta no perfil que estão preenchidos no formulário
   const camposEmFalta = useMemo(() => {
-    if (!pessoa?.id) return [] as Array<{ coluna: string; label: string; valor: string }>;
+    if (!alvoId) return [] as Array<{ coluna: string; label: string; valor: string }>;
     const alvos: Array<{ coluna: keyof Perfil; label: string; valor: string }> = [
       { coluna: "morada", label: "Morada", valor: dados.morada },
       { coluna: "nif", label: "NIF", valor: dados.nif },
@@ -225,13 +225,13 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
       lista.push({ coluna: "assinatura", label: "Assinatura", valor: assinatura });
     }
     return lista;
-  }, [dados, perfil, assinatura, pessoa]);
+  }, [dados, perfil, assinatura, alvoId]);
 
   const atualizarPerfil = async () => {
-    if (!pessoa?.id || camposEmFalta.length === 0) return;
+    if (!alvoId || camposEmFalta.length === 0) return;
     const patch: Record<string, string> = {};
     for (const c of camposEmFalta) patch[c.coluna] = c.valor;
-    const { error } = await supabase.from("pessoas").update(patch as never).eq("id", pessoa.id);
+    const { error } = await supabase.from("pessoas").update(patch as never).eq("id", alvoId);
     if (error) {
       toast.error("Não foi possível atualizar o perfil.");
       return;
