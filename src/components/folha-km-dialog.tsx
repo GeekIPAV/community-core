@@ -290,6 +290,7 @@ export function FolhaKmDialog({
       totalValor,
       valorKm: rate,
       assinatura,
+      periodo,
     });
 
   const payloadLinhas = () =>

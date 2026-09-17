@@ -33,6 +33,14 @@ export type LinhaPdf = {
 
 const fmtData = (d: string) => (d ? new Date(d).toLocaleDateString("pt-PT") : "");
 
+// Paleta oficial MEERU
+const YELLOW: [number, number, number] = [244, 189, 55];
+const INK: [number, number, number] = [31, 41, 55];
+const GRAY: [number, number, number] = [107, 114, 128];
+const GRAY_LIGHT: [number, number, number] = [156, 163, 175];
+const RULE: [number, number, number] = [229, 231, 235];
+const TOTAL_BG: [number, number, number] = [245, 245, 244];
+
 export async function loadImageDataUrl(url: string): Promise<string | null> {
   try {
     const res = await fetch(url);
@@ -55,97 +63,98 @@ export async function gerarPdfFolhaKm(params: {
   totalValor: number;
   valorKm: number;
   assinatura?: string | null;
+  periodo?: string | null;
 }): Promise<{ doc: jsPDF; base64: string; filename: string }> {
-  const { dados, linhas, totalKm, totalValor, valorKm, assinatura } = params;
-  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const { dados, linhas, totalKm, totalValor, valorKm, assinatura, periodo } = params;
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const W = doc.internal.pageSize.getWidth();
-  const gold: [number, number, number] = [230, 168, 68];
+  const H = doc.internal.pageSize.getHeight();
+  const M = 16; // margem
 
+  // ---------- 1. Cabeçalho ----------
   const logo = await loadImageDataUrl(logoUrl);
   if (logo) {
     try {
-      doc.addImage(logo, "PNG", W - 48, 8, 36, 22);
+      doc.addImage(logo, "PNG", W - M - 32, 14, 32, 20);
     } catch {
       /* ignora logo inválido */
     }
   }
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(20);
-  doc.text("Folha de KM", W / 2, 18, { align: "center" });
+  doc.setFontSize(21);
+  doc.setTextColor(...YELLOW);
+  doc.text("Folha de KM", M, 24);
+
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(11);
-  doc.text("Mapa de Ajudas de Custo e compensação por uso de viatura própria", W / 2, 26, { align: "center" });
+  doc.setFontSize(9);
+  doc.setTextColor(...GRAY);
+  doc.text("Mapa de Ajudas de Custo e compensação por uso de viatura própria", M, 31);
+  const hoje = new Date().toLocaleDateString("pt-PT");
+  doc.text(periodo ? `Período: ${periodo} · Emitida em ${hoje}` : `Emitida em ${hoje}`, M, 36);
 
+  // ---------- 2. Entidade / Pessoa ----------
+  const colDir = W / 2 + 4;
+  let y = 50;
+
+  const bloco = (x: number, rotulo: string, nome: string, detalhes: string[]) => {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(...YELLOW);
+    doc.text(rotulo.toUpperCase(), x, y);
+    doc.setFontSize(10);
+    doc.setTextColor(...INK);
+    doc.text(nome, x, y + 6, { maxWidth: W / 2 - M - 6 });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(...GRAY);
+    let yy = y + 11.5;
+    for (const linha of detalhes) {
+      if (!linha) continue;
+      const partes = doc.splitTextToSize(linha, W / 2 - M - 6) as string[];
+      doc.text(partes, x, yy);
+      yy += partes.length * 4.2;
+    }
+    return yy;
+  };
+
+  const fimEsq = bloco(M, "Entidade", ENTIDADE.nome, [ENTIDADE.morada, `NIF ${ENTIDADE.nif}`]);
+  const fimDir = bloco(colDir, "Pessoa", dados.nome || "—", [
+    dados.morada,
+    [dados.nif && `NIF ${dados.nif}`, dados.iban && `IBAN ${dados.iban}`].filter(Boolean).join(" · "),
+    dados.matricula ? `Matrícula ${dados.matricula}` : "",
+  ]);
+
+  // ---------- 3. Linha separadora ----------
+  y = Math.max(fimEsq, fimDir) + 4;
+  doc.setDrawColor(...RULE);
+  doc.setLineWidth(0.1);
+  doc.line(M, y, W - M, y);
+
+  // ---------- 4. Tabela de deslocações ----------
   autoTable(doc, {
-    startY: 34,
-    margin: { left: 12, right: W / 2 + 4 },
-    theme: "grid",
-    head: [[{ content: "Identificação da Entidade", colSpan: 2, styles: { halign: "center" } }]],
-    headStyles: { fillColor: gold, textColor: 255, fontStyle: "bold" },
-    styles: { fontSize: 9, cellPadding: 2 },
-    columnStyles: { 0: { fontStyle: "bold", cellWidth: 28 } },
-    body: [
-      ["Nome", ENTIDADE.nome],
-      ["Morada", ENTIDADE.morada],
-      ["NIF", ENTIDADE.nif],
-    ],
-  });
-
-  autoTable(doc, {
-    startY: 34,
-    margin: { left: W / 2 + 4, right: 12 },
-    theme: "grid",
-    head: [[{ content: "Identificação da Pessoa", colSpan: 2, styles: { halign: "center" } }]],
-    headStyles: { fillColor: gold, textColor: 255, fontStyle: "bold" },
-    styles: { fontSize: 9, cellPadding: 2 },
-    columnStyles: { 0: { fontStyle: "bold", cellWidth: 28 } },
-    body: [
-      ["Nome", dados.nome],
-      ["Morada", dados.morada],
-      ["NIF", dados.nif],
-      ["IBAN", dados.iban],
-      ["Matrícula", dados.matricula],
-    ],
-  });
-
-  const y1 = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
-
-  autoTable(doc, {
-    startY: y1,
-    margin: { left: 12, right: W / 2 + 4 },
-    theme: "grid",
-    head: [[{ content: "Valores de Referência", colSpan: 2, styles: { halign: "center" } }]],
-    headStyles: { fillColor: gold, textColor: 255, fontStyle: "bold" },
-    styles: { fontSize: 9, cellPadding: 2 },
-    columnStyles: { 0: { fontStyle: "bold", cellWidth: 28 } },
-    body: [["Por KM", formatEuro(valorKm)]],
-  });
-
-  autoTable(doc, {
-    startY: y1,
-    margin: { left: W / 2 + 4, right: 12 },
-    theme: "grid",
-    head: [[{ content: "Valores totais", colSpan: 2, styles: { halign: "center" } }]],
-    headStyles: { fillColor: gold, textColor: 255, fontStyle: "bold" },
-    styles: { fontSize: 9, cellPadding: 2 },
-    columnStyles: { 0: { fontStyle: "bold", cellWidth: 40 } },
-    body: [[`${totalKm.toLocaleString("pt-PT")} km`, formatEuro(totalValor)]],
-  });
-
-  const y2 = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
-
-  autoTable(doc, {
-    startY: y2,
-    margin: { left: 12, right: 12 },
-    theme: "grid",
-    head: [["Data", "Descrição da deslocação", "Percurso", "Total KM", "Valor (€)"]],
-    headStyles: { fillColor: gold, textColor: 255, fontStyle: "bold", halign: "center" },
-    styles: { fontSize: 9, cellPadding: 2 },
+    startY: y + 8,
+    margin: { left: M, right: M },
+    theme: "plain",
+    head: [["Data", "Descrição da deslocação", "Percurso", "KM", "Valor"]],
+    headStyles: {
+      fontSize: 7.5,
+      fontStyle: "bold",
+      textColor: GRAY,
+      cellPadding: { top: 0, right: 2, bottom: 2.5, left: 0 },
+    },
+    styles: {
+      fontSize: 9,
+      textColor: INK,
+      cellPadding: { top: 2.6, right: 2, bottom: 2.6, left: 0 },
+      valign: "middle",
+    },
     columnStyles: {
-      0: { cellWidth: 26, halign: "center" },
-      3: { cellWidth: 24, halign: "center" },
-      4: { cellWidth: 28, halign: "right" },
+      0: { cellWidth: 22 },
+      1: { cellWidth: 60 },
+      2: { cellWidth: "auto" },
+      3: { cellWidth: 18, halign: "right" },
+      4: { cellWidth: 24, halign: "right" },
     },
     body: linhas.map((l) => [
       fmtData(l.data),
@@ -154,46 +163,124 @@ export async function gerarPdfFolhaKm(params: {
       l.km.toLocaleString("pt-PT"),
       formatEuro(l.valor),
     ]),
-    foot: [["", "", "Total", totalKm.toLocaleString("pt-PT"), formatEuro(totalValor)]],
-    footStyles: { fillColor: [245, 245, 245], textColor: 20, fontStyle: "bold", halign: "right" },
+    didParseCell: (d) => {
+      if (d.section === "head") d.cell.text = d.cell.text.map((t) => t.toUpperCase());
+    },
+    didDrawCell: (d) => {
+      if (d.column.index !== 0) return;
+      const x1 = M;
+      const x2 = W - M;
+      const yb = d.cell.y + d.cell.height;
+      if (d.section === "head") {
+        doc.setDrawColor(...INK);
+        doc.setLineWidth(0.3);
+        doc.line(x1, yb, x2, yb);
+      } else if (d.section === "body") {
+        doc.setDrawColor(...RULE);
+        doc.setLineWidth(0.1);
+        doc.line(x1, yb, x2, yb);
+      }
+    },
   });
 
-  const y3 = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
-  doc.setFontSize(8);
-  doc.text(doc.splitTextToSize(DECLARACAO, W - 24), 12, y3);
+  let cursor = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
 
+  // ---------- 5. Valor de referência ----------
+  cursor += 7;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.5);
+  doc.setTextColor(...GRAY);
+  const refLabel = "Valor de referência por km: ";
+  const refValor = formatEuro(valorKm);
+  doc.setFont("helvetica", "bold");
+  const wValor = doc.getTextWidth(refValor);
+  doc.setFont("helvetica", "normal");
+  const wLabel = doc.getTextWidth(refLabel);
+  doc.text(refLabel, W - M - wValor - wLabel, cursor);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...INK);
+  doc.text(refValor, W - M - wValor, cursor);
+
+  // ---------- 6. Barra de total ----------
+  cursor += 5;
+  const barH = 14;
+  const kmTxt = `${totalKm.toLocaleString("pt-PT")} km no total`;
+  const totalLabel = "Total a reembolsar";
+  const totalTxt = formatEuro(totalValor);
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  const ySig = Math.min(y3 + 30, doc.internal.pageSize.getHeight() - 20);
-  doc.text("Assinatura:", 12, ySig);
-  doc.text("Diretor Financeiro:", W / 2 - 30, ySig + 10);
-  doc.text("Presidente da Direção:", W / 2 - 30, ySig + 20);
+  const wKm = doc.getTextWidth(kmTxt);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  const wTotal = doc.getTextWidth(`${totalLabel}  ${totalTxt}`);
+  const barW = Math.min(W - 2 * M, wKm + wTotal + 30);
+  const barX = W - M - barW;
+  doc.setFillColor(...TOTAL_BG);
+  doc.roundedRect(barX, cursor, barW, barH, 2, 2, "F");
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(...GRAY);
+  doc.text(kmTxt, barX + 7, cursor + barH / 2 + 1.2);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(...YELLOW);
+  doc.text(`${totalLabel}  ${totalTxt}`, W - M - 7, cursor + barH / 2 + 1.6, { align: "right" });
+  cursor += barH;
 
+  // ---------- 7. Declaração ----------
+  cursor += 10;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(...GRAY);
+  const decl = doc.splitTextToSize(DECLARACAO, W - 2 * M) as string[];
+  doc.text(decl, M, cursor);
+  cursor += decl.length * 3.6;
+
+  // ---------- 8. Assinaturas ----------
   const [assFin, assPres] = await Promise.all([
     loadImageDataUrl(assinaturaFinanceiroUrl),
     loadImageDataUrl(assinaturaPresidenteUrl),
   ]);
-  const xAss = W / 2 + 2;
-  if (assFin) {
-    try {
-      doc.addImage(assFin, "JPEG", xAss, ySig + 2, 46, 15);
-    } catch {
-      /* ignora assinatura inválida */
+
+  const colW = (W - 2 * M - 16) / 3;
+  const yLinha = Math.max(cursor + 30, H - 46);
+  const colunas: Array<{ img: string | null; fmt: "PNG" | "JPEG"; nome: string; cargo: string }> = [
+    { img: assinatura ?? null, fmt: "PNG", nome: dados.nome || "—", cargo: "Colaborador(a)" },
+    { img: assFin, fmt: "JPEG", nome: "Henrique Maia", cargo: "Diretor Financeiro" },
+    { img: assPres, fmt: "JPEG", nome: "Pedro Amaro Azevedo Santos", cargo: "Presidente da Direção" },
+  ];
+
+  colunas.forEach((c, i) => {
+    const x = M + i * (colW + 8);
+    if (c.img) {
+      try {
+        doc.addImage(c.img, c.fmt, x + 2, yLinha - 17, Math.min(colW - 4, 40), 15);
+      } catch {
+        /* ignora assinatura inválida */
+      }
     }
-  }
-  if (assinatura) {
-    try {
-      doc.addImage(assinatura, "PNG", 30, ySig - 14, 46, 15);
-    } catch {
-      /* ignora assinatura inválida */
-    }
-  }
-  if (assPres) {
-    try {
-      doc.addImage(assPres, "JPEG", xAss, ySig + 13, 46, 10);
-    } catch {
-      /* ignora assinatura inválida */
-    }
-  }
+    doc.setDrawColor(...INK);
+    doc.setLineWidth(0.2);
+    doc.line(x, yLinha, x + colW, yLinha);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(...INK);
+    doc.text(c.nome, x, yLinha + 5, { maxWidth: colW });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(...GRAY);
+    doc.text(c.cargo, x, yLinha + 9.5, { maxWidth: colW });
+  });
+
+  // ---------- 9. Rodapé ----------
+  const yFoot = H - 16;
+  doc.setDrawColor(...RULE);
+  doc.setLineWidth(0.1);
+  doc.line(M, yFoot, W - M, yFoot);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.setTextColor(...GRAY_LIGHT);
+  doc.text(`${ENTIDADE.nome} · NIPC: ${ENTIDADE.nif}`, W / 2, yFoot + 5, { align: "center" });
 
   const dataUri = doc.output("datauristring");
   const base64 = dataUri.split(",")[1] ?? "";
