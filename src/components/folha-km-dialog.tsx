@@ -132,6 +132,7 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
     if (!open) {
       setPrefilled(false);
       setLinhas([novaLinha()]);
+      setAssinatura(null);
     }
   }, [open]);
 
@@ -474,8 +475,11 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
         <p className="text-[11px] leading-relaxed text-muted-foreground">{DECLARACAO}</p>
 
         <div className="space-y-2">
-          <Label className="text-xs">Assinatura</Label>
+          <Label className="text-xs">Assinatura *</Label>
           <SignaturePad value={assinatura} onChange={setAssinatura} />
+          {!assinatura && (
+            <p className="text-xs text-destructive">A assinatura é obrigatória para gerar e enviar a folha.</p>
+          )}
         </div>
 
         <DialogFooter className="gap-2">
@@ -489,7 +493,7 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
           >
             <Download className="mr-2 h-4 w-4" /> Pré-visualizar PDF
           </Button>
-          <Button onClick={() => submeter.mutate()} disabled={submeter.isPending}>
+          <Button onClick={() => submeter.mutate()} disabled={submeter.isPending || !assinatura}>
             {submeter.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
             Gerar e enviar
           </Button>
