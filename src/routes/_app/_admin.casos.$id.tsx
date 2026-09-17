@@ -21,7 +21,7 @@ import { Progress } from "@/components/ui/progress";
 import {
   ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Calendar, CalendarCheck, Clock,
   User, UserPlus, ArrowRightLeft, CheckCircle2, Archive, Plus, MessageCircle, FileText,
-  Phone, Users as UsersIcon, RefreshCw, MessagesSquare, Eye, EyeOff, Mail, Trash2, StickyNote,
+  Phone, Users as UsersIcon, RefreshCw, MessagesSquare, Eye, EyeOff, Mail, Trash2, StickyNote, Heart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
