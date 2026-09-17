@@ -263,7 +263,6 @@ export function FolhaKmDialog({ open, onOpenChange }: { open: boolean; onOpenCha
       if (!dados.nome.trim()) throw new Error("Indique o nome da pessoa.");
       if (linhasValidas.length === 0) throw new Error("Adicione pelo menos uma deslocação com KM.");
 
-      setGuardado(dados);
 
       const { data: folha, error } = await supabase
         .from("folhas_km")
