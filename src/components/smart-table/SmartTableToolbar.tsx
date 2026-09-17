@@ -6,6 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { AdvancedTableFilters } from "@/components/advanced-table-filters";
 import { DataTableViewOptions } from "@/components/data-table-view-options";
 import { SavedViews } from "@/components/saved-views";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { SmartColumnMeta } from "./types";
 
@@ -82,10 +83,10 @@ export function SmartTableToolbar<T>({
   const hasSelection = selectedCount > 0;
 
   return (
-    <>
-      <div className="flex flex-wrap items-center gap-2 border-b border-border/60 bg-background px-4 py-3">
+    <TooltipProvider delayDuration={300}>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 border-b border-border/60 bg-background px-4 py-3">
         {!hideSearch && (
-          <div className="relative w-64 max-w-full">
+          <div className="relative w-full min-w-0 sm:w-64 sm:flex-none">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
@@ -95,82 +96,104 @@ export function SmartTableToolbar<T>({
               data-smart-table-search
             />
             {search && (
-              <button
-                type="button"
-                onClick={() => onSearchChange("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground"
-                aria-label="Limpar pesquisa"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => onSearchChange("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground"
+                    aria-label="Limpar pesquisa"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Limpar pesquisa</TooltipContent>
+              </Tooltip>
             )}
           </div>
         )}
 
-        <AdvancedTableFilters table={table} />
-
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className={cn("h-9 gap-2", groupBy && "border-primary text-primary")}
-            >
-              <Layers className="h-4 w-4" />
-              {activeGroupLabel ?? "Agrupar"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="start" className="w-64 p-2">
-            <div className="mb-2 px-1 text-xs font-medium text-muted-foreground">Agrupar por…</div>
-            <button
-              type="button"
-              onClick={() => onGroupByChange(null)}
-              className={cn(
-                "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-muted",
-                !groupBy && "bg-muted",
-              )}
-            >
-              <Group className="h-3.5 w-3.5 text-muted-foreground" />
-              Sem agrupamento
-            </button>
-            <div className="my-1 h-px bg-border/60" />
-            {groupable.map((opt) => (
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5 sm:border-l sm:border-border/70 sm:pl-4">
+          <AdvancedTableFilters table={table} />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn("h-9 gap-2", groupBy && "border-primary text-foreground")}
+              >
+                <Layers className="h-4 w-4" />
+                {activeGroupLabel ?? "Agrupar"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-64 p-2">
+              <div className="mb-2 px-1 text-xs font-medium text-muted-foreground">Agrupar por…</div>
               <button
-                key={opt.value}
                 type="button"
-                onClick={() => onGroupByChange(opt.value)}
+                onClick={() => onGroupByChange(null)}
                 className={cn(
                   "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-muted",
-                  groupBy === opt.value && "bg-muted",
+                  !groupBy && "bg-muted",
                 )}
               >
-                {opt.label}
+                <Group className="h-3.5 w-3.5 text-muted-foreground" />
+                Sem agrupamento
               </button>
-            ))}
-          </PopoverContent>
-        </Popover>
-
-        <div className="flex flex-wrap items-center gap-2">
+              <div className="my-1 h-px bg-border/60" />
+              {groupable.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => onGroupByChange(opt.value)}
+                  className={cn(
+                    "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-muted",
+                    groupBy === opt.value && "bg-muted",
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </PopoverContent>
+          </Popover>
           {savedViewsKey && <SavedViews table={table} storageKey={savedViewsKey} />}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5 sm:border-l sm:border-border/70 sm:pl-4">
           {hasEditableColumns && (
-            <Button
-              variant={editMode ? "default" : "outline"}
-              size="sm"
-              onClick={() => onEditModeChange(!editMode)}
-              className={cn("h-9 gap-2", editMode && "bg-amber-500 text-white hover:bg-amber-600")}
-            >
-              {editMode ? <Lock className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
-              {editMode ? "Bloquear edição" : "Editar"}
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={editMode ? "default" : "outline"}
+                  size="icon"
+                  onClick={() => onEditModeChange(!editMode)}
+                  className="h-9 w-9"
+                  aria-label={editMode ? "Terminar edição na tabela" : "Editar na tabela"}
+                >
+                  {editMode ? <Lock className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{editMode ? "Terminar edição na tabela" : "Editar na tabela"}</TooltipContent>
+            </Tooltip>
           )}
           <DataTableViewOptions table={table} />
           {!disableExport && onExport && (
-            <Button variant="outline" size="sm" className="h-9 gap-2" onClick={onExport} title="Exportar CSV">
-              <Download className="h-4 w-4" />
-              CSV
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" className="h-9 w-9" onClick={onExport} aria-label="Exportar CSV">
+                  <Download className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Exportar CSV</TooltipContent>
+            </Tooltip>
           )}
-          {toolbarActions}
+        </div>
+
+        {toolbarActions && (
+          <div className="flex flex-wrap items-center gap-2 sm:border-l sm:border-border/70 sm:pl-4">
+            {toolbarActions}
+          </div>
+        )}
+        <div className="ml-auto flex items-center">
           <span className="text-xs text-muted-foreground whitespace-nowrap">{rowCount} resultados</span>
         </div>
       </div>
@@ -209,6 +232,6 @@ export function SmartTableToolbar<T>({
           </div>
         </div>
       )}
-    </>
+    </TooltipProvider>
   );
 }

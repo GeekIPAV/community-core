@@ -1,5 +1,7 @@
 import { flexRender, type Table } from "@tanstack/react-table";
+import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { TableHead } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 export function DraggableTableHeaders<T>({
   table,
@@ -14,20 +16,31 @@ export function DraggableTableHeaders<T>({
       {headers.map((header) => {
         const canSort = header.column.getCanSort();
         const canResize = header.column.getCanResize();
+        const sorted = header.column.getIsSorted();
         const size = header.getSize();
         return (
           <TableHead
             key={header.id}
             style={{ width: size, minWidth: size }}
-            className="relative group/resize"
+            className={cn(
+              "group/resize relative text-muted-foreground",
+              sorted && "text-foreground",
+            )}
           >
             {canSort ? (
               <button
                 type="button"
                 onClick={() => header.column.toggleSorting()}
-                className="font-medium hover:text-foreground truncate text-left w-full"
+                className="flex w-full items-center gap-1.5 truncate text-left font-semibold hover:text-foreground"
               >
-                {flexRender(header.column.columnDef.header, header.getContext())}
+                <span className="truncate">{flexRender(header.column.columnDef.header, header.getContext())}</span>
+                {sorted === "asc" ? (
+                  <ArrowUp className="h-3.5 w-3.5 shrink-0 text-primary" />
+                ) : sorted === "desc" ? (
+                  <ArrowDown className="h-3.5 w-3.5 shrink-0 text-primary" />
+                ) : (
+                  <ArrowUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+                )}
               </button>
             ) : (
               flexRender(header.column.columnDef.header, header.getContext())
@@ -37,7 +50,10 @@ export function DraggableTableHeaders<T>({
                 onMouseDown={header.getResizeHandler()}
                 onTouchStart={header.getResizeHandler()}
                 onClick={(e) => e.stopPropagation()}
-                className={`absolute right-0 top-0 h-full w-1.5 cursor-col-resize select-none touch-none bg-transparent hover:bg-primary/40 ${header.column.getIsResizing() ? "bg-primary" : ""} hidden md:block`}
+                className={cn(
+                  "absolute right-0 top-1/2 hidden h-6 w-1 -translate-y-1/2 cursor-col-resize select-none touch-none rounded-full bg-border transition-colors hover:bg-primary md:block",
+                  header.column.getIsResizing() && "h-full bg-primary",
+                )}
                 aria-hidden
               />
             )}

@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 function getLabel(column: any): string {
   const meta = (column.columnDef.meta ?? {}) as { label?: string };
@@ -35,13 +36,18 @@ export function DataTableViewOptions<T>({ table }: { table: Table<T> }) {
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="h-9 gap-2">
-          <Settings2 className="h-4 w-4" />
-          Colunas
-        </Button>
-      </DropdownMenuTrigger>
+    <TooltipProvider delayDuration={300}>
+      <DropdownMenu>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" className="h-9 w-9" aria-label="Escolher colunas">
+                <Settings2 className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+          </TooltipTrigger>
+          <TooltipContent>Escolher colunas</TooltipContent>
+        </Tooltip>
       <DropdownMenuContent align="end" className="w-[260px]">
         <DropdownMenuLabel>Colunas</DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -60,29 +66,40 @@ export function DataTableViewOptions<T>({ table }: { table: Table<T> }) {
                   onCheckedChange={(v) => column.toggleVisibility(!!v)}
                 />
                 <span className="flex-1 truncate">{getLabel(column)}</span>
-                <button
-                  type="button"
-                  onClick={() => move(column.id, -1)}
-                  disabled={isFirst}
-                  className="text-muted-foreground hover:text-foreground disabled:opacity-30"
-                  aria-label="Mover para cima"
-                >
-                  <ChevronUp className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => move(column.id, 1)}
-                  disabled={isLast}
-                  className="text-muted-foreground hover:text-foreground disabled:opacity-30"
-                  aria-label="Mover para baixo"
-                >
-                  <ChevronDown className="h-3.5 w-3.5" />
-                </button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => move(column.id, -1)}
+                      disabled={isFirst}
+                      className="text-muted-foreground hover:text-foreground disabled:opacity-30"
+                      aria-label="Mover para cima"
+                    >
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>Mover para cima</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => move(column.id, 1)}
+                      disabled={isLast}
+                      className="text-muted-foreground hover:text-foreground disabled:opacity-30"
+                      aria-label="Mover para baixo"
+                    >
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>Mover para baixo</TooltipContent>
+                </Tooltip>
               </div>
             );
           })}
         </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </TooltipProvider>
   );
 }

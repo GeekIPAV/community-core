@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -420,7 +421,7 @@ export function SmartTable<T>({
       >
         <Table className="table-fixed">
           <TableHeader className={cn(shouldVirtualize && "sticky top-0 z-10 bg-background")}>
-            <TableRow className="bg-muted/30 hover:bg-muted/30">
+            <TableRow className="bg-muted/40 hover:bg-muted/40">
               {table.getHeaderGroups()[0]?.headers.map((header) => {
                 const canSort = header.column.getCanSort();
                 const canResize = header.column.getCanResize();
@@ -430,25 +431,31 @@ export function SmartTable<T>({
                   <TableHead
                     key={header.id}
                     style={{ width: size, minWidth: header.column.columnDef.minSize ?? 60 }}
-                    className="group/h relative h-9 select-none px-3 text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                    className={cn(
+                      "group/h relative h-10 select-none px-3 text-xs font-semibold uppercase tracking-normal text-muted-foreground",
+                      sorted && "text-foreground",
+                    )}
                   >
                     <div className="flex items-center gap-1.5 truncate">
                       {canSort ? (
                         <button
                           type="button"
                           onClick={header.column.getToggleSortingHandler()}
-                          className="flex w-full items-center gap-1.5 truncate text-left hover:text-foreground"
-                          title={String(labelOf(header.column))}
+                          className={cn(
+                            "flex w-full items-center gap-1.5 truncate text-left transition-colors hover:text-foreground",
+                            sorted && "text-foreground",
+                          )}
+                          aria-label={`Ordenar por ${String(labelOf(header.column))}`}
                         >
                           <span className="truncate">
                             {flexRender(header.column.columnDef.header, header.getContext())}
                           </span>
                           {sorted === "asc" ? (
-                            <ArrowUp className="h-3 w-3 text-foreground shrink-0" />
+                            <ArrowUp className="h-3.5 w-3.5 shrink-0 text-primary" />
                           ) : sorted === "desc" ? (
-                            <ArrowDown className="h-3 w-3 text-foreground shrink-0" />
+                            <ArrowDown className="h-3.5 w-3.5 shrink-0 text-primary" />
                           ) : (
-                            <ArrowUpDown className="h-3 w-3 opacity-40 shrink-0" />
+                            <ArrowUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
                           )}
                         </button>
                       ) : (
@@ -463,9 +470,9 @@ export function SmartTable<T>({
                         onTouchStart={header.getResizeHandler()}
                         onClick={(e) => e.stopPropagation()}
                         className={cn(
-                          "absolute right-0 top-0 hidden h-full w-1 cursor-col-resize touch-none select-none md:block",
-                          "bg-transparent group-hover/h:bg-border",
-                          header.column.getIsResizing() && "bg-primary",
+                          "absolute right-0 top-1/2 hidden h-6 w-1 -translate-y-1/2 cursor-col-resize touch-none select-none rounded-full md:block",
+                          "bg-border transition-colors group-hover/h:bg-primary/60 hover:bg-primary",
+                          header.column.getIsResizing() && "h-full bg-primary",
                         )}
                         aria-hidden
                       />
@@ -532,6 +539,7 @@ export function SmartTable<T>({
                 )}`}{" "}
             de {filteredRows.length} resultados
           </span>
+          <TooltipProvider delayDuration={300}>
           <div className="flex items-center gap-1">
             <Select
               value={String(effectivePageSize)}
@@ -551,32 +559,43 @@ export function SmartTable<T>({
                 ))}
               </SelectContent>
             </Select>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              disabled={pageIndex === 0}
-              onClick={() => setPageIndex(Math.max(0, pageIndex - 1))}
-              aria-label="Página anterior"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  disabled={pageIndex === 0}
+                  onClick={() => setPageIndex(Math.max(0, pageIndex - 1))}
+                  aria-label="Página anterior"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Página anterior</TooltipContent>
+            </Tooltip>
             <span className="px-1">
               Pág. {pageIndex + 1} / {totalPages}
             </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              disabled={pageIndex >= totalPages - 1}
-              onClick={() =>
-                setPageIndex(Math.min(totalPages - 1, pageIndex + 1))
-              }
-              aria-label="Página seguinte"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  disabled={pageIndex >= totalPages - 1}
+                  onClick={() =>
+                    setPageIndex(Math.min(totalPages - 1, pageIndex + 1))
+                  }
+                  aria-label="Página seguinte"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Página seguinte</TooltipContent>
+            </Tooltip>
           </div>
+          </TooltipProvider>
         </div>
       )}
       {enableSelection && onBulkEdit && (
