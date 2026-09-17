@@ -1399,6 +1399,90 @@ export type Database = {
           },
         ]
       }
+      folhas_km: {
+        Row: {
+          auth_user_id: string | null
+          created_at: string
+          email: string | null
+          enviado_em: string | null
+          enviado_para: string[]
+          erro_envio: string | null
+          estado: string
+          iban: string | null
+          id: string
+          linhas: Json
+          matricula: string | null
+          morada: string | null
+          nif: string | null
+          nome: string
+          periodo: string | null
+          pessoa_id: string | null
+          total_km: number
+          total_valor: number
+          updated_at: string
+          valor_km: number
+        }
+        Insert: {
+          auth_user_id?: string | null
+          created_at?: string
+          email?: string | null
+          enviado_em?: string | null
+          enviado_para?: string[]
+          erro_envio?: string | null
+          estado?: string
+          iban?: string | null
+          id?: string
+          linhas?: Json
+          matricula?: string | null
+          morada?: string | null
+          nif?: string | null
+          nome: string
+          periodo?: string | null
+          pessoa_id?: string | null
+          total_km?: number
+          total_valor?: number
+          updated_at?: string
+          valor_km?: number
+        }
+        Update: {
+          auth_user_id?: string | null
+          created_at?: string
+          email?: string | null
+          enviado_em?: string | null
+          enviado_para?: string[]
+          erro_envio?: string | null
+          estado?: string
+          iban?: string | null
+          id?: string
+          linhas?: Json
+          matricula?: string | null
+          morada?: string | null
+          nif?: string | null
+          nome?: string
+          periodo?: string | null
+          pessoa_id?: string | null
+          total_km?: number
+          total_valor?: number
+          updated_at?: string
+          valor_km?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folhas_km_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folhas_km_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inscricoes: {
         Row: {
           acao_id: string
