@@ -15,11 +15,14 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Car, ChevronDown, AlertTriangle, Download } from "lucide-react";
+import { Plus, Pencil, Trash2, Car, ChevronDown, AlertTriangle, Download, FileText, Users, FilePlus2, Send, Loader2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { matchCidade, parseViatura, formatEuro, KM_RATE, TRIP_FACTOR, normalizeGrupo, type CidadeBolsa } from "@/lib/bolsa-transporte";
 import { downloadCSV, toCSV } from "@/lib/csv";
 import { FolhaKmDialog } from "@/components/folha-km-dialog";
+import { gerarPdfFolhaKm } from "@/lib/gerar-pdf-folha-km";
+import { enviarFolhaKm } from "@/lib/folha-km.functions";
 
 
 export const Route = createFileRoute("/_app/_admin/bolsas-transporte")({
