@@ -1591,9 +1591,19 @@ function BolsasTransportePage() {
 
         </div>
 
+        <TooltipProvider delayDuration={200}>
+        <div className="flex flex-col gap-6">
         {(folhasKm ?? []).length > 0 && (
-          <div className="rounded-md border overflow-x-auto">
-            <div className="border-b bg-muted/30 px-4 py-2 text-xs font-semibold uppercase tracking-wide">Folhas de KM</div>
+          <Card className="border-sky-200 dark:border-sky-900">
+            <CardHeader className="border-b bg-sky-50/60 dark:bg-sky-950/30 py-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <FileText className="h-4 w-4 text-sky-600" />
+                Registo de Folhas de Quilómetros
+                <Badge variant="secondary" className="ml-1">{(folhasKm ?? []).length}</Badge>
+              </CardTitle>
+              <CardDescription>Folhas individuais submetidas por cada pessoa.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0 overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -1603,6 +1613,7 @@ function BolsasTransportePage() {
                   <TableHead className="text-right">KM</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead>Estado</TableHead>
+                  <TableHead className="w-28 text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1613,12 +1624,41 @@ function BolsasTransportePage() {
                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(f.created_at)}</TableCell>
                     <TableCell className="text-right tabular-nums">{Number(f.total_km).toLocaleString("pt-PT")}</TableCell>
                     <TableCell className="text-right tabular-nums font-medium">{formatEuro(Number(f.total_valor))}</TableCell>
-                    <TableCell className="text-xs">{f.estado === "enviada" ? "Enviada" : f.estado === "erro" ? "Erro no envio" : "Rascunho"}</TableCell>
+                    <TableCell><FolhaEstadoBadge estado={f.estado} /></TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setFolhaEdit({ folhaId: f.id })}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Editar folha</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" disabled={folhaBusyId === f.id} onClick={() => descarregarFolha(f.id)}>
+                              {folhaBusyId === f.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Descarregar PDF</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" disabled={folhaBusyId === f.id} onClick={() => reenviarFolha(f.id)}>
+                              {folhaBusyId === f.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Reenviar PDF por email</TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </div>
+            </CardContent>
+          </Card>
         )}
 
         {loadingMapaKm ? (
@@ -1626,7 +1666,17 @@ function BolsasTransportePage() {
         ) : kmFiltered.length === 0 ? (
           <p className="text-sm text-muted-foreground">Sem registos.</p>
         ) : (
-          <div className="rounded-md border overflow-x-auto">
+          <Card className="border-orange-200 dark:border-orange-900">
+            <CardHeader className="border-b bg-orange-50/60 dark:bg-orange-950/30 py-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Users className="h-4 w-4 text-orange-600" />
+                Despesas de Quilómetros das Famílias
+                <Badge variant="secondary" className="ml-1">{kmFiltered.length}</Badge>
+              </CardTitle>
+              <CardDescription>Deslocações das famílias reembolsadas a 0,36€/km (ida e volta).</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0 overflow-x-auto">
+
             <Table>
               <TableHeader>
                 <TableRow>
