@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { RegistarAtividadeDialog } from "@/components/registar-atividade-dialog";
 
 type Pessoa = {
   id: string;
@@ -45,6 +46,7 @@ export function PessoaEditSheet({
 }) {
   const qc = useQueryClient();
   const [form, setForm] = useState<Pessoa | null>(null);
+  const [atividadeOpen, setAtividadeOpen] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["pessoa-edit-sheet", pessoaId],
@@ -234,6 +236,24 @@ export function PessoaEditSheet({
               <Field label="Notas" className="col-span-2">
                 <Textarea value={form.notas ?? ""} onChange={(e) => setForm({ ...form, notas: e.target.value })} />
               </Field>
+              <div className="col-span-2 pt-2 space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="text-xs text-muted-foreground">Atividades da família</Label>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!form.familia_id}
+                    onClick={() => setAtividadeOpen(true)}
+                  >
+                    Registar atividade
+                  </Button>
+                </div>
+                {!form.familia_id && (
+                  <p className="text-xs text-muted-foreground">
+                    Esta pessoa não tem família associada — associe uma família para poder registar atividades.
+                  </p>
+                )}
+              </div>
               <div className="col-span-2 pt-2">
                 <Label className="mb-2 block text-xs text-muted-foreground">
                   Atividades em que participou como voluntário ({atividadesVol?.length ?? 0})
@@ -274,6 +294,14 @@ export function PessoaEditSheet({
           </Button>
         </SheetFooter>
       </SheetContent>
+      {form?.familia_id && (
+        <RegistarAtividadeDialog
+          open={atividadeOpen}
+          onOpenChange={setAtividadeOpen}
+          familiaIds={[form.familia_id]}
+          descricaoDialogo="A atividade fica registada na família desta pessoa."
+        />
+      )}
     </Sheet>
   );
 }
