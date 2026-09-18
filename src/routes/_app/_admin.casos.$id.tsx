@@ -115,19 +115,7 @@ function CasoDetailPage() {
 
   const { data: voluntarios = [] } = useVoluntariosLookup();
 
-  const { data: equipa = [] } = useQuery({
-    queryKey: ["equipa-mediadoras"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pessoas")
-        .select("id, nome_completo, is_admin, tipos_user!pessoas_tipo_user_id_fkey(nome)")
-        .eq("status", "ativo").not("auth_user_id", "is", null);
-      if (error) throw error;
-      return ((data ?? []) as any[])
-        .filter((p) => p.is_admin || p.tipos_user?.nome?.toLowerCase() === "equipa")
-        .map((p) => ({ id: p.id as string, nome_completo: p.nome_completo as string }));
-    },
-  });
+  const { data: equipa = [] } = useEquipaLookup(true, { exigirConta: true });
 
   const updateCaso = useMutation({
     mutationFn: async (patch: any) => {
