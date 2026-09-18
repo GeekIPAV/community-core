@@ -19,7 +19,7 @@ import { Plus, Pencil, Trash2, Car, ChevronDown, AlertTriangle, Download, FileTe
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { matchCidade, parseViatura, formatEuro, KM_RATE, TRIP_FACTOR, normalizeGrupo, type CidadeBolsa } from "@/lib/bolsa-transporte";
-import { downloadCSV, toCSV } from "@/lib/csv";
+import { downloadCSV } from "@/lib/download-csv";
 import { FolhaKmDialog } from "@/components/folha-km-dialog";
 import { gerarPdfFolhaKm } from "@/lib/gerar-pdf-folha-km";
 import { enviarFolhaKm } from "@/lib/folha-km.functions";
@@ -1235,7 +1235,7 @@ function BolsasTransportePage() {
                   "Data pagamento": i.pagamento?.data_pagamento ?? "",
                 }))
               );
-              downloadCSV(`bolsas-pagamentos-${new Date().toISOString().slice(0, 10)}.csv`, toCSV(rowsCsv, headers));
+              downloadCSV(`bolsas-pagamentos-${new Date().toISOString().slice(0, 10)}.csv`, rowsCsv, headers);
             }}
           >
             <Download className="mr-1 h-3.5 w-3.5" /> Exportar
@@ -1642,7 +1642,7 @@ function BolsasTransportePage() {
                       "Valor": Number(f.total_valor ?? 0).toFixed(2).replace(".", ","),
                       "Estado de envio": f.estado === "enviada" ? "Enviada" : f.estado === "erro_envio" ? "Erro no envio" : "Rascunho",
                     }));
-                    downloadCSV(`folhas-km-${new Date().toISOString().slice(0, 10)}.csv`, toCSV(rowsCsv, headers));
+                    downloadCSV(`folhas-km-${new Date().toISOString().slice(0, 10)}.csv`, rowsCsv, headers);
                   }}
                 >
                   <Download className="mr-2 h-4 w-4" /> Exportar
@@ -1776,7 +1776,7 @@ function BolsasTransportePage() {
                       "Método": r.metodo_pagamento ?? "",
                       "Notas": r.notas ?? "",
                     }));
-                    downloadCSV(`mapa-km-${new Date().toISOString().slice(0, 10)}.csv`, toCSV(rowsCsv, headers));
+                    downloadCSV(`mapa-km-${new Date().toISOString().slice(0, 10)}.csv`, rowsCsv, headers);
                   }}
                 >
                   <Download className="mr-2 h-4 w-4" /> Exportar
@@ -1961,7 +1961,7 @@ function BolsasTransportePage() {
                     "Estado de pagamento": i.pagamento?.estado ?? "por_pagar",
                     "Método de pagamento": i.pagamento?.metodo_pagamento ?? "",
                   }));
-                  downloadCSV(`bolsas-${new Date().toISOString().slice(0, 10)}.csv`, toCSV(rowsCsv, headers));
+                  downloadCSV(`bolsas-${new Date().toISOString().slice(0, 10)}.csv`, rowsCsv, headers);
                 }}
               >
                 <Download className="mr-2 h-4 w-4" /> Exportar
