@@ -156,7 +156,7 @@ function UsersTab() {
     const rows = usersQ.data ?? [];
     if (!s) return rows;
     return rows.filter((u) => {
-      const tipo = u.pessoa?.tipo_user_id ? tiposById.get(u.pessoa.tipo_user_id) ?? "" : "";
+      const tipo = (u.pessoa?.tipo_ids ?? []).map((id) => tiposById.get(id) ?? "").join(" ");
       return [u.email, u.pessoa?.nome_completo, u.pessoa?.email, tipo]
         .filter(Boolean)
         .some((v) => (v as string).toLowerCase().includes(s));
