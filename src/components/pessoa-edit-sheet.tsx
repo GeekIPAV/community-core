@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { RegistarAtividadeDialog } from "@/components/registar-atividade-dialog";
+import { TiposMultiSelect } from "@/components/tipos-multi-select";
 
 type Pessoa = {
   id: string;
@@ -47,6 +48,7 @@ export function PessoaEditSheet({
   const qc = useQueryClient();
   const [form, setForm] = useState<Pessoa | null>(null);
   const [atividadeOpen, setAtividadeOpen] = useState(false);
+  const [tipoIds, setTipoIds] = useState<string[]>([]);
 
   const { data, isLoading } = useQuery({
     queryKey: ["pessoa-edit-sheet", pessoaId],
@@ -85,6 +87,26 @@ export function PessoaEditSheet({
       return data as { id: string; nome: string }[];
     },
   });
+
+  // Tipos de perfil cumulativos desta pessoa
+  const { data: tiposPessoa } = useQuery({
+    queryKey: ["pessoa-tipos-sheet", pessoaId],
+    enabled: !!pessoaId && open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pessoa_tipos")
+        .select("tipo_user_id")
+        .eq("pessoa_id", pessoaId!);
+      if (error) throw error;
+      return (data ?? []).map((r) => r.tipo_user_id as string);
+    },
+  });
+
+  useEffect(() => {
+    setTipoIds(
+      Array.from(new Set([...(data?.tipo_user_id ? [data.tipo_user_id] : []), ...(tiposPessoa ?? [])])),
+    );
+  }, [data?.tipo_user_id, (tiposPessoa ?? []).join(",")]);
 
   const { data: atividadesVol } = useQuery({
     queryKey: ["pessoa-atividades-voluntario", pessoaId],
