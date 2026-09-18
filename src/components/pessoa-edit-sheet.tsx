@@ -152,7 +152,7 @@ export function PessoaEditSheet({
           familia_id: form.familia_id || null,
           status: form.status as any,
           notas: form.notas || null,
-          tipo_user_id: form.tipo_user_id || null,
+          tipo_user_id: tipoIds[0] ?? null,
           genero: form.genero || null,
           nacionalidade: form.nacionalidade || null,
           cidade_residencia: form.cidade_residencia || null,
@@ -240,14 +240,18 @@ export function PessoaEditSheet({
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="Tipo de utilizador" className="col-span-2">
-                <Select value={form.tipo_user_id ?? "__null"} onValueChange={(v) => setForm({ ...form, tipo_user_id: v === "__null" ? null : v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__null">— sem tipo —</SelectItem>
-                    {tipos?.map((t) => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+              <Field label="Tipos de utilizador" className="col-span-2">
+                <TiposMultiSelect
+                  values={tipoIds}
+                  options={(tipos ?? []).map((t) => ({ value: t.id, label: t.nome }))}
+                  onChange={(v) => {
+                    setTipoIds(v);
+                    setForm({ ...form, tipo_user_id: v[0] ?? null });
+                  }}
+                />
+                <p className="pt-1 text-xs text-muted-foreground">
+                  Podes escolher vários tipos — os acessos somam-se.
+                </p>
               </Field>
               <Field label="Estado" className="col-span-2">
                 <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
