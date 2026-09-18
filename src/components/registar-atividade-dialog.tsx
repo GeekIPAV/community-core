@@ -92,26 +92,44 @@ export function useVoluntariosLookup(enabled = true) {
 }
 
 type AtividadeCatalogo = { id: string; nome: string; categoria: string | null };
-type FamiliaOpcao = { id: string; nome: string };
+type ParticipanteOpcao = { id: string; nome: string; familia?: string | null };
+
+/** Membros ativos de uma família (mesmo critério usado no resto da aplicação). */
+export async function fetchMembrosAtivos(familiaIds: string[]): Promise<ParticipanteOpcao[]> {
+  if (familiaIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from("pessoas")
+    .select("id, nome_completo, familias!pessoas_familia_id_fkey(nome)")
+    .in("familia_id", familiaIds)
+    .eq("status", "ativo")
+    .is("deleted_at", null)
+    .order("nome_completo");
+  if (error) throw error;
+  return ((data ?? []) as any[]).map((p) => ({
+    id: p.id as string,
+    nome: p.nome_completo as string,
+    familia: p.familias?.nome ?? null,
+  }));
+}
 
 export function RegistarAtividadeDialog({
   open,
   onOpenChange,
-  familiaIds,
+  participanteIdsFixos,
   atividadeIdFixa,
-  escolherFamilias = false,
+  escolherParticipantes = false,
   titulo = "Registar atividade",
   descricaoDialogo,
   onRegistado,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  /** Famílias fixas (ex.: ficha da família ou da pessoa). */
-  familiaIds?: string[];
+  /** Participantes pré-selecionados (ex.: ficha da pessoa ou da família). */
+  participanteIdsFixos?: string[];
   /** Atividade do catálogo já definida (ex.: a partir da página de Atividades). */
   atividadeIdFixa?: string;
-  /** Mostra o seletor de múltiplas famílias. */
-  escolherFamilias?: boolean;
+  /** Mostra a pesquisa para escolher participantes (pessoas ou famílias inteiras). */
+  escolherParticipantes?: boolean;
   titulo?: string;
   descricaoDialogo?: string;
   onRegistado?: () => void;
@@ -121,27 +139,47 @@ export function RegistarAtividadeDialog({
   const [dataVal, setDataVal] = useState("");
   const [descricao, setDescricao] = useState("");
   const [voluntariosSel, setVoluntariosSel] = useState<string[]>([]);
-  const [familiasSel, setFamiliasSel] = useState<FamiliaOpcao[]>([]);
+  const [participantesSel, setParticipantesSel] = useState<ParticipanteOpcao[]>([]);
   const [pesquisa, setPesquisa] = useState("");
   const [pesquisaVol, setPesquisaVol] = useState("");
   const [novaNome, setNovaNome] = useState("");
   const [novaCategoria, setNovaCategoria] = useState("");
   const [novaOpen, setNovaOpen] = useState(false);
 
+  const fixosKey = (participanteIdsFixos ?? []).join(",");
+
   useEffect(() => {
-    if (open) {
-      setAtividadeId(atividadeIdFixa ?? "");
-      setDataVal("");
-      setDescricao("");
-      setVoluntariosSel([]);
-      setFamiliasSel([]);
-      setPesquisa("");
-      setPesquisaVol("");
-      setNovaOpen(false);
-      setNovaNome("");
-      setNovaCategoria("");
+    if (!open) return;
+    setAtividadeId(atividadeIdFixa ?? "");
+    setDataVal("");
+    setDescricao("");
+    setVoluntariosSel([]);
+    setPesquisa("");
+    setPesquisaVol("");
+    setNovaOpen(false);
+    setNovaNome("");
+    setNovaCategoria("");
+    const ids = participanteIdsFixos ?? [];
+    if (ids.length === 0) {
+      setParticipantesSel([]);
+      return;
     }
-  }, [open, atividadeIdFixa]);
+    setParticipantesSel(ids.map((id) => ({ id, nome: "A carregar…" })));
+    supabase
+      .from("pessoas")
+      .select("id, nome_completo, familias!pessoas_familia_id_fkey(nome)")
+      .in("id", ids)
+      .then(({ data }) => {
+        setParticipantesSel(
+          ((data ?? []) as any[]).map((p) => ({
+            id: p.id as string,
+            nome: p.nome_completo as string,
+            familia: p.familias?.nome ?? null,
+          })),
+        );
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, atividadeIdFixa, fixosKey]);
 
   const { data: voluntarios } = useVoluntariosLookup(open);
 
@@ -160,39 +198,56 @@ export function RegistarAtividadeDialog({
     },
   });
 
-  // Procura de famílias (por nome da família ou por nome de uma pessoa)
+  // Procura de pessoas e de famílias (a família adiciona todos os membros ativos)
   const termo = pesquisa.trim();
   const { data: resultados } = useQuery({
-    queryKey: ["registar-atividade-familias", termo],
-    enabled: open && escolherFamilias && termo.length >= 2,
+    queryKey: ["registar-atividade-procura", termo],
+    enabled: open && escolherParticipantes && termo.length >= 2,
     queryFn: async () => {
-      const [fam, pes] = await Promise.all([
-        supabase.from("familias").select("id, nome").ilike("nome", `%${termo}%`).is("deleted_at", null).order("nome").limit(20),
+      const [pes, fam] = await Promise.all([
         supabase
           .from("pessoas")
-          .select("id, nome_completo, familia_id, familias!pessoas_familia_id_fkey(id, nome)")
+          .select("id, nome_completo, familias!pessoas_familia_id_fkey(nome)")
           .ilike("nome_completo", `%${termo}%`)
-          .not("familia_id", "is", null)
+          .eq("status", "ativo")
           .is("deleted_at", null)
           .order("nome_completo")
           .limit(20),
+        supabase.from("familias").select("id, nome").ilike("nome", `%${termo}%`).is("deleted_at", null).order("nome").limit(10),
       ]);
-      if (fam.error) throw fam.error;
       if (pes.error) throw pes.error;
-      const mapa = new Map<string, { id: string; nome: string; via?: string }>();
-      for (const f of (fam.data ?? []) as any[]) mapa.set(f.id, { id: f.id, nome: f.nome });
-      for (const p of (pes.data ?? []) as any[]) {
-        const f = p.familias;
-        if (f && !mapa.has(f.id)) mapa.set(f.id, { id: f.id, nome: f.nome, via: p.nome_completo });
-      }
-      return Array.from(mapa.values());
+      if (fam.error) throw fam.error;
+      return {
+        pessoas: ((pes.data ?? []) as any[]).map((p) => ({
+          id: p.id as string,
+          nome: p.nome_completo as string,
+          familia: p.familias?.nome ?? null,
+        })) as ParticipanteOpcao[],
+        familias: ((fam.data ?? []) as any[]).map((f) => ({ id: f.id as string, nome: f.nome as string })),
+      };
     },
   });
 
-  const alvos = useMemo(
-    () => (escolherFamilias ? familiasSel.map((f) => f.id) : (familiaIds ?? [])),
-    [escolherFamilias, familiasSel, familiaIds],
-  );
+  const adicionarParticipante = (p: ParticipanteOpcao) =>
+    setParticipantesSel((s) => (s.some((x) => x.id === p.id) ? s : [...s, p]));
+
+  const adicionarFamilia = async (familiaId: string, nomeFamilia: string) => {
+    try {
+      const membros = await fetchMembrosAtivos([familiaId]);
+      if (membros.length === 0) {
+        toast.error(`A família ${nomeFamilia} não tem membros ativos.`);
+        return;
+      }
+      setParticipantesSel((s) => {
+        const novos = membros.filter((m) => !s.some((x) => x.id === m.id));
+        return [...s, ...novos];
+      });
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  const alvos = useMemo(() => participantesSel.map((p) => p.id), [participantesSel]);
 
   const criarAtividade = useMutation({
     mutationFn: async () => {
@@ -221,32 +276,38 @@ export function RegistarAtividadeDialog({
   const registar = useMutation({
     mutationFn: async () => {
       if (!atividadeId) throw new Error("Escolha uma atividade");
-      if (alvos.length === 0) throw new Error("Escolha pelo menos uma família");
-      const { data: inseridos, error } = await supabase
-        .from("familia_atividades")
-        .insert(
-          alvos.map((familia_id) => ({
-            familia_id,
-            atividade_id: atividadeId,
-            data: dataVal || null,
-            descricao: descricao.trim() || null,
-          })),
-        )
-        .select("id");
+      if (alvos.length === 0) throw new Error("Escolha pelo menos um participante");
+      const { data: registo, error } = await supabase
+        .from("atividade_registos")
+        .insert({
+          atividade_id: atividadeId,
+          data: dataVal || null,
+          descricao: descricao.trim() || null,
+        })
+        .select("id")
+        .single();
       if (error) throw error;
+      const registoId = (registo as any).id as string;
+
+      const { error: eP } = await supabase
+        .from("atividade_registo_participantes")
+        .insert(alvos.map((pessoa_id) => ({ atividade_registo_id: registoId, pessoa_id })));
+      if (eP) throw eP;
+
       if (voluntariosSel.length > 0) {
-        const linhas = ((inseridos ?? []) as any[]).flatMap((r) =>
-          voluntariosSel.map((pid) => ({ familia_atividade_id: r.id as string, pessoa_id: pid })),
-        );
-        const { error: e2 } = await supabase.from("familia_atividade_voluntarios").insert(linhas);
+        const { error: e2 } = await supabase
+          .from("atividade_registo_voluntarios")
+          .insert(voluntariosSel.map((pessoa_id) => ({ atividade_registo_id: registoId, pessoa_id })));
         if (e2) throw e2;
       }
       return alvos.length;
     },
     onSuccess: (n) => {
-      toast.success(n === 1 ? "Atividade registada" : `Atividade registada em ${n} famílias`);
-      qc.invalidateQueries({ queryKey: ["familia-atividades"] });
-      qc.invalidateQueries({ queryKey: ["familia-atividades-admin"] });
+      toast.success(n === 1 ? "Atividade registada" : `Atividade registada para ${n} participantes`);
+      qc.invalidateQueries({ queryKey: ["atividade-registos"] });
+      qc.invalidateQueries({ queryKey: ["atividade-registos-familia"] });
+      qc.invalidateQueries({ queryKey: ["atividade-registos-admin"] });
+      qc.invalidateQueries({ queryKey: ["pessoa-atividades"] });
       qc.invalidateQueries({ queryKey: ["pessoa-atividades-voluntario"] });
       onRegistado?.();
       onOpenChange(false);
@@ -270,56 +331,74 @@ export function RegistarAtividadeDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          {escolherFamilias && (
-            <div className="space-y-2">
-              <Label>Famílias</Label>
-              {familiasSel.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {familiasSel.map((f) => (
-                    <Badge key={f.id} variant="secondary" className="gap-1">
-                      {f.nome}
-                      <button type="button" onClick={() => setFamiliasSel((s) => s.filter((x) => x.id !== f.id))}>
+          <div className="space-y-2">
+            <Label>Participantes</Label>
+            {participantesSel.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {participantesSel.map((p) => (
+                  <Badge key={p.id} variant="secondary" className="gap-1">
+                    {p.nome}
+                    {escolherParticipantes && (
+                      <button
+                        type="button"
+                        onClick={() => setParticipantesSel((s) => s.filter((x) => x.id !== p.id))}
+                      >
                         <X className="h-3 w-3" />
                       </button>
-                    </Badge>
-                  ))}
-                </div>
-              )}
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  className="pl-8"
-                  placeholder="Procurar por família ou por pessoa…"
-                  value={pesquisa}
-                  onChange={(e) => setPesquisa(e.target.value)}
-                />
-              </div>
-              {termo.length >= 2 && (
-                <ScrollArea className="max-h-44 rounded-md border">
-                  <div className="p-1">
-                    {(resultados ?? []).length === 0 && (
-                      <div className="px-2 py-3 text-sm text-muted-foreground">Sem resultados.</div>
                     )}
-                    {(resultados ?? []).map((r) => {
-                      const jaTem = familiasSel.some((f) => f.id === r.id);
-                      return (
+                  </Badge>
+                ))}
+              </div>
+            )}
+            {escolherParticipantes && (
+              <>
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    className="pl-8"
+                    placeholder="Procurar pessoa ou família (adiciona a família inteira)…"
+                    value={pesquisa}
+                    onChange={(e) => setPesquisa(e.target.value)}
+                  />
+                </div>
+                {termo.length >= 2 && (
+                  <ScrollArea className="max-h-48 rounded-md border">
+                    <div className="p-1">
+                      {(resultados?.pessoas.length ?? 0) === 0 && (resultados?.familias.length ?? 0) === 0 && (
+                        <div className="px-2 py-3 text-sm text-muted-foreground">Sem resultados.</div>
+                      )}
+                      {(resultados?.pessoas ?? []).map((p) => {
+                        const jaTem = participantesSel.some((x) => x.id === p.id);
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            disabled={jaTem}
+                            className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-muted disabled:opacity-50"
+                            onClick={() => adicionarParticipante(p)}
+                          >
+                            <span className="font-medium">{p.nome}</span>
+                            {p.familia && <span className="text-xs text-muted-foreground">{p.familia}</span>}
+                          </button>
+                        );
+                      })}
+                      {(resultados?.familias ?? []).map((f) => (
                         <button
-                          key={r.id}
+                          key={`fam-${f.id}`}
                           type="button"
-                          disabled={jaTem}
-                          className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-muted disabled:opacity-50"
-                          onClick={() => setFamiliasSel((s) => [...s, { id: r.id, nome: r.nome }])}
+                          className="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
+                          onClick={() => adicionarFamilia(f.id, f.nome)}
                         >
-                          <span className="font-medium">{r.nome}</span>
-                          {r.via && <span className="text-xs text-muted-foreground">via {r.via}</span>}
+                          <span className="font-medium">Família {f.nome}</span>
+                          <span className="text-xs text-muted-foreground">adicionar todos os membros</span>
                         </button>
-                      );
-                    })}
-                  </div>
-                </ScrollArea>
-              )}
-            </div>
-          )}
+                      ))}
+                    </div>
+                  </ScrollArea>
+                )}
+              </>
+            )}
+          </div>
 
           {!atividadeIdFixa && (
             <div className="space-y-2">

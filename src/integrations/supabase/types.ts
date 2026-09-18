@@ -167,6 +167,124 @@ export type Database = {
         }
         Relationships: []
       }
+      atividade_registo_participantes: {
+        Row: {
+          atividade_registo_id: string
+          created_at: string
+          pessoa_id: string
+        }
+        Insert: {
+          atividade_registo_id: string
+          created_at?: string
+          pessoa_id: string
+        }
+        Update: {
+          atividade_registo_id?: string
+          created_at?: string
+          pessoa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atividade_registo_participantes_atividade_registo_id_fkey"
+            columns: ["atividade_registo_id"]
+            isOneToOne: false
+            referencedRelation: "atividade_registos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atividade_registo_participantes_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atividade_registo_participantes_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      atividade_registo_voluntarios: {
+        Row: {
+          atividade_registo_id: string
+          created_at: string
+          pessoa_id: string
+        }
+        Insert: {
+          atividade_registo_id: string
+          created_at?: string
+          pessoa_id: string
+        }
+        Update: {
+          atividade_registo_id?: string
+          created_at?: string
+          pessoa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atividade_registo_voluntarios_atividade_registo_id_fkey"
+            columns: ["atividade_registo_id"]
+            isOneToOne: false
+            referencedRelation: "atividade_registos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atividade_registo_voluntarios_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atividade_registo_voluntarios_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas_com_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      atividade_registos: {
+        Row: {
+          atividade_id: string
+          created_at: string
+          created_by: string | null
+          data: string | null
+          descricao: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          atividade_id: string
+          created_at?: string
+          created_by?: string | null
+          data?: string | null
+          descricao?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          atividade_id?: string
+          created_at?: string
+          created_by?: string | null
+          data?: string | null
+          descricao?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atividade_registos_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "atividades_catalogo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       atividades_catalogo: {
         Row: {
           ativo: boolean

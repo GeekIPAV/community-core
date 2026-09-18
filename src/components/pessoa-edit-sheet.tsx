@@ -113,17 +113,39 @@ export function PessoaEditSheet({
     enabled: !!pessoaId && open,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("familia_atividade_voluntarios")
-        .select("familia_atividades(id, data, descricao, familias(nome), atividades_catalogo(nome, categoria))")
+        .from("atividade_registo_voluntarios")
+        .select("atividade_registos(id, data, descricao, atividades_catalogo(nome, categoria))")
         .eq("pessoa_id", pessoaId!);
       if (error) throw error;
       return ((data ?? []) as any[])
-        .map((r) => r.familia_atividades)
+        .map((r) => r.atividade_registos)
         .filter(Boolean)
         .map((a: any) => ({
           id: a.id as string,
           data: (a.data ?? null) as string | null,
-          familia: (a.familias?.nome ?? "—") as string,
+          familia: "" as string,
+          nome: (a.atividades_catalogo?.nome ?? "—") as string,
+          categoria: (a.atividades_catalogo?.categoria ?? "(Sem categoria)") as string,
+        }))
+        .sort((x, y) => (y.data ?? "").localeCompare(x.data ?? ""));
+    },
+  });
+
+  const { data: atividadesPart } = useQuery({
+    queryKey: ["pessoa-atividades", pessoaId],
+    enabled: !!pessoaId && open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("atividade_registo_participantes")
+        .select("atividade_registos(id, data, descricao, atividades_catalogo(nome, categoria))")
+        .eq("pessoa_id", pessoaId!);
+      if (error) throw error;
+      return ((data ?? []) as any[])
+        .map((r) => r.atividade_registos)
+        .filter(Boolean)
+        .map((a: any) => ({
+          id: a.id as string,
+          data: (a.data ?? null) as string | null,
           nome: (a.atividades_catalogo?.nome ?? "—") as string,
           categoria: (a.atividades_catalogo?.categoria ?? "(Sem categoria)") as string,
         }))
@@ -135,6 +157,14 @@ export function PessoaEditSheet({
     (acc[a.categoria] ||= [] as any).push(a);
     return acc;
   }, {});
+
+  const atividadesPartPorArea = (atividadesPart ?? []).reduce<Record<string, typeof atividadesPart>>(
+    (acc, a) => {
+      (acc[a.categoria] ||= [] as any).push(a);
+      return acc;
+    },
+    {},
+  );
 
   const save = useMutation({
     mutationFn: async () => {
@@ -285,20 +315,41 @@ export function PessoaEditSheet({
               </Field>
               <div className="col-span-2 pt-2 space-y-1">
                 <div className="flex items-center justify-between gap-2">
-                  <Label className="text-xs text-muted-foreground">Atividades da família</Label>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={!form.familia_id}
-                    onClick={() => setAtividadeOpen(true)}
-                  >
+                  <Label className="text-xs text-muted-foreground">Atividades</Label>
+                  <Button size="sm" variant="outline" onClick={() => setAtividadeOpen(true)}>
                     Registar atividade
                   </Button>
                 </div>
-                {!form.familia_id && (
-                  <p className="text-xs text-muted-foreground">
-                    Esta pessoa não tem família associada — associe uma família para poder registar atividades.
-                  </p>
+              </div>
+
+              <div className="col-span-2 pt-2">
+                <Label className="mb-2 block text-xs text-muted-foreground">
+                  Atividades em que participou ({atividadesPart?.length ?? 0})
+                </Label>
+                {(atividadesPart ?? []).length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Sem atividades registadas.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {Object.entries(atividadesPartPorArea)
+                      .sort((a, b) => a[0].localeCompare(b[0]))
+                      .map(([area, items]) => (
+                        <div key={area} className="rounded-md border">
+                          <div className="bg-muted/50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            {area} ({items?.length ?? 0})
+                          </div>
+                          <ul className="divide-y">
+                            {(items ?? []).map((a) => (
+                              <li key={a.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                                <span className="truncate font-medium">{a.nome}</span>
+                                <span className="whitespace-nowrap text-xs text-muted-foreground">
+                                  {a.data ?? "sem data"}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                  </div>
                 )}
               </div>
               <div className="col-span-2 pt-2">
@@ -341,12 +392,13 @@ export function PessoaEditSheet({
           </Button>
         </SheetFooter>
       </SheetContent>
-      {form?.familia_id && (
+      {pessoaId && (
         <RegistarAtividadeDialog
           open={atividadeOpen}
           onOpenChange={setAtividadeOpen}
-          familiaIds={[form.familia_id]}
-          descricaoDialogo="A atividade fica registada na família desta pessoa."
+          participanteIdsFixos={[pessoaId]}
+          escolherParticipantes
+          descricaoDialogo="Esta pessoa já está incluída — pode juntar outras pessoas ou a família inteira."
         />
       )}
     </Sheet>

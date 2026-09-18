@@ -13,29 +13,37 @@ type Linha = {
   descricao: string | null;
   atividade_nome: string;
   categoria: string | null;
+  participantes: string[];
   voluntarios: string[];
 };
 
 export function PessoaAtividadesSection({
   pessoaId,
-  familiaId,
+  familiaId: _familiaId,
 }: {
   pessoaId: string;
-  familiaId: string | null;
+  familiaId?: string | null;
 }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["pessoa-atividades", pessoaId, familiaId],
-    enabled: !!familiaId,
+    queryKey: ["pessoa-atividades", pessoaId],
     queryFn: async () => {
+      const { data: ligacoes, error: eL } = await supabase
+        .from("atividade_registo_participantes")
+        .select("atividade_registo_id")
+        .eq("pessoa_id", pessoaId);
+      if (eL) throw eL;
+      const ids = ((ligacoes ?? []) as any[]).map((r) => r.atividade_registo_id as string);
+      if (ids.length === 0) return [] as Linha[];
+
       const { data, error } = await supabase
-        .from("familia_atividades")
+        .from("atividade_registos")
         .select(
-          "id, data, descricao, atividades_catalogo(nome, categoria), familia_atividade_voluntarios(pessoas(nome_completo))",
+          "id, data, descricao, atividades_catalogo(nome, categoria), atividade_registo_participantes(pessoas(nome_completo)), atividade_registo_voluntarios(pessoas(nome_completo))",
         )
-        .eq("familia_id", familiaId!)
+        .in("id", ids)
         .order("data", { ascending: false });
       if (error) throw error;
       return ((data ?? []) as any[]).map((r) => ({
@@ -44,7 +52,10 @@ export function PessoaAtividadesSection({
         descricao: r.descricao,
         atividade_nome: r.atividades_catalogo?.nome ?? "(atividade removida)",
         categoria: r.atividades_catalogo?.categoria ?? null,
-        voluntarios: (r.familia_atividade_voluntarios ?? [])
+        participantes: (r.atividade_registo_participantes ?? [])
+          .map((v: any) => v.pessoas?.nome_completo)
+          .filter(Boolean),
+        voluntarios: (r.atividade_registo_voluntarios ?? [])
           .map((v: any) => v.pessoas?.nome_completo)
           .filter(Boolean),
       })) as Linha[];
@@ -54,19 +65,13 @@ export function PessoaAtividadesSection({
   return (
     <div className="space-y-3">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-sm text-muted-foreground">
-          Atividades registadas na família desta pessoa.
-        </p>
-        <Button size="sm" disabled={!familiaId} onClick={() => setOpen(true)}>
+        <p className="text-sm text-muted-foreground">Atividades em que esta pessoa participou.</p>
+        <Button size="sm" onClick={() => setOpen(true)}>
           <Plus className="mr-2 h-4 w-4" /> Atribuir atividade
         </Button>
       </div>
 
-      {!familiaId ? (
-        <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
-          Esta pessoa não tem família associada — associe uma família para poder registar atividades.
-        </div>
-      ) : isLoading ? (
+      {isLoading ? (
         <div className="space-y-2">
           {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
         </div>
@@ -86,9 +91,14 @@ export function PessoaAtividadesSection({
                 </span>
               </div>
               {l.descricao && <p className="mt-1 text-sm text-muted-foreground">{l.descricao}</p>}
+              {l.participantes.length > 1 && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Participantes: {l.participantes.join(", ")}
+                </p>
+              )}
               {l.voluntarios.length > 0 && (
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Voluntários: {l.voluntarios.join(", ")}
+                  Voluntários e equipa: {l.voluntarios.join(", ")}
                 </p>
               )}
             </div>
@@ -99,9 +109,10 @@ export function PessoaAtividadesSection({
       <RegistarAtividadeDialog
         open={open}
         onOpenChange={setOpen}
-        familiaIds={familiaId ? [familiaId] : []}
+        participanteIdsFixos={[pessoaId]}
+        escolherParticipantes
         titulo="Atribuir atividade"
-        onRegistado={() => qc.invalidateQueries({ queryKey: ["pessoa-atividades", pessoaId, familiaId] })}
+        onRegistado={() => qc.invalidateQueries({ queryKey: ["pessoa-atividades", pessoaId] })}
       />
     </div>
   );

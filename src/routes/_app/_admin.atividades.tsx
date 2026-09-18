@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, Search, Users } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, Search, Users, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { RegistarAtividadeDialog } from "@/components/registar-atividade-dialog";
 
@@ -20,7 +21,14 @@ export const Route = createFileRoute("/_app/_admin/atividades")({
 });
 
 type Atividade = { id: string; nome: string; categoria: string | null; ativo: boolean };
-type Registo = { id: string; atividade_id: string; familia_id: string; data: string | null; descricao: string | null; familia_nome: string };
+type Registo = {
+  id: string;
+  atividade_id: string;
+  data: string | null;
+  descricao: string | null;
+  participantes: string[];
+  voluntarios: string[];
+};
 
 function AtividadesPage() {
   const qc = useQueryClient();
@@ -46,22 +54,43 @@ function AtividadesPage() {
   });
 
   const { data: registos, isLoading: loadingR } = useQuery({
-    queryKey: ["familia-atividades-admin"],
+    queryKey: ["atividade-registos-admin"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("familia_atividades")
-        .select("id, atividade_id, familia_id, data, descricao, familias(nome)")
-        .order("data", { ascending: false });
+        .from("atividade_registos")
+        .select(
+          "id, atividade_id, data, descricao, atividade_registo_participantes(pessoas(nome_completo)), atividade_registo_voluntarios(pessoas(nome_completo))",
+        )
+        .order("data", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return ((data ?? []) as any[]).map((r) => ({
         id: r.id,
         atividade_id: r.atividade_id,
-        familia_id: r.familia_id,
         data: r.data,
         descricao: r.descricao,
-        familia_nome: r.familias?.nome ?? "(sem família)",
+        participantes: (r.atividade_registo_participantes ?? [])
+          .map((p: any) => p.pessoas?.nome_completo)
+          .filter(Boolean),
+        voluntarios: (r.atividade_registo_voluntarios ?? [])
+          .map((p: any) => p.pessoas?.nome_completo)
+          .filter(Boolean),
       })) as Registo[];
     },
+  });
+
+  const removerRegisto = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("atividade_registos").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Registo removido");
+      qc.invalidateQueries({ queryKey: ["atividade-registos-admin"] });
+      qc.invalidateQueries({ queryKey: ["pessoa-atividades"] });
+      qc.invalidateQueries({ queryKey: ["atividade-registos-familia"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const invalidate = () => {
@@ -110,7 +139,8 @@ function AtividadesPage() {
   type Linha = {
     atividade: Atividade;
     total: number;
-    porFamilia: { familia_id: string; familia_nome: string; count: number; ultima: string | null }[];
+    registos: Registo[];
+    nParticipantes: number;
   };
 
   const linhas: Linha[] = useMemo(() => {
@@ -123,19 +153,9 @@ function AtividadesPage() {
     }
     return atividades.map((a) => {
       const rs = byAt.get(a.id) ?? [];
-      const fam = new Map<string, { familia_id: string; familia_nome: string; count: number; ultima: string | null }>();
-      for (const r of rs) {
-        const k = r.familia_id;
-        const cur = fam.get(k) ?? { familia_id: k, familia_nome: r.familia_nome, count: 0, ultima: null };
-        cur.count += 1;
-        if (r.data && (!cur.ultima || r.data > cur.ultima)) cur.ultima = r.data;
-        fam.set(k, cur);
-      }
-      return {
-        atividade: a,
-        total: rs.length,
-        porFamilia: Array.from(fam.values()).sort((x, y) => y.count - x.count || x.familia_nome.localeCompare(y.familia_nome)),
-      };
+      const nomes = new Set<string>();
+      for (const r of rs) for (const p of r.participantes) nomes.add(p);
+      return { atividade: a, total: rs.length, registos: rs, nParticipantes: nomes.size };
     });
   }, [atividades, registos]);
 
@@ -143,7 +163,8 @@ function AtividadesPage() {
   const linhasFiltradas = q
     ? linhas.filter((l) =>
         l.atividade.nome.toLowerCase().includes(q) ||
-        (l.atividade.categoria ?? "").toLowerCase().includes(q),
+        (l.atividade.categoria ?? "").toLowerCase().includes(q) ||
+        l.registos.some((r) => r.participantes.some((p) => p.toLowerCase().includes(q))),
       )
     : linhas;
 
@@ -172,12 +193,12 @@ function AtividadesPage() {
         <div>
           <h1 className="text-2xl font-semibold">Atividades e Acompanhamento</h1>
           <p className="text-sm text-muted-foreground">
-            Catálogo de atividades, com resumo de quantas vezes foram realizadas e em que famílias.
+            Catálogo de atividades, com os registos de cada uma e quem participou.
           </p>
         </div>
         <div className="flex items-center gap-2">
         <Button variant="secondary" onClick={() => setAtribuirOpen(true)}>
-          <Users className="mr-2 h-4 w-4" /> Atribuir atividade a famílias
+          <Users className="mr-2 h-4 w-4" /> Atribuir atividade a participantes
         </Button>
         <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) setForm({ nome: "", categoria: "" }); }}>
           <DialogTrigger asChild>
@@ -240,28 +261,73 @@ function AtividadesPage() {
                                 {!l.atividade.ativo && <Badge variant="outline" className="shrink-0">Inativa</Badge>}
                               </div>
                               <div className="flex items-center gap-4 shrink-0">
-                                <span className="text-sm text-muted-foreground tabular-nums">{l.total} vez{l.total !== 1 ? "es" : ""}</span>
-                                <span className="text-sm text-muted-foreground tabular-nums">{l.porFamilia.length} família{l.porFamilia.length !== 1 ? "s" : ""}</span>
-                                <div className="flex items-center">
-                                  <Button size="sm" variant="secondary" className="mr-1" onClick={(e) => { e.stopPropagation(); setRegistarEm(l.atividade); }}>
-                                    <Users className="mr-2 h-4 w-4" /> Atribuir a famílias
+                                <span className="text-sm text-muted-foreground tabular-nums">{l.total} registo{l.total !== 1 ? "s" : ""}</span>
+                                <span className="text-sm text-muted-foreground tabular-nums">{l.nParticipantes} participante{l.nParticipantes !== 1 ? "s" : ""}</span>
+                                <div className="flex items-center gap-1">
+                                  <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); setRegistarEm(l.atividade); }}>
+                                    <Users className="mr-2 h-4 w-4" /> Adicionar participantes
                                   </Button>
-                                  <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); setEditing(l.atividade); }}><Pencil className="h-4 w-4" /></Button>
-                                  <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); setDeleteId(l.atividade.id); }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button size="icon" variant="ghost" onClick={(e) => e.stopPropagation()}>
+                                        <MoreHorizontal className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                      <DropdownMenuItem onClick={() => setEditing(l.atividade)}>
+                                        <Pencil className="mr-2 h-4 w-4" /> Editar atividade
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(l.atividade.id)}>
+                                        <Trash2 className="mr-2 h-4 w-4" /> Eliminar atividade
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </div>
                               </div>
                             </div>
-                            {open && l.porFamilia.length > 0 && (
-                              <div className="border-t bg-muted/30 px-3 py-2">
-                                <div className="flex flex-wrap gap-2">
-                                  {l.porFamilia.map((f) => (
-                                    <div key={f.familia_id} className="rounded-md border bg-background px-2 py-1 text-xs flex items-center gap-2">
-                                      <span className="font-medium">{f.familia_nome}</span>
-                                      <Badge variant="secondary" className="h-5">{f.count}×</Badge>
-                                      {f.ultima && <span className="text-muted-foreground">última: {f.ultima}</span>}
+                            {open && (
+                              <div className="border-t bg-muted/30 px-3 py-2 space-y-2">
+                                {l.registos.length === 0 ? (
+                                  <p className="text-xs text-muted-foreground">Sem registos.</p>
+                                ) : (
+                                  l.registos.map((r) => (
+                                    <div key={r.id} className="rounded-md border bg-background px-3 py-2 text-sm">
+                                      <div className="flex items-start justify-between gap-2">
+                                        <span className="text-xs text-muted-foreground">
+                                          {r.data ? new Date(r.data).toLocaleDateString("pt-PT") : "sem data"}
+                                        </span>
+                                        <Button
+                                          size="icon"
+                                          variant="ghost"
+                                          className="h-7 w-7"
+                                          title="Eliminar registo"
+                                          onClick={() => removerRegisto.mutate(r.id)}
+                                        >
+                                          <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                      </div>
+                                      <div className="mt-1 flex flex-wrap gap-1">
+                                        {r.participantes.length === 0 ? (
+                                          <span className="text-xs text-muted-foreground">Sem participantes</span>
+                                        ) : (
+                                          r.participantes.map((p) => (
+                                            <Badge key={p} variant="secondary" className="text-xs">{p}</Badge>
+                                          ))
+                                        )}
+                                      </div>
+                                      {r.voluntarios.length > 0 && (
+                                        <div className="mt-1 flex flex-wrap gap-1">
+                                          {r.voluntarios.map((v) => (
+                                            <Badge key={v} variant="outline" className="text-xs">{v}</Badge>
+                                          ))}
+                                        </div>
+                                      )}
+                                      {r.descricao && (
+                                        <p className="mt-1 whitespace-pre-wrap text-xs text-muted-foreground">{r.descricao}</p>
+                                      )}
                                     </div>
-                                  ))}
-                                </div>
+                                  ))
+                                )}
                               </div>
                             )}
                           </div>
@@ -295,20 +361,20 @@ function AtividadesPage() {
       <RegistarAtividadeDialog
         open={atribuirOpen}
         onOpenChange={setAtribuirOpen}
-        escolherFamilias
-        titulo="Atribuir atividade a famílias"
-        descricaoDialogo="Escolha a atividade e as famílias (por nome da família ou de uma pessoa)."
-        onRegistado={() => qc.invalidateQueries({ queryKey: ["familia-atividades-admin"] })}
+        escolherParticipantes
+        titulo="Atribuir atividade a participantes"
+        descricaoDialogo="Escolha a atividade e os participantes (por nome da pessoa ou da família)."
+        onRegistado={() => qc.invalidateQueries({ queryKey: ["atividade-registos-admin"] })}
       />
 
       <RegistarAtividadeDialog
         open={!!registarEm}
         onOpenChange={(o) => { if (!o) setRegistarEm(null); }}
         atividadeIdFixa={registarEm?.id}
-        escolherFamilias
-        titulo={registarEm ? `Adicionar famílias — ${registarEm.nome}` : "Adicionar famílias"}
-        descricaoDialogo="Escolha as famílias (por nome da família ou de uma pessoa) e registe a atividade em todas de uma vez."
-        onRegistado={() => qc.invalidateQueries({ queryKey: ["familia-atividades-admin"] })}
+        escolherParticipantes
+        titulo={registarEm ? `Adicionar participantes — ${registarEm.nome}` : "Adicionar participantes"}
+        descricaoDialogo="Escolha os participantes (por nome da pessoa ou da família) e registe a atividade de uma vez."
+        onRegistado={() => qc.invalidateQueries({ queryKey: ["atividade-registos-admin"] })}
       />
 
       <AlertDialog open={!!deleteId} onOpenChange={(o) => { if (!o) setDeleteId(null); }}>

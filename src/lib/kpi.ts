@@ -118,12 +118,18 @@ export async function computeKpiValue(kpi: Kpi, projetoId: string): Promise<numb
     const famIds = Array.from(new Set(pessoas.map((p) => p.familia_id).filter(Boolean)));
     if (famIds.length === 0) return 0;
     const { data: ativData } = await supabase
-      .from("familia_atividades")
-      .select("familia_id")
-      .in("familia_id", famIds);
+      .from("atividade_registo_participantes")
+      .select("atividade_registo_id, pessoas!inner(familia_id)")
+      .in("pessoas.familia_id", famIds);
     const counts = new Map<string, number>();
+    const vistos = new Set<string>();
     for (const r of (ativData ?? []) as any[]) {
-      counts.set(r.familia_id, (counts.get(r.familia_id) ?? 0) + 1);
+      const fid = r.pessoas?.familia_id as string | undefined;
+      if (!fid) continue;
+      const chave = `${fid}:${r.atividade_registo_id}`;
+      if (vistos.has(chave)) continue;
+      vistos.add(chave);
+      counts.set(fid, (counts.get(fid) ?? 0) + 1);
     }
     const okFams = new Set(
       Array.from(counts.entries()).filter(([, c]) => c >= (f.regular ?? 0)).map(([id]) => id),
@@ -142,11 +148,11 @@ export async function computeKpiValue(kpi: Kpi, projetoId: string): Promise<numb
       new Set(((pessoasData ?? []) as any[]).map((p) => p.familia_id).filter(Boolean)),
     );
     if (famIds.length === 0) return 0;
-    const { count } = await supabase
-      .from("familia_atividades")
-      .select("id", { count: "exact", head: true })
-      .in("familia_id", famIds);
-    return count ?? 0;
+    const { data: regs } = await supabase
+      .from("atividade_registo_participantes")
+      .select("atividade_registo_id, pessoas!inner(familia_id)")
+      .in("pessoas.familia_id", famIds);
+    return new Set(((regs ?? []) as any[]).map((r) => r.atividade_registo_id)).size;
   }
 
   if (kpi.fonte === "auto_total_unicos") {
