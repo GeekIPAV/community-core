@@ -82,6 +82,55 @@ export function CommandPalette({
     },
   });
 
+  const { data: familias } = useQuery({
+    queryKey: ["cmdk-familias", debounced],
+    enabled: open && debounced.length >= 2 && (isAdmin || isStaff),
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("familias")
+        .select("id, nome, status")
+        .is("deleted_at", null)
+        .ilike("nome", `%${debounced}%`)
+        .limit(6);
+      return data ?? [];
+    },
+  });
+
+  const { data: casos } = useQuery({
+    queryKey: ["cmdk-casos", debounced],
+    enabled: open && debounced.length >= 2 && (isAdmin || isStaff),
+    queryFn: async () => {
+      const sel =
+        "id, numero, titulo, estado, pessoa:pessoas!casos_apoio_pessoa_id_fkey(nome_completo), familia:familias!casos_apoio_familia_id_fkey(nome)";
+      const [porTexto, porPessoa, porFamilia] = await Promise.all([
+        supabase
+          .from("casos_apoio")
+          .select(sel)
+          .or(`titulo.ilike.%${debounced}%,numero.ilike.%${debounced}%`)
+          .limit(6),
+        supabase
+          .from("casos_apoio")
+          .select(sel)
+          .ilike("pessoas.nome_completo", `%${debounced}%`)
+          .not("pessoa_id", "is", null)
+          .limit(6),
+        supabase
+          .from("casos_apoio")
+          .select(sel)
+          .ilike("familias.nome", `%${debounced}%`)
+          .not("familia_id", "is", null)
+          .limit(6),
+      ]);
+      const todos = [
+        ...(porTexto.data ?? []),
+        ...(porPessoa.data ?? []),
+        ...(porFamilia.data ?? []),
+      ] as any[];
+      const vistos = new Set<string>();
+      return todos.filter((c) => (vistos.has(c.id) ? false : (vistos.add(c.id), true))).slice(0, 6);
+    },
+  });
+
   const navItems = useMemo(() => {
     const src = sidebarData ?? { groups: FALLBACK_GROUPS, items: FALLBACK_ITEMS };
     const visibleGroups = src.groups
