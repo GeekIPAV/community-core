@@ -48,6 +48,7 @@ import {
 import { CidadesTab } from "@/components/bolsa-transporte/cidades-tab";
 import { PagamentosTab } from "@/components/bolsa-transporte/pagamentos-tab";
 import { FamiliasTab } from "@/components/bolsa-transporte/familias-tab";
+import { useMapaKm, useFolhasKm, useFamiliasLista } from "@/components/bolsa-transporte/queries";
 
 
 function BolsasTransportePage() {
