@@ -41,6 +41,7 @@ import {
   formatDate,
   EstadoBadge,
   FolhaEstadoBadge,
+  InlineEditCell,
   subgruposPorFamilia,
   FamiliaSubgrupoBlock,
 } from "@/components/bolsa-transporte/helpers";
