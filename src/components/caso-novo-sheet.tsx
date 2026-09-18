@@ -435,7 +435,9 @@ export function CasoNovoSheet({
                   <SelectContent>
                     <SelectItem value="_none">— Sem voluntário/a —</SelectItem>
                     {(voluntarios ?? []).map((v) => (
-                      <SelectItem key={v.id} value={v.id}>{v.nome_completo}</SelectItem>
+                      <SelectItem key={v.id} value={v.id}>
+                        {v.nome_completo}{v.papel ? ` · ${v.papel}` : ""}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

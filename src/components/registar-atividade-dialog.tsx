@@ -363,8 +363,8 @@ export function RegistarAtividadeDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Voluntários que participaram</Label>
-            <Input placeholder="Procurar voluntário…" value={pesquisaVol} onChange={(e) => setPesquisaVol(e.target.value)} />
+            <Label>Voluntários e equipa que acompanharam</Label>
+            <Input placeholder="Procurar voluntário ou equipa…" value={pesquisaVol} onChange={(e) => setPesquisaVol(e.target.value)} />
             <ScrollArea className="h-40 rounded-md border">
               <div className="space-y-1 p-2">
                 {volFiltrados.length === 0 && <div className="px-1 py-2 text-sm text-muted-foreground">Sem voluntários.</div>}
