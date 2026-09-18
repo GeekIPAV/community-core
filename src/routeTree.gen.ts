@@ -19,6 +19,7 @@ import { Route as AcaoIdRouteImport } from './routes/acao.$id'
 import { Route as AppPerfilRouteImport } from './routes/_app.perfil'
 import { Route as AppMeusServicosRouteImport } from './routes/_app.meus-servicos'
 import { Route as AppAdminRouteImport } from './routes/_app/_admin'
+import { Route as AppNotificacoesIdRouteImport } from './routes/_app/notificacoes.$id'
 import { Route as AppAdminTiposUserRouteImport } from './routes/_app/_admin.tipos-user'
 import { Route as AppAdminStyleGuideRouteImport } from './routes/_app/_admin.style-guide'
 import { Route as AppAdminServicosRouteImport } from './routes/_app/_admin.servicos'
@@ -100,6 +101,11 @@ const AppMeusServicosRoute = AppMeusServicosRouteImport.update({
 } as any)
 const AppAdminRoute = AppAdminRouteImport.update({
   id: '/_admin',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNotificacoesIdRoute = AppNotificacoesIdRouteImport.update({
+  id: '/notificacoes/$id',
+  path: '/notificacoes/$id',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAdminTiposUserRoute = AppAdminTiposUserRouteImport.update({
@@ -311,6 +317,7 @@ export interface FileRoutesByFullPath {
   '/servicos': typeof AppAdminServicosRouteWithChildren
   '/style-guide': typeof AppAdminStyleGuideRoute
   '/tipos-user': typeof AppAdminTiposUserRoute
+  '/notificacoes/$id': typeof AppNotificacoesIdRoute
   '/casos/$id': typeof AppAdminCasosIdRoute
   '/colaboradoras/$colaboradoraId': typeof AppAdminColaboradorasColaboradoraIdRoute
   '/financiamentos/$financiamentoId': typeof AppAdminFinanciamentosFinanciamentoIdRoute
@@ -352,6 +359,7 @@ export interface FileRoutesByTo {
   '/servicos': typeof AppAdminServicosRouteWithChildren
   '/style-guide': typeof AppAdminStyleGuideRoute
   '/tipos-user': typeof AppAdminTiposUserRoute
+  '/notificacoes/$id': typeof AppNotificacoesIdRoute
   '/casos/$id': typeof AppAdminCasosIdRoute
   '/colaboradoras/$colaboradoraId': typeof AppAdminColaboradorasColaboradoraIdRoute
   '/financiamentos/$financiamentoId': typeof AppAdminFinanciamentosFinanciamentoIdRoute
@@ -399,6 +407,7 @@ export interface FileRoutesById {
   '/_app/_admin/servicos': typeof AppAdminServicosRouteWithChildren
   '/_app/_admin/style-guide': typeof AppAdminStyleGuideRoute
   '/_app/_admin/tipos-user': typeof AppAdminTiposUserRoute
+  '/_app/notificacoes/$id': typeof AppNotificacoesIdRoute
   '/_app/_admin/casos/$id': typeof AppAdminCasosIdRoute
   '/_app/_admin/colaboradoras/$colaboradoraId': typeof AppAdminColaboradorasColaboradoraIdRoute
   '/_app/_admin/financiamentos/$financiamentoId': typeof AppAdminFinanciamentosFinanciamentoIdRoute
@@ -445,6 +454,7 @@ export interface FileRouteTypes {
     | '/servicos'
     | '/style-guide'
     | '/tipos-user'
+    | '/notificacoes/$id'
     | '/casos/$id'
     | '/colaboradoras/$colaboradoraId'
     | '/financiamentos/$financiamentoId'
@@ -486,6 +496,7 @@ export interface FileRouteTypes {
     | '/servicos'
     | '/style-guide'
     | '/tipos-user'
+    | '/notificacoes/$id'
     | '/casos/$id'
     | '/colaboradoras/$colaboradoraId'
     | '/financiamentos/$financiamentoId'
@@ -532,6 +543,7 @@ export interface FileRouteTypes {
     | '/_app/_admin/servicos'
     | '/_app/_admin/style-guide'
     | '/_app/_admin/tipos-user'
+    | '/_app/notificacoes/$id'
     | '/_app/_admin/casos/$id'
     | '/_app/_admin/colaboradoras/$colaboradoraId'
     | '/_app/_admin/financiamentos/$financiamentoId'
@@ -627,6 +639,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppAdminRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/notificacoes/$id': {
+      id: '/_app/notificacoes/$id'
+      path: '/notificacoes/$id'
+      fullPath: '/notificacoes/$id'
+      preLoaderRoute: typeof AppNotificacoesIdRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/_admin/tipos-user': {
@@ -991,12 +1010,14 @@ interface AppRouteChildren {
   AppAdminRoute: typeof AppAdminRouteWithChildren
   AppMeusServicosRoute: typeof AppMeusServicosRoute
   AppPerfilRoute: typeof AppPerfilRoute
+  AppNotificacoesIdRoute: typeof AppNotificacoesIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAdminRoute: AppAdminRouteWithChildren,
   AppMeusServicosRoute: AppMeusServicosRoute,
   AppPerfilRoute: AppPerfilRoute,
+  AppNotificacoesIdRoute: AppNotificacoesIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
