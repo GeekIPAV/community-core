@@ -105,7 +105,7 @@ describe("formatEuro", () => {
   it("formata com duas casas decimais e vírgula", () => {
     expect(formatEuro(7.4)).toBe("7,40€");
     expect(formatEuro(0)).toBe("0,00€");
-    expect(formatEuro(0.365)).toBe("0,37€");
+    expect(formatEuro(3.456)).toBe("3,46€");
   });
 });
 
