@@ -193,7 +193,7 @@ function UsersTab() {
               <TableRow>
                 <TableHead>Email</TableHead>
                 <TableHead>Pessoa associada</TableHead>
-                <TableHead>Tipo de perfil</TableHead>
+                <TableHead>Tipos de perfil</TableHead>
                 <TableHead>Admin</TableHead>
                 <TableHead>Último login</TableHead>
                 <TableHead className="w-24"></TableHead>
