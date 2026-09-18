@@ -49,6 +49,9 @@ import {
 
 export const Route = createFileRoute("/_app/_admin/participantes")({
   component: ParticipantesPage,
+  validateSearch: (s: Record<string, unknown>) => ({
+    pessoa: typeof s.pessoa === "string" ? s.pessoa : undefined,
+  }),
 });
 
 type Pessoa = {
@@ -185,6 +188,7 @@ function ParticipantesPage() {
   const [bulkProjetos, setBulkProjetos] = useState<string[]>([]);
 
   const [deleteOne, setDeleteOne] = useState<Pessoa | null>(null);
+  const { pessoa: pessoaParam } = Route.useSearch();
   const bulkClearRef = useRef<() => void>(() => {});
 
   const { data, isLoading, error } = useQuery({

@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { AcoesHoverSummary } from "@/components/acoes-hover-summary";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { LayoutGrid, List, Pencil, Plus, Search, Upload, Users } from "lucide-react";
 import { SmartTable, type SmartColumnDef } from "@/components/smart-table";
@@ -90,6 +90,7 @@ function FamiliasPage() {
   const [view, setView] = useState<"tabela" | "galeria">("tabela");
   const [galeriaQuery, setGaleriaQuery] = useState("");
   const [multiGroup, setMultiGroup] = useState<MultiGroup>("none");
+  const { familia: familiaParam } = Route.useSearch();
 
   const { data, isLoading } = useQuery({
     queryKey: ["familias"],
@@ -103,6 +104,15 @@ function FamiliasPage() {
       return data as Familia[];
     },
   });
+
+  useEffect(() => {
+    if (!familiaParam || !data) return;
+    const f = data.find((x) => x.id === familiaParam);
+    if (f) {
+      setDetailTab("dados");
+      setMembrosFamilia(f);
+    }
+  }, [familiaParam, data]);
 
   const { data: contagens } = useQuery({
     queryKey: ["familias", "contagens"],
