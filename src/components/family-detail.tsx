@@ -23,12 +23,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Plus, Trash2, UserMinus, FolderOpen } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { ChevronLeft, ChevronRight, Plus, Trash2, UserMinus } from "lucide-react";
 import { formatDateBR } from "@/lib/utils";
 import { InlineText, InlineSelect, InlineMultiSelect } from "@/components/inline-edit";
-import { KM_RATE, TRIP_FACTOR } from "@/lib/bolsa-transporte";
-import { RegistarAtividadeDialog, fetchMembrosAtivos } from "@/components/registar-atividade-dialog";
 
 import { Switch } from "@/components/ui/switch";
 import { personIcon, flagFor } from "@/lib/person-display";
