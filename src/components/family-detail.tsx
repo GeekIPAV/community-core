@@ -29,7 +29,6 @@ import { InlineText, InlineSelect, InlineMultiSelect } from "@/components/inline
 
 import { Switch } from "@/components/ui/switch";
 import { personIcon, flagFor } from "@/lib/person-display";
-import { CasoNovoSheet } from "@/components/caso-novo-sheet";
 
 import { AtividadesFamiliaTab } from "@/components/family-detail/atividades-tab";
 import { TransporteFamiliaTab } from "@/components/family-detail/transporte-tab";
