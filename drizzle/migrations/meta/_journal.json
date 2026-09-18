@@ -36,6 +36,13 @@
       "when": 1789726904277,
       "tag": "0004_staff_cumulative_tipos",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789732645958,
+      "tag": "0005_atividade_registos_por_participante",
+      "breakpoints": true
     }
   ]
 }
