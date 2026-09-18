@@ -144,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setImpersonated(null);
     }
 
-    await loadTipo(active?.tipo_user_id ?? null);
+    await loadTipo(active?.tipo_user_id ?? null, active?.id ?? null);
     setLoading(false);
   };
 
@@ -190,14 +190,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       const imp = await loadPessoaById(pessoaId);
       setImpersonated(imp);
-      await loadTipo(imp?.tipo_user_id ?? null);
+      await loadTipo(imp?.tipo_user_id ?? null, imp?.id ?? null);
     },
     stopImpersonation: () => {
       if (typeof window !== "undefined") {
         window.localStorage.removeItem("impersonate_pessoa_id");
       }
       setImpersonated(null);
-      loadTipo(realPessoa?.tipo_user_id ?? null);
+      loadTipo(realPessoa?.tipo_user_id ?? null, realPessoa?.id ?? null);
     },
   };
 
