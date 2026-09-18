@@ -3297,6 +3297,7 @@ function AcoesPageInner() {
   const [editing, setEditing] = useState<(AcaoForm & { id: string }) | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editFullscreen, setEditFullscreen] = useState(false);
+  const [pesquisa, setPesquisa] = useState("");
 
   const pushToGoogle = useServerFn(syncAcaoToGoogle);
   const fireGoogleSync = (acaoId: string, op: "upsert" | "delete") => {
@@ -3445,12 +3446,51 @@ function AcoesPageInner() {
   const invalidate = () => qc.invalidateQueries({ queryKey: ["acoes"] });
   const invalidateParceiros = () => qc.invalidateQueries({ queryKey: ["acao_parceiros"] });
 
+  const filtradas = useMemo(() => {
+    const q = pesquisa.trim().toLowerCase();
+    if (!q) return (data ?? []) as NonNullable<typeof data>;
+    return ((data ?? []) as NonNullable<typeof data>).filter(
+      (a) =>
+        (a.nome ?? "").toLowerCase().includes(q) ||
+        (a.local ?? "").toLowerCase().includes(q),
+    );
+  }, [data, pesquisa]);
+
+  const totalInscricoes = useMemo(() => {
+    let t = 0;
+    for (const c of inscricaoCounts?.values() ?? []) t += c.total;
+    return t;
+  }, [inscricaoCounts]);
+
+  const inscricoesAbertasCount = useMemo(
+    () => ((data ?? []) as any[]).filter((a) => a.inscricoes_abertas ?? true).length,
+    [data],
+  );
+
+  const exportarCSV = () => {
+    const now = Date.now();
+    const rows = ((data ?? []) as any[]).map((a) => {
+      const fim = a.data_fim ? new Date(a.data_fim).getTime() : a.data_inicio ? new Date(a.data_inicio).getTime() : null;
+      const estado = fim === null ? "Data a definir" : fim >= now - 24 * 60 * 60 * 1000 ? "Próxima" : "Passada";
+      return {
+        nome: a.nome ?? "",
+        local: a.local ?? "",
+        data_inicio: a.data_inicio ?? "",
+        data_fim: a.data_fim ?? "",
+        estado,
+        status: String(a.status ?? ""),
+        inscricoes: inscricaoCounts?.get(a.id)?.total ?? 0,
+      };
+    });
+    downloadCSV("acoes", rows);
+  };
+
   const { proximos, passados, semData } = useMemo(() => {
     const now = Date.now();
     const prox: typeof data = [];
     const pas: typeof data = [];
     const sem: typeof data = [];
-    for (const a of data ?? []) {
+    for (const a of filtradas) {
       const fim = a.data_fim ? new Date(a.data_fim).getTime() : a.data_inicio ? new Date(a.data_inicio).getTime() : null;
       if (fim === null) {
         sem.push(a);
