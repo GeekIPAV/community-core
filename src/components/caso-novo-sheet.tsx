@@ -99,22 +99,7 @@ export function CasoNovoSheet({
 
   const { data: voluntarios } = useVoluntariosLookup(open && mode === "staff");
 
-  const { data: equipa } = useQuery({
-    enabled: open && mode === "staff",
-    queryKey: ["caso-novo-equipa"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pessoas")
-        .select("id, nome_completo, tipo_user_id, is_admin, auth_user_id, tipos_user!pessoas_tipo_user_id_fkey(nome)")
-        .eq("status", "ativo")
-        .is("deleted_at", null)
-        .order("nome_completo");
-      if (error) throw error;
-      return ((data ?? []) as any[])
-        .filter((p) => ((p.tipos_user as any)?.nome ?? "").toLowerCase() === "equipa")
-        .map((p) => ({ id: p.id as string, nome_completo: p.nome_completo as string }));
-    },
-  });
+  const { data: equipa } = useEquipaLookup(open && mode === "staff");
 
   const { data: pessoaLocked } = useQuery({
     enabled: open && !!pessoaId && mode === "staff" && !!lockedPessoaId,
