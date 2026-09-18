@@ -20,7 +20,7 @@ import {
   FALLBACK_ITEMS,
 } from "@/components/app-sidebar";
 import { renderIcon } from "@/components/sidebar-icons";
-import { Users, CalendarDays } from "lucide-react";
+import { Users, CalendarDays, Home, FolderOpen } from "lucide-react";
 
 export function CommandPalette({
   open: openProp,
