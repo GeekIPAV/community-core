@@ -27,7 +27,7 @@ export type Familia = {
   updated_at: string | null;
 };
 
-type Membro = {
+export type Membro = {
   id: string;
   nome_completo: string;
   email: string | null;
