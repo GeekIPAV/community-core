@@ -337,6 +337,7 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
                       className={`rounded-full border px-2 py-1 text-xs transition-colors ${on ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"}`}
                     >
                       {v.nome_completo}
+                      {v.papel ? <span className="ml-1 opacity-70">· {v.papel}</span> : null}
                     </button>
                   );
                 })}
