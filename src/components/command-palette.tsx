@@ -154,10 +154,10 @@ export function CommandPalette({
     return out;
   }, [sidebarData, roles]);
 
-  const go = (to: string, params?: Record<string, string>) => {
+  const go = (to: string, params?: Record<string, string>, search?: Record<string, string>) => {
     setOpen(false);
     setQuery("");
-    navigate({ to, params } as any);
+    navigate({ to, params, search } as any);
   };
 
   return (
