@@ -161,9 +161,30 @@ export function PessoaEditSheet({
         })
         .eq("id", form.id);
       if (error) throw error;
+
+      // Sincroniza os tipos cumulativos (pessoa_tipos)
+      const atuais = tiposPessoa ?? [];
+      const toAdd = tipoIds.filter((id) => !atuais.includes(id));
+      const toRemove = atuais.filter((id) => !tipoIds.includes(id));
+      if (toAdd.length) {
+        const ins = await supabase
+          .from("pessoa_tipos")
+          .insert(toAdd.map((tipo_user_id) => ({ pessoa_id: form.id, tipo_user_id })));
+        if (ins.error) throw ins.error;
+      }
+      if (toRemove.length) {
+        const del = await supabase
+          .from("pessoa_tipos")
+          .delete()
+          .eq("pessoa_id", form.id)
+          .in("tipo_user_id", toRemove);
+        if (del.error) throw del.error;
+      }
     },
     onSuccess: () => {
       toast.success("Pessoa atualizada");
+      qc.invalidateQueries({ queryKey: ["pessoa-tipos-sheet", pessoaId] });
+      qc.invalidateQueries({ queryKey: ["pessoa_tipos_all"] });
       qc.invalidateQueries({ queryKey: ["pessoa-edit-sheet", pessoaId] });
       qc.invalidateQueries({ queryKey: ["participantes"] });
       qc.invalidateQueries({ queryKey: ["inscricoes"] });
