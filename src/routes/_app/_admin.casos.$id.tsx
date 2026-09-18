@@ -208,9 +208,23 @@ function CasoDetailPage() {
           <Card className="p-4 space-y-3 text-sm">
             {caso.pessoa ? (
               <>
-                <div className="font-medium">{caso.pessoa?.nome_completo}</div>
+                <Link
+                  to="/participantes"
+                  search={{ pessoa: caso.pessoa.id }}
+                  className="font-medium text-primary hover:underline"
+                >
+                  {caso.pessoa?.nome_completo}
+                </Link>
                 {caso.pessoa?.familia?.nome && (
-                  <div className="text-xs text-muted-foreground">{caso.pessoa.familia.nome}</div>
+                  <div className="text-xs">
+                    <Link
+                      to="/familias"
+                      search={{ familia: caso.pessoa.familia.id }}
+                      className="text-muted-foreground hover:underline"
+                    >
+                      {caso.pessoa.familia.nome}
+                    </Link>
+                  </div>
                 )}
                 {caso.pessoa?.telefone && (
                   <a href={`tel:${caso.pessoa.telefone}`} className="flex items-center gap-2 text-xs hover:underline">
