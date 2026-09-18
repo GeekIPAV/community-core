@@ -8,11 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, Search, Users, MoreHorizontal } from "lucide-react";
+import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, Search, Users, UserPlus, MoreHorizontal, HeartHandshake, ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { RegistarAtividadeDialog } from "@/components/registar-atividade-dialog";
 
@@ -29,6 +31,84 @@ type Registo = {
   participantes: string[];
   voluntarios: string[];
 };
+
+const avatarCores = [
+  "bg-primary text-primary-foreground",
+  "bg-secondary text-secondary-foreground",
+  "bg-accent text-accent-foreground",
+  "bg-muted text-foreground",
+  "bg-chart-1 text-primary-foreground",
+  "bg-chart-2 text-primary-foreground",
+  "bg-chart-3 text-background",
+  "bg-chart-4 text-background",
+];
+
+function iniciais(nome: string) {
+  const partes = nome.trim().split(/\s+/).filter(Boolean);
+  if (partes.length === 0) return "?";
+  if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
+  return `${partes[0][0]}${partes[partes.length - 1][0]}`.toUpperCase();
+}
+
+function corDoNome(nome: string) {
+  let hash = 0;
+  for (const char of nome) hash = (hash * 31 + char.charCodeAt(0)) | 0;
+  return avatarCores[Math.abs(hash) % avatarCores.length];
+}
+
+function IniciaisAvatar({ nome, voluntario = false, className = "" }: { nome: string; voluntario?: boolean; className?: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="relative inline-flex shrink-0">
+          <Avatar className={`h-7 w-7 border-2 border-background ${voluntario ? "ring-2 ring-primary/70 ring-offset-1 ring-offset-background" : ""} ${className}`}>
+            <AvatarFallback className={`text-[10px] font-semibold ${corDoNome(nome)}`}>{iniciais(nome)}</AvatarFallback>
+          </Avatar>
+          {voluntario && (
+            <span className="absolute -bottom-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full border border-background bg-primary text-primary-foreground">
+              <HeartHandshake className="h-2.5 w-2.5" />
+            </span>
+          )}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{nome}{voluntario ? " · Voluntário/a ou equipa" : ""}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+function GrupoPessoas({ nomes, voluntario = false }: { nomes: string[]; voluntario?: boolean }) {
+  return (
+    <div className="flex flex-wrap gap-x-3 gap-y-2">
+      {nomes.map((nome) => (
+        <div key={nome} className="flex min-w-0 items-center gap-2">
+          <IniciaisAvatar nome={nome} voluntario={voluntario} />
+          <span className="truncate text-sm text-foreground">{nome}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PilhaAvatares({ nomes }: { nomes: string[] }) {
+  const visiveis = nomes.slice(0, 5);
+  const restantes = nomes.length - visiveis.length;
+  if (nomes.length === 0) return null;
+  return (
+    <TooltipProvider delayDuration={200}>
+      <div className="flex items-center -space-x-2" aria-label={`${nomes.length} participantes recentes`}>
+        {visiveis.map((nome) => <IniciaisAvatar key={nome} nome={nome} className="h-7 w-7" />)}
+        {restantes > 0 && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="relative flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] font-semibold text-muted-foreground">+{restantes}</span>
+            </TooltipTrigger>
+            <TooltipContent>{nomes.slice(5).join(", ")}</TooltipContent>
+          </Tooltip>
+        )}
+      </div>
+    </TooltipProvider>
+  );
+}
 
 function AtividadesPage() {
   const qc = useQueryClient();
@@ -176,6 +256,9 @@ function AtividadesPage() {
       arr.push(l);
       map.set(cat, arr);
     }
+    for (const items of map.values()) {
+      items.sort((a, b) => b.total - a.total || a.atividade.nome.localeCompare(b.atividade.nome));
+    }
     const entries = Array.from(map.entries());
     entries.sort((a, b) => a[0].localeCompare(b[0]));
     return entries;
@@ -184,6 +267,17 @@ function AtividadesPage() {
   const totalRegistos = registos?.length ?? 0;
   const totalAtividades = atividades?.length ?? 0;
   const totalUsadas = linhas.filter((l) => l.total > 0).length;
+  const totalPessoas = new Set((registos ?? []).flatMap((r) => r.participantes)).size;
+  const atividadesComRegistos = linhasFiltradas.filter((l) => l.total > 0);
+  const tudoExpandido = atividadesComRegistos.length > 0 && atividadesComRegistos.every((l) => expanded[l.atividade.id]);
+
+  const alternarTudo = () => {
+    setExpanded((atual) => {
+      const proximo = { ...atual };
+      for (const linha of atividadesComRegistos) proximo[linha.atividade.id] = !tudoExpandido;
+      return proximo;
+    });
+  };
 
   const loading = loadingA || loadingR;
 
@@ -197,7 +291,7 @@ function AtividadesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-        <Button variant="secondary" onClick={() => setAtribuirOpen(true)}>
+        <Button onClick={() => setAtribuirOpen(true)}>
           <Users className="mr-2 h-4 w-4" /> Atribuir atividade a participantes
         </Button>
         <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) setForm({ nome: "", categoria: "" }); }}>
@@ -219,15 +313,21 @@ function AtividadesPage() {
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Atividades no catálogo</CardTitle></CardHeader><CardContent className="text-2xl font-semibold">{totalAtividades}</CardContent></Card>
         <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Atividades já usadas</CardTitle></CardHeader><CardContent className="text-2xl font-semibold">{totalUsadas}</CardContent></Card>
         <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Total de registos</CardTitle></CardHeader><CardContent className="text-2xl font-semibold">{totalRegistos}</CardContent></Card>
+        <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Pessoas envolvidas</CardTitle></CardHeader><CardContent className="flex items-center gap-2 text-2xl font-semibold"><Users className="h-5 w-5 text-muted-foreground" />{totalPessoas}</CardContent></Card>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input className="pl-8" placeholder="Procurar por nome ou categoria…" value={query} onChange={(e) => setQuery(e.target.value)} />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="relative w-full sm:max-w-md">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input className="pl-8" placeholder="Procurar por nome ou categoria…" value={query} onChange={(e) => setQuery(e.target.value)} />
+        </div>
+        <Button variant="outline" onClick={alternarTudo} disabled={atividadesComRegistos.length === 0}>
+          <ChevronsUpDown className="mr-2 h-4 w-4" /> {tudoExpandido ? "Recolher tudo" : "Expandir tudo"}
+        </Button>
       </div>
 
       {loading ? (
@@ -236,6 +336,7 @@ function AtividadesPage() {
         <div className="space-y-4">
           {grupos.map(([categoria, items]) => {
             const catOpen = expanded[categoria] !== false;
+            const totalCategoria = items.reduce((total, item) => total + item.total, 0);
             return (
               <Collapsible key={categoria} open={catOpen} onOpenChange={(o) => setExpanded((s) => ({ ...s, [categoria]: o }))}>
                 <div className="rounded-lg border bg-card">
@@ -243,7 +344,9 @@ function AtividadesPage() {
                     <button className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-muted/50 rounded-t-lg">
                       <div className="flex items-center gap-2">
                         <Badge variant="secondary" className="text-sm">{categoria}</Badge>
-                        <span className="text-sm text-muted-foreground">{items.length} atividade{items.length !== 1 ? "s" : ""}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {items.length} atividade{items.length !== 1 ? "s" : ""} · {totalCategoria} registo{totalCategoria !== 1 ? "s" : ""}
+                        </span>
                       </div>
                       <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${catOpen ? "" : "-rotate-90"}`} />
                     </button>
@@ -254,18 +357,19 @@ function AtividadesPage() {
                         const open = !!expanded[l.atividade.id];
                         return (
                           <div key={l.atividade.id} className="rounded-md border bg-background">
-                            <div className={`flex items-center justify-between gap-2 px-3 py-2 ${l.total > 0 ? "cursor-pointer" : ""}`} onClick={() => l.total > 0 && setExpanded((s) => ({ ...s, [l.atividade.id]: !s[l.atividade.id] }))}>
+                            <div className={`flex flex-col gap-3 px-3 py-3 transition-colors sm:flex-row sm:items-center sm:justify-between ${l.total > 0 ? "cursor-pointer hover:bg-muted/50" : ""}`} onClick={() => l.total > 0 && setExpanded((s) => ({ ...s, [l.atividade.id]: !s[l.atividade.id] }))}>
                               <div className="flex items-center gap-2 min-w-0">
                                 {l.total > 0 ? (open ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />) : <span className="w-4 shrink-0" />}
                                 <span className="font-medium truncate">{l.atividade.nome}</span>
                                 {!l.atividade.ativo && <Badge variant="outline" className="shrink-0">Inativa</Badge>}
                               </div>
-                              <div className="flex items-center gap-4 shrink-0">
+                              <div className="flex flex-wrap items-center gap-3 sm:justify-end">
+                                <PilhaAvatares nomes={Array.from(new Set(l.registos.flatMap((r) => r.participantes)))} />
                                 <span className="text-sm text-muted-foreground tabular-nums">{l.total} registo{l.total !== 1 ? "s" : ""}</span>
                                 <span className="text-sm text-muted-foreground tabular-nums">{l.nParticipantes} participante{l.nParticipantes !== 1 ? "s" : ""}</span>
                                 <div className="flex items-center gap-1">
                                   <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); setRegistarEm(l.atividade); }}>
-                                    <Users className="mr-2 h-4 w-4" /> Adicionar participantes
+                                     <UserPlus className="mr-2 h-4 w-4" /> Adicionar participantes
                                   </Button>
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -286,16 +390,16 @@ function AtividadesPage() {
                               </div>
                             </div>
                             {open && (
-                              <div className="border-t bg-muted/30 px-3 py-2 space-y-2">
+                              <div className="space-y-3 border-t bg-muted/30 p-3 sm:p-4">
                                 {l.registos.length === 0 ? (
                                   <p className="text-xs text-muted-foreground">Sem registos.</p>
                                 ) : (
                                   l.registos.map((r) => (
-                                    <div key={r.id} className="rounded-md border bg-background px-3 py-2 text-sm">
-                                      <div className="flex items-start justify-between gap-2">
-                                        <span className="text-xs text-muted-foreground">
+                                    <div key={r.id} className="relative rounded-md border bg-card p-4 text-sm shadow-sm">
+                                      <div className="flex items-start justify-between gap-3">
+                                        <Badge variant="outline" className="shrink-0 bg-background font-medium tabular-nums">
                                           {r.data ? new Date(r.data).toLocaleDateString("pt-PT") : "sem data"}
-                                        </span>
+                                        </Badge>
                                         <Button
                                           size="icon"
                                           variant="ghost"
@@ -306,24 +410,24 @@ function AtividadesPage() {
                                           <Trash2 className="h-4 w-4 text-destructive" />
                                         </Button>
                                       </div>
-                                      <div className="mt-1 flex flex-wrap gap-1">
+                                      <div className="mt-4 grid gap-4 sm:grid-cols-2">
                                         {r.participantes.length === 0 ? (
                                           <span className="text-xs text-muted-foreground">Sem participantes</span>
                                         ) : (
-                                          r.participantes.map((p) => (
-                                            <Badge key={p} variant="secondary" className="text-xs">{p}</Badge>
-                                          ))
+                                          <div className="space-y-2">
+                                            <p className="text-xs font-medium uppercase text-muted-foreground">Participantes</p>
+                                            <TooltipProvider delayDuration={200}><GrupoPessoas nomes={r.participantes} /></TooltipProvider>
+                                          </div>
+                                        )}
+                                        {r.voluntarios.length > 0 && (
+                                          <div className="space-y-2">
+                                            <p className="text-xs font-medium uppercase text-muted-foreground">Voluntários e equipa</p>
+                                            <TooltipProvider delayDuration={200}><GrupoPessoas nomes={r.voluntarios} voluntario /></TooltipProvider>
+                                          </div>
                                         )}
                                       </div>
-                                      {r.voluntarios.length > 0 && (
-                                        <div className="mt-1 flex flex-wrap gap-1">
-                                          {r.voluntarios.map((v) => (
-                                            <Badge key={v} variant="outline" className="text-xs">{v}</Badge>
-                                          ))}
-                                        </div>
-                                      )}
                                       {r.descricao && (
-                                        <p className="mt-1 whitespace-pre-wrap text-xs text-muted-foreground">{r.descricao}</p>
+                                        <p className="mt-4 border-t pt-3 whitespace-pre-wrap text-sm text-muted-foreground">{r.descricao}</p>
                                       )}
                                     </div>
                                   ))
