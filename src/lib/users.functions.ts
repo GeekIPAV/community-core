@@ -91,6 +91,10 @@ export const listAuthUsers = createServerFn({ method: "GET" })
             email: byAuth.get(u.id).email,
             is_admin: byAuth.get(u.id).is_admin,
             tipo_user_id: byAuth.get(u.id).tipo_user_id,
+            tipo_ids: Array.from(new Set([
+              ...(byAuth.get(u.id).tipo_user_id ? [byAuth.get(u.id).tipo_user_id as string] : []),
+              ...(extraTipos.get(byAuth.get(u.id).id) ?? []),
+            ])),
             familia_id: byAuth.get(u.id).familia_id,
             status: byAuth.get(u.id).status,
           }
