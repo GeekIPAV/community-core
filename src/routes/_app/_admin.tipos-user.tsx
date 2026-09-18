@@ -87,7 +87,7 @@ function UsersTab() {
   const listFn = useServerFn(listAuthUsers);
   const linkFn = useServerFn(linkAuthUserToPessoa);
   const unlinkFn = useServerFn(unlinkAuthUser);
-  const setTipoFn = useServerFn(setPessoaTipo);
+  const setTipoFn = useServerFn(setPessoaTipos);
   const setAdminFn = useServerFn(setPessoaAdmin);
 
   const [search, setSearch] = useState("");
