@@ -83,19 +83,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [tipoNome, setTipoNome] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadTipo = async (tipoUserId: string | null) => {
-    if (tipoUserId) {
-      const { data } = await supabase
-        .from("tipos_user")
-        .select("paginas, nome")
-        .eq("id", tipoUserId)
-        .maybeSingle();
-      setPermissions((data?.paginas as string[]) ?? []);
-      setTipoNome((data?.nome as string) ?? null);
-    } else {
+  // Os tipos de utilizador são cumulativos: junta o tipo principal (pessoas.tipo_user_id)
+  // com todos os tipos adicionais (pessoa_tipos) e usa a união das páginas permitidas.
+  const loadTipo = async (tipoUserId: string | null, pessoaId?: string | null) => {
+    const ids = new Set<string>();
+    if (tipoUserId) ids.add(tipoUserId);
+    if (pessoaId) {
+      const { data: extra } = await supabase
+        .from("pessoa_tipos")
+        .select("tipo_user_id")
+        .eq("pessoa_id", pessoaId);
+      for (const r of extra ?? []) if (r.tipo_user_id) ids.add(r.tipo_user_id as string);
+    }
+    if (ids.size === 0) {
       setPermissions([]);
       setTipoNome(null);
+      return;
     }
+    const { data } = await supabase
+      .from("tipos_user")
+      .select("paginas, nome")
+      .in("id", Array.from(ids));
+    const rows = (data ?? []) as { paginas: string[] | null; nome: string | null }[];
+    const paginas = new Set<string>();
+    for (const r of rows) for (const p of r.paginas ?? []) paginas.add(p);
+    setPermissions(Array.from(paginas));
+    const nomes = rows.map((r) => (r.nome ?? "").trim().toLowerCase());
+    // Prioriza "equipa" para o cálculo de isStaff
+    setTipoNome(nomes.includes("equipa") ? "equipa" : (rows[0]?.nome ?? null));
   };
 
   const loadPessoaById = async (id: string): Promise<PessoaCtx | null> => {
