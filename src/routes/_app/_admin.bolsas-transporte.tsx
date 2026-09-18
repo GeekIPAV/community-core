@@ -1102,6 +1102,42 @@ function BolsasTransportePage() {
     });
   }, [mapaKmData, kmSearch, kmEstadoFilter, kmFamiliaFilter]);
 
+  // Resumo das bolsas atribuídas (para a 3.ª tabela do separador Mapa de KM)
+  const [bolsaResumoSearch, setBolsaResumoSearch] = useState("");
+  const [bolsaResumoEstado, setBolsaResumoEstado] = useState<"todos" | BolsaPagamento["estado"]>("todos");
+  const bolsasResumo = useMemo(() => {
+    const todas = acoesGrupos.flatMap((g) => g.inscricoes).filter((i) => !!i.pagamento);
+    const s = bolsaResumoSearch.trim().toLowerCase();
+    return todas.filter((i) => {
+      if (bolsaResumoEstado !== "todos" && (i.pagamento?.estado ?? "por_pagar") !== bolsaResumoEstado) return false;
+      if (
+        s &&
+        !i.pessoa_nome.toLowerCase().includes(s) &&
+        !(i.familia_nome ?? "").toLowerCase().includes(s) &&
+        !i.acao_nome.toLowerCase().includes(s)
+      )
+        return false;
+      return true;
+    });
+  }, [acoesGrupos, bolsaResumoSearch, bolsaResumoEstado]);
+
+  // Abre o diálogo de novo registo de KM já pré-preenchido a partir de uma bolsa
+  const criarMapaKmDeBolsa = (i: InscricaoComBolsa) => {
+    if (!i.familia_id) {
+      toast.error("Esta pessoa não tem família associada.");
+      return;
+    }
+    setEditKmRow(null);
+    setKmForm({
+      ...emptyKmForm,
+      familia_id: i.familia_id,
+      data: i.acao_data ? i.acao_data.slice(0, 10) : emptyKmForm.data,
+      motivo: i.acao_nome,
+      km: i.viatura_km ? String(i.viatura_km) : "",
+    });
+    setAddKmOpen(true);
+  };
+
   const kmPorFamilia = useMemo(() => {
     const map = new Map<string, MapaKmRow[]>();
     for (const r of mapaKmData ?? []) {
