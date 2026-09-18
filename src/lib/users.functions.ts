@@ -164,6 +164,53 @@ export const setPessoaTipo = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Define vários tipos de perfil (cumulativos) para uma pessoa. */
+export const setPessoaTipos = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { pessoa_id: string; tipo_ids: string[] }) => d)
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { createClient } = await import("@supabase/supabase-js");
+    const admin = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { persistSession: false, autoRefreshToken: false } },
+    );
+    const ids = Array.from(new Set(data.tipo_ids.filter(Boolean)));
+
+    const up = await admin
+      .from("pessoas")
+      .update({ tipo_user_id: ids[0] ?? null })
+      .eq("id", data.pessoa_id);
+    if (up.error) throw new Error(up.error.message);
+
+    const existing = await admin
+      .from("pessoa_tipos")
+      .select("tipo_user_id")
+      .eq("pessoa_id", data.pessoa_id);
+    if (existing.error) throw new Error(existing.error.message);
+    const atuais = (existing.data ?? []).map((r: any) => r.tipo_user_id as string);
+
+    const toAdd = ids.filter((id) => !atuais.includes(id));
+    const toRemove = atuais.filter((id) => !ids.includes(id));
+
+    if (toAdd.length) {
+      const ins = await admin
+        .from("pessoa_tipos")
+        .insert(toAdd.map((tipo_user_id) => ({ pessoa_id: data.pessoa_id, tipo_user_id })));
+      if (ins.error) throw new Error(ins.error.message);
+    }
+    if (toRemove.length) {
+      const del = await admin
+        .from("pessoa_tipos")
+        .delete()
+        .eq("pessoa_id", data.pessoa_id)
+        .in("tipo_user_id", toRemove);
+      if (del.error) throw new Error(del.error.message);
+    }
+    return { ok: true };
+  });
+
 export const setPessoaAdmin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { pessoa_id: string; is_admin: boolean }) => d)
