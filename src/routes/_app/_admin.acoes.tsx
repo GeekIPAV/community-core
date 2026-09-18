@@ -3511,7 +3511,7 @@ function AcoesPageInner() {
       return tb - ta;
     });
     return { proximos: prox, passados: pas, semData: sem };
-  }, [data]);
+  }, [filtradas]);
 
   function renderAcaoCard(a: NonNullable<typeof data>[number]) {
     const fields = parseFields(a.config_campos);
@@ -3873,6 +3873,23 @@ function AcoesPageInner() {
         </div>
       </div>
 
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Total de ações</CardTitle></CardHeader><CardContent className="text-2xl font-semibold">{data?.length ?? 0}</CardContent></Card>
+        <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Próximas ações</CardTitle></CardHeader><CardContent className="text-2xl font-semibold">{proximos.length}</CardContent></Card>
+        <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Total de inscrições</CardTitle></CardHeader><CardContent className="text-2xl font-semibold">{totalInscricoes}</CardContent></Card>
+        <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Com inscrições abertas</CardTitle></CardHeader><CardContent className="text-2xl font-semibold">{inscricoesAbertasCount}</CardContent></Card>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="relative w-full sm:max-w-md">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input className="pl-8" placeholder="Procurar por nome ou local…" value={pesquisa} onChange={(e) => setPesquisa(e.target.value)} />
+        </div>
+        <Button variant="outline" onClick={exportarCSV}>
+          <Download className="mr-2 h-4 w-4" /> Exportar CSV
+        </Button>
+      </div>
+
       <Tabs defaultValue="lista">
         <TabsList>
           <TabsTrigger value="lista">Lista</TabsTrigger>
@@ -3921,7 +3938,7 @@ function AcoesPageInner() {
         </TabsContent>
         <TabsContent value="tabela" className="mt-6">
           <AcoesBulkTable
-            acoes={(data ?? []) as any[]}
+            acoes={filtradas as any[]}
             isLoading={isLoading}
             onChanged={invalidate}
             fireGoogleSync={fireGoogleSync}
