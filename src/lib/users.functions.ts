@@ -64,6 +64,21 @@ export const listAuthUsers = createServerFn({ method: "GET" })
     const byAuth = new Map<string, any>();
     (pessoas ?? []).forEach((p: any) => byAuth.set(p.auth_user_id, p));
 
+    // Tipos adicionais (cumulativos) de cada pessoa
+    const pessoaIds = (pessoas ?? []).map((p: any) => p.id);
+    const extraTipos = new Map<string, string[]>();
+    if (pessoaIds.length) {
+      const { data: pt } = await admin
+        .from("pessoa_tipos")
+        .select("pessoa_id, tipo_user_id")
+        .in("pessoa_id", pessoaIds);
+      for (const r of pt ?? []) {
+        const arr = extraTipos.get(r.pessoa_id) ?? [];
+        arr.push(r.tipo_user_id);
+        extraTipos.set(r.pessoa_id, arr);
+      }
+    }
+
     const rows: AuthUserRow[] = all.map((u) => ({
       id: u.id,
       email: u.email ?? null,
