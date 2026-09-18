@@ -22,6 +22,8 @@ export type AuthUserRow = {
     email: string | null;
     is_admin: boolean;
     tipo_user_id: string | null;
+    /** Todos os tipos de perfil da pessoa (cumulativos): principal + adicionais. */
+    tipo_ids: string[];
     familia_id: string | null;
     status: string;
   } | null;
