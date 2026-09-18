@@ -48,6 +48,7 @@ import {
 import { CidadesTab } from "@/components/bolsa-transporte/cidades-tab";
 import { PagamentosTab } from "@/components/bolsa-transporte/pagamentos-tab";
 import { FamiliasTab } from "@/components/bolsa-transporte/familias-tab";
+import { useMapaKm, useFolhasKm, useFamiliasLista } from "@/components/bolsa-transporte/queries";
 
 
 function BolsasTransportePage() {
@@ -454,48 +455,9 @@ function BolsasTransportePage() {
 
 
   // ============ TAB 4: MAPA DE KM ============
-  const { data: mapaKmData, isLoading: loadingMapaKm } = useQuery({
-    queryKey: ["mapa-km"],
-    staleTime: 0,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("mapa_km")
-        .select("*, familias(nome), acoes(nome)")
-        .order("data", { ascending: false });
-      if (error) throw error;
-      return ((data ?? []) as Array<MapaKmRow & { familias: { nome: string } | null; acoes: { nome: string } | null }>).map((r) => ({
-        ...r,
-        familia_nome: r.familias?.nome ?? "—",
-        acao_nome: r.acoes?.nome ?? null,
-      })) as MapaKmRow[];
-    },
-  });
-
-  const { data: folhasKm } = useQuery({
-    queryKey: ["folhas-km"],
-    staleTime: 0,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("folhas_km")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  const { data: familiasList } = useQuery({
-    queryKey: ["familias-lista-bolsa"],
-    staleTime: 10 * 60_000,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("familias")
-        .select("id, nome")
-        .order("nome");
-      if (error) throw error;
-      return (data ?? []) as { id: string; nome: string }[];
-    },
-  });
+  const { data: mapaKmData, isLoading: loadingMapaKm } = useMapaKm();
+  const { data: folhasKm } = useFolhasKm();
+  const { data: familiasList } = useFamiliasLista();
 
   const createMapaKm = useMutation({
     mutationFn: async (row: {
