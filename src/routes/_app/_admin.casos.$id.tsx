@@ -239,10 +239,14 @@ function CasoDetailPage() {
               </>
             ) : caso.familia ? (
               <>
-                <div className="flex items-center gap-2 font-medium">
+                <Link
+                  to="/familias"
+                  search={{ familia: caso.familia.id }}
+                  className="flex items-center gap-2 font-medium text-primary hover:underline"
+                >
                   <UsersIcon className="h-4 w-4 text-muted-foreground" />
                   Família {caso.familia.nome}
-                </div>
+                </Link>
                 <div className="text-xs text-muted-foreground">
                   Apoio a {caso.familia.pessoas?.length ?? 0} pessoa(s)
                 </div>
