@@ -1,3 +1,3 @@
 # Roadmap
 
-- [ ] Melhorar visualmente Atividades e Acompanhamento conforme plano aprovado; validar no navegador e com typecheck.
+- [x] Melhorar visualmente Atividades e Acompanhamento conforme plano aprovado; validar no navegador e com typecheck.
