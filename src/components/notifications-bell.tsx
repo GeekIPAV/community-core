@@ -155,22 +155,17 @@ export function NotificationsBell() {
                 );
                 return (
                   <li key={n.id}>
-                    {n.link ? (
-                      <Link
-                        to={n.link as any}
-                        onClick={() => {
-                          markOne(n.id);
-                          setOpen(false);
-                        }}
-                        className="block"
-                      >
-                        {content}
-                      </Link>
-                    ) : (
-                      <button type="button" onClick={() => markOne(n.id)} className="block w-full text-left">
-                        {content}
-                      </button>
-                    )}
+                    <Link
+                      to="/notificacoes/$id"
+                      params={{ id: n.id }}
+                      onClick={() => {
+                        markOne(n.id);
+                        setOpen(false);
+                      }}
+                      className="block"
+                    >
+                      {content}
+                    </Link>
                   </li>
                 );
               })}
