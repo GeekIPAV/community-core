@@ -274,7 +274,7 @@ function CasoDetailPage() {
             <div className="flex items-start gap-2">
               <Heart className="h-4 w-4 mt-0.5 text-muted-foreground" />
               <div className="flex-1">
-                <div className="text-xs text-muted-foreground">Voluntário/a acompanhante</div>
+                <div className="text-xs text-muted-foreground">Voluntário/a ou equipa acompanhante</div>
                 <Select
                   value={caso.voluntario_id ?? "_none"}
                   onValueChange={(v) => updateCaso.mutate({ voluntario_id: v === "_none" ? null : v })}
