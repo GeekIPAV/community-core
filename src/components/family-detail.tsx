@@ -320,10 +320,10 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
               <Input type="date" value={dataVal} onChange={(e) => setDataVal(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Voluntários que participaram</Label>
+              <Label>Voluntários e equipa que acompanharam</Label>
               <div className="max-h-40 overflow-auto rounded-md border p-2 flex flex-wrap gap-1">
                 {(voluntarios ?? []).length === 0 && (
-                  <span className="text-xs text-muted-foreground">Sem voluntários registados</span>
+                  <span className="text-xs text-muted-foreground">Sem voluntários ou equipa registados</span>
                 )}
                 {(voluntarios ?? []).map((v) => {
                   const on = voluntariosSel.includes(v.id);
@@ -337,6 +337,7 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
                       className={`rounded-full border px-2 py-1 text-xs transition-colors ${on ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"}`}
                     >
                       {v.nome_completo}
+                      {v.papel ? <span className="ml-1 opacity-70">· {v.papel}</span> : null}
                     </button>
                   );
                 })}

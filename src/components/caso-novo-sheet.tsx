@@ -429,13 +429,15 @@ export function CasoNovoSheet({
               </div>
 
               <div className="space-y-2">
-                <Label>Voluntário/a acompanhante</Label>
+                <Label>Voluntário/a ou equipa acompanhante</Label>
                 <Select value={voluntarioId} onValueChange={(v) => setVoluntarioId(v === "_none" ? "" : v)}>
                   <SelectTrigger><SelectValue placeholder="Sem voluntário/a" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="_none">— Sem voluntário/a —</SelectItem>
                     {(voluntarios ?? []).map((v) => (
-                      <SelectItem key={v.id} value={v.id}>{v.nome_completo}</SelectItem>
+                      <SelectItem key={v.id} value={v.id}>
+                        {v.nome_completo}{v.papel ? ` · ${v.papel}` : ""}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
