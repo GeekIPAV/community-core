@@ -13,20 +13,74 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, X } from "lucide-react";
 import { toast } from "sonner";
 
-export type VoluntarioLookup = { id: string; nome_completo: string };
+export type VoluntarioLookup = { id: string; nome_completo: string; papel: string };
 
-/** Voluntários = pessoas cujo tipo_user se chama "Voluntários". */
+/**
+ * Pessoas que podem acompanhar: voluntários E membros da equipa.
+ * Considera tipos cumulativos (pessoas.tipo_user_id + pessoa_tipos).
+ */
 export async function fetchVoluntarios(): Promise<VoluntarioLookup[]> {
-  const { data, error } = await supabase
-    .from("pessoas")
-    .select("id, nome_completo, tipos_user!pessoas_tipo_user_id_fkey(nome)")
-    .eq("status", "ativo")
-    .is("deleted_at", null)
-    .order("nome_completo");
-  if (error) throw error;
-  return ((data ?? []) as any[])
-    .filter((p) => ((p.tipos_user as any)?.nome ?? "").toLowerCase().startsWith("volunt"))
-    .map((p) => ({ id: p.id as string, nome_completo: p.nome_completo as string }));
+  const { data: tipos, error: tErr } = await supabase.from("tipos_user").select("id, nome");
+  if (tErr) throw tErr;
+
+  const papelPorTipo = new Map<string, string>();
+  for (const t of (tipos ?? []) as { id: string; nome: string | null }[]) {
+    const n = (t.nome ?? "").trim().toLowerCase();
+    if (n.startsWith("volunt")) papelPorTipo.set(t.id, "Voluntário/a");
+    else if (n === "equipa") papelPorTipo.set(t.id, "Equipa");
+  }
+  if (papelPorTipo.size === 0) return [];
+  const tipoIds = Array.from(papelPorTipo.keys());
+
+  const [diretos, extra] = await Promise.all([
+    supabase
+      .from("pessoas")
+      .select("id, nome_completo, tipo_user_id")
+      .eq("status", "ativo")
+      .is("deleted_at", null)
+      .in("tipo_user_id", tipoIds),
+    supabase.from("pessoa_tipos").select("pessoa_id, tipo_user_id").in("tipo_user_id", tipoIds),
+  ]);
+  if (diretos.error) throw diretos.error;
+  if (extra.error) throw extra.error;
+
+  const papeis = new Map<string, Set<string>>();
+  const nomes = new Map<string, string>();
+  const addPapel = (pessoaId: string, tipoId: string | null) => {
+    const papel = tipoId ? papelPorTipo.get(tipoId) : undefined;
+    if (!papel) return;
+    const atual = papeis.get(pessoaId) ?? new Set<string>();
+    atual.add(papel);
+    papeis.set(pessoaId, atual);
+  };
+
+  for (const p of (diretos.data ?? []) as { id: string; nome_completo: string; tipo_user_id: string | null }[]) {
+    nomes.set(p.id, p.nome_completo);
+    addPapel(p.id, p.tipo_user_id);
+  }
+
+  const extras = (extra.data ?? []) as { pessoa_id: string; tipo_user_id: string }[];
+  const emFalta = Array.from(new Set(extras.map((r) => r.pessoa_id))).filter((id) => !nomes.has(id));
+  if (emFalta.length > 0) {
+    const { data: outros, error: oErr } = await supabase
+      .from("pessoas")
+      .select("id, nome_completo")
+      .eq("status", "ativo")
+      .is("deleted_at", null)
+      .in("id", emFalta);
+    if (oErr) throw oErr;
+    for (const p of (outros ?? []) as { id: string; nome_completo: string }[]) nomes.set(p.id, p.nome_completo);
+  }
+  for (const r of extras) if (nomes.has(r.pessoa_id)) addPapel(r.pessoa_id, r.tipo_user_id);
+
+  return Array.from(nomes.entries())
+    .filter(([id]) => (papeis.get(id)?.size ?? 0) > 0)
+    .map(([id, nome_completo]) => ({
+      id,
+      nome_completo,
+      papel: Array.from(papeis.get(id) ?? []).sort().join(" · "),
+    }))
+    .sort((a, b) => a.nome_completo.localeCompare(b.nome_completo, "pt"));
 }
 
 export function useVoluntariosLookup(enabled = true) {
