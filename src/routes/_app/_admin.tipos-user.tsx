@@ -29,9 +29,10 @@ import {
   listAuthUsers,
   linkAuthUserToPessoa,
   unlinkAuthUser,
-  setPessoaTipo,
+  setPessoaTipos,
   setPessoaAdmin,
 } from "@/lib/users.functions";
+import { TiposMultiSelect } from "@/components/tipos-multi-select";
 import {
   useReactTable,
   getCoreRowModel,
@@ -86,7 +87,7 @@ function UsersTab() {
   const listFn = useServerFn(listAuthUsers);
   const linkFn = useServerFn(linkAuthUserToPessoa);
   const unlinkFn = useServerFn(unlinkAuthUser);
-  const setTipoFn = useServerFn(setPessoaTipo);
+  const setTipoFn = useServerFn(setPessoaTipos);
   const setAdminFn = useServerFn(setPessoaAdmin);
 
   const [search, setSearch] = useState("");
@@ -134,8 +135,8 @@ function UsersTab() {
     onError: (e: Error) => toast.error(e.message),
   });
   const setTipo = useMutation({
-    mutationFn: (v: { pessoa_id: string; tipo_user_id: string | null }) => setTipoFn({ data: v }),
-    onSuccess: () => { toast.success("Tipo atualizado"); invalidate(); },
+    mutationFn: (v: { pessoa_id: string; tipo_ids: string[] }) => setTipoFn({ data: v }),
+    onSuccess: () => { toast.success("Tipos atualizados"); invalidate(); },
     onError: (e: Error) => toast.error(e.message),
   });
   const setAdmin = useMutation({
@@ -155,7 +156,7 @@ function UsersTab() {
     const rows = usersQ.data ?? [];
     if (!s) return rows;
     return rows.filter((u) => {
-      const tipo = u.pessoa?.tipo_user_id ? tiposById.get(u.pessoa.tipo_user_id) ?? "" : "";
+      const tipo = (u.pessoa?.tipo_ids ?? []).map((id) => tiposById.get(id) ?? "").join(" ");
       return [u.email, u.pessoa?.nome_completo, u.pessoa?.email, tipo]
         .filter(Boolean)
         .some((v) => (v as string).toLowerCase().includes(s));
@@ -192,7 +193,7 @@ function UsersTab() {
               <TableRow>
                 <TableHead>Email</TableHead>
                 <TableHead>Pessoa associada</TableHead>
-                <TableHead>Tipo de perfil</TableHead>
+                <TableHead>Tipos de perfil</TableHead>
                 <TableHead>Admin</TableHead>
                 <TableHead>Último login</TableHead>
                 <TableHead className="w-24"></TableHead>
@@ -218,20 +219,13 @@ function UsersTab() {
                   </TableCell>
                   <TableCell>
                     {u.pessoa ? (
-                      <Select
-                        value={u.pessoa.tipo_user_id ?? "__none"}
-                        onValueChange={(v) =>
-                          setTipo.mutate({ pessoa_id: u.pessoa!.id, tipo_user_id: v === "__none" ? null : v })
-                        }
-                      >
-                        <SelectTrigger className="h-8 w-44"><SelectValue placeholder="—" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none">(sem tipo)</SelectItem>
-                          {(tiposQ.data ?? []).map((t) => (
-                            <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <TiposMultiSelect
+                        className="w-52"
+                        placeholder="(sem tipos)"
+                        values={u.pessoa.tipo_ids ?? []}
+                        options={(tiposQ.data ?? []).map((t) => ({ value: t.id, label: t.nome }))}
+                        onChange={(ids) => setTipo.mutate({ pessoa_id: u.pessoa!.id, tipo_ids: ids })}
+                      />
                     ) : <span className="text-muted-foreground">—</span>}
                   </TableCell>
                   <TableCell>

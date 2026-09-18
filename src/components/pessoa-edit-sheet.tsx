@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { RegistarAtividadeDialog } from "@/components/registar-atividade-dialog";
+import { TiposMultiSelect } from "@/components/tipos-multi-select";
 
 type Pessoa = {
   id: string;
@@ -47,6 +48,7 @@ export function PessoaEditSheet({
   const qc = useQueryClient();
   const [form, setForm] = useState<Pessoa | null>(null);
   const [atividadeOpen, setAtividadeOpen] = useState(false);
+  const [tipoIds, setTipoIds] = useState<string[]>([]);
 
   const { data, isLoading } = useQuery({
     queryKey: ["pessoa-edit-sheet", pessoaId],
@@ -85,6 +87,26 @@ export function PessoaEditSheet({
       return data as { id: string; nome: string }[];
     },
   });
+
+  // Tipos de perfil cumulativos desta pessoa
+  const { data: tiposPessoa } = useQuery({
+    queryKey: ["pessoa-tipos-sheet", pessoaId],
+    enabled: !!pessoaId && open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pessoa_tipos")
+        .select("tipo_user_id")
+        .eq("pessoa_id", pessoaId!);
+      if (error) throw error;
+      return (data ?? []).map((r) => r.tipo_user_id as string);
+    },
+  });
+
+  useEffect(() => {
+    setTipoIds(
+      Array.from(new Set([...(data?.tipo_user_id ? [data.tipo_user_id] : []), ...(tiposPessoa ?? [])])),
+    );
+  }, [data?.tipo_user_id, (tiposPessoa ?? []).join(",")]);
 
   const { data: atividadesVol } = useQuery({
     queryKey: ["pessoa-atividades-voluntario", pessoaId],
@@ -130,7 +152,7 @@ export function PessoaEditSheet({
           familia_id: form.familia_id || null,
           status: form.status as any,
           notas: form.notas || null,
-          tipo_user_id: form.tipo_user_id || null,
+          tipo_user_id: tipoIds[0] ?? null,
           genero: form.genero || null,
           nacionalidade: form.nacionalidade || null,
           cidade_residencia: form.cidade_residencia || null,
@@ -139,9 +161,30 @@ export function PessoaEditSheet({
         })
         .eq("id", form.id);
       if (error) throw error;
+
+      // Sincroniza os tipos cumulativos (pessoa_tipos)
+      const atuais = tiposPessoa ?? [];
+      const toAdd = tipoIds.filter((id) => !atuais.includes(id));
+      const toRemove = atuais.filter((id) => !tipoIds.includes(id));
+      if (toAdd.length) {
+        const ins = await supabase
+          .from("pessoa_tipos")
+          .insert(toAdd.map((tipo_user_id) => ({ pessoa_id: form.id, tipo_user_id })));
+        if (ins.error) throw ins.error;
+      }
+      if (toRemove.length) {
+        const del = await supabase
+          .from("pessoa_tipos")
+          .delete()
+          .eq("pessoa_id", form.id)
+          .in("tipo_user_id", toRemove);
+        if (del.error) throw del.error;
+      }
     },
     onSuccess: () => {
       toast.success("Pessoa atualizada");
+      qc.invalidateQueries({ queryKey: ["pessoa-tipos-sheet", pessoaId] });
+      qc.invalidateQueries({ queryKey: ["pessoa_tipos_all"] });
       qc.invalidateQueries({ queryKey: ["pessoa-edit-sheet", pessoaId] });
       qc.invalidateQueries({ queryKey: ["participantes"] });
       qc.invalidateQueries({ queryKey: ["inscricoes"] });
@@ -218,14 +261,18 @@ export function PessoaEditSheet({
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="Tipo de utilizador" className="col-span-2">
-                <Select value={form.tipo_user_id ?? "__null"} onValueChange={(v) => setForm({ ...form, tipo_user_id: v === "__null" ? null : v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__null">— sem tipo —</SelectItem>
-                    {tipos?.map((t) => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+              <Field label="Tipos de utilizador" className="col-span-2">
+                <TiposMultiSelect
+                  values={tipoIds}
+                  options={(tipos ?? []).map((t) => ({ value: t.id, label: t.nome }))}
+                  onChange={(v) => {
+                    setTipoIds(v);
+                    setForm({ ...form, tipo_user_id: v[0] ?? null });
+                  }}
+                />
+                <p className="pt-1 text-xs text-muted-foreground">
+                  Podes escolher vários tipos — os acessos somam-se.
+                </p>
               </Field>
               <Field label="Estado" className="col-span-2">
                 <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>

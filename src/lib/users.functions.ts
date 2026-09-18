@@ -22,6 +22,8 @@ export type AuthUserRow = {
     email: string | null;
     is_admin: boolean;
     tipo_user_id: string | null;
+    /** Todos os tipos de perfil da pessoa (cumulativos): principal + adicionais. */
+    tipo_ids: string[];
     familia_id: string | null;
     status: string;
   } | null;
@@ -62,6 +64,21 @@ export const listAuthUsers = createServerFn({ method: "GET" })
     const byAuth = new Map<string, any>();
     (pessoas ?? []).forEach((p: any) => byAuth.set(p.auth_user_id, p));
 
+    // Tipos adicionais (cumulativos) de cada pessoa
+    const pessoaIds = (pessoas ?? []).map((p: any) => p.id);
+    const extraTipos = new Map<string, string[]>();
+    if (pessoaIds.length) {
+      const { data: pt } = await admin
+        .from("pessoa_tipos")
+        .select("pessoa_id, tipo_user_id")
+        .in("pessoa_id", pessoaIds);
+      for (const r of pt ?? []) {
+        const arr = extraTipos.get(r.pessoa_id) ?? [];
+        arr.push(r.tipo_user_id);
+        extraTipos.set(r.pessoa_id, arr);
+      }
+    }
+
     const rows: AuthUserRow[] = all.map((u) => ({
       id: u.id,
       email: u.email ?? null,
@@ -74,6 +91,10 @@ export const listAuthUsers = createServerFn({ method: "GET" })
             email: byAuth.get(u.id).email,
             is_admin: byAuth.get(u.id).is_admin,
             tipo_user_id: byAuth.get(u.id).tipo_user_id,
+            tipo_ids: Array.from(new Set([
+              ...(byAuth.get(u.id).tipo_user_id ? [byAuth.get(u.id).tipo_user_id as string] : []),
+              ...(extraTipos.get(byAuth.get(u.id).id) ?? []),
+            ])),
             familia_id: byAuth.get(u.id).familia_id,
             status: byAuth.get(u.id).status,
           }
@@ -140,6 +161,53 @@ export const setPessoaTipo = createServerFn({ method: "POST" })
       .update({ tipo_user_id: data.tipo_user_id })
       .eq("id", data.pessoa_id);
     if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Define vários tipos de perfil (cumulativos) para uma pessoa. */
+export const setPessoaTipos = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { pessoa_id: string; tipo_ids: string[] }) => d)
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { createClient } = await import("@supabase/supabase-js");
+    const admin = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { persistSession: false, autoRefreshToken: false } },
+    );
+    const ids = Array.from(new Set(data.tipo_ids.filter(Boolean)));
+
+    const up = await admin
+      .from("pessoas")
+      .update({ tipo_user_id: ids[0] ?? null })
+      .eq("id", data.pessoa_id);
+    if (up.error) throw new Error(up.error.message);
+
+    const existing = await admin
+      .from("pessoa_tipos")
+      .select("tipo_user_id")
+      .eq("pessoa_id", data.pessoa_id);
+    if (existing.error) throw new Error(existing.error.message);
+    const atuais = (existing.data ?? []).map((r: any) => r.tipo_user_id as string);
+
+    const toAdd = ids.filter((id) => !atuais.includes(id));
+    const toRemove = atuais.filter((id) => !ids.includes(id));
+
+    if (toAdd.length) {
+      const ins = await admin
+        .from("pessoa_tipos")
+        .insert(toAdd.map((tipo_user_id) => ({ pessoa_id: data.pessoa_id, tipo_user_id })));
+      if (ins.error) throw new Error(ins.error.message);
+    }
+    if (toRemove.length) {
+      const del = await admin
+        .from("pessoa_tipos")
+        .delete()
+        .eq("pessoa_id", data.pessoa_id)
+        .in("tipo_user_id", toRemove);
+      if (del.error) throw new Error(del.error.message);
+    }
     return { ok: true };
   });
 
