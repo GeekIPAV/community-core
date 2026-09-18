@@ -320,10 +320,10 @@ function AtividadesFamiliaTab({ familiaId }: { familiaId: string }) {
               <Input type="date" value={dataVal} onChange={(e) => setDataVal(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Voluntários que participaram</Label>
+              <Label>Voluntários e equipa que acompanharam</Label>
               <div className="max-h-40 overflow-auto rounded-md border p-2 flex flex-wrap gap-1">
                 {(voluntarios ?? []).length === 0 && (
-                  <span className="text-xs text-muted-foreground">Sem voluntários registados</span>
+                  <span className="text-xs text-muted-foreground">Sem voluntários ou equipa registados</span>
                 )}
                 {(voluntarios ?? []).map((v) => {
                   const on = voluntariosSel.includes(v.id);
