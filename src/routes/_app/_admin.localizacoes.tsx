@@ -14,7 +14,23 @@ import {
 } from "@/components/ui/dialog";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ExternalLink, MapPin, Pencil, Plus, Trash2 } from "lucide-react";
+import { ExternalLink, MapPin, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { SmartTable, type SmartColumnDef } from "@/components/smart-table";
 import { applyOptimisticRowPatch, rollbackOptimisticRows } from "@/lib/optimistic-row-update";
 import { handleSupabaseError } from "@/lib/handle-supabase-error";
@@ -38,6 +54,7 @@ function LocalizacoesPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Localizacao | null>(null);
   const [form, setForm] = useState(EMPTY);
+  const [aEliminar, setAEliminar] = useState<Localizacao | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["localizacoes"],
@@ -195,32 +212,30 @@ function LocalizacoesPage() {
         enableResizing: false,
         meta: { label: "Ações", noTruncate: true },
         cell: ({ row }) => (
-          <div className="flex justify-end gap-1">
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={(e) => {
-                e.stopPropagation();
-                openEdit(row.original);
-              }}
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (confirm(`Remover "${row.original.nome}"?`)) remove.mutate(row.original.id);
-              }}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+          <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="icon" variant="ghost" aria-label="Ações">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={() => openEdit(row.original)}>
+                  <Pencil className="mr-2 h-4 w-4" /> Editar
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onSelect={() => setAEliminar(row.original)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         ),
       },
     ],
-    [remove],
+    [],
   );
 
   return (
@@ -303,6 +318,28 @@ function LocalizacoesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!aEliminar} onOpenChange={(o) => !o && setAEliminar(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar localização</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem a certeza que quer remover "{aEliminar?.nome}"? Esta ação não pode ser anulada.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (aEliminar) remove.mutate(aEliminar.id);
+                setAEliminar(null);
+              }}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

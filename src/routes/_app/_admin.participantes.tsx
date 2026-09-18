@@ -49,6 +49,8 @@ import {
 
 export const Route = createFileRoute("/_app/_admin/participantes")({
   component: ParticipantesPage,
+  validateSearch: (s: Record<string, unknown>): { pessoa?: string } =>
+    typeof s.pessoa === "string" ? { pessoa: s.pessoa } : {},
 });
 
 type Pessoa = {
@@ -185,6 +187,7 @@ function ParticipantesPage() {
   const [bulkProjetos, setBulkProjetos] = useState<string[]>([]);
 
   const [deleteOne, setDeleteOne] = useState<Pessoa | null>(null);
+  const { pessoa: pessoaParam } = Route.useSearch();
   const bulkClearRef = useRef<() => void>(() => {});
 
   const { data, isLoading, error } = useQuery({
@@ -199,6 +202,17 @@ function ParticipantesPage() {
       return (data ?? []).map((p: any) => ({ ...p, projeto_ids: p.projeto_ids ?? [] })) as Pessoa[];
     },
   });
+
+  useEffect(() => {
+    if (!pessoaParam || !data) return;
+    const p = data.find((x) => x.id === pessoaParam);
+    if (p) {
+      setEditing({ ...p });
+      setEditOpen(true);
+    }
+  }, [pessoaParam, data]);
+
+
 
   const { data: familias } = useQuery({
     queryKey: ["familias_lookup"],

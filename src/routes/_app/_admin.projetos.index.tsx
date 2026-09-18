@@ -16,7 +16,25 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2, X, UserPlus } from "lucide-react";
+import { Download, FolderKanban, MoreHorizontal, Pencil, Plus, Search, Trash2, Users as UsersIcon, X, UserPlus } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { downloadCSV } from "@/lib/download-csv";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from "@/components/ui/command";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -50,6 +68,8 @@ function ProjetosPage() {
   const [editing, setEditing] = useState<Projeto | null>(null);
   const [nome, setNome] = useState("");
   const [descricao, setDescricao] = useState("");
+  const [pesquisa, setPesquisa] = useState("");
+  const [aEliminar, setAEliminar] = useState<Projeto | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["projetos"],
@@ -131,6 +151,36 @@ function ProjetosPage() {
       }, filterFn: advancedFilterFn as any, meta: { filterVariant: "number", label: "Pessoas" } satisfies ColumnFilterMeta },
   ], [contagens]);
 
+  const projetosFiltrados = useMemo(() => {
+    const q = pesquisa.trim().toLowerCase();
+    if (!q) return data ?? [];
+    return (data ?? []).filter(
+      (p) =>
+        p.nome.toLowerCase().includes(q) ||
+        (p.descricao ?? "").toLowerCase().includes(q),
+    );
+  }, [data, pesquisa]);
+
+  const stats = useMemo(() => {
+    const lista = data ?? [];
+    const comPessoas = lista.filter((p) => (contagens?.get(p.id) ?? 0) > 0).length;
+    const totalPessoas = lista.reduce((acc, p) => acc + (contagens?.get(p.id) ?? 0), 0);
+    return { total: lista.length, comPessoas, totalPessoas };
+  }, [data, contagens]);
+
+  const exportarCsv = () => {
+    const rows = projetosFiltrados.map((p) => ({
+      Nome: p.nome,
+      "Descrição": p.descricao ?? "",
+      Pessoas: String(contagens?.get(p.id) ?? 0),
+    }));
+    downloadCSV(`projetos-${new Date().toISOString().slice(0, 10)}.csv`, rows, [
+      "Nome",
+      "Descrição",
+      "Pessoas",
+    ]);
+  };
+
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([]);
@@ -138,7 +188,7 @@ function ProjetosPage() {
   const table = useReactTable({
     columnResizeMode: "onChange",
     defaultColumn: { minSize: 60, size: 160, maxSize: 800 },
-    data: data ?? [],
+    data: projetosFiltrados,
     columns,
     state: { sorting, columnVisibility, columnOrder },
     onSortingChange: setSorting,
@@ -161,10 +211,43 @@ function ProjetosPage() {
           <p className="text-sm text-muted-foreground">{data?.length ?? 0} projetos</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={pesquisa}
+              onChange={(e) => setPesquisa(e.target.value)}
+              placeholder="Pesquisar projeto…"
+              className="h-9 w-56 pl-8"
+            />
+          </div>
           <AdvancedTableFilters table={table} />
           <DataTableViewOptions table={table} />
+          <Button variant="outline" onClick={exportarCsv}>
+            <Download className="mr-2 h-4 w-4" /> Exportar
+          </Button>
           <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" /> Novo projeto</Button>
         </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Card className="p-4">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <FolderKanban className="h-4 w-4" /> Projetos
+          </div>
+          <p className="mt-1 text-xl font-semibold tabular-nums">{stats.total}</p>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <UsersIcon className="h-4 w-4" /> Projetos com pessoas
+          </div>
+          <p className="mt-1 text-xl font-semibold tabular-nums">{stats.comPessoas}</p>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <UsersIcon className="h-4 w-4" /> Participações
+          </div>
+          <p className="mt-1 text-xl font-semibold tabular-nums">{stats.totalPessoas}</p>
+        </Card>
       </div>
 
       {isLoading ? (
@@ -190,11 +273,25 @@ function ProjetosPage() {
                       <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                     ))}
                     <TableCell>
-                      <div className="flex gap-1">
-                        <Button size="icon" variant="ghost" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
-                        <Button size="icon" variant="ghost" onClick={() => { if (confirm(`Remover o projeto "${p.nome}"?`)) remove.mutate(p.id); }}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                      <div className="flex justify-end">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="icon" variant="ghost" aria-label="Ações">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onSelect={() => openEdit(p)}>
+                              <Pencil className="mr-2 h-4 w-4" /> Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onSelect={() => setAEliminar(p)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -226,6 +323,28 @@ function ProjetosPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!aEliminar} onOpenChange={(o) => !o && setAEliminar(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar projeto</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem a certeza que quer remover o projeto "{aEliminar?.nome}"? Esta ação não pode ser anulada.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (aEliminar) remove.mutate(aEliminar.id);
+                setAEliminar(null);
+              }}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

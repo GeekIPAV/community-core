@@ -20,7 +20,7 @@ import {
   FALLBACK_ITEMS,
 } from "@/components/app-sidebar";
 import { renderIcon } from "@/components/sidebar-icons";
-import { Users, CalendarDays } from "lucide-react";
+import { Users, CalendarDays, Home, FolderOpen } from "lucide-react";
 
 export function CommandPalette({
   open: openProp,
@@ -82,6 +82,55 @@ export function CommandPalette({
     },
   });
 
+  const { data: familias } = useQuery({
+    queryKey: ["cmdk-familias", debounced],
+    enabled: open && debounced.length >= 2 && (isAdmin || isStaff),
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("familias")
+        .select("id, nome, status")
+        .is("deleted_at", null)
+        .ilike("nome", `%${debounced}%`)
+        .limit(6);
+      return data ?? [];
+    },
+  });
+
+  const { data: casos } = useQuery({
+    queryKey: ["cmdk-casos", debounced],
+    enabled: open && debounced.length >= 2 && (isAdmin || isStaff),
+    queryFn: async () => {
+      const sel =
+        "id, numero, titulo, estado, pessoa:pessoas!casos_apoio_pessoa_id_fkey(nome_completo), familia:familias!casos_apoio_familia_id_fkey(nome)";
+      const [porTexto, porPessoa, porFamilia] = await Promise.all([
+        supabase
+          .from("casos_apoio")
+          .select(sel)
+          .or(`titulo.ilike.%${debounced}%,numero.ilike.%${debounced}%`)
+          .limit(6),
+        supabase
+          .from("casos_apoio")
+          .select(sel)
+          .ilike("pessoas.nome_completo", `%${debounced}%`)
+          .not("pessoa_id", "is", null)
+          .limit(6),
+        supabase
+          .from("casos_apoio")
+          .select(sel)
+          .ilike("familias.nome", `%${debounced}%`)
+          .not("familia_id", "is", null)
+          .limit(6),
+      ]);
+      const todos = [
+        ...(porTexto.data ?? []),
+        ...(porPessoa.data ?? []),
+        ...(porFamilia.data ?? []),
+      ] as any[];
+      const vistos = new Set<string>();
+      return todos.filter((c) => (vistos.has(c.id) ? false : (vistos.add(c.id), true))).slice(0, 6);
+    },
+  });
+
   const navItems = useMemo(() => {
     const src = sidebarData ?? { groups: FALLBACK_GROUPS, items: FALLBACK_ITEMS };
     const visibleGroups = src.groups
@@ -105,10 +154,10 @@ export function CommandPalette({
     return out;
   }, [sidebarData, roles]);
 
-  const go = (to: string, params?: Record<string, string>) => {
+  const go = (to: string, params?: Record<string, string>, search?: Record<string, string>) => {
     setOpen(false);
     setQuery("");
-    navigate({ to, params } as any);
+    navigate({ to, params, search } as any);
   };
 
   return (
@@ -148,10 +197,55 @@ export function CommandPalette({
             <CommandSeparator />
             <CommandGroup heading="Participantes">
               {pessoas!.map((p) => (
-                <CommandItem key={p.id} value={`pessoa-${p.id}-${p.nome_completo}`} onSelect={() => go("/participantes")}>
+                <CommandItem
+                  key={p.id}
+                  value={`pessoa-${p.id}-${p.nome_completo}`}
+                  onSelect={() => go("/participantes", undefined, { pessoa: p.id })}
+                >
                   <Users className="mr-2 h-4 w-4" />
                   <span className="flex-1 truncate">{p.nome_completo}</span>
                   {p.email && <span className="ml-2 text-xs text-muted-foreground truncate">{p.email}</span>}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
+        {(familias?.length ?? 0) > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Famílias">
+              {familias!.map((f: any) => (
+                <CommandItem
+                  key={f.id}
+                  value={`familia-${f.id}-${f.nome}`}
+                  onSelect={() => go("/familias", undefined, { familia: f.id })}
+                >
+                  <Home className="mr-2 h-4 w-4" />
+                  <span className="flex-1 truncate">{f.nome}</span>
+                  {f.status && <span className="ml-2 text-xs text-muted-foreground truncate">{f.status}</span>}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
+        {(casos?.length ?? 0) > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Casos de apoio">
+              {casos!.map((c: any) => (
+                <CommandItem
+                  key={c.id}
+                  value={`caso-${c.id}-${c.numero}-${c.titulo}`}
+                  onSelect={() => go("/casos/$id", { id: c.id })}
+                >
+                  <FolderOpen className="mr-2 h-4 w-4" />
+                  <span className="flex-1 truncate">
+                    {c.numero ? `${c.numero} · ` : ""}
+                    {c.titulo}
+                  </span>
+                  <span className="ml-2 text-xs text-muted-foreground truncate">
+                    {c.pessoa?.nome_completo ?? c.familia?.nome ?? c.estado ?? ""}
+                  </span>
                 </CommandItem>
               ))}
             </CommandGroup>
