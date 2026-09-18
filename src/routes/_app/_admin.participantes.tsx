@@ -49,9 +49,8 @@ import {
 
 export const Route = createFileRoute("/_app/_admin/participantes")({
   component: ParticipantesPage,
-  validateSearch: (s: Record<string, unknown>) => ({
-    pessoa: typeof s.pessoa === "string" ? s.pessoa : undefined,
-  }),
+  validateSearch: (s: Record<string, unknown>): { pessoa?: string } =>
+    typeof s.pessoa === "string" ? { pessoa: s.pessoa } : {},
 });
 
 type Pessoa = {
