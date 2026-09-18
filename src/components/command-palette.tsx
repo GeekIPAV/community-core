@@ -197,10 +197,55 @@ export function CommandPalette({
             <CommandSeparator />
             <CommandGroup heading="Participantes">
               {pessoas!.map((p) => (
-                <CommandItem key={p.id} value={`pessoa-${p.id}-${p.nome_completo}`} onSelect={() => go("/participantes")}>
+                <CommandItem
+                  key={p.id}
+                  value={`pessoa-${p.id}-${p.nome_completo}`}
+                  onSelect={() => go("/participantes", undefined, { pessoa: p.id })}
+                >
                   <Users className="mr-2 h-4 w-4" />
                   <span className="flex-1 truncate">{p.nome_completo}</span>
                   {p.email && <span className="ml-2 text-xs text-muted-foreground truncate">{p.email}</span>}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
+        {(familias?.length ?? 0) > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Famílias">
+              {familias!.map((f: any) => (
+                <CommandItem
+                  key={f.id}
+                  value={`familia-${f.id}-${f.nome}`}
+                  onSelect={() => go("/familias", undefined, { familia: f.id })}
+                >
+                  <Home className="mr-2 h-4 w-4" />
+                  <span className="flex-1 truncate">{f.nome}</span>
+                  {f.status && <span className="ml-2 text-xs text-muted-foreground truncate">{f.status}</span>}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
+        {(casos?.length ?? 0) > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Casos de apoio">
+              {casos!.map((c: any) => (
+                <CommandItem
+                  key={c.id}
+                  value={`caso-${c.id}-${c.numero}-${c.titulo}`}
+                  onSelect={() => go("/casos/$id", { id: c.id })}
+                >
+                  <FolderOpen className="mr-2 h-4 w-4" />
+                  <span className="flex-1 truncate">
+                    {c.numero ? `${c.numero} · ` : ""}
+                    {c.titulo}
+                  </span>
+                  <span className="ml-2 text-xs text-muted-foreground truncate">
+                    {c.pessoa?.nome_completo ?? c.familia?.nome ?? c.estado ?? ""}
+                  </span>
                 </CommandItem>
               ))}
             </CommandGroup>
