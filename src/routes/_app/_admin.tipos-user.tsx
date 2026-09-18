@@ -29,9 +29,10 @@ import {
   listAuthUsers,
   linkAuthUserToPessoa,
   unlinkAuthUser,
-  setPessoaTipo,
+  setPessoaTipos,
   setPessoaAdmin,
 } from "@/lib/users.functions";
+import { TiposMultiSelect } from "@/components/tipos-multi-select";
 import {
   useReactTable,
   getCoreRowModel,
