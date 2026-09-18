@@ -219,20 +219,13 @@ function UsersTab() {
                   </TableCell>
                   <TableCell>
                     {u.pessoa ? (
-                      <Select
-                        value={u.pessoa.tipo_user_id ?? "__none"}
-                        onValueChange={(v) =>
-                          setTipo.mutate({ pessoa_id: u.pessoa!.id, tipo_user_id: v === "__none" ? null : v })
-                        }
-                      >
-                        <SelectTrigger className="h-8 w-44"><SelectValue placeholder="—" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none">(sem tipo)</SelectItem>
-                          {(tiposQ.data ?? []).map((t) => (
-                            <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <TiposMultiSelect
+                        className="w-52"
+                        placeholder="(sem tipos)"
+                        values={u.pessoa.tipo_ids ?? []}
+                        options={(tiposQ.data ?? []).map((t) => ({ value: t.id, label: t.nome }))}
+                        onChange={(ids) => setTipo.mutate({ pessoa_id: u.pessoa!.id, tipo_ids: ids })}
+                      />
                     ) : <span className="text-muted-foreground">—</span>}
                   </TableCell>
                   <TableCell>
