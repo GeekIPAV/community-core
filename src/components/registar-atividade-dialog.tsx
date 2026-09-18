@@ -376,7 +376,10 @@ export function RegistarAtividadeDialog({
                         setVoluntariosSel((s) => (c ? [...s, v.id] : s.filter((x) => x !== v.id)))
                       }
                     />
-                    {v.nome_completo}
+                    <span>
+                      {v.nome_completo}
+                      {v.papel ? <span className="ml-1 text-xs text-muted-foreground">· {v.papel}</span> : null}
+                    </span>
                   </label>
                 ))}
               </div>
