@@ -254,7 +254,13 @@ function CasoDetailPage() {
                   <ul className="space-y-1 pt-1 border-t">
                     {(caso.familia.pessoas as any[]).map((m) => (
                       <li key={m.id} className="flex items-center justify-between text-xs">
-                        <span className="truncate">{m.nome_completo}</span>
+                        <Link
+                          to="/participantes"
+                          search={{ pessoa: m.id }}
+                          className="truncate hover:underline"
+                        >
+                          {m.nome_completo}
+                        </Link>
                         {m.telefone && (
                           <a href={`tel:${m.telefone}`} className="text-muted-foreground hover:underline ml-2 shrink-0">
                             {m.telefone}
