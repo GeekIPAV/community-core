@@ -1920,6 +1920,149 @@ function BolsasTransportePage() {
             </CardContent>
           </Card>
         )}
+
+        <Card className="border-emerald-200 dark:border-emerald-900">
+          <CardHeader className="border-b bg-emerald-50/60 dark:bg-emerald-950/30 py-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Car className="h-4 w-4 text-emerald-600" />
+              Bolsas de Transporte
+              <Badge variant="secondary" className="ml-1">{bolsasResumo.length}</Badge>
+            </CardTitle>
+            <CardDescription>Resumo das bolsas atribuídas e o respetivo estado de pagamento.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="flex flex-col md:flex-row gap-2 px-4 py-3 border-b">
+              <Input
+                placeholder="Pesquisar pessoa, família ou evento…"
+                value={bolsaResumoSearch}
+                onChange={(e) => setBolsaResumoSearch(e.target.value)}
+                className="md:max-w-xs"
+              />
+              <Select value={bolsaResumoEstado} onValueChange={(v) => setBolsaResumoEstado(v as typeof bolsaResumoEstado)}>
+                <SelectTrigger className="md:w-44"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os estados</SelectItem>
+                  <SelectItem value="por_pagar">Por pagar</SelectItem>
+                  <SelectItem value="pago">Pago</SelectItem>
+                  <SelectItem value="cancelado">Cancelado</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="flex-1" />
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const headers = ["Pessoa", "Família", "Evento", "Data", "Valor", "Estado de pagamento", "Método de pagamento"];
+                  const rowsCsv = bolsasResumo.map((i) => ({
+                    "Pessoa": i.pessoa_nome,
+                    "Família": i.familia_nome ?? "",
+                    "Evento": i.acao_nome,
+                    "Data": formatDate(i.acao_data),
+                    "Valor": Number(i.pagamento?.valor ?? i.valor_calculado).toFixed(2).replace(".", ","),
+                    "Estado de pagamento": i.pagamento?.estado ?? "por_pagar",
+                    "Método de pagamento": i.pagamento?.metodo_pagamento ?? "",
+                  }));
+                  downloadCSV(`bolsas-${new Date().toISOString().slice(0, 10)}.csv`, toCSV(rowsCsv, headers));
+                }}
+              >
+                <Download className="mr-2 h-4 w-4" /> Exportar
+              </Button>
+            </div>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Pessoa</TableHead>
+                    <TableHead>Família</TableHead>
+                    <TableHead>Evento</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead>Estado de pagamento</TableHead>
+                    <TableHead>Método de pagamento</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {bolsasResumo.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={8} className="py-6 text-center text-sm text-muted-foreground">
+                        Sem bolsas registadas.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {bolsasResumo.map((i) => (
+                    <TableRow key={i.inscricao_id}>
+                      <TableCell className="font-medium whitespace-nowrap">{i.pessoa_nome}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{i.familia_nome ?? "—"}</TableCell>
+                      <TableCell className="max-w-[200px] truncate" title={i.acao_nome}>{i.acao_nome}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(i.acao_data)}</TableCell>
+                      <TableCell className="text-right tabular-nums font-medium">
+                        {formatEuro(Number(i.pagamento?.valor ?? i.valor_calculado))}
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value={i.pagamento?.estado ?? "por_pagar"}
+                          onValueChange={(v) => changeEstado(i, v as BolsaPagamento["estado"])}
+                        >
+                          <SelectTrigger className="h-7 w-32 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="por_pagar">Por pagar</SelectItem>
+                            <SelectItem value="pago">Pago</SelectItem>
+                            <SelectItem value="cancelado">Cancelado</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell className="min-w-[140px]">
+                        <InlineEditCell
+                          value={i.pagamento?.metodo_pagamento ?? null}
+                          onSave={(v) => updateCampo(i, "metodo_pagamento", v)}
+                        />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7"
+                                onClick={() => criarMapaKmDeBolsa(i)}
+                              >
+                                <FilePlus2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Criar mapa de KM a partir desta bolsa</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7"
+                                onClick={() => { if (i.pagamento) deleteBolsa.mutate(i.pagamento.id); }}
+                              >
+                                <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Eliminar bolsa</TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+                <tfoot>
+                  <tr className="border-t bg-muted/30">
+                    <td colSpan={4} className="px-4 py-2 text-xs font-medium">Total filtrado</td>
+                    <td className="px-4 py-2 text-right text-xs font-semibold tabular-nums">
+                      {formatEuro(bolsasResumo.reduce((s, i) => s + Number(i.pagamento?.valor ?? i.valor_calculado), 0))}
+                    </td>
+                    <td colSpan={3}></td>
+                  </tr>
+                </tfoot>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
         </div>
         </TooltipProvider>
 
