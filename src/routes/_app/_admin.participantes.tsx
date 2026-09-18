@@ -204,6 +204,17 @@ function ParticipantesPage() {
     },
   });
 
+  useEffect(() => {
+    if (!pessoaParam || !data) return;
+    const p = data.find((x) => x.id === pessoaParam);
+    if (p) {
+      setEditing({ ...p });
+      setEditOpen(true);
+    }
+  }, [pessoaParam, data]);
+
+
+
   const { data: familias } = useQuery({
     queryKey: ["familias_lookup"],
     queryFn: async () => {
