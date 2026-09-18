@@ -135,8 +135,8 @@ function UsersTab() {
     onError: (e: Error) => toast.error(e.message),
   });
   const setTipo = useMutation({
-    mutationFn: (v: { pessoa_id: string; tipo_user_id: string | null }) => setTipoFn({ data: v }),
-    onSuccess: () => { toast.success("Tipo atualizado"); invalidate(); },
+    mutationFn: (v: { pessoa_id: string; tipo_ids: string[] }) => setTipoFn({ data: v }),
+    onSuccess: () => { toast.success("Tipos atualizados"); invalidate(); },
     onError: (e: Error) => toast.error(e.message),
   });
   const setAdmin = useMutation({
