@@ -40,16 +40,32 @@ type Row = {
 
 export function AcaoParticipantesTab({
   acaoId,
+  participantesExtra = 0,
   onInscreverPessoa,
   onInscreverFamilia,
 }: {
   acaoId: string;
+  participantesExtra?: number;
   onInscreverPessoa: () => void;
   onInscreverFamilia: () => void;
 }) {
   const qc = useQueryClient();
   const [q, setQ] = useState("");
   const [filtro, setFiltro] = useState<"todos" | StatusInscricao>("todos");
+  const [extra, setExtra] = useState(String(participantesExtra ?? 0));
+
+  const guardarExtra = useMutation({
+    mutationFn: async (valor: number) => {
+      const { error } = await supabase.from("acoes").update({ participantes_extra: valor }).eq("id", acaoId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Participantes não registados atualizados");
+      qc.invalidateQueries({ queryKey: ["acao", acaoId] });
+      qc.invalidateQueries({ queryKey: ["acoes"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["acao-inscricoes", acaoId],
