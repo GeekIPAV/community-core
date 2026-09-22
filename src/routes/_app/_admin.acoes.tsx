@@ -230,6 +230,7 @@ type AcaoForm = {
   status: string;
   inscricoes_abertas: boolean;
   bolsa_transporte: boolean;
+  participantes_extra?: number;
   projeto_ids: string[];
   restrito_a_projetos: boolean;
   publico: boolean;
@@ -239,7 +240,7 @@ type AcaoForm = {
   formador_ids?: string[];
 };
 
-const EMPTY_FORM: AcaoForm = { nome: "", local: "", mapa_url: "", imagem_url: "", imagem_position: "50% 50%", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, bolsa_transporte: false, projeto_ids: [], restrito_a_projetos: false, publico: true, fields: [], parceiro_ids: [], tipo_acao_id: null, formador_ids: [] };
+const EMPTY_FORM: AcaoForm = { nome: "", local: "", mapa_url: "", imagem_url: "", imagem_position: "50% 50%", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, bolsa_transporte: false, participantes_extra: 0, projeto_ids: [], restrito_a_projetos: false, publico: true, fields: [], parceiro_ids: [], tipo_acao_id: null, formador_ids: [] };
 
 const acaoFormSchema = z
   .object({
@@ -3311,7 +3312,7 @@ function AcoesPageInner() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("acoes")
-        .select("id, nome, local, mapa_url, imagem_url, imagem_position, data_inicio, data_fim, status, inscricoes_abertas, bolsa_transporte, projeto_ids, restrito_a_projetos, publico, config_campos, tipo_acao_id, formador_ids")
+        .select("id, nome, local, mapa_url, imagem_url, imagem_position, data_inicio, data_fim, status, inscricoes_abertas, bolsa_transporte, participantes_extra, projeto_ids, restrito_a_projetos, publico, config_campos, tipo_acao_id, formador_ids")
         .order("data_inicio", { ascending: false, nullsFirst: false });
       if (error) throw error;
       return data;
@@ -3681,6 +3682,7 @@ function AcoesPageInner() {
           status: editing.status,
           inscricoes_abertas: editing.inscricoes_abertas,
           bolsa_transporte: editing.bolsa_transporte,
+          participantes_extra: Math.max(0, Math.round(Number(editing.participantes_extra) || 0)),
           projeto_ids: editing.projeto_ids ?? [],
           restrito_a_projetos: editing.restrito_a_projetos,
           publico: editing.publico,
@@ -3971,6 +3973,7 @@ function AcoesPageInner() {
                 status: String(a.status ?? "ativa"),
                 inscricoes_abertas: inscricoesAbertas,
                 bolsa_transporte: !!a.bolsa_transporte,
+                participantes_extra: Number(a.participantes_extra ?? 0),
                 projeto_ids: (a.projeto_ids ?? []) as string[],
                 restrito_a_projetos: !!a.restrito_a_projetos,
                 publico: a.publico ?? true,
@@ -4092,6 +4095,19 @@ function AcoesPageInner() {
                 </div>
                 <Switch checked={editing.bolsa_transporte} onCheckedChange={(c) => setEditing({ ...editing, bolsa_transporte: c })} />
               </label>
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">Participantes não registados</p>
+                  <p className="text-xs text-muted-foreground">Número de pessoas que participaram sem ficha na base de dados. Contam para relatórios e indicadores, mas não criam perfis.</p>
+                </div>
+                <Input
+                  type="number"
+                  min={0}
+                  className="h-9 w-28"
+                  value={String(editing.participantes_extra ?? 0)}
+                  onChange={(e) => setEditing({ ...editing, participantes_extra: Number(e.target.value) })}
+                />
+              </div>
               <TipoAcaoBlock
                 tipoAcaoId={editing.tipo_acao_id}
                 formadorIds={editing.formador_ids ?? []}
