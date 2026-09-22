@@ -3312,7 +3312,7 @@ function AcoesPageInner() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("acoes")
-        .select("id, nome, local, mapa_url, imagem_url, imagem_position, data_inicio, data_fim, status, inscricoes_abertas, bolsa_transporte, projeto_ids, restrito_a_projetos, publico, config_campos, tipo_acao_id, formador_ids")
+        .select("id, nome, local, mapa_url, imagem_url, imagem_position, data_inicio, data_fim, status, inscricoes_abertas, bolsa_transporte, participantes_extra, projeto_ids, restrito_a_projetos, publico, config_campos, tipo_acao_id, formador_ids")
         .order("data_inicio", { ascending: false, nullsFirst: false });
       if (error) throw error;
       return data;
@@ -3682,6 +3682,7 @@ function AcoesPageInner() {
           status: editing.status,
           inscricoes_abertas: editing.inscricoes_abertas,
           bolsa_transporte: editing.bolsa_transporte,
+          participantes_extra: Math.max(0, Math.round(Number(editing.participantes_extra) || 0)),
           projeto_ids: editing.projeto_ids ?? [],
           restrito_a_projetos: editing.restrito_a_projetos,
           publico: editing.publico,
