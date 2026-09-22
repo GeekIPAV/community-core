@@ -230,6 +230,7 @@ type AcaoForm = {
   status: string;
   inscricoes_abertas: boolean;
   bolsa_transporte: boolean;
+  participantes_extra?: number;
   projeto_ids: string[];
   restrito_a_projetos: boolean;
   publico: boolean;
@@ -239,7 +240,7 @@ type AcaoForm = {
   formador_ids?: string[];
 };
 
-const EMPTY_FORM: AcaoForm = { nome: "", local: "", mapa_url: "", imagem_url: "", imagem_position: "50% 50%", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, bolsa_transporte: false, projeto_ids: [], restrito_a_projetos: false, publico: true, fields: [], parceiro_ids: [], tipo_acao_id: null, formador_ids: [] };
+const EMPTY_FORM: AcaoForm = { nome: "", local: "", mapa_url: "", imagem_url: "", imagem_position: "50% 50%", descricao: "", data_inicio: "", data_fim: "", status: "ativa", inscricoes_abertas: true, bolsa_transporte: false, participantes_extra: 0, projeto_ids: [], restrito_a_projetos: false, publico: true, fields: [], parceiro_ids: [], tipo_acao_id: null, formador_ids: [] };
 
 const acaoFormSchema = z
   .object({
