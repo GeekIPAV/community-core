@@ -215,6 +215,7 @@ function AcaoDetailPage() {
               )}
             </CardContent>
           </Card>
+          </AcaoTabsWrapper>
         )}
 
         {acao && (
