@@ -3973,6 +3973,7 @@ function AcoesPageInner() {
                 status: String(a.status ?? "ativa"),
                 inscricoes_abertas: inscricoesAbertas,
                 bolsa_transporte: !!a.bolsa_transporte,
+                participantes_extra: Number(a.participantes_extra ?? 0),
                 projeto_ids: (a.projeto_ids ?? []) as string[],
                 restrito_a_projetos: !!a.restrito_a_projetos,
                 publico: a.publico ?? true,
