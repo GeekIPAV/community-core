@@ -85,17 +85,18 @@ export async function computeKpiValue(kpi: Kpi, projetoId: string): Promise<numb
 
   if (kpi.fonte === "inscricoes") {
     const scope = f.projeto_ids?.length ? f.projeto_ids : [projetoId];
-    let aq = supabase.from("acoes").select("id").overlaps("projeto_ids", scope);
+    let aq = supabase.from("acoes").select("id, participantes_extra").overlaps("projeto_ids", scope);
     if (f.categoria) aq = aq.eq("categoria", f.categoria);
     const { data: acoesData } = await aq;
     const acaoIds = (acoesData ?? []).map((a: any) => a.id as string);
     if (acaoIds.length === 0) return 0;
+    const extra = (acoesData ?? []).reduce((s: number, a: any) => s + (a.participantes_extra ?? 0), 0);
     const { count } = await supabase
       .from("inscricoes")
       .select("id", { count: "exact", head: true })
       .in("acao_id", acaoIds)
       .neq("status", "cancelada");
-    return count ?? 0;
+    return (count ?? 0) + extra;
   }
 
   if (kpi.fonte === "participantes") {

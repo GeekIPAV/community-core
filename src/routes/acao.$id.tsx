@@ -164,6 +164,7 @@ function AcaoDetailPage() {
             participantes={
               <AcaoParticipantesTab
                 acaoId={acao.id}
+                participantesExtra={(acao as any).participantes_extra ?? 0}
                 onInscreverPessoa={() => setAdminPessoaOpen(true)}
                 onInscreverFamilia={() => setAdminFamiliaOpen(true)}
               />

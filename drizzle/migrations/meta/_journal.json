@@ -43,6 +43,13 @@
       "when": 1789732645958,
       "tag": "0005_atividade_registos_por_participante",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790087380778,
+      "tag": "0006_acoes_participantes_extra",
+      "breakpoints": true
     }
   ]
 }
