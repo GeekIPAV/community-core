@@ -4095,6 +4095,19 @@ function AcoesPageInner() {
                 </div>
                 <Switch checked={editing.bolsa_transporte} onCheckedChange={(c) => setEditing({ ...editing, bolsa_transporte: c })} />
               </label>
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">Participantes não registados</p>
+                  <p className="text-xs text-muted-foreground">Número de pessoas que participaram sem ficha na base de dados. Contam para relatórios e indicadores, mas não criam perfis.</p>
+                </div>
+                <Input
+                  type="number"
+                  min={0}
+                  className="h-9 w-28"
+                  value={String(editing.participantes_extra ?? 0)}
+                  onChange={(e) => setEditing({ ...editing, participantes_extra: Number(e.target.value) })}
+                />
+              </div>
               <TipoAcaoBlock
                 tipoAcaoId={editing.tipo_acao_id}
                 formadorIds={editing.formador_ids ?? []}
