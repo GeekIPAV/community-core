@@ -135,6 +135,16 @@ function AcaoDetailPage() {
         ) : !acao ? (
           <p className="text-sm text-muted-foreground">Ação não encontrada.</p>
         ) : (
+          <AcaoTabsWrapper
+            canManage={canManage}
+            participantes={
+              <AcaoParticipantesTab
+                acaoId={acao.id}
+                onInscreverPessoa={() => setAdminPessoaOpen(true)}
+                onInscreverFamilia={() => setAdminFamiliaOpen(true)}
+              />
+            }
+          >
           <Card className="relative overflow-hidden">
             {canManage && (
               <div className="absolute right-4 top-16 z-10">
