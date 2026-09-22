@@ -21,6 +21,30 @@ import { Badge } from "@/components/ui/badge";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { matchCidade, formatEuro, type CidadeBolsa, KM_RATE, TRIP_FACTOR, parseViatura, normalizeGrupo } from "@/lib/bolsa-transporte";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AcaoParticipantesTab } from "@/components/acao-participantes-tab";
+
+function AcaoTabsWrapper({
+  canManage,
+  participantes,
+  children,
+}: {
+  canManage: boolean;
+  participantes: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  if (!canManage) return <>{children}</>;
+  return (
+    <Tabs defaultValue="detalhes" className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
+        <TabsTrigger value="participantes">Participantes</TabsTrigger>
+      </TabsList>
+      <TabsContent value="detalhes">{children}</TabsContent>
+      <TabsContent value="participantes">{participantes}</TabsContent>
+    </Tabs>
+  );
+}
 
 export const Route = createFileRoute("/acao/$id")({
   loader: async ({ params }) => {
