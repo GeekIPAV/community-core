@@ -136,6 +136,37 @@ export function AcaoParticipantesTab({
       </div>
 
       <Card>
+        <CardHeader className="space-y-2">
+          <CardTitle className="text-base">Participantes não registados</CardTitle>
+          <CardDescription>
+            Número de pessoas que participaram sem ficha na base de dados. Contam para relatórios e indicadores,
+            mas não criam perfis.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              type="number"
+              min={0}
+              value={extra}
+              onChange={(e) => setExtra(e.target.value)}
+              className="h-9 w-28"
+            />
+            <Button
+              size="sm"
+              disabled={guardarExtra.isPending}
+              onClick={() => guardarExtra.mutate(Math.max(0, Math.round(Number(extra) || 0)))}
+            >
+              Guardar
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              Total de participantes: {rows.filter((r) => r.status !== "cancelada").length + (Math.max(0, Math.round(Number(extra) || 0)))}
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
@@ -143,6 +174,7 @@ export function AcaoParticipantesTab({
               <CardDescription>
                 {rows.length} inscrição(ões)
                 {STATUS.filter((s) => contagem[s]).map((s) => ` · ${contagem[s]} ${STATUS_LABEL[s].toLowerCase()}`).join("")}
+                {participantesExtra > 0 ? ` · ${participantesExtra} não registados` : ""}
               </CardDescription>
             </div>
             <div className="flex flex-wrap gap-2">
