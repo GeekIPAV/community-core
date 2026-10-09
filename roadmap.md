@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Rever a gestão de ações: vistas, filtros, contagens, avisos e pré-visualização; preservar operações e validar desktop/mobile, testes e compilação.
+
 - [x] Melhorar visualmente Atividades e Acompanhamento conforme plano aprovado; validar no navegador e com typecheck.
 - [x] Redesenhar identidade e cartões da página pública de ações; partilhar capa automática com detalhes e verificar compilação e navegador.
 - [x] Parte 2: destaque, filtros, memória com contagens públicas seguras e seis ações iniciais; verificar desktop/mobile e compilação.

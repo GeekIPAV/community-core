@@ -45,10 +45,21 @@ import {
   syncAcaoToGoogle,
   resyncAllToGoogle,
 } from "@/lib/google-calendar.functions";
-import { RefreshCw, Calendar as CalendarIcon } from "lucide-react";
+import { RefreshCw, Calendar as CalendarIcon, MapPin, Users, LayoutGrid, Table2, AlertTriangle, X } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
+import { AcaoManagementCard, AcaoManagementBadges, AcaoManagementDate, AcaoWarnings, AcaoFieldWarning, AcaoFormPreview, useAcaoManagementView } from "@/components/acao-management-ui";
+import { ACAO_GROUP_LABELS, acaoManagementGroup, acaoQualityWarnings, acaoParticipantTotal, filterManagedAcoes } from "@/lib/acao-management";
 
 export const Route = createFileRoute("/_app/_admin/acoes")({
   component: AcoesPage,
+  head: () => ({ meta: [
+    { title: "Gestão de ações | Plataforma MEERU" },
+    { name: "description", content: "Gestão de ações, inscrições, participantes e transporte na plataforma MEERU." },
+    { property: "og:title", content: "Gestão de ações | Plataforma MEERU" },
+    { property: "og:description", content: "Organize ações e acompanhe inscrições e participantes." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
 });
 
 type FieldType = "text" | "number" | "date" | "checkbox" | "select" | "multiselect";
@@ -3299,6 +3310,14 @@ function AcoesPageInner() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editFullscreen, setEditFullscreen] = useState(false);
   const [pesquisa, setPesquisa] = useState("");
+  const [tipoFiltro, setTipoFiltro] = useState("todos");
+  const [projetoFiltro, setProjetoFiltro] = useState("todos");
+  const [estadoFiltro, setEstadoFiltro] = useState("todos");
+  const [periodoFiltro, setPeriodoFiltro] = useState("todos");
+  const [atencao, setAtencao] = useState(false);
+  const { session } = useAuth();
+  const [view, setView] = useAcaoManagementView(session?.user.id);
+  const limparFiltros = () => { setPesquisa(""); setTipoFiltro("todos"); setProjetoFiltro("todos"); setEstadoFiltro("todos"); setPeriodoFiltro("todos"); setAtencao(false); };
 
   const pushToGoogle = useServerFn(syncAcaoToGoogle);
   const fireGoogleSync = (acaoId: string, op: "upsert" | "delete") => {
@@ -3447,21 +3466,11 @@ function AcoesPageInner() {
   const invalidate = () => qc.invalidateQueries({ queryKey: ["acoes"] });
   const invalidateParceiros = () => qc.invalidateQueries({ queryKey: ["acao_parceiros"] });
 
-  const filtradas = useMemo(() => {
-    const q = pesquisa.trim().toLowerCase();
-    if (!q) return (data ?? []) as NonNullable<typeof data>;
-    return ((data ?? []) as NonNullable<typeof data>).filter(
-      (a) =>
-        (a.nome ?? "").toLowerCase().includes(q) ||
-        (a.local ?? "").toLowerCase().includes(q),
-    );
-  }, [data, pesquisa]);
-
-  const totalInscricoes = useMemo(() => {
-    let t = 0;
-    for (const c of inscricaoCounts?.values() ?? []) t += c.total;
-    return t;
-  }, [inscricaoCounts]);
+  const filtradas = useMemo(() => filterManagedAcoes(data ?? [], { pesquisa, tipo: tipoFiltro, projeto: projetoFiltro, estado: estadoFiltro, periodo: periodoFiltro, atencao }), [data, pesquisa, tipoFiltro, projetoFiltro, estadoFiltro, periodoFiltro, atencao]);
+  const attentionCount = (data ?? []).filter(a => acaoQualityWarnings(a).length > 0).length;
+  const participantTotal = (a: NonNullable<typeof data>[number]) => acaoParticipantTotal(inscricaoCounts?.get(a.id)?.total ?? 0, a.participantes_extra);
+  const totalInscricoes = (data ?? []).reduce((sum, a) => sum + participantTotal(a), 0);
+  const allUpcomingCount = (data ?? []).filter(a => acaoManagementGroup(a) === "proximas").length;
 
   const inscricoesAbertasCount = useMemo(
     () => ((data ?? []) as any[]).filter((a) => a.inscricoes_abertas ?? true).length,
@@ -3480,49 +3489,24 @@ function AcoesPageInner() {
         data_fim: a.data_fim ?? "",
         estado,
         status: String(a.status ?? ""),
-        inscricoes: inscricaoCounts?.get(a.id)?.total ?? 0,
+        inscricoes: acaoParticipantTotal(inscricaoCounts?.get(a.id)?.total ?? 0, a.participantes_extra),
       };
     });
     downloadCSV("acoes", rows);
   };
 
   const { proximos, passados, semData } = useMemo(() => {
-    const now = Date.now();
-    const prox: typeof data = [];
-    const pas: typeof data = [];
-    const sem: typeof data = [];
-    for (const a of filtradas) {
-      const fim = a.data_fim ? new Date(a.data_fim).getTime() : a.data_inicio ? new Date(a.data_inicio).getTime() : null;
-      if (fim === null) {
-        sem.push(a);
-      } else if (fim >= now - 24 * 60 * 60 * 1000) {
-        prox.push(a);
-      } else {
-        pas.push(a);
-      }
-    }
-    prox.sort((a, b) => {
-      const ta = a.data_inicio ? new Date(a.data_inicio).getTime() : new Date(a.data_fim!).getTime();
-      const tb = b.data_inicio ? new Date(b.data_inicio).getTime() : new Date(b.data_fim!).getTime();
-      return ta - tb;
-    });
-    pas.sort((a, b) => {
-      const ta = a.data_fim ? new Date(a.data_fim).getTime() : new Date(a.data_inicio!).getTime();
-      const tb = b.data_fim ? new Date(b.data_fim).getTime() : new Date(b.data_inicio!).getTime();
-      return tb - ta;
-    });
-    return { proximos: prox, passados: pas, semData: sem };
+    const groups = { proximas: [] as NonNullable<typeof data>, realizadas: [] as NonNullable<typeof data>, semData: [] as NonNullable<typeof data> };
+    for (const a of filtradas) groups[acaoManagementGroup(a)].push(a);
+    const date = (a: NonNullable<typeof data>[number]) => new Date(a.data_inicio || a.data_fim || "").getTime();
+    groups.proximas.sort((a, b) => date(a) - date(b));
+    groups.realizadas.sort((a, b) => new Date(b.data_fim || b.data_inicio || "").getTime() - new Date(a.data_fim || a.data_inicio || "").getTime());
+    return { proximos: groups.proximas, passados: groups.realizadas, semData: groups.semData };
   }, [filtradas]);
 
-  function renderAcaoCard(a: NonNullable<typeof data>[number]) {
+  const openAction = async (a: NonNullable<typeof data>[number]) => {
     const fields = parseFields(a.config_campos);
-    const counts = inscricaoCounts?.get(a.id) ?? { total: 0, presentes: 0 };
-    const inscricoesAbertas = (a as any).inscricoes_abertas ?? true;
-    return (
-      <Card
-        key={a.id}
-        className="cursor-pointer transition-colors hover:bg-muted/30"
-        onClick={async () => {
+    const inscricoesAbertas = a.inscricoes_abertas ?? true;
           const { data: full } = await supabase
             .from("acoes")
             .select("descricao")
@@ -3545,75 +3529,21 @@ function AcoesPageInner() {
             restrito_a_projetos: !!(a as any).restrito_a_projetos,
             publico: (a as any).publico ?? true,
             fields,
+            participantes_extra: Number(a.participantes_extra ?? 0),
             parceiro_ids: acaoParceiros?.get(a.id) ?? [],
             tipo_acao_id: (a as any).tipo_acao_id ?? null,
             formador_ids: ((a as any).formador_ids ?? []) as string[],
           });
-        }}
-      >
-        {(a as any).imagem_url ? (
-          <div className="relative aspect-[16/9] w-full overflow-hidden rounded-t-lg bg-muted">
-            <img
-              src={(a as any).imagem_url}
-              alt={a.nome ?? ""}
-              className="h-full w-full object-cover"
-              style={{ objectPosition: (a as any).imagem_position ?? "50% 50%" }}
-              loading="lazy"
-            />
-          </div>
-        ) : null}
-        <CardHeader>
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <CardTitle>{a.nome}</CardTitle>
-              {a.data_inicio ? (
-                <CardDescription>
-                  {new Date(a.data_inicio).toLocaleString("pt-PT", { dateStyle: "short", timeStyle: "short" })}
-                  {a.data_fim ? ` → ${new Date(a.data_fim).toLocaleString("pt-PT", { dateStyle: "short", timeStyle: "short" })}` : ""}
-                </CardDescription>
-              ) : (
-                <CardDescription>Data a definir</CardDescription>
-              )}
-            </div>
-            <Pencil className="h-4 w-4 text-muted-foreground" />
-          </div>
-        </CardHeader>
-        <CardContent className="text-sm space-y-3">
-          <label
-            className="flex items-center justify-between rounded-md border p-2"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <span className="text-xs font-medium">Inscrições abertas</span>
-            <Switch
-              checked={inscricoesAbertas}
-              disabled={toggleInscricoesAbertas.isPending}
-              onCheckedChange={(c) => toggleInscricoesAbertas.mutate({ id: a.id, value: c })}
-            />
-          </label>
-          <label
-            className="flex items-center justify-between rounded-md border p-2"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <span className="text-xs font-medium">Evento público</span>
-            <Switch
-              checked={(a as any).publico ?? true}
-              disabled={togglePublico.isPending}
-              onCheckedChange={(c) => togglePublico.mutate({ id: a.id, value: c })}
-            />
-          </label>
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">Inscritos</span>
-            <span className="text-sm font-semibold text-foreground">{counts.total}</span>
-          </div>
-          {counts.presentes > 0 && (
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Presentes</span>
-              <span className="text-sm font-semibold text-foreground">{counts.presentes}</span>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    );
+
+  };
+
+  function renderAcaoCard(a: NonNullable<typeof data>[number]) {
+    const counts = inscricaoCounts?.get(a.id) ?? { total: 0, presentes: 0 };
+    return <AcaoManagementCard key={a.id} acao={a} tipo={tiposAcao?.find(t => t.id === a.tipo_acao_id)}
+      participantes={participantTotal(a)} presentes={counts.presentes} onEdit={() => void openAction(a)}
+      onInscricoesChange={value => toggleInscricoesAbertas.mutate({ id: a.id, value })}
+      onPublicoChange={value => togglePublico.mutate({ id: a.id, value })}
+      inscricoesPending={toggleInscricoesAbertas.isPending} publicoPending={togglePublico.isPending} />;
   }
 
   const create = useMutation({
@@ -3733,20 +3663,19 @@ function AcoesPageInner() {
   });
 
   return (
-    <div className="space-y-6">
-       <GoogleCalendarSyncCard />
-       <div className="flex items-center justify-between">
+    <div className="min-w-0 space-y-6">
+       <div className="flex flex-wrap items-center justify-between gap-4">
          <div>
            <h1 className="text-2xl font-semibold">Ações</h1>
            <p className="text-sm text-muted-foreground">Eventos da comunidade</p>
          </div>
-         <div className="flex items-center gap-2">
+         <div className="flex flex-wrap items-center gap-2">
          <BulkImportAcoesDialog onDone={invalidate} />
          <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) setForm(EMPTY_FORM); }}>
           <DialogTrigger asChild>
             <Button><Plus className="mr-2 h-4 w-4" /> Nova ação</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
             <DialogHeader>
               <DialogTitle>Nova ação</DialogTitle>
               <DialogDescription>Define os dados da ação e que campos os participantes vão preencher.</DialogDescription>
@@ -3761,10 +3690,12 @@ function AcoesPageInner() {
                   position={form.imagem_position}
                   onPositionChange={(p) => setForm((current) => ({ ...current, imagem_position: p }))}
                 />
+                <AcaoFieldWarning acao={form} field="imagem_url" />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Local</Label>
+                  <AcaoFieldWarning acao={form} field="local" />
                   <LocalCombobox
                     value={form.local}
                     onChange={(v) => setForm({ ...form, local: v })}
@@ -3796,7 +3727,7 @@ function AcoesPageInner() {
                 />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2"><Label>Data de início</Label><Input type="datetime-local" value={form.data_inicio} onChange={(e) => setForm({ ...form, data_inicio: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Data de início</Label><AcaoFieldWarning acao={form} field="data_inicio" /><Input type="datetime-local" value={form.data_inicio} onChange={(e) => setForm({ ...form, data_inicio: e.target.value })} /></div>
                 <div className="space-y-2">
                   <Label>Data de fim <span className="text-xs text-muted-foreground font-normal">(opcional)</span></Label>
                   <Input type="datetime-local" value={form.data_fim} onChange={(e) => setForm({ ...form, data_fim: e.target.value })} />
@@ -3817,6 +3748,7 @@ function AcoesPageInner() {
                 </div>
                 <Switch checked={form.inscricoes_abertas} onCheckedChange={(c) => setForm({ ...form, inscricoes_abertas: c })} />
               </label>
+              <AcaoFieldWarning acao={form} field="inscricoes_abertas" />
               <label className="flex items-center justify-between rounded-md border p-3">
                 <div>
                   <p className="text-sm font-medium">Bolsa de transporte</p>
@@ -3824,6 +3756,7 @@ function AcoesPageInner() {
                 </div>
                 <Switch checked={form.bolsa_transporte} onCheckedChange={(c) => setForm({ ...form, bolsa_transporte: c })} />
               </label>
+              <AcaoFieldWarning acao={form} field="tipo_acao_id" />
               <TipoAcaoBlock
                 tipoAcaoId={form.tipo_acao_id}
                 formadorIds={form.formador_ids ?? []}
@@ -3864,6 +3797,7 @@ function AcoesPageInner() {
                 <RichTextEditor value={form.descricao} onChange={(v) => setForm({ ...form, descricao: v })} />
               </div>
               <FieldsEditor fields={form.fields} setFields={(fields) => setForm({ ...form, fields })} />
+              <AcaoFormPreview form={form} tipo={tiposAcao?.find(t => t.id === form.tipo_acao_id)} />
             </div>
             <DialogFooter>
               <Button onClick={() => create.mutate()} disabled={!form.nome || create.isPending}>
@@ -3877,8 +3811,8 @@ function AcoesPageInner() {
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Total de ações</CardTitle></CardHeader><CardContent className="text-2xl font-semibold">{data?.length ?? 0}</CardContent></Card>
-        <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Próximas ações</CardTitle></CardHeader><CardContent className="text-2xl font-semibold">{proximos.length}</CardContent></Card>
-        <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Total de inscrições</CardTitle></CardHeader><CardContent className="text-2xl font-semibold">{totalInscricoes}</CardContent></Card>
+        <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Próximas ações</CardTitle></CardHeader><CardContent className="text-2xl font-semibold">{allUpcomingCount}</CardContent></Card>
+        <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Total de participantes</CardTitle></CardHeader><CardContent className="text-2xl font-semibold">{totalInscricoes}</CardContent></Card>
         <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Com inscrições abertas</CardTitle></CardHeader><CardContent className="text-2xl font-semibold">{inscricoesAbertasCount}</CardContent></Card>
       </div>
 
@@ -3892,59 +3826,32 @@ function AcoesPageInner() {
         </Button>
       </div>
 
-      <Tabs defaultValue="lista">
-        <TabsList>
-          <TabsTrigger value="lista">Lista</TabsTrigger>
-          <TabsTrigger value="tabela">Tabela</TabsTrigger>
+      <div className="grid min-w-0 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          { label: "Tipo de ação", value: tipoFiltro, change: setTipoFiltro, items: tiposAcao ?? [] },
+          { label: "Projeto", value: projetoFiltro, change: setProjetoFiltro, items: projetos ?? [] },
+          { label: "Estado", value: estadoFiltro, change: setEstadoFiltro, items: Array.from(new Set((data ?? []).map(a => a.status))).map(status => ({ id: status, nome: status })) },
+          { label: "Período", value: periodoFiltro, change: setPeriodoFiltro, items: Object.entries(ACAO_GROUP_LABELS).map(([id, nome]) => ({ id, nome })) },
+        ].map(filter => <div key={filter.label} className="min-w-0 space-y-1"><Label className="text-xs text-muted-foreground">{filter.label}</Label><Select value={filter.value} onValueChange={filter.change}><SelectTrigger className="w-full min-w-0" aria-label={filter.label}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todos</SelectItem>{filter.items.map(item => <SelectItem key={item.id} value={item.id}>{item.nome}</SelectItem>)}</SelectContent></Select></div>)}
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Button variant={atencao ? "secondary" : "ghost"} size="sm" className="h-auto whitespace-normal text-left text-muted-foreground" onClick={() => setAtencao(v => !v)} aria-pressed={atencao}><AlertTriangle className="mr-2 h-4 w-4 shrink-0" />{attentionCount} {attentionCount === 1 ? "ação precisa" : "ações precisam"} de atenção</Button>
+        {(pesquisa || tipoFiltro !== "todos" || projetoFiltro !== "todos" || estadoFiltro !== "todos" || periodoFiltro !== "todos" || atencao) && <Button variant="ghost" size="sm" onClick={limparFiltros}><X className="mr-1 h-4 w-4" />Limpar filtros</Button>}
+      </div>
+      <Tabs value={view} onValueChange={setView} className="min-w-0">
+        <TabsList className="max-w-full">
+          <TabsTrigger value="tabela"><Table2 className="mr-1.5 h-4 w-4" />Tabela</TabsTrigger>
+          <TabsTrigger value="lista"><LayoutGrid className="mr-1.5 h-4 w-4" />Cartões</TabsTrigger>
           <TabsTrigger value="planeamento">Planeamento</TabsTrigger>
         </TabsList>
         <TabsContent value="lista" className="mt-6 space-y-8">
-      {isLoading ? (
-        <div className="grid gap-3 md:grid-cols-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}</div>
-      ) : (
-        <>
-          <section>
-            <h2 className="mb-3 text-xl font-semibold">Próximas ações</h2>
-            {proximos.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sem próximas ações.</p>
-            ) : (
-              <div className="grid gap-3 md:grid-cols-2">
-                {proximos.map((a) => renderAcaoCard(a))}
-              </div>
-            )}
-          </section>
-
-          <section>
-            <h2 className="mb-3 text-xl font-semibold">Data a definir</h2>
-            {semData.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sem ações sem data.</p>
-            ) : (
-              <div className="grid gap-3 md:grid-cols-2">
-                {semData.map((a) => renderAcaoCard(a))}
-              </div>
-            )}
-          </section>
-
-          <section>
-            <h2 className="mb-3 text-xl font-semibold">Ações passadas</h2>
-            {passados.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sem ações passadas.</p>
-            ) : (
-              <div className="grid gap-3 md:grid-cols-2">
-                {passados.map((a) => renderAcaoCard(a))}
-              </div>
-            )}
-          </section>
-        </>
-      )}
+          {isLoading ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-96 w-full" />)}</div> : filtradas.length === 0 ?
+            <div className="space-y-3 rounded-lg border border-dashed py-12 text-center"><CalendarIcon className="mx-auto h-8 w-8 text-muted-foreground" /><p className="font-medium">Nenhuma ação encontrada</p><Button variant="outline" onClick={limparFiltros}>Limpar filtros</Button></div> :
+            [{ label: "Próximas", rows: proximos }, { label: "Data a definir", rows: semData }, { label: "Realizadas", rows: passados }].filter(group => group.rows.length > 0).map(group => <section key={group.label} className="space-y-4"><div className="flex items-center gap-2"><h2 className="text-lg font-semibold">{group.label}</h2><Badge variant="secondary">{group.rows.length}</Badge></div><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{group.rows.map(renderAcaoCard)}</div></section>)}
         </TabsContent>
-        <TabsContent value="tabela" className="mt-6">
-          <AcoesBulkTable
-            acoes={filtradas as any[]}
-            isLoading={isLoading}
-            onChanged={invalidate}
-            fireGoogleSync={fireGoogleSync}
-          />
+        <TabsContent value="tabela" className="mt-6 min-w-0">
+          <AcoesBulkTable acoes={filtradas} isLoading={isLoading} onChanged={invalidate} fireGoogleSync={fireGoogleSync}
+            tipos={tiposAcao ?? []} counts={inscricaoCounts} onEdit={a => void openAction(a)} />
         </TabsContent>
         <TabsContent value="planeamento" className="mt-6">
           <AcoesPlaneamento
@@ -4011,7 +3918,7 @@ function AcoesPageInner() {
                     {editFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                   </Button>
                 </div>
-                <TabsList className="mt-3 self-start">
+                <TabsList className="mt-3 h-auto max-w-full flex-wrap self-start">
                   <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
                   <TabsTrigger value="inscricoes">Inscrições</TabsTrigger>
                   {editing.bolsa_transporte && <TabsTrigger value="bolsa">Bolsa</TabsTrigger>}
@@ -4028,10 +3935,12 @@ function AcoesPageInner() {
                   position={editing.imagem_position}
                   onPositionChange={(p) => setEditing((current) => current ? ({ ...current, imagem_position: p }) : current)}
                 />
+                <AcaoFieldWarning acao={editing} field="imagem_url" />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Local</Label>
+                  <AcaoFieldWarning acao={editing} field="local" />
                   <LocalCombobox
                     value={editing.local}
                     onChange={(v) => setEditing({ ...editing, local: v })}
@@ -4067,7 +3976,7 @@ function AcoesPageInner() {
                 />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2"><Label>Data de início</Label><Input type="datetime-local" value={editing.data_inicio} onChange={(e) => setEditing({ ...editing, data_inicio: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Data de início</Label><AcaoFieldWarning acao={editing} field="data_inicio" /><Input type="datetime-local" value={editing.data_inicio} onChange={(e) => setEditing({ ...editing, data_inicio: e.target.value })} /></div>
                 <div className="space-y-2">
                   <Label>Data de fim <span className="text-xs text-muted-foreground font-normal">(opcional)</span></Label>
                   <Input type="datetime-local" value={editing.data_fim} onChange={(e) => setEditing({ ...editing, data_fim: e.target.value })} />
@@ -4088,6 +3997,7 @@ function AcoesPageInner() {
                 </div>
                 <Switch checked={editing.inscricoes_abertas} onCheckedChange={(c) => setEditing({ ...editing, inscricoes_abertas: c })} />
               </label>
+              <AcaoFieldWarning acao={editing} field="inscricoes_abertas" />
               <label className="flex items-center justify-between rounded-md border p-3">
                 <div>
                   <p className="text-sm font-medium">Bolsa de transporte</p>
@@ -4108,6 +4018,7 @@ function AcoesPageInner() {
                   onChange={(e) => setEditing({ ...editing, participantes_extra: Number(e.target.value) })}
                 />
               </div>
+              <AcaoFieldWarning acao={editing} field="tipo_acao_id" />
               <TipoAcaoBlock
                 tipoAcaoId={editing.tipo_acao_id}
                 formadorIds={editing.formador_ids ?? []}
@@ -4148,6 +4059,7 @@ function AcoesPageInner() {
                 <RichTextEditor value={editing.descricao} onChange={(v) => setEditing({ ...editing, descricao: v })} />
               </div>
               <FieldsEditor fields={editing.fields} setFields={(fields) => setEditing({ ...editing, fields })} />
+              <AcaoFormPreview form={editing} tipo={tiposAcao?.find(t => t.id === editing.tipo_acao_id)} />
               </TabsContent>
               <TabsContent value="inscricoes" className="mt-6 min-w-0">
                 <InscricoesTab acaoId={editing.id} fields={editing.fields} />
@@ -4172,6 +4084,8 @@ function AcoesPageInner() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <GoogleCalendarSyncCard />
 
       {/* Delete confirm */}
       <Dialog open={!!deleteId} onOpenChange={(o) => { if (!o) setDeleteId(null); }}>
@@ -4391,7 +4305,7 @@ function GoogleCalendarSyncCard() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+      <CardHeader className="flex flex-col items-start justify-between gap-4 space-y-0 sm:flex-row">
         <div className="space-y-1">
           <CardTitle className="flex items-center gap-2 text-base">
             <CalendarIcon className="h-4 w-4" /> Google Calendar
@@ -4423,11 +4337,15 @@ function GoogleCalendarSyncCard() {
 }
 
 function AcoesBulkTable({
+  tipos, counts, onEdit,
   acoes,
   isLoading,
   onChanged,
   fireGoogleSync,
 }: {
+  tipos: { id: string; nome: string }[];
+  counts?: Map<string, { total: number; presentes: number }>;
+  onEdit: (acao: any) => void;
   acoes: any[];
   isLoading: boolean;
   onChanged: () => void;
@@ -4542,8 +4460,8 @@ function AcoesBulkTable({
         </div>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
+      <div className="min-w-0 overflow-hidden rounded-md border">
+        <Table className="w-full table-auto">
           <TableHeader>
             <TableRow>
               <TableHead className="w-10">
@@ -4553,19 +4471,25 @@ function AcoesBulkTable({
                   aria-label="Selecionar tudo"
                 />
               </TableHead>
-              <TableHead>Nome</TableHead>
-              <TableHead className="w-[220px]">Data</TableHead>
+              <TableHead>Ação</TableHead>
+              <TableHead className="hidden w-32 md:table-cell">Data</TableHead>
+              <TableHead className="hidden w-28 text-right sm:table-cell">Participantes</TableHead>
+              <TableHead className="w-10 sm:w-12"><span className="sr-only">Editar</span></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {acoes.length === 0 && (
               <TableRow>
-                <TableCell colSpan={3} className="text-center text-sm text-muted-foreground py-8">
+                <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-8">
                   Sem ações.
                 </TableCell>
               </TableRow>
             )}
-            {acoes.map((a) => {
+            {Object.entries(ACAO_GROUP_LABELS).map(([group, label]) => {
+              const rows = acoes.filter(a => acaoManagementGroup(a) === group);
+              if (!rows.length) return null;
+              rows.sort((a, b) => group === "realizadas" ? new Date(b.data_fim || b.data_inicio || "").getTime() - new Date(a.data_fim || a.data_inicio || "").getTime() : new Date(a.data_inicio || a.data_fim || "").getTime() - new Date(b.data_inicio || b.data_fim || "").getTime());
+              return <Fragment key={group}><TableRow className="bg-muted/50 hover:bg-muted/50"><TableCell colSpan={5} className="py-2 text-xs font-semibold">{label} <Badge variant="secondary" className="ml-2">{rows.length}</Badge></TableCell></TableRow>{rows.map((a) => {
               const isSel = selected.has(a.id);
               return (
                 <TableRow
@@ -4581,17 +4505,19 @@ function AcoesBulkTable({
                       aria-label={`Selecionar ${a.nome}`}
                     />
                   </TableCell>
-                  <TableCell className="font-medium">{a.nome}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {a.data_inicio
-                      ? new Date(a.data_inicio).toLocaleString("pt-PT", {
-                          dateStyle: "short",
-                          timeStyle: "short",
-                        })
-                      : "—"}
+                  <TableCell className="whitespace-normal">
+                    <div className="flex flex-wrap items-start gap-1"><Button variant="link" className="h-auto min-w-0 justify-start whitespace-normal break-words p-0 text-left font-semibold text-foreground" onClick={e => { e.stopPropagation(); onEdit(a); }}>{a.nome}</Button><AcaoWarnings acao={a} /></div>
+                    <div className="mt-2"><AcaoManagementBadges acao={a} tipo={tipos.find(t => t.id === a.tipo_acao_id)} /></div>
+                    <p className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span className="break-words">{a.local || "Local a definir"}</span></p>
+                    <div className="mt-2 md:hidden"><AcaoManagementDate acao={a} /></div>
+                    <p className="mt-2 flex items-center gap-1.5 text-xs sm:hidden"><Users className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /><strong>{acaoParticipantTotal(counts?.get(a.id)?.total ?? 0, a.participantes_extra)}</strong> participantes</p>
                   </TableCell>
+                  <TableCell className="hidden whitespace-normal md:table-cell"><AcaoManagementDate acao={a} /></TableCell>
+                  <TableCell className="hidden text-right font-semibold sm:table-cell">{acaoParticipantTotal(counts?.get(a.id)?.total ?? 0, a.participantes_extra)}</TableCell>
+                  <TableCell onClick={e => e.stopPropagation()}><Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Gerir ${a.nome}`} onClick={() => onEdit(a)}><Pencil className="h-4 w-4" /></Button></TableCell>
                 </TableRow>
               );
+            })}</Fragment>;
             })}
           </TableBody>
         </Table>
