@@ -177,7 +177,7 @@ function AcaoDetailPage() {
               />
             }
           >
-          <Card className="relative overflow-hidden">
+          <Card className="relative overflow-hidden rounded-none">
             {canManage && (
               <div className="absolute right-4 top-16 z-10">
                 <Button size="icon" variant="secondary" onClick={() => setEditOpen(true)} title="Editar ação">
