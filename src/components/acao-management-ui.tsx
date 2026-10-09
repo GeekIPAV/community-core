@@ -77,9 +77,9 @@ export function AcaoManagementCard({ acao, tipo, participantes, presentes, onEdi
   return <Card className="group min-w-0 gap-0 overflow-hidden py-0 shadow-none transition-colors hover:border-primary">
     <div className="relative">
       <AcaoCover nome={acao.nome} imagemUrl={acao.imagem_url} imagemPosition={acao.imagem_position} tipo={tipo} />
-      <div className="absolute left-3 top-3 flex min-h-16 min-w-16 flex-col items-center justify-center rounded-md bg-foreground px-3 py-2 text-center text-background" aria-label={date.text}>
+      {acao.imagem_url && date.kind !== "undated" && <div className="absolute left-3 top-3 flex min-h-16 min-w-16 flex-col items-center justify-center rounded-md bg-foreground px-3 py-2 text-center text-background" aria-label={date.text}>
         {date.kind === "single" ? <><span className="text-3xl font-bold leading-none">{date.day}</span><span className="mt-1 text-xs font-semibold">{date.month}</span></> : <span className="max-w-44 text-xs font-semibold">{date.text}</span>}
-      </div>
+      </div>}
     </div>
     <div className="flex flex-1 flex-col gap-4 p-4 sm:p-5">
       <div className="flex items-start justify-between gap-2"><h3 className="min-w-0 break-words text-xl font-semibold leading-7">{acao.nome}</h3><AcaoWarnings acao={acao} /></div>

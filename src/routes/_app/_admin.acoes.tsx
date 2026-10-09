@@ -4473,8 +4473,8 @@ function AcoesBulkTable({
               </TableHead>
               <TableHead>Ação</TableHead>
               <TableHead className="hidden w-32 md:table-cell">Data</TableHead>
-              <TableHead className="w-20 text-right sm:w-28">Participantes</TableHead>
-              <TableHead className="w-12"><span className="sr-only">Editar</span></TableHead>
+              <TableHead className="hidden w-28 text-right sm:table-cell">Participantes</TableHead>
+              <TableHead className="w-10 sm:w-12"><span className="sr-only">Editar</span></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -4506,13 +4506,14 @@ function AcoesBulkTable({
                     />
                   </TableCell>
                   <TableCell className="whitespace-normal">
-                    <div className="flex items-start gap-1"><Button variant="link" className="h-auto min-w-0 justify-start whitespace-normal p-0 text-left font-semibold text-foreground" onClick={e => { e.stopPropagation(); onEdit(a); }}>{a.nome}</Button><AcaoWarnings acao={a} /></div>
+                    <div className="flex flex-wrap items-start gap-1"><Button variant="link" className="h-auto min-w-0 justify-start whitespace-normal break-words p-0 text-left font-semibold text-foreground" onClick={e => { e.stopPropagation(); onEdit(a); }}>{a.nome}</Button><AcaoWarnings acao={a} /></div>
                     <div className="mt-2"><AcaoManagementBadges acao={a} tipo={tipos.find(t => t.id === a.tipo_acao_id)} /></div>
                     <p className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span className="break-words">{a.local || "Local a definir"}</span></p>
                     <div className="mt-2 md:hidden"><AcaoManagementDate acao={a} /></div>
+                    <p className="mt-2 flex items-center gap-1.5 text-xs sm:hidden"><Users className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /><strong>{acaoParticipantTotal(counts?.get(a.id)?.total ?? 0, a.participantes_extra)}</strong> participantes</p>
                   </TableCell>
                   <TableCell className="hidden whitespace-normal md:table-cell"><AcaoManagementDate acao={a} /></TableCell>
-                  <TableCell className="text-right font-semibold">{acaoParticipantTotal(counts?.get(a.id)?.total ?? 0, a.participantes_extra)}</TableCell>
+                  <TableCell className="hidden text-right font-semibold sm:table-cell">{acaoParticipantTotal(counts?.get(a.id)?.total ?? 0, a.participantes_extra)}</TableCell>
                   <TableCell onClick={e => e.stopPropagation()}><Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Gerir ${a.nome}`} onClick={() => onEdit(a)}><Pencil className="h-4 w-4" /></Button></TableCell>
                 </TableRow>
               );
