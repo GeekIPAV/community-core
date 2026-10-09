@@ -22,6 +22,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { matchCidade, formatEuro, type CidadeBolsa, KM_RATE, TRIP_FACTOR, parseViatura, normalizeGrupo } from "@/lib/bolsa-transporte";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AcaoCover, CABIN_FONT_LINK } from "@/components/acao-cover";
 import { AcaoParticipantesTab } from "@/components/acao-participantes-tab";
 
 function AcaoTabsWrapper({
@@ -64,7 +65,12 @@ export const Route = createFileRoute("/acao/$id")({
         meta: [
           { title: "Ação — Meeru" },
           { name: "description", content: "Detalhes da ação na comunidade Meeru." },
+          { property: "og:title", content: "Ação — MEERU" },
+          { property: "og:description", content: "Detalhes da ação na comunidade MEERU." },
+          { property: "og:type", content: "website" },
+          { name: "twitter:card", content: "summary_large_image" },
         ],
+        links: [CABIN_FONT_LINK],
       };
     }
     const plainDesc = (a.descricao ?? "")
@@ -79,14 +85,15 @@ export const Route = createFileRoute("/acao/$id")({
         { name: "description", content: desc },
         { property: "og:title", content: a.nome },
         { property: "og:description", content: desc },
-        { property: "og:type", content: "event" },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary_large_image" },
         { property: "og:url", content: url },
-        ...(a.imagem_url ? [
+        ...(a.imagem_url?.startsWith("https://") ? [
           { property: "og:image", content: a.imagem_url },
           { name: "twitter:image", content: a.imagem_url },
         ] : []),
       ],
-      links: [{ rel: "canonical", href: url }],
+      links: [CABIN_FONT_LINK, { rel: "canonical", href: url }],
       scripts: [{
         type: "application/ld+json",
         children: JSON.stringify({
@@ -135,7 +142,7 @@ function AcaoDetailPage() {
   const { data: acao, isLoading } = useQuery({
     queryKey: ["acao", id],
     queryFn: async () => {
-      let q = supabase.from("acoes").select("*").eq("id", id);
+      let q = supabase.from("acoes").select("*, tipo_acao:tipos_acao(id, nome)").eq("id", id);
       if (!canManage) q = q.eq("publico", true);
       const { data, error } = await q.single();
       if (error) throw error;
@@ -178,14 +185,7 @@ function AcaoDetailPage() {
                 </Button>
               </div>
             )}
-            {acao.imagem_url && (
-              <img
-                src={acao.imagem_url}
-                alt={acao.nome}
-                className="h-56 w-full object-cover sm:h-72"
-                style={{ objectPosition: (acao as any).imagem_position ?? "50% 50%" }}
-              />
-            )}
+            <AcaoCover nome={acao.nome} imagemUrl={acao.imagem_url} imagemPosition={acao.imagem_position} tipo={acao.tipo_acao} />
             <CardHeader>
               <CardTitle className="text-2xl">{acao.nome}</CardTitle>
               <CardDescription className="space-y-1">
