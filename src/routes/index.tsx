@@ -7,13 +7,25 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { useAuth } from "@/lib/auth-context";
-import { CalendarDays, LayoutGrid, LogIn } from "lucide-react";
+import { CalendarDays, LayoutGrid, LogIn, Search, Sparkles, ArrowDown } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AcaoCard } from "@/components/acao-card";
 import { CABIN_FONT_LINK } from "@/components/acao-cover";
+import { AcaoFeatured } from "@/components/acao-featured";
+import { acaoPresentation } from "@/lib/acao-presentation";
+import { INITIAL_MEMORY_COUNT, matchesGalleryFilters, type GalleryFilters } from "@/lib/acao-gallery";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 
 export const Route = createFileRoute("/")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    tipo: typeof search.tipo === "string" ? search.tipo : "",
+    pesquisa: typeof search.pesquisa === "string" ? search.pesquisa : "",
+    abertas: search.abertas === true || search.abertas === "true",
+    memoria: Math.max(INITIAL_MEMORY_COUNT, Math.floor(Number(search.memoria) || INITIAL_MEMORY_COUNT)),
+    vista: search.vista === "calendario" ? "calendario" as const : "galeria" as const,
+  }),
   head: () => ({
     meta: [
       { title: "Ações da comunidade — MEERU" },
@@ -30,6 +42,11 @@ export const Route = createFileRoute("/")({
 
 function Home() {
   const navigate = useNavigate();
+  const search = Route.useSearch();
+  const updateFilters = (values: Partial<GalleryFilters>) => {
+    void navigate({ to: "/", search: (prev) => ({ ...prev, ...values, memoria: INITIAL_MEMORY_COUNT }), replace: true, resetScroll: false });
+  };
+  const clearFilters = () => updateFilters({ tipo: "", pesquisa: "", abertas: false });
   const { session, pessoa, isAdmin } = useAuth();
 
   const { data, isLoading } = useQuery({
@@ -37,7 +54,7 @@ function Home() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("acoes")
-        .select("id, nome, descricao, local, mapa_url, imagem_url, imagem_position, data_inicio, data_fim, inscricoes_abertas, projeto_ids, restrito_a_projetos, publico, tipo_acao:tipos_acao(id, nome)")
+        .select("id, nome, descricao, local, mapa_url, imagem_url, imagem_position, data_inicio, data_fim, inscricoes_abertas, projeto_ids, restrito_a_projetos, publico, participantes_extra, tipo_acao:tipos_acao(id, nome)")
         .eq("publico", true)
         .order("data_inicio", { ascending: true, nullsFirst: false });
       if (error) throw error;
@@ -100,6 +117,29 @@ function Home() {
     });
     return { proximos: prox, passados: pas, semData: sem };
   }, [acoesVisiveis]);
+
+  const countIds = useMemo(() => passados.map((a) => a.id).sort(), [passados]);
+  const { data: participantCounts, isError: countsError, refetch: retryCounts } = useQuery({
+    queryKey: ["public_action_participant_counts", countIds, pessoa?.id, isAdmin],
+    enabled: countIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_public_action_participant_counts", { p_action_ids: countIds });
+      if (error) throw error;
+      return Object.fromEntries((data ?? []).map((row) => [row.acao_id, Number(row.participantes)]));
+    },
+  });
+
+  const tipos = useMemo(() => {
+    const map = new Map<string, NonNullable<(typeof acoesVisiveis)[number]["tipo_acao"]>>();
+    for (const acao of acoesVisiveis) if (acao.tipo_acao) map.set(acao.tipo_acao.id, acao.tipo_acao);
+    return [...map.values()].sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
+  }, [acoesVisiveis]);
+  const destaque = proximos[0];
+  const proximosFiltrados = proximos.slice(1).filter((a) => matchesGalleryFilters(a, search));
+  const semDataFiltrados = semData.filter((a) => matchesGalleryFilters(a, search));
+  const passadosFiltrados = passados.filter((a) => matchesGalleryFilters(a, search));
+  const hasFilters = Boolean(search.tipo || search.abertas || search.pesquisa.trim());
+  const noResults = hasFilters && proximosFiltrados.length + semDataFiltrados.length + passadosFiltrados.length === 0;
 
   const todasAcoes = useMemo(() => [...proximos, ...passados, ...semData], [proximos, passados, semData]);
 
@@ -165,51 +205,68 @@ function Home() {
           </div>
         </div>
 
-        <Tabs defaultValue="galeria">
+        {isLoading ? <Skeleton className="h-80 w-full" /> : destaque ? (
+          <AcaoFeatured acao={destaque} />
+        ) : (
+          <section className="space-y-6" aria-label="Novas ações em breve">
+            <div className="flex items-start gap-4 border-l-4 border-secondary py-2 pl-5">
+              <Sparkles className="mt-1 h-7 w-7 shrink-0 text-secondary" aria-hidden="true" />
+              <div><h2 className="text-2xl font-bold">Novas ações em breve</h2><p className="mt-2 max-w-xl text-base leading-relaxed text-muted-foreground">Estamos a preparar os próximos encontros. Entretanto, revê o que já vivemos juntos.</p></div>
+            </div>
+            {passados[0] && <AcaoFeatured acao={passados[0]} passado participantes={participantCounts?.[passados[0].id]} />}
+          </section>
+        )}
+
+        <Tabs value={search.vista} onValueChange={(vista) => { void navigate({ to: "/", search: (prev) => ({ ...prev, vista: vista === "calendario" ? "calendario" : "galeria" }), replace: true, resetScroll: false }); }}>
           <TabsList>
             <TabsTrigger value="galeria"><LayoutGrid className="mr-2 h-4 w-4" /> Galeria</TabsTrigger>
             <TabsTrigger value="calendario"><CalendarDays className="mr-2 h-4 w-4" /> Calendário</TabsTrigger>
           </TabsList>
 
           <TabsContent value="galeria" className="mt-4 space-y-8">
+            <div className="min-w-0 space-y-4 border-b pb-5">
+              <div className="flex gap-2 overflow-x-auto pb-2" aria-label="Filtrar por tipo de ação">
+                <Button variant="outline" aria-pressed={!search.tipo} onClick={() => updateFilters({ tipo: "" })} className={`shrink-0 gap-2 rounded-none ${!search.tipo ? "acao-chip-ink" : ""}`}><LayoutGrid className="h-4 w-4" />Todas</Button>
+                {tipos.map((tipo) => {
+                  const { Icon, tone } = acaoPresentation(tipo);
+                  return <Button key={tipo.id} variant="outline" aria-pressed={search.tipo === tipo.id} onClick={() => updateFilters({ tipo: tipo.id })} className={`shrink-0 gap-2 rounded-none ${tone} ${search.tipo === tipo.id ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : ""}`}><Icon className="h-4 w-4" />{tipo.nome}</Button>;
+                })}
+              </div>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="relative w-full sm:max-w-sm"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input aria-label="Pesquisar por nome ou local" placeholder="Pesquisar por nome ou local" value={search.pesquisa} onChange={(event) => updateFilters({ pesquisa: event.target.value })} className="h-10 rounded-none bg-card pl-9" /></div>
+                <label className="flex cursor-pointer items-center gap-3 text-sm font-medium"><Switch checked={search.abertas} onCheckedChange={(abertas) => updateFilters({ abertas })} aria-label="Só com inscrições abertas" />Só com inscrições abertas</label>
+              </div>
+            </div>
             {isLoading ? (
               <div className="grid auto-rows-fr gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-44 w-full" />)}
               </div>
             ) : (
               <>
-                <section>
+                {noResults && <div className="space-y-3 border-y py-8 text-center" role="status"><p className="text-muted-foreground">Não encontrámos ações com estes filtros.</p><Button variant="outline" onClick={clearFilters}>Limpar filtros</Button></div>}
+                {proximosFiltrados.length > 0 && <section>
                   <h2 className="mb-3 text-xl font-semibold">Próximas ações</h2>
-                  {proximos.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Sem ações abertas no momento.</p>
-                  ) : (
                     <div className="grid auto-rows-fr gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                      {proximos.map((a) => <AcaoCard key={a.id} acao={a} />)}
+                      {proximosFiltrados.map((a) => <AcaoCard key={a.id} acao={a} />)}
                     </div>
-                  )}
-                </section>
+                </section>}
 
-                <section>
+                {semDataFiltrados.length > 0 && <section>
                   <h2 className="mb-3 text-xl font-semibold">Data a definir</h2>
-                  {semData.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Sem ações sem data.</p>
-                  ) : (
                     <div className="grid auto-rows-fr gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                      {semData.map((a) => <AcaoCard key={a.id} acao={a} />)}
+                      {semDataFiltrados.map((a) => <AcaoCard key={a.id} acao={a} />)}
                     </div>
-                  )}
-                </section>
+                </section>}
 
-                <section>
-                  <h2 className="mb-3 text-xl font-semibold">Ações passadas</h2>
-                  {passados.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Sem eventos passados.</p>
-                  ) : (
+                {passadosFiltrados.length > 0 && <section aria-label="Memória da comunidade">
+                  <h2 className="text-xl font-semibold">Memória da comunidade</h2>
+                  <p className="mb-4 mt-1 text-sm text-muted-foreground">Momentos que vivemos juntos.</p>
+                  {countsError && <p role="alert" className="mb-4 text-sm text-muted-foreground">Não foi possível carregar a contagem de participantes. <Button variant="link" onClick={() => void retryCounts()}>Tentar novamente</Button></p>}
                     <div className="grid auto-rows-fr gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                      {passados.map((a) => <AcaoCard key={a.id} acao={a} passado />)}
+                      {passadosFiltrados.slice(0, search.memoria).map((a) => <AcaoCard key={a.id} acao={a} passado participantes={participantCounts?.[a.id]} />)}
                     </div>
-                  )}
-                </section>
+                    {passadosFiltrados.length > search.memoria && <div className="mt-6 flex justify-center"><Button variant="outline" className="gap-2" onClick={() => { void navigate({ to: "/", search: (prev) => ({ ...prev, memoria: prev.memoria + INITIAL_MEMORY_COUNT }), replace: true, resetScroll: false }); }}>Ver mais<ArrowDown className="h-4 w-4" /></Button></div>}
+                </section>}
               </>
             )}
           </TabsContent>
@@ -281,7 +338,7 @@ function Home() {
                 {acoesDoDia.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Sem ações neste dia.</p>
                 ) : (
-                  acoesDoDia.map((a) => <AcaoCard key={a.id} acao={a} passado={passados.some((p) => p.id === a.id)} />)
+                  acoesDoDia.map((a) => <AcaoCard key={a.id} acao={a} passado={passados.some((p) => p.id === a.id)} participantes={participantCounts?.[a.id]} />)
                 )}
               </div>
             </div>
