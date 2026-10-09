@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, type SearchSchemaInput } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 
 export const Route = createFileRoute("/")({
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: SearchSchemaInput & { tipo?: string; pesquisa?: string; abertas?: boolean | string; memoria?: number; vista?: string }) => ({
     tipo: typeof search.tipo === "string" ? search.tipo : "",
     pesquisa: typeof search.pesquisa === "string" ? search.pesquisa : "",
     abertas: search.abertas === true || search.abertas === "true",
@@ -41,7 +41,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const navigate = useNavigate();
+  const navigate = useNavigate({ from: "/" });
   const search = Route.useSearch();
   const updateFilters = (values: Partial<GalleryFilters>) => {
     void navigate({ to: "/", search: (prev) => ({ ...prev, ...values, memoria: INITIAL_MEMORY_COUNT }), replace: true, resetScroll: false });
