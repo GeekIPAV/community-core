@@ -6,3 +6,5 @@
 - Keep featured action presentation in `AcaoFeatured` and gallery filters in URL search parameters so shared links preserve the selected view without changing calendar visibility.
 - Fetch public participant totals in one aggregate RPC restricted to visible public actions; never expose registration rows to visitors just to show counts.
 - Share inclusive calendar-day expansion and ICS serialization in a browser-safe calendar helper; use the same day grouping for the desktop calendar and mobile agenda to avoid interval inconsistencies.
+- Share action-management badges, warnings, cover/date presentation and live public-card preview in browser-safe components; retain mutations and form state in the management route to preserve operations.
+- Keep management filters, grouping and participant-total arithmetic in a tested browser-safe helper; aggregate registrations in one RLS-scoped query and persist only the chosen list view per authenticated user.
