@@ -11,7 +11,8 @@ import { CalendarDays, LayoutGrid, LogIn, Search, Sparkles, ArrowDown } from "lu
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AcaoCard } from "@/components/acao-card";
-import { CABIN_FONT_LINK } from "@/components/acao-cover";
+import { AcaoAgenda } from "@/components/acao-agenda";
+import { groupActionsByDay } from "@/lib/acao-calendar";
 import { AcaoFeatured } from "@/components/acao-featured";
 import { acaoPresentation } from "@/lib/acao-presentation";
 import { INITIAL_MEMORY_COUNT, matchesGalleryFilters, type GalleryFilters } from "@/lib/acao-gallery";
@@ -35,7 +36,6 @@ export const Route = createFileRoute("/")({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
-    links: [CABIN_FONT_LINK],
   }),
   component: Home,
 });
@@ -143,32 +143,13 @@ function Home() {
 
   const todasAcoes = useMemo(() => [...proximos, ...passados, ...semData], [proximos, passados, semData]);
 
-  const diasComAcao = useMemo(
-    () => todasAcoes.filter((a) => a.data_inicio).map((a) => new Date(a.data_inicio ?? "")),
-    [todasAcoes],
-  );
-
-  const acoesDoDia = useMemo(() => {
-    if (!selectedDate) return todasAcoes;
-    const k = selectedDate.toDateString();
-    return todasAcoes.filter((a) => a.data_inicio && new Date(a.data_inicio).toDateString() === k);
-  }, [todasAcoes, selectedDate]);
-
-  const acoesPorDia = useMemo(() => {
-    const map = new Map<string, typeof todasAcoes>();
-    for (const a of todasAcoes) {
-      if (!a.data_inicio) continue;
-      const k = new Date(a.data_inicio).toDateString();
-      const arr = map.get(k) ?? [];
-      arr.push(a);
-      map.set(k, arr);
-    }
-    return map;
-  }, [todasAcoes]);
+  const acoesPorDia = useMemo(() => groupActionsByDay(todasAcoes), [todasAcoes]);
+  const diasComAcao = useMemo(() => [...acoesPorDia.keys()].map((key) => new Date(key)), [acoesPorDia]);
+  const acoesDoDia = selectedDate ? acoesPorDia.get(selectedDate.toDateString()) ?? [] : todasAcoes;
 
   return (
     <SidebarProvider>
-      <div className="public-actions-theme flex min-h-screen w-full bg-background">
+      <div className="flex min-h-screen w-full bg-background">
         <div className="hidden md:block">
           <AppSidebar />
         </div>
@@ -198,8 +179,7 @@ function Home() {
 
       <main className="mx-auto w-full max-w-6xl space-y-8 px-4 py-6 md:py-8">
         <div className="relative overflow-hidden border-b border-border pb-8 pt-4 md:pb-10 md:pt-6">
-          <svg aria-hidden="true" viewBox="0 0 120 120" className="absolute right-0 top-0 h-20 w-20 text-secondary md:h-32 md:w-32"><path d="M0 0H120V120A120 120 0 0 1 0 0Z" fill="currentColor" /></svg>
-          <div className="relative max-w-3xl pr-12 md:pr-20">
+          <div className="max-w-3xl">
             <h1 className="text-4xl font-bold leading-tight md:text-5xl">Ações da comunidade</h1>
             <p className="mt-4 max-w-xl text-lg leading-relaxed text-muted-foreground">Encontros, oficinas e momentos para fazer comunidade no Porto e além.</p>
           </div>
@@ -209,8 +189,8 @@ function Home() {
           <AcaoFeatured acao={destaque} />
         ) : (
           <section className={`grid items-start gap-6 ${passados[0] ? "lg:grid-cols-[1fr_2fr]" : ""}`} aria-label="Novas ações em breve">
-            <div className="flex items-start gap-4 border-l-4 border-secondary py-2 pl-5">
-              <Sparkles className="mt-1 h-7 w-7 shrink-0 text-secondary" aria-hidden="true" />
+            <div className="flex items-start gap-4 border-l-4 border-primary py-2 pl-5">
+              <Sparkles className="mt-1 h-7 w-7 shrink-0 text-primary" aria-hidden="true" />
               <div><h2 className="text-2xl font-bold">Novas ações em breve</h2><p className="mt-2 max-w-xl text-base leading-relaxed text-muted-foreground">Estamos a preparar os próximos encontros. Entretanto, revê o que já vivemos juntos.</p></div>
             </div>
             {passados[0] && <AcaoFeatured acao={passados[0]} passado participantes={participantCounts?.[passados[0].id]} />}
@@ -226,14 +206,14 @@ function Home() {
           <TabsContent value="galeria" className="mt-4 space-y-8">
             <div className="min-w-0 space-y-4 border-b pb-5">
               <div className="flex gap-2 overflow-x-auto pb-2" aria-label="Filtrar por tipo de ação">
-                <Button variant="outline" aria-pressed={!search.tipo} onClick={() => updateFilters({ tipo: "" })} className={`shrink-0 gap-2 rounded-none ${!search.tipo ? "acao-chip-ink" : ""}`}><LayoutGrid className="h-4 w-4" />Todas</Button>
+                <Button variant="outline" aria-pressed={!search.tipo} onClick={() => updateFilters({ tipo: "" })} className={`shrink-0 gap-2 ${!search.tipo ? "bg-primary text-primary-foreground" : ""}`}><LayoutGrid className="h-4 w-4" />Todas</Button>
                 {tipos.map((tipo) => {
                   const { Icon, tone } = acaoPresentation(tipo);
-                  return <Button key={tipo.id} variant="outline" aria-pressed={search.tipo === tipo.id} onClick={() => updateFilters({ tipo: tipo.id })} className={`shrink-0 gap-2 rounded-none ${tone} ${search.tipo === tipo.id ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : ""}`}><Icon className="h-4 w-4" />{tipo.nome}</Button>;
+                  return <Button key={tipo.id} variant="outline" aria-pressed={search.tipo === tipo.id} onClick={() => updateFilters({ tipo: tipo.id })} className={`shrink-0 gap-2 ${tone} ${search.tipo === tipo.id ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : ""}`}><Icon className="h-4 w-4" />{tipo.nome}</Button>;
                 })}
               </div>
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="relative w-full sm:max-w-sm"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input aria-label="Pesquisar por nome ou local" placeholder="Pesquisar por nome ou local" value={search.pesquisa} onChange={(event) => updateFilters({ pesquisa: event.target.value })} className="h-10 rounded-none bg-card pl-9" /></div>
+                <div className="relative w-full sm:max-w-sm"><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input aria-label="Pesquisar por nome ou local" placeholder="Pesquisar por nome ou local" value={search.pesquisa} onChange={(event) => updateFilters({ pesquisa: event.target.value })} className="h-10 bg-card pl-9" /></div>
                 <label className="flex cursor-pointer items-center gap-3 text-sm font-medium"><Switch checked={search.abertas} onCheckedChange={(abertas) => updateFilters({ abertas })} aria-label="Só com inscrições abertas" />Só com inscrições abertas</label>
               </div>
             </div>
@@ -272,7 +252,8 @@ function Home() {
           </TabsContent>
 
           <TabsContent value="calendario" className="mt-4">
-            <div className="space-y-6">
+            <AcaoAgenda dias={acoesPorDia} />
+            <div className="hidden space-y-6 sm:block">
               <div className="rounded-md border p-3">
                 <Calendar
                   mode="single"
@@ -307,15 +288,12 @@ function Home() {
                             {day.date.getDate()}
                           </span>
                           <div className="hidden flex-1 flex-col gap-0.5 overflow-hidden sm:flex">
-                            {list.slice(0, 3).map((a) => (
-                              <span
-                                key={a.id}
-                                title={a.nome}
-                                className="truncate rounded-sm bg-primary/15 px-1 py-0.5 text-[10px] font-medium leading-tight text-primary"
-                              >
-                                {a.nome}
-                              </span>
-                            ))}
+                            {list.slice(0, 3).map((a) => {
+                              const { Icon, tone } = acaoPresentation(a.tipo_acao);
+                              return <span key={a.id} title={a.nome} className={`flex min-w-0 items-center gap-1 rounded-sm px-1 py-0.5 text-[10px] font-medium leading-tight ${tone}`}>
+                                <Icon className="h-3 w-3 shrink-0" aria-hidden="true" /><span className="truncate">{a.nome}</span>
+                              </span>;
+                            })}
                             {list.length > 3 && (
                               <span className="text-[10px] text-muted-foreground">+{list.length - 3}</span>
                             )}

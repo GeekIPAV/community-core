@@ -22,7 +22,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { matchCidade, formatEuro, type CidadeBolsa, KM_RATE, TRIP_FACTOR, parseViatura, normalizeGrupo } from "@/lib/bolsa-transporte";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AcaoCover, CABIN_FONT_LINK } from "@/components/acao-cover";
+import { AcaoCover } from "@/components/acao-cover";
+import { AcaoDetailActions } from "@/components/acao-detail-actions";
 import { AcaoParticipantesTab } from "@/components/acao-participantes-tab";
 
 function AcaoTabsWrapper({
@@ -70,7 +71,6 @@ export const Route = createFileRoute("/acao/$id")({
           { property: "og:type", content: "website" },
           { name: "twitter:card", content: "summary_large_image" },
         ],
-        links: [CABIN_FONT_LINK],
       };
     }
     const plainDesc = (a.descricao ?? "")
@@ -93,7 +93,7 @@ export const Route = createFileRoute("/acao/$id")({
           { name: "twitter:image", content: a.imagem_url },
         ] : []),
       ],
-      links: [CABIN_FONT_LINK, { rel: "canonical", href: url }],
+      links: [{ rel: "canonical", href: url }],
       scripts: [{
         type: "application/ld+json",
         children: JSON.stringify({
@@ -177,7 +177,7 @@ function AcaoDetailPage() {
               />
             }
           >
-          <Card className="relative overflow-hidden rounded-none">
+          <Card className="relative overflow-hidden">
             {canManage && (
               <div className="absolute right-4 top-16 z-10">
                 <Button size="icon" variant="secondary" onClick={() => setEditOpen(true)} title="Editar ação">
@@ -211,6 +211,7 @@ function AcaoDetailPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <AcaoDetailActions acao={acao} />
               {acao.descricao && <RichTextView html={acao.descricao} />}
               <AcaoParceirosChips acaoId={acao.id} />
               {acao.restrito_a_projetos && (acao.projeto_ids?.length ?? 0) > 0 && (
