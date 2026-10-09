@@ -2952,6 +2952,13 @@ export type Database = {
         Returns: Json
       }
       get_estatisticas_publicas: { Args: never; Returns: Json }
+      get_public_action_participant_counts: {
+        Args: { p_action_ids: string[] }
+        Returns: {
+          acao_id: string
+          participantes: number
+        }[]
+      }
       inscrever_publico:
         | {
             Args: {
