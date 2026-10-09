@@ -50,6 +50,13 @@
       "when": 1790087380778,
       "tag": "0006_acoes_participantes_extra",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791531778295,
+      "tag": "0007_public_action_participant_counts",
+      "breakpoints": true
     }
   ]
 }

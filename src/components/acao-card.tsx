@@ -1,18 +1,18 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowUpRight, Clock3, MapPin, ExternalLink } from "lucide-react";
+import { ArrowUpRight, Clock3, MapPin, ExternalLink, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RichTextView } from "@/components/rich-text-view";
 import { AcaoCover } from "@/components/acao-cover";
 import { acaoDateLabel, acaoPresentation, type AcaoTipo } from "@/lib/acao-presentation";
 
-type PublicAcao = {
+export type PublicAcao = {
   id: string; nome: string; descricao: string | null; local: string | null; mapa_url: string | null;
   imagem_url: string | null; imagem_position: string | null; data_inicio: string | null; data_fim: string | null;
   inscricoes_abertas: boolean; tipo_acao?: AcaoTipo | null;
 };
 
-export function AcaoCard({ acao, passado }: { acao: PublicAcao; passado?: boolean }) {
+export function AcaoCard({ acao, passado, participantes }: { acao: PublicAcao; passado?: boolean; participantes?: number }) {
   const date = acaoDateLabel(acao.data_inicio, acao.data_fim);
   const { Icon, tone } = acaoPresentation(acao.tipo_acao);
   const status = passado ? "Realizada" : acao.inscricoes_abertas ? "Inscrições abertas" : "Inscrições fechadas";
@@ -36,6 +36,7 @@ export function AcaoCard({ acao, passado }: { acao: PublicAcao; passado?: boolea
           {(acao.local || acao.mapa_url) && <div className="flex items-start gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /><div className="min-w-0 break-words">{acao.local}{acao.mapa_url && <a href={acao.mapa_url} target="_blank" rel="noopener noreferrer" className="relative z-20 ml-2 inline-flex items-center gap-1 text-foreground underline underline-offset-4">Mapa<ExternalLink className="h-3 w-3" /></a>}</div></div>}
         </div>
         {acao.descricao && <RichTextView className="line-clamp-2 text-sm leading-relaxed text-muted-foreground" html={acao.descricao} />}
+        {passado && participantes !== undefined && participantes > 0 && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Users className="h-4 w-4 shrink-0" aria-hidden="true" />{participantes} {participantes === 1 ? "participante" : "participantes"}</p>}
         <Button asChild className="relative z-20 mt-auto h-10 w-full justify-between rounded-none px-3" variant={passado ? "secondary" : acao.inscricoes_abertas ? "default" : "outline"}>
           <Link to="/acao/$id" params={{ id: acao.id }}>{passado ? "Ver resumo" : acao.inscricoes_abertas ? "Ver e inscrever" : "Ver detalhes"}<ArrowUpRight className="h-4 w-4" /></Link>
         </Button>
