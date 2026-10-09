@@ -4461,7 +4461,7 @@ function AcoesBulkTable({
       </div>
 
       <div className="min-w-0 overflow-hidden rounded-md border">
-        <Table className="w-full table-fixed">
+        <Table className="w-full table-auto">
           <TableHeader>
             <TableRow>
               <TableHead className="w-10">
