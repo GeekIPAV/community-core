@@ -2,23 +2,28 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { useAuth } from "@/lib/auth-context";
-import { CalendarDays, LayoutGrid, LogIn, MapPin, ExternalLink } from "lucide-react";
+import { CalendarDays, LayoutGrid, LogIn } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-import { RichTextView } from "@/components/rich-text-view";
+import { AcaoCard } from "@/components/acao-card";
+import { CABIN_FONT_LINK } from "@/components/acao-cover";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Comunidade MEERU" },
-      { name: "description", content: "Inscreve-te nas próximas ações da comunidade Meeru." },
+      { title: "Ações da comunidade — MEERU" },
+      { name: "description", content: "Encontros, oficinas e momentos para fazer comunidade no Porto e além. Descobre as ações da MEERU e participa." },
+      { property: "og:title", content: "Ações da comunidade — MEERU" },
+      { property: "og:description", content: "Encontros, oficinas e momentos para fazer comunidade no Porto e além." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [CABIN_FONT_LINK],
   }),
   component: Home,
 });
@@ -32,7 +37,7 @@ function Home() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("acoes")
-        .select("id, nome, descricao, local, mapa_url, imagem_url, imagem_position, data_inicio, data_fim, inscricoes_abertas, projeto_ids, restrito_a_projetos, publico")
+        .select("id, nome, descricao, local, mapa_url, imagem_url, imagem_position, data_inicio, data_fim, inscricoes_abertas, projeto_ids, restrito_a_projetos, publico, tipo_acao:tipos_acao(id, nome)")
         .eq("publico", true)
         .order("data_inicio", { ascending: true, nullsFirst: false });
       if (error) throw error;
@@ -47,7 +52,7 @@ function Home() {
       const { data, error } = await supabase
         .from("pessoas")
         .select("projeto_ids")
-        .eq("id", pessoa!.id)
+        .eq("id", pessoa?.id ?? "")
         .maybeSingle();
       if (error) throw error;
       return (data?.projeto_ids as string[] | null) ?? [];
@@ -84,13 +89,13 @@ function Home() {
       }
     }
     prox.sort((a, b) => {
-      const ta = a.data_inicio ? new Date(a.data_inicio).getTime() : new Date(a.data_fim!).getTime();
-      const tb = b.data_inicio ? new Date(b.data_inicio).getTime() : new Date(b.data_fim!).getTime();
+      const ta = a.data_inicio ? new Date(a.data_inicio).getTime() : new Date(a.data_fim ?? "").getTime();
+      const tb = b.data_inicio ? new Date(b.data_inicio).getTime() : new Date(b.data_fim ?? "").getTime();
       return ta - tb;
     });
     pas.sort((a, b) => {
-      const ta = a.data_fim ? new Date(a.data_fim).getTime() : new Date(a.data_inicio!).getTime();
-      const tb = b.data_fim ? new Date(b.data_fim).getTime() : new Date(b.data_inicio!).getTime();
+      const ta = a.data_fim ? new Date(a.data_fim).getTime() : new Date(a.data_inicio ?? "").getTime();
+      const tb = b.data_fim ? new Date(b.data_fim).getTime() : new Date(b.data_inicio ?? "").getTime();
       return tb - ta;
     });
     return { proximos: prox, passados: pas, semData: sem };
@@ -99,7 +104,7 @@ function Home() {
   const todasAcoes = useMemo(() => [...proximos, ...passados, ...semData], [proximos, passados, semData]);
 
   const diasComAcao = useMemo(
-    () => todasAcoes.filter((a) => a.data_inicio).map((a) => new Date(a.data_inicio!)),
+    () => todasAcoes.filter((a) => a.data_inicio).map((a) => new Date(a.data_inicio ?? "")),
     [todasAcoes],
   );
 
@@ -123,11 +128,11 @@ function Home() {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-background">
+      <div className="public-actions-theme flex min-h-screen w-full bg-background">
         <div className="hidden md:block">
           <AppSidebar />
         </div>
-        <div className="flex flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col">
       <header className="border-b">
         <div className="flex h-14 items-center justify-between px-4">
           <div className="flex items-center gap-2">
@@ -152,9 +157,12 @@ function Home() {
       </header>
 
       <main className="mx-auto w-full max-w-6xl space-y-8 px-4 py-6 md:py-8">
-        <div>
-          <h1 className="text-2xl font-semibold md:text-3xl">Ações da comunidade</h1>
-          <p className="text-sm text-muted-foreground">Próximas e passadas.</p>
+        <div className="relative overflow-hidden border-b border-border pb-8 pt-4 md:pb-10 md:pt-6">
+          <svg aria-hidden="true" viewBox="0 0 120 120" className="absolute right-0 top-0 h-20 w-20 text-secondary md:h-32 md:w-32"><path d="M0 0H120V120A120 120 0 0 1 0 0Z" fill="currentColor" /></svg>
+          <div className="relative max-w-3xl pr-12 md:pr-20">
+            <h1 className="text-4xl font-bold leading-tight md:text-5xl">Ações da comunidade</h1>
+            <p className="mt-4 max-w-xl text-lg leading-relaxed text-muted-foreground">Encontros, oficinas e momentos para fazer comunidade no Porto e além.</p>
+          </div>
         </div>
 
         <Tabs defaultValue="galeria">
@@ -165,7 +173,7 @@ function Home() {
 
           <TabsContent value="galeria" className="mt-4 space-y-8">
             {isLoading ? (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid auto-rows-fr gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-44 w-full" />)}
               </div>
             ) : (
@@ -175,7 +183,7 @@ function Home() {
                   {proximos.length === 0 ? (
                     <p className="text-sm text-muted-foreground">Sem ações abertas no momento.</p>
                   ) : (
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid auto-rows-fr gap-5 sm:grid-cols-2 xl:grid-cols-3">
                       {proximos.map((a) => <AcaoCard key={a.id} acao={a} />)}
                     </div>
                   )}
@@ -186,7 +194,7 @@ function Home() {
                   {semData.length === 0 ? (
                     <p className="text-sm text-muted-foreground">Sem ações sem data.</p>
                   ) : (
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid auto-rows-fr gap-5 sm:grid-cols-2 xl:grid-cols-3">
                       {semData.map((a) => <AcaoCard key={a.id} acao={a} />)}
                     </div>
                   )}
@@ -197,7 +205,7 @@ function Home() {
                   {passados.length === 0 ? (
                     <p className="text-sm text-muted-foreground">Sem eventos passados.</p>
                   ) : (
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid auto-rows-fr gap-5 sm:grid-cols-2 xl:grid-cols-3">
                       {passados.map((a) => <AcaoCard key={a.id} acao={a} passado />)}
                     </div>
                   )}
@@ -226,7 +234,8 @@ function Home() {
                     DayButton: ({ day, modifiers, className: btnClass, ...btnProps }) => {
                       const list = acoesPorDia.get(day.date.toDateString()) ?? [];
                       return (
-                        <button
+                        <Button
+                          variant="ghost"
                           {...btnProps}
                           data-selected-single={
                             modifiers.selected && !modifiers.range_start && !modifiers.range_end && !modifiers.range_middle
@@ -257,7 +266,7 @@ function Home() {
                           {list.length > 0 && (
                             <span className="mx-auto mt-auto h-1 w-1 rounded-full bg-primary sm:hidden" />
                           )}
-                        </button>
+                        </Button>
                       );
                     },
                   }}
@@ -268,7 +277,7 @@ function Home() {
                   </Button>
                 )}
               </div>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid auto-rows-fr gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 {acoesDoDia.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Sem ações neste dia.</p>
                 ) : (
@@ -285,56 +294,3 @@ function Home() {
   );
 }
 
-function AcaoCard({ acao, passado }: { acao: any; passado?: boolean }) {
-  return (
-    <Card className={"overflow-hidden " + (passado ? "opacity-70" : "")}>
-      {acao.imagem_url && (
-        <img
-          src={acao.imagem_url}
-          alt={acao.nome}
-          className="h-36 w-full object-cover"
-          style={{ objectPosition: acao.imagem_position ?? "50% 50%" }}
-        />
-      )}
-      <CardHeader>
-        <CardTitle className="text-lg">{acao.nome}</CardTitle>
-        <CardDescription>
-          {acao.data_inicio ? new Date(acao.data_inicio).toLocaleString("pt-PT", { dateStyle: "medium", timeStyle: "short" }) : "Sem data"}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3 text-sm">
-        {(acao.local || acao.mapa_url) && (
-          <p className="flex flex-wrap items-center gap-2 text-muted-foreground">
-            <MapPin className="h-4 w-4" />
-            {acao.local && <span>{acao.local}</span>}
-            {acao.mapa_url && (
-              <a
-                href={acao.mapa_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1 text-primary hover:underline"
-              >
-                Mapa <ExternalLink className="h-3 w-3" />
-              </a>
-            )}
-          </p>
-        )}
-        {acao.descricao && <RichTextView className="line-clamp-3 text-muted-foreground" html={acao.descricao} />}
-        {passado ? (
-          <Link to="/acao/$id" params={{ id: acao.id }}>
-            <Button size="sm" className="w-full" variant="secondary">Ver resumo</Button>
-          </Link>
-        ) : acao.inscricoes_abertas ? (
-          <Link to="/acao/$id" params={{ id: acao.id }}>
-            <Button size="sm" className="w-full">Ver e inscrever</Button>
-          </Link>
-        ) : (
-          <Button size="sm" className="w-full" variant="outline" disabled>
-            Inscrições fechadas
-          </Button>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
