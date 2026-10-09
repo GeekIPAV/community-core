@@ -167,10 +167,10 @@
 /* Public action identity: local overrides never affect the management area. */
 .public-actions-theme,
 .acao-cover-fallback {
-  --public-action-gold: oklch(0.756 0.15 75.5);
-  --public-action-sage: oklch(0.696 0.057 172.2);
-  --public-action-ink: oklch(0.218 0 0);
-  --public-action-paper: oklch(0.95 0.005 80);
+  --public-action-gold: oklch(0.757601526 0.152450679 74.864591);
+  --public-action-sage: oklch(0.699038838 0.056527120 171.951129);
+  --public-action-ink: oklch(0.217786501 0 0);
+  --public-action-paper: oklch(0.949822789 0.004554846 78.297672);
   --public-action-white: oklch(1 0 0);
   font-family: "Cabin", ui-sans-serif, system-ui, sans-serif;
 }
