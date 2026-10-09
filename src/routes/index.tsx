@@ -208,7 +208,7 @@ function Home() {
         {isLoading ? <Skeleton className="h-80 w-full" /> : destaque ? (
           <AcaoFeatured acao={destaque} />
         ) : (
-          <section className="space-y-6" aria-label="Novas ações em breve">
+          <section className={`grid items-start gap-6 ${passados[0] ? "lg:grid-cols-[1fr_2fr]" : ""}`} aria-label="Novas ações em breve">
             <div className="flex items-start gap-4 border-l-4 border-secondary py-2 pl-5">
               <Sparkles className="mt-1 h-7 w-7 shrink-0 text-secondary" aria-hidden="true" />
               <div><h2 className="text-2xl font-bold">Novas ações em breve</h2><p className="mt-2 max-w-xl text-base leading-relaxed text-muted-foreground">Estamos a preparar os próximos encontros. Entretanto, revê o que já vivemos juntos.</p></div>
