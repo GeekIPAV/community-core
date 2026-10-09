@@ -234,7 +234,8 @@ function Home() {
                     DayButton: ({ day, modifiers, className: btnClass, ...btnProps }) => {
                       const list = acoesPorDia.get(day.date.toDateString()) ?? [];
                       return (
-                        <button
+                        <Button
+                          variant="ghost"
                           {...btnProps}
                           data-selected-single={
                             modifiers.selected && !modifiers.range_start && !modifiers.range_end && !modifiers.range_middle
